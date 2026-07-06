@@ -1,25 +1,39 @@
 <template>
-  <div ref="mapContainer" class="map-container"></div>
+  <div ref="mapContainer" class="map-container">
+    <div class="layer-switcher">
+      <button
+        v-for="(layer, index) in LAYERS"
+        :key="layer.file"
+        :class="{ active: currentLayerIndex === index }"
+        @click="switchLayer(index)"
+      >
+        {{ layer.label }}
+      </button>
+    </div>
+  </div>
 </template>
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
-import { Application, Container, Graphics } from 'pixi.js'
+import { Application, Container, Graphics, Text, TextStyle } from 'pixi.js'
 
 const mapContainer = ref()
 let app
 let worldContainer
+let labelContainer
+let currentLayerIndex = ref(0)
+let currentData = null
 
 const LAYERS = [
-  { file: '/中国_省.geojson', minZoom: 0, maxZoom: 7, color: 0x555555, fillColor: 0xdddddd },
-  { file: '/中国_市.geojson', minZoom: 7.5, maxZoom: 12, color: 0x444444, fillColor: 0xcccccc },
-  { file: '/中国_县.geojson', minZoom: 12.5, maxZoom: 20, color: 0x333333, fillColor: 0xbbbbbb },
+  { file: '/中国_省.geojson', label: '省级', color: 0x555555, fillColor: 0xdddddd },
+  { file: '/中国_市.geojson', label: '市级', color: 0x444444, fillColor: 0xcccccc },
+  { file: '/中国_县.geojson', label: '县级', color: 0x333333, fillColor: 0xbbbbbb },
 ]
 
 const geoJsonCache = new Map()
-let currentLayerIndex = -1
 let isDragging = false
 let lastPointer = { x: 0, y: 0 }
+let pointerDownPos = { x: 0, y: 0 }
 
 // 地图状态
 let mapScale = 1
@@ -34,12 +48,109 @@ const GEO_BOUNDS = {
 }
 
 function geoToScreen(lng, lat, width, height) {
-  const lngRange = GEO_BOUNDS.maxLng - GEO_BOUNDS.minLng // 62
-  const latRange = GEO_BOUNDS.maxLat - GEO_BOUNDS.minLat // 36
+  const lngRange = GEO_BOUNDS.maxLng - GEO_BOUNDS.minLng
+  const latRange = GEO_BOUNDS.maxLat - GEO_BOUNDS.minLat
   const scale = Math.min(width / lngRange, height / latRange)
   const x = (lng - GEO_BOUNDS.minLng) * scale
   const y = (GEO_BOUNDS.maxLat - lat) * scale
   return { x, y }
+}
+
+function screenToGeo(screenX, screenY, width, height) {
+  const lngRange = GEO_BOUNDS.maxLng - GEO_BOUNDS.minLng
+  const latRange = GEO_BOUNDS.maxLat - GEO_BOUNDS.minLat
+  const scale = Math.min(width / lngRange, height / latRange)
+  const lng = (screenX / scale) + GEO_BOUNDS.minLng
+  const lat = GEO_BOUNDS.maxLat - (screenY / scale)
+  return { lng, lat }
+}
+
+function pointInPolygon(lng, lat, coordinates) {
+  let inside = false
+  for (let i = 0, j = coordinates.length - 1; i < coordinates.length; j = i++) {
+    const [xi, yi] = coordinates[i]
+    const [xj, yj] = coordinates[j]
+    if (((yi > lat) !== (yj > lat)) && (lng < (xj - xi) * (lat - yi) / (yj - yi) + xi)) {
+      inside = !inside
+    }
+  }
+  return inside
+}
+
+function hitTest(screenX, screenY, data, width, height) {
+  // 屏幕坐标 → 世界坐标（考虑地图偏移和缩放）
+  const worldX = (screenX - mapX) / mapScale
+  const worldY = (screenY - mapY) / mapScale
+
+  // 世界坐标 → 经纬度
+  const geo = screenToGeo(worldX, worldY, width, height)
+
+  for (const feature of data.features) {
+    const { geometry } = feature
+    let hit = false
+
+    if (geometry.type === 'Polygon') {
+      hit = pointInPolygon(geo.lng, geo.lat, geometry.coordinates[0])
+    } else if (geometry.type === 'MultiPolygon') {
+      for (const polygon of geometry.coordinates) {
+        if (pointInPolygon(geo.lng, geo.lat, polygon[0])) {
+          hit = true
+          break
+        }
+      }
+    }
+
+    if (hit) return feature
+  }
+  return null
+}
+
+function calculateCentroid(geometry) {
+  const polygons = []
+  if (geometry.type === 'Polygon') {
+    polygons.push(geometry.coordinates[0])
+  } else if (geometry.type === 'MultiPolygon') {
+    for (const polygon of geometry.coordinates) {
+      polygons.push(polygon[0])
+    }
+  }
+
+  if (polygons.length === 0) return null
+
+  function ringCentroid(ring) {
+    let area = 0
+    let cx = 0
+    let cy = 0
+    for (let i = 0; i < ring.length - 1; i++) {
+      const [x0, y0] = ring[i]
+      const [x1, y1] = ring[i + 1]
+      const cross = x0 * y1 - x1 * y0
+      area += cross
+      cx += (x0 + x1) * cross
+      cy += (y0 + y1) * cross
+    }
+    area /= 2
+    const absArea = Math.abs(area)
+    if (absArea === 0) return null
+    cx /= 6 * area
+    cy /= 6 * area
+    return { lng: cx, lat: cy, area: absArea }
+  }
+
+  let totalArea = 0
+  let totalLng = 0
+  let totalLat = 0
+
+  for (const ring of polygons) {
+    const c = ringCentroid(ring)
+    if (!c) continue
+    totalArea += c.area
+    totalLng += c.lng * c.area
+    totalLat += c.lat * c.area
+  }
+
+  if (totalArea === 0) return null
+  return { lng: totalLng / totalArea, lat: totalLat / totalArea }
 }
 
 function drawFeature(graphics, feature, width, height, style, scale) {
@@ -50,11 +161,10 @@ function drawFeature(graphics, feature, width, height, style, scale) {
       : geometry.type === 'MultiPolygon'
         ? geometry.coordinates
         : []
-  const lineWidth = 1.5 / scale
 
   for (const polygon of polygons) {
     graphics.fill({ color: style.fillColor, alpha: 0.5 })
-    graphics.stroke({ width: lineWidth, color: style.color, alpha: 1 })
+    graphics.stroke({ width: 1.5, color: style.color, alpha: 1 })
     for (const ring of polygon) {
       if (ring.length < 3) continue
       const first = geoToScreen(ring[0][0], ring[0][1], width, height)
@@ -68,23 +178,77 @@ function drawFeature(graphics, feature, width, height, style, scale) {
   }
 }
 
-async function loadLayer(index) {
-  if (index === currentLayerIndex) return
-  currentLayerIndex = index
+function getLabelStyle(layerIndex) {
+  const sizes = [16, 13, 11]
+  return new TextStyle({
+    fontSize: sizes[layerIndex],
+    fill: 0xffffff,
+    fontFamily: 'Arial, sans-serif',
+    fontWeight: 'bold',
+    stroke: {
+      color: 0x000000,
+      width: 2,
+    },
+    resolution: 2,
+  })
+}
 
+function renderLabels(data, width, height, layerIndex) {
+  labelContainer.removeChildren()
+  const style = getLabelStyle(layerIndex)
+
+  for (const feature of data.features) {
+    const name = feature.properties?.name
+    if (!name) continue
+
+    const centroid = calculateCentroid(feature.geometry)
+    if (!centroid) continue
+
+    const screenPos = geoToScreen(centroid.lng, centroid.lat, width, height)
+    const text = new Text({
+      text: name,
+      style,
+      resolution: 2,
+    })
+    text.anchor.set(0.5)
+    text._geoX = screenPos.x
+    text._geoY = screenPos.y
+    text.x = screenPos.x
+    text.y = screenPos.y
+    labelContainer.addChild(text)
+  }
+}
+
+function updateLabels() {
+  if (!labelContainer) return
+  for (const child of labelContainer.children) {
+    child.x = child._geoX * mapScale + mapX
+    child.y = child._geoY * mapScale + mapY
+  }
+}
+
+async function switchLayer(index) {
+  if (currentLayerIndex.value === index) return
+  currentLayerIndex.value = index
+  await loadLayer(index)
+}
+
+async function loadLayer(index) {
   const config = LAYERS[index]
   if (!geoJsonCache.has(config.file)) {
     const res = await fetch(config.file)
     geoJsonCache.set(config.file, await res.json())
   }
 
-  const data = geoJsonCache.get(config.file)
+  currentData = geoJsonCache.get(config.file)
   const width = app.screen.width
   const height = app.screen.height
 
   worldContainer.removeChildren()
+  labelContainer.removeChildren()
+
   const graphics = new Graphics()
-  for (const feature of data.features) {
+  for (const feature of currentData.features) {
     drawFeature(
       graphics,
       feature,
@@ -98,20 +262,8 @@ async function loadLayer(index) {
     )
   }
   worldContainer.addChild(graphics)
-}
 
-function getZoomFromScale() {
-  return Math.log2(mapScale) + 5
-}
-
-function checkLayer() {
-  const zoom = getZoomFromScale()
-  for (let i = 0; i < LAYERS.length; i++) {
-    if (zoom >= LAYERS[i].minZoom && zoom <= LAYERS[i].maxZoom) {
-      loadLayer(i)
-      return
-    }
-  }
+  renderLabels(currentData, width, height, index)
 }
 
 function onWheel(e) {
@@ -124,7 +276,6 @@ function onWheel(e) {
   const delta = e.deltaY > 0 ? 0.9 : 1.1
   const newScale = Math.max(0.5, Math.min(8, mapScale * delta))
 
-  // 以鼠标位置为中心缩放
   const scaleRatio = newScale / mapScale
   mapX = mouseX - (mouseX - mapX) * scaleRatio
   mapY = mouseY - (mouseY - mapY) * scaleRatio
@@ -132,13 +283,15 @@ function onWheel(e) {
 
   worldContainer.scale.set(mapScale)
   worldContainer.position.set(mapX, mapY)
-  checkLayer()
+  updateLabels()
 }
 
 function onPointerDown(e) {
   isDragging = true
   lastPointer.x = e.clientX
   lastPointer.y = e.clientY
+  pointerDownPos.x = e.clientX
+  pointerDownPos.y = e.clientY
   app.canvas.style.cursor = 'grabbing'
 }
 
@@ -149,11 +302,31 @@ function onPointerMove(e) {
   lastPointer.x = e.clientX
   lastPointer.y = e.clientY
   worldContainer.position.set(mapX, mapY)
+  updateLabels()
 }
 
 function onPointerUp() {
   isDragging = false
   app.canvas.style.cursor = 'grab'
+}
+
+function onClick(e) {
+  if (!currentData) return
+
+  const dx = e.clientX - pointerDownPos.x
+  const dy = e.clientY - pointerDownPos.y
+  if (Math.sqrt(dx * dx + dy * dy) > 5) return
+
+  const rect = mapContainer.value.getBoundingClientRect()
+  const screenX = e.clientX - rect.left
+  const screenY = e.clientY - rect.top
+  const width = app.screen.width
+  const height = app.screen.height
+
+  const feature = hitTest(screenX, screenY, currentData, width, height)
+  if (feature) {
+    console.log('点击区域:', feature.properties)
+  }
 }
 
 onMounted(async () => {
@@ -166,9 +339,10 @@ onMounted(async () => {
   mapContainer.value.appendChild(app.canvas)
 
   worldContainer = new Container()
+  labelContainer = new Container()
   app.stage.addChild(worldContainer)
+  app.stage.addChild(labelContainer)
 
-  // 初始居中：中国中心约 (104, 36)
   const width = app.screen.width
   const height = app.screen.height
   const center = geoToScreen(104, 36, width, height)
@@ -179,6 +353,7 @@ onMounted(async () => {
   app.canvas.style.cursor = 'grab'
   app.canvas.addEventListener('wheel', onWheel, { passive: false })
   app.canvas.addEventListener('pointerdown', onPointerDown)
+  app.canvas.addEventListener('click', onClick)
   window.addEventListener('pointermove', onPointerMove)
   window.addEventListener('pointerup', onPointerUp)
 
@@ -188,6 +363,7 @@ onMounted(async () => {
 onUnmounted(() => {
   app?.canvas?.removeEventListener('wheel', onWheel)
   app?.canvas?.removeEventListener('pointerdown', onPointerDown)
+  app?.canvas?.removeEventListener('click', onClick)
   window.removeEventListener('pointermove', onPointerMove)
   window.removeEventListener('pointerup', onPointerUp)
   app?.destroy(true)
@@ -199,5 +375,37 @@ onUnmounted(() => {
   width: 100vw;
   height: 100vh;
   overflow: hidden;
+}
+
+.layer-switcher {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 1000;
+}
+
+.layer-switcher button {
+  padding: 8px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  backdrop-filter: blur(4px);
+}
+
+.layer-switcher button:hover {
+  background: rgba(0, 0, 0, 0.8);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.layer-switcher button.active {
+  background: rgba(59, 130, 246, 0.8);
+  border-color: rgba(59, 130, 246, 1);
 }
 </style>
