@@ -1,37 +1,58 @@
 <template>
   <div ref="mapContainer" class="map-container" @click.self="closeContextMenu">
     <div class="layer-switcher">
-      <button
+      <GameButton
         v-for="(layer, index) in LAYERS"
         :key="layer.file"
-        :class="{ active: currentLayerIndex === index }"
+        :active="currentLayerIndex === index"
         @click="switchLayer(index)"
       >
         {{ layer.label }}
-      </button>
+      </GameButton>
+      <GameButton class="owner-toggle" :active="ownerColorEnabled" @click="toggleOwnerColor">
+        政权着色
+      </GameButton>
+      <GameButton :active="labelsVisible" @click="toggleLabels">
+        显示地名
+      </GameButton>
+      <GameButton class="owner-toggle" @click="testTroopMove">
+        派兵测试
+      </GameButton>
     </div>
-    <div
-      v-if="contextMenuVisible"
-      class="context-menu"
-      :style="{ left: contextMenuPos.x + 'px', top: contextMenuPos.y + 'px' }"
+    <LegendPanel v-if="ownerColorEnabled" :items="legendItems" />
+    <GameContextMenu
+      :visible="contextMenuVisible"
+      :position="contextMenuPos"
+      :items="contextMenuItems"
+      @select="onMenuAction"
+    />
+    <GameModal
+      :visible="infoModalVisible"
+      :title="infoCityData?.name || ''"
+      @close="infoModalVisible = false"
     >
-      <div class="context-menu-item" @click.stop="onMenuAction('investigate')">调查</div>
-      <div class="context-menu-item" @click.stop="onMenuAction('declare-war')">宣战</div>
-      <div class="context-menu-item danger" @click.stop="onMenuAction('surprise-attack')">奇袭</div>
-    </div>
+      <InfoTable v-if="infoCityData" :rows="infoRows" />
+    </GameModal>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { Application, Container, Graphics, Text, TextStyle } from 'pixi.js'
+import { OWNER_COLORS, OWNER_LABELS } from '@/data/ownerColors'
+import { Owner } from '@/data/owners'
+import GameButton from '@/components/ui/GameButton.vue'
+import GameContextMenu from '@/components/ui/GameContextMenu.vue'
+import GameModal from '@/components/ui/GameModal.vue'
+import InfoTable from '@/components/ui/InfoTable.vue'
+import LegendPanel from '@/components/ui/LegendPanel.vue'
 
 const mapContainer = ref()
 let app
 let worldContainer
 let labelContainer
 let highlightGraphics
-let currentLayerIndex = ref(0)
+let currentLayerIndex = ref(1)
 let currentData = null
 let selectedFeature = null
 const contextMenuVisible = ref(false)
@@ -44,7 +65,51 @@ const LAYERS = [
 ]
 
 const geoJsonCache = new Map()
+let cityList = []
+let cityDataMap = new Map()
 let isDragging = false
+
+const OWNER_NAMES = {
+  KMT: '国民政府', CCP: '中共苏区', JPN: '日本关东军', NEA: '东北军',
+  SHX: '晋系', GXC: '桂系', SCC: '川军', MA: '马家军', XJ: '新疆', TIB: '西藏',
+}
+const TERRAIN_NAMES = {
+  PLAIN: '平原', HILL: '丘陵', MOUNTAIN: '山地', FOREST: '森林', CITY: '城市',
+}
+const LEVEL_NAMES = ['', '县城/小城', '普通城市', '区域中心', '全国重要城市', '超级城市']
+
+const infoModalVisible = ref(false)
+const infoCityData = ref(null)
+const ownerColorEnabled = ref(true)
+const labelsVisible = ref(false)
+
+const legendItems = computed(() =>
+  Object.entries(OWNER_LABELS).map(([key, label]) => ({
+    label,
+    color: '#' + OWNER_COLORS[key].toString(16).padStart(6, '0'),
+  }))
+)
+
+const contextMenuItems = [
+  { action: 'info', label: '查看信息' },
+  { action: 'investigate', label: '调查' },
+  { action: 'declare-war', label: '宣战' },
+  { action: 'surprise-attack', label: '奇袭', danger: true },
+]
+
+const infoRows = computed(() => {
+  if (!infoCityData.value) return []
+  const d = infoCityData.value
+  return [
+    { label: '政权', value: OWNER_NAMES[d.owner] || d.owner },
+    { label: '地形', value: TERRAIN_NAMES[d.terrain] || d.terrain },
+    { label: '城市规模', value: `${d.cityLevel}（${LEVEL_NAMES[d.cityLevel]}）` },
+    { label: '工业能力', value: `${d.industry} / 10` },
+    { label: '粮食生产', value: `${d.food} / 10` },
+    { label: '工事等级', value: `${d.fort} / 5` },
+  ]
+})
+
 let lastPointer = { x: 0, y: 0 }
 let pointerDownPos = { x: 0, y: 0 }
 
@@ -73,8 +138,8 @@ function screenToGeo(screenX, screenY, width, height) {
   const lngRange = GEO_BOUNDS.maxLng - GEO_BOUNDS.minLng
   const latRange = GEO_BOUNDS.maxLat - GEO_BOUNDS.minLat
   const scale = Math.min(width / lngRange, height / latRange)
-  const lng = (screenX / scale) + GEO_BOUNDS.minLng
-  const lat = GEO_BOUNDS.maxLat - (screenY / scale)
+  const lng = screenX / scale + GEO_BOUNDS.minLng
+  const lat = GEO_BOUNDS.maxLat - screenY / scale
   return { lng, lat }
 }
 
@@ -83,7 +148,7 @@ function pointInPolygon(lng, lat, coordinates) {
   for (let i = 0, j = coordinates.length - 1; i < coordinates.length; j = i++) {
     const [xi, yi] = coordinates[i]
     const [xj, yj] = coordinates[j]
-    if (((yi > lat) !== (yj > lat)) && (lng < (xj - xi) * (lat - yi) / (yj - yi) + xi)) {
+    if (yi > lat !== yj > lat && lng < ((xj - xi) * (lat - yi)) / (yj - yi) + xi) {
       inside = !inside
     }
   }
@@ -191,8 +256,7 @@ function drawFeature(graphics, feature, width, height, style, scale) {
   }
 }
 
-function highlightFeature(feature) {
-  highlightGraphics.clear()
+function highlightFeature(feature, color = 0xff4444) {
   const width = app.screen.width
   const height = app.screen.height
   const { geometry } = feature
@@ -214,9 +278,125 @@ function highlightFeature(feature) {
       }
       highlightGraphics.closePath()
     }
-    highlightGraphics.fill({ color: 0xff4444, alpha: 0.4 })
-    highlightGraphics.stroke({ width: 0.5, color: 0xff4444, alpha: 1 })
+    highlightGraphics.fill({ color, alpha: 0.4 })
+    highlightGraphics.stroke({ width: 0.5, color, alpha: 1 })
   }
+}
+
+// 派兵动画
+let troopAnimRunning = false
+
+function getFeatureCentroid(feature) {
+  const centroid = calculateCentroid(feature.geometry)
+  if (!centroid) return null
+  const width = app.screen.width
+  const height = app.screen.height
+  return geoToScreen(centroid.lng, centroid.lat, width, height)
+}
+
+function bezier(t, p0, p1, p2) {
+  const u = 1 - t
+  return {
+    x: u * u * p0.x + 2 * u * t * p1.x + t * t * p2.x,
+    y: u * u * p0.y + 2 * u * t * p1.y + t * t * p2.y,
+  }
+}
+
+function drawArrow(gfx, x, y, angle, color = 0xffcc00) {
+  const size = 8
+  gfx.moveTo(x + Math.cos(angle) * size, y + Math.sin(angle) * size)
+  gfx.lineTo(x + Math.cos(angle + 2.5) * size * 0.7, y + Math.sin(angle + 2.5) * size * 0.7)
+  gfx.lineTo(x + Math.cos(angle - 2.5) * size * 0.7, y + Math.sin(angle - 2.5) * size * 0.7)
+  gfx.closePath()
+  gfx.fill({ color, alpha: 1 })
+}
+
+async function testTroopMove() {
+  if (troopAnimRunning || !currentData) return
+
+  const fromGB = '156500000' // 重庆
+  const toGB = '156450200'   // 柳州
+
+  const fromFeature = currentData.features.find(f => f.properties?.gb === fromGB)
+  const toFeature = currentData.features.find(f => f.properties?.gb === toGB)
+
+  if (!fromFeature || !toFeature) {
+    console.warn('未找到城市，请切换到市级图层')
+    return
+  }
+
+  troopAnimRunning = true
+
+  // 高亮出发地和目标地（黄色）
+  highlightGraphics.clear()
+  highlightFeature(fromFeature, 0xffcc00)
+  highlightFeature(toFeature, 0xffcc00)
+
+  const p0 = getFeatureCentroid(fromFeature)
+  const p2 = getFeatureCentroid(toFeature)
+  if (!p0 || !p2) { troopAnimRunning = false; return }
+
+  // 控制点：中点偏上，形成弧线
+  const p1 = {
+    x: (p0.x + p2.x) / 2,
+    y: Math.min(p0.y, p2.y) - Math.abs(p2.x - p0.x) * 0.3,
+  }
+
+  const animGfx = new Graphics()
+  worldContainer.addChild(animGfx)
+
+  const dots = 5 // 小箭头数量
+  const spacing = 0.08 // 箭头间距
+  const totalProgress = 1 + (dots - 1) * spacing // 最后一个箭头走完全程的总进度
+  const duration = 2000 // 动画时长 ms
+  const startTime = performance.now()
+
+  return new Promise(resolve => {
+    function animate(now) {
+      const elapsed = now - startTime
+      const progress = Math.min(elapsed / duration, totalProgress)
+
+      animGfx.clear()
+
+      // 画路径虚线
+      const segments = 40
+      for (let i = 0; i < segments; i++) {
+        if (i % 2 === 0) {
+          const t1 = i / segments
+          const t2 = (i + 1) / segments
+          const a = bezier(t1, p0, p1, p2)
+          const b = bezier(t2, p0, p1, p2)
+          animGfx.moveTo(a.x, a.y)
+          animGfx.lineTo(b.x, b.y)
+          animGfx.stroke({ width: 2, color: 0xffcc00, alpha: 0.5 })
+        }
+      }
+
+      // 画移动的小箭头
+      for (let i = 0; i < dots; i++) {
+        const t = progress - i * spacing
+        if (t < 0 || t > 1) continue
+        const pos = bezier(t, p0, p1, p2)
+        const next = bezier(Math.min(t + 0.01, 1), p0, p1, p2)
+        const angle = Math.atan2(next.y - pos.y, next.x - pos.x)
+        drawArrow(animGfx, pos.x, pos.y, angle, 0xffcc00)
+      }
+
+      if (progress < totalProgress) {
+        requestAnimationFrame(animate)
+      } else {
+        // 到达后闪烁消失
+        setTimeout(() => {
+          worldContainer.removeChild(animGfx)
+          animGfx.destroy()
+          highlightGraphics.clear()
+          troopAnimRunning = false
+          resolve()
+        }, 500)
+      }
+    }
+    requestAnimationFrame(animate)
+  })
 }
 
 function onContextMenu(e) {
@@ -241,7 +421,13 @@ function closeContextMenu() {
 }
 
 function onMenuAction(action) {
-  console.log('菜单操作:', action, selectedFeature?.properties)
+  if (action === 'info' && selectedFeature) {
+    const gb = selectedFeature.properties.gb
+    infoCityData.value = cityDataMap.get(gb) || null
+    infoModalVisible.value = true
+  } else {
+    console.log('菜单操作:', action, selectedFeature?.properties)
+  }
   closeContextMenu()
 }
 
@@ -253,7 +439,13 @@ function onGlobalMouseDown(e) {
 }
 
 function onKeyDown(e) {
-  if (e.key === 'Escape') closeContextMenu()
+  if (e.key === 'Escape') {
+    if (infoModalVisible.value) {
+      infoModalVisible.value = false
+    } else {
+      closeContextMenu()
+    }
+  }
 }
 
 function getLabelStyle(layerIndex) {
@@ -311,6 +503,16 @@ async function switchLayer(index) {
   await loadLayer(index)
 }
 
+async function toggleOwnerColor() {
+  ownerColorEnabled.value = !ownerColorEnabled.value
+  await loadLayer(currentLayerIndex.value)
+}
+
+function toggleLabels() {
+  labelsVisible.value = !labelsVisible.value
+  labelContainer.visible = labelsVisible.value
+}
+
 async function loadLayer(index) {
   const config = LAYERS[index]
   if (!geoJsonCache.has(config.file)) {
@@ -327,6 +529,13 @@ async function loadLayer(index) {
 
   const graphics = new Graphics()
   for (const feature of currentData.features) {
+    let fillColor = config.fillColor
+    if (ownerColorEnabled.value && index === 1 && feature.properties?.gb) {
+      const cityData = cityDataMap.get(feature.properties.gb)
+      if (cityData?.owner) {
+        fillColor = OWNER_COLORS[cityData.owner] ?? config.fillColor
+      }
+    }
     drawFeature(
       graphics,
       feature,
@@ -334,7 +543,7 @@ async function loadLayer(index) {
       height,
       {
         color: config.color,
-        fillColor: config.fillColor,
+        fillColor,
       },
       mapScale,
     )
@@ -345,6 +554,7 @@ async function loadLayer(index) {
   selectedFeature = null
 
   renderLabels(currentData, width, height, index)
+  labelContainer.visible = labelsVisible.value
   updateLabels()
 }
 
@@ -408,6 +618,10 @@ function onClick(e) {
   const feature = hitTest(screenX, screenY, currentData, width, height)
   if (feature) {
     console.log('点击区域:', feature.properties)
+    const cityInfo = cityList.find((c) => c.gb === feature.properties.gb)
+    if (cityInfo) {
+      console.log('市列表匹配:', cityInfo)
+    }
     selectedFeature = feature
     highlightFeature(feature)
   } else {
@@ -448,6 +662,18 @@ onMounted(async () => {
   window.addEventListener('pointerup', onPointerUp)
   window.addEventListener('mousedown', onGlobalMouseDown)
   window.addEventListener('keydown', onKeyDown)
+
+  // 加载市列表
+  try {
+    const res = await fetch('/wold_1931.json')
+    cityList = await res.json()
+    for (const c of cityList) {
+      if (c.gb) cityDataMap.set(c.gb, c)
+    }
+    console.log('市列表加载完成:', cityList.length, '个市')
+  } catch (e) {
+    console.error('市列表加载失败:', e)
+  }
 
   await loadLayer(0)
 })
@@ -504,35 +730,9 @@ onUnmounted(() => {
   border-color: rgba(59, 130, 246, 1);
 }
 
-.context-menu {
-  position: absolute;
-  z-index: 2000;
-  background: rgba(20, 20, 40, 0.95);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 8px;
-  padding: 4px;
-  min-width: 120px;
-  backdrop-filter: blur(12px);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
-}
-
-.context-menu-item {
-  padding: 8px 16px;
-  color: #bbb;
-  font-size: 14px;
-  cursor: pointer;
-  border-radius: 4px;
-  user-select: none;
-  transition: background 0.15s, color 0.15s;
-}
-
-.context-menu-item:hover {
-  background: rgba(59, 130, 246, 0.3);
-  color: #fff;
-}
-
-.context-menu-item.danger:hover {
-  background: rgba(244, 68, 68, 0.3);
-  color: #ff8888;
+.owner-toggle {
+  margin-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  padding-top: 8px;
 }
 </style>
