@@ -15,8 +15,8 @@
       <GameButton :active="labelsVisible" @click="toggleLabels">
         显示地名
       </GameButton>
-      <GameButton class="owner-toggle" @click="testTroopMove">
-        派兵测试
+      <GameButton @click="testPanelVisible = !testPanelVisible">
+        调试
       </GameButton>
     </div>
     <LegendPanel v-if="ownerColorEnabled" :items="legendItems" />
@@ -33,6 +33,23 @@
     >
       <InfoTable v-if="infoCityData" :rows="infoRows" />
     </GameModal>
+    <GameModal
+      :visible="testPanelVisible"
+      title="调试"
+      :draggable="true"
+      :overlay="false"
+      :init-x="160"
+      :init-y="160"
+      @close="testPanelVisible = false"
+    >
+      <div class="test-panel">
+        <GameButton @click="testTroopMove">派兵测试</GameButton>
+        <GameButton @click="testScout">探察测试</GameButton>
+        <GameButton @click="testDeclareWar">宣战测试</GameButton>
+        <GameButton @click="testBattle">战斗测试</GameButton>
+        <GameButton danger @click="stopAllBattles">停止战斗</GameButton>
+      </div>
+    </GameModal>
   </div>
 </template>
 
@@ -41,6 +58,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { Application, Container, Graphics, Text, TextStyle } from 'pixi.js'
 import { OWNER_COLORS, OWNER_LABELS } from '@/data/ownerColors'
 import { Owner } from '@/data/owners'
+import { playArcAnimation, playScoutAnimation, startBattleAnimation } from '@/utils/troopAnimation'
 import GameButton from '@/components/ui/GameButton.vue'
 import GameContextMenu from '@/components/ui/GameContextMenu.vue'
 import GameModal from '@/components/ui/GameModal.vue'
@@ -80,6 +98,7 @@ const LEVEL_NAMES = ['', '县城/小城', '普通城市', '区域中心', '全�
 
 const infoModalVisible = ref(false)
 const infoCityData = ref(null)
+const testPanelVisible = ref(false)
 const ownerColorEnabled = ref(true)
 const labelsVisible = ref(false)
 
@@ -294,23 +313,6 @@ function getFeatureCentroid(feature) {
   return geoToScreen(centroid.lng, centroid.lat, width, height)
 }
 
-function bezier(t, p0, p1, p2) {
-  const u = 1 - t
-  return {
-    x: u * u * p0.x + 2 * u * t * p1.x + t * t * p2.x,
-    y: u * u * p0.y + 2 * u * t * p1.y + t * t * p2.y,
-  }
-}
-
-function drawArrow(gfx, x, y, angle, color = 0xffcc00) {
-  const size = 8
-  gfx.moveTo(x + Math.cos(angle) * size, y + Math.sin(angle) * size)
-  gfx.lineTo(x + Math.cos(angle + 2.5) * size * 0.7, y + Math.sin(angle + 2.5) * size * 0.7)
-  gfx.lineTo(x + Math.cos(angle - 2.5) * size * 0.7, y + Math.sin(angle - 2.5) * size * 0.7)
-  gfx.closePath()
-  gfx.fill({ color, alpha: 1 })
-}
-
 async function testTroopMove() {
   if (troopAnimRunning || !currentData) return
 
@@ -325,78 +327,144 @@ async function testTroopMove() {
     return
   }
 
+  const from = getFeatureCentroid(fromFeature)
+  const to = getFeatureCentroid(toFeature)
+  if (!from || !to) return
+
   troopAnimRunning = true
 
-  // 高亮出发地和目标地（黄色）
-  highlightGraphics.clear()
-  highlightFeature(fromFeature, 0xffcc00)
-  highlightFeature(toFeature, 0xffcc00)
-
-  const p0 = getFeatureCentroid(fromFeature)
-  const p2 = getFeatureCentroid(toFeature)
-  if (!p0 || !p2) { troopAnimRunning = false; return }
-
-  // 控制点：中点偏上，形成弧线
-  const p1 = {
-    x: (p0.x + p2.x) / 2,
-    y: Math.min(p0.y, p2.y) - Math.abs(p2.x - p0.x) * 0.3,
-  }
-
-  const animGfx = new Graphics()
-  worldContainer.addChild(animGfx)
-
-  const dots = 5 // 小箭头数量
-  const spacing = 0.08 // 箭头间距
-  const totalProgress = 1 + (dots - 1) * spacing // 最后一个箭头走完全程的总进度
-  const duration = 2000 // 动画时长 ms
-  const startTime = performance.now()
-
-  return new Promise(resolve => {
-    function animate(now) {
-      const elapsed = now - startTime
-      const progress = Math.min(elapsed / duration, totalProgress)
-
-      animGfx.clear()
-
-      // 画路径虚线
-      const segments = 40
-      for (let i = 0; i < segments; i++) {
-        if (i % 2 === 0) {
-          const t1 = i / segments
-          const t2 = (i + 1) / segments
-          const a = bezier(t1, p0, p1, p2)
-          const b = bezier(t2, p0, p1, p2)
-          animGfx.moveTo(a.x, a.y)
-          animGfx.lineTo(b.x, b.y)
-          animGfx.stroke({ width: 2, color: 0xffcc00, alpha: 0.5 })
-        }
-      }
-
-      // 画移动的小箭头
-      for (let i = 0; i < dots; i++) {
-        const t = progress - i * spacing
-        if (t < 0 || t > 1) continue
-        const pos = bezier(t, p0, p1, p2)
-        const next = bezier(Math.min(t + 0.01, 1), p0, p1, p2)
-        const angle = Math.atan2(next.y - pos.y, next.x - pos.x)
-        drawArrow(animGfx, pos.x, pos.y, angle, 0xffcc00)
-      }
-
-      if (progress < totalProgress) {
-        requestAnimationFrame(animate)
-      } else {
-        // 到达后闪烁消失
-        setTimeout(() => {
-          worldContainer.removeChild(animGfx)
-          animGfx.destroy()
-          highlightGraphics.clear()
-          troopAnimRunning = false
-          resolve()
-        }, 500)
-      }
-    }
-    requestAnimationFrame(animate)
+  await playArcAnimation({
+    from,
+    to,
+    container: worldContainer,
+    mode: 'dots',
+    text: '出兵！',
+    highlightGfx: highlightGraphics,
+    fromFeature,
+    toFeature,
+    onHighlight: highlightFeature,
+    color: 0xffcc00,
+    dots: 5,
+    duration: 2000,
   })
+
+  troopAnimRunning = false
+}
+
+// 探察测试
+let scoutAnimRunning = false
+
+async function testScout() {
+  if (scoutAnimRunning || !currentData) return
+
+  const fromGB = '156500000' // 重庆
+  const fromFeature = currentData.features.find(f => f.properties?.gb === fromGB)
+  if (!fromFeature) return
+
+  const from = getFeatureCentroid(fromFeature)
+  if (!from) return
+
+  scoutAnimRunning = true
+
+  await playScoutAnimation({
+    from,
+    container: worldContainer,
+    color: 0x22c55e,
+    rings: 3,
+    duration: 1500,
+    text: '侦察！',
+  })
+
+  scoutAnimRunning = false
+}
+
+// 宣战测试
+let declareWarAnimRunning = false
+
+async function testDeclareWar() {
+  if (declareWarAnimRunning || !currentData) return
+
+  const fromGB = '156500000' // 重庆
+  const toGB = '156450200'   // 柳州
+
+  const fromFeature = currentData.features.find(f => f.properties?.gb === fromGB)
+  const toFeature = currentData.features.find(f => f.properties?.gb === toGB)
+  if (!fromFeature || !toFeature) return
+
+  const from = getFeatureCentroid(fromFeature)
+  const to = getFeatureCentroid(toFeature)
+  if (!from || !to) return
+
+  declareWarAnimRunning = true
+
+  await playArcAnimation({
+    from,
+    to,
+    container: worldContainer,
+    mode: 'orb',
+    explosion: true,
+    shockwaves: 3,
+    text: '宣战！',
+    highlightGfx: highlightGraphics,
+    toFeature,
+    onHighlight: highlightFeature,
+    color: 0xff4444,
+    duration: 1200,
+    explosionDuration: 800,
+  })
+
+  declareWarAnimRunning = false
+}
+
+// 战斗测试（持续动画）
+const activeBattles = []
+
+function testBattle() {
+  if (!currentData) return
+
+  const fromGB = '156500000' // 重庆
+  const battleTargets = [
+    { toGB: '156450200', colorB: 0xef4444 }, // 柳州（红色）
+    { toGB: '156451000', colorB: 0x22c55e }, // 百色（绿色）
+  ]
+
+  const fromFeature = currentData.features.find(f => f.properties?.gb === fromGB)
+  if (!fromFeature) return
+
+  const from = getFeatureCentroid(fromFeature)
+  if (!from) return
+
+  // 先清除高亮
+  highlightGraphics.clear()
+
+  for (const target of battleTargets) {
+    const toFeature = currentData.features.find(f => f.properties?.gb === target.toGB)
+    if (!toFeature) continue
+
+    const to = getFeatureCentroid(toFeature)
+    if (!to) continue
+
+    const battle = startBattleAnimation({
+      from,
+      to,
+      container: worldContainer,
+      highlightGfx: highlightGraphics,
+      fromFeature,
+      toFeature,
+      onHighlight: highlightFeature,
+      colorA: 0x3b82f6, // 重庆（蓝色）
+      colorB: target.colorB,
+    })
+
+    activeBattles.push(battle)
+  }
+}
+
+function stopAllBattles() {
+  for (const battle of activeBattles) {
+    battle.stop()
+  }
+  activeBattles.length = 0
 }
 
 function onContextMenu(e) {
@@ -675,7 +743,7 @@ onMounted(async () => {
     console.error('市列表加载失败:', e)
   }
 
-  await loadLayer(0)
+  await loadLayer(currentLayerIndex.value)
 })
 
 onUnmounted(() => {
@@ -696,6 +764,12 @@ onUnmounted(() => {
   width: 100vw;
   height: 100vh;
   overflow: hidden;
+}
+
+.test-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .layer-switcher {
