@@ -9,12 +9,17 @@
       >
         {{ layer.label }}
       </GameButton>
-      <GameButton class="owner-toggle" :active="ownerColorEnabled" @click="toggleOwnerColor">
+      <div class="switcher-divider"></div>
+      <GameButton :active="ownerColorEnabled" @click="toggleOwnerColor">
         政权着色
       </GameButton>
       <GameButton :active="labelsVisible" @click="toggleLabels">
         显示地名
       </GameButton>
+      <GameButton :active="baseMapVisible" @click="toggleBaseMap">
+        世界背景
+      </GameButton>
+      <div class="switcher-divider"></div>
       <GameButton @click="testPanelVisible = !testPanelVisible">
         调试
       </GameButton>
@@ -28,10 +33,11 @@
     />
     <GameModal
       :visible="infoModalVisible"
-      :title="infoCityData?.name || ''"
+      :title="infoTitle"
       @close="infoModalVisible = false"
     >
       <InfoTable v-if="infoCityData" :rows="infoRows" />
+      <InfoTable v-else-if="infoCountryData" :rows="countryInfoRows" />
     </GameModal>
     <GameModal
       :visible="testPanelVisible"
@@ -98,9 +104,41 @@ const LEVEL_NAMES = ['', '县城/小城', '普通城市', '区域中心', '全�
 
 const infoModalVisible = ref(false)
 const infoCityData = ref(null)
+const infoCountryData = ref(null)
 const testPanelVisible = ref(false)
 const ownerColorEnabled = ref(true)
 const labelsVisible = ref(false)
+const baseMapVisible = ref(true)
+
+// 世界地图
+let worldData = null
+let worldDataMap = new Map()
+let baseContainer
+let baseHighlightGraphics
+let selectedWorldFeature = null
+
+const DIPLOMACY_COLORS = {
+  HOSTILE: 0x6b2020,
+  WAR: 0x4b0000,
+  NEUTRAL: 0x2d3a2e,
+  FRIENDLY: 0x2a3a5e,
+  ALLIED: 0x1a3a7e,
+}
+const DIPLOMACY_BORDER_COLORS = {
+  HOSTILE: 0x8b3030,
+  WAR: 0x6b1010,
+  NEUTRAL: 0x3d4a3e,
+  FRIENDLY: 0x3a5a7e,
+  ALLIED: 0x2a5a9e,
+}
+const COUNTRY_TYPE_NAMES = {
+  EMPIRE: '帝国', REPUBLIC: '共和国', UNION: '联盟',
+  COLONY: '殖民地', KINGDOM: '王国', SPLIT: '分裂',
+}
+const DIPLOMACY_NAMES = {
+  ALLIED: '同盟', FRIENDLY: '友好', NEUTRAL: '中立',
+  HOSTILE: '敌对', WAR: '交战中',
+}
 
 const legendItems = computed(() =>
   Object.entries(OWNER_LABELS).map(([key, label]) => ({
@@ -109,12 +147,12 @@ const legendItems = computed(() =>
   }))
 )
 
-const contextMenuItems = [
+const contextMenuItems = ref([
   { action: 'info', label: '查看信息' },
   { action: 'investigate', label: '调查' },
   { action: 'declare-war', label: '宣战' },
   { action: 'surprise-attack', label: '奇袭', danger: true },
-]
+])
 
 const infoRows = computed(() => {
   if (!infoCityData.value) return []
@@ -127,6 +165,27 @@ const infoRows = computed(() => {
     { label: '粮食生产', value: `${d.food} / 10` },
     { label: '工事等级', value: `${d.fort} / 5` },
   ]
+})
+
+const countryInfoRows = computed(() => {
+  if (!infoCountryData.value) return []
+  const d = infoCountryData.value
+  return [
+    { label: '国名', value: d.name },
+    { label: '全称', value: d.full_name || '—' },
+    { label: '国家类型', value: COUNTRY_TYPE_NAMES[d.countryType] || d.countryType || '—' },
+    { label: '军事实力', value: `${d.military ?? '—'} / 10` },
+    { label: '工业能力', value: `${d.industry ?? '—'} / 10` },
+    { label: '人口/资源', value: `${d.population ?? '—'} / 10` },
+    { label: '对华威胁', value: `${d.threat ?? '—'} / 10` },
+    { label: '外交关系', value: DIPLOMACY_NAMES[d.diplomacy] || d.diplomacy || '—' },
+  ]
+})
+
+const infoTitle = computed(() => {
+  if (infoCityData.value) return infoCityData.value.name
+  if (infoCountryData.value) return infoCountryData.value.name
+  return ''
 })
 
 let lastPointer = { x: 0, y: 0 }
@@ -302,6 +361,81 @@ function highlightFeature(feature, color = 0xff4444) {
   }
 }
 
+function highlightBaseFeature(feature, color = 0xff4444) {
+  const width = app.screen.width
+  const height = app.screen.height
+  const { geometry } = feature
+  const polygons =
+    geometry.type === 'Polygon'
+      ? [geometry.coordinates]
+      : geometry.type === 'MultiPolygon'
+        ? geometry.coordinates
+        : []
+
+  for (const polygon of polygons) {
+    for (const ring of polygon) {
+      if (ring.length < 3) continue
+      const first = geoToScreen(ring[0][0], ring[0][1], width, height)
+      baseHighlightGraphics.moveTo(first.x, first.y)
+      for (let i = 1; i < ring.length; i++) {
+        const p = geoToScreen(ring[i][0], ring[i][1], width, height)
+        baseHighlightGraphics.lineTo(p.x, p.y)
+      }
+      baseHighlightGraphics.closePath()
+    }
+    baseHighlightGraphics.fill({ color, alpha: 0.4 })
+    baseHighlightGraphics.stroke({ width: 0.5, color, alpha: 1 })
+  }
+}
+
+function hitTestAll(screenX, screenY) {
+  const width = app.screen.width
+  const height = app.screen.height
+
+  if (currentData) {
+    const chinaHit = hitTest(screenX, screenY, currentData, width, height)
+    if (chinaHit) return { layer: 'china', feature: chinaHit }
+  }
+
+  if (worldData && baseContainer.visible) {
+    const worldHit = hitTest(screenX, screenY, worldData, width, height)
+    if (worldHit) return { layer: 'world', feature: worldHit }
+  }
+
+  return null
+}
+
+function clearAllHighlights() {
+  highlightGraphics.clear()
+  baseHighlightGraphics.clear()
+  selectedFeature = null
+  selectedWorldFeature = null
+}
+
+async function renderBaseMap() {
+  const width = app.screen.width
+  const height = app.screen.height
+
+  const gfx = new Graphics()
+  for (const feature of worldData.features) {
+    const countryData = worldDataMap.get(feature.properties?.iso_a3)
+    const diplomacy = countryData?.diplomacy || 'NEUTRAL'
+    const fillColor = DIPLOMACY_COLORS[diplomacy] || DIPLOMACY_COLORS.NEUTRAL
+    const borderColor = DIPLOMACY_BORDER_COLORS[diplomacy] || DIPLOMACY_BORDER_COLORS.NEUTRAL
+    drawFeature(gfx, feature, width, height, {
+      color: borderColor,
+      fillColor,
+    })
+  }
+  baseContainer.addChild(gfx)
+  baseContainer.addChild(baseHighlightGraphics)
+}
+
+function toggleBaseMap() {
+  baseMapVisible.value = !baseMapVisible.value
+  baseContainer.visible = baseMapVisible.value
+}
+
 // 派兵动画
 let troopAnimRunning = false
 
@@ -469,19 +603,35 @@ function stopAllBattles() {
 
 function onContextMenu(e) {
   e.preventDefault()
-  if (!currentData) return
 
   const rect = mapContainer.value.getBoundingClientRect()
   const screenX = e.clientX - rect.left
   const screenY = e.clientY - rect.top
-  const feature = hitTest(screenX, screenY, currentData, app.screen.width, app.screen.height)
+  const result = hitTestAll(screenX, screenY)
 
-  if (feature) {
-    selectedFeature = feature
-    highlightFeature(feature)
-    contextMenuPos.value = { x: screenX, y: screenY }
-    contextMenuVisible.value = true
+  if (!result) return
+
+  clearAllHighlights()
+
+  if (result.layer === 'china') {
+    selectedFeature = result.feature
+    highlightFeature(result.feature)
+    contextMenuItems.value = [
+      { action: 'info', label: '查看信息' },
+      { action: 'investigate', label: '调查' },
+      { action: 'declare-war', label: '宣战' },
+      { action: 'surprise-attack', label: '奇袭', danger: true },
+    ]
+  } else {
+    selectedWorldFeature = result.feature
+    highlightBaseFeature(result.feature)
+    contextMenuItems.value = [
+      { action: 'info', label: '查看信息' },
+    ]
   }
+
+  contextMenuPos.value = { x: screenX, y: screenY }
+  contextMenuVisible.value = true
 }
 
 function closeContextMenu() {
@@ -489,12 +639,20 @@ function closeContextMenu() {
 }
 
 function onMenuAction(action) {
-  if (action === 'info' && selectedFeature) {
-    const gb = selectedFeature.properties.gb
-    infoCityData.value = cityDataMap.get(gb) || null
-    infoModalVisible.value = true
+  if (action === 'info') {
+    if (selectedFeature) {
+      const gb = selectedFeature.properties.gb
+      infoCityData.value = cityDataMap.get(gb) || null
+      infoCountryData.value = null
+      infoModalVisible.value = true
+    } else if (selectedWorldFeature) {
+      const iso_a3 = selectedWorldFeature.properties.iso_a3
+      infoCountryData.value = worldDataMap.get(iso_a3) || selectedWorldFeature.properties
+      infoCityData.value = null
+      infoModalVisible.value = true
+    }
   } else {
-    console.log('菜单操作:', action, selectedFeature?.properties)
+    console.log('菜单操作:', action, selectedFeature?.properties || selectedWorldFeature?.properties)
   }
   closeContextMenu()
 }
@@ -643,6 +801,8 @@ function onWheel(e) {
 
   worldContainer.scale.set(mapScale)
   worldContainer.position.set(mapX, mapY)
+  baseContainer.scale.set(mapScale)
+  baseContainer.position.set(mapX, mapY)
   updateLabels()
 }
 
@@ -662,6 +822,7 @@ function onPointerMove(e) {
   lastPointer.x = e.clientX
   lastPointer.y = e.clientY
   worldContainer.position.set(mapX, mapY)
+  baseContainer.position.set(mapX, mapY)
   updateLabels()
 }
 
@@ -671,8 +832,6 @@ function onPointerUp() {
 }
 
 function onClick(e) {
-  if (!currentData) return
-
   const dx = e.clientX - pointerDownPos.x
   const dy = e.clientY - pointerDownPos.y
   if (Math.sqrt(dx * dx + dy * dy) > 5) return
@@ -680,21 +839,23 @@ function onClick(e) {
   const rect = mapContainer.value.getBoundingClientRect()
   const screenX = e.clientX - rect.left
   const screenY = e.clientY - rect.top
-  const width = app.screen.width
-  const height = app.screen.height
 
-  const feature = hitTest(screenX, screenY, currentData, width, height)
-  if (feature) {
-    console.log('点击区域:', feature.properties)
-    const cityInfo = cityList.find((c) => c.gb === feature.properties.gb)
-    if (cityInfo) {
-      console.log('市列表匹配:', cityInfo)
-    }
-    selectedFeature = feature
-    highlightFeature(feature)
+  const result = hitTestAll(screenX, screenY)
+  if (!result) {
+    clearAllHighlights()
+    return
+  }
+
+  clearAllHighlights()
+
+  if (result.layer === 'china') {
+    console.log('点击区域:', result.feature.properties)
+    selectedFeature = result.feature
+    highlightFeature(result.feature)
   } else {
-    selectedFeature = null
-    highlightGraphics.clear()
+    console.log('点击国家:', result.feature.properties)
+    selectedWorldFeature = result.feature
+    highlightBaseFeature(result.feature)
   }
 }
 
@@ -707,9 +868,12 @@ onMounted(async () => {
   })
   mapContainer.value.appendChild(app.canvas)
 
+  baseContainer = new Container()
   worldContainer = new Container()
   labelContainer = new Container()
   highlightGraphics = new Graphics()
+  baseHighlightGraphics = new Graphics()
+  app.stage.addChild(baseContainer)
   app.stage.addChild(worldContainer)
   app.stage.addChild(labelContainer)
   worldContainer.addChild(highlightGraphics)
@@ -720,6 +884,7 @@ onMounted(async () => {
   mapX = width / 2 - center.x
   mapY = height / 2 - center.y
   worldContainer.position.set(mapX, mapY)
+  baseContainer.position.set(mapX, mapY)
 
   app.canvas.style.cursor = 'grab'
   app.canvas.addEventListener('wheel', onWheel, { passive: false })
@@ -733,7 +898,7 @@ onMounted(async () => {
 
   // 加载市列表
   try {
-    const res = await fetch('/wold_1931.json')
+    const res = await fetch('/china_1931.json')
     cityList = await res.json()
     for (const c of cityList) {
       if (c.gb) cityDataMap.set(c.gb, c)
@@ -741,6 +906,28 @@ onMounted(async () => {
     console.log('市列表加载完成:', cityList.length, '个市')
   } catch (e) {
     console.error('市列表加载失败:', e)
+  }
+
+  // 加载世界国家数据
+  try {
+    const res = await fetch('/world_1931.json')
+    const worldList = await res.json()
+    for (const c of worldList) {
+      if (c.iso_a3) worldDataMap.set(c.iso_a3, c)
+    }
+    console.log('世界国家数据加载完成:', worldList.length, '个')
+  } catch (e) {
+    console.error('世界国家数据加载失败:', e)
+  }
+
+  // 加载世界地图
+  try {
+    const res = await fetch('/世界.geojson')
+    worldData = await res.json()
+    console.log('世界地图加载完成:', worldData.features.length, '个国家')
+    await renderBaseMap()
+  } catch (e) {
+    console.error('世界地图加载失败:', e)
   }
 
   await loadLayer(currentLayerIndex.value)
@@ -808,5 +995,11 @@ onUnmounted(() => {
   margin-top: 8px;
   border-top: 1px solid rgba(255, 255, 255, 0.2);
   padding-top: 8px;
+}
+
+.switcher-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.15);
+  margin: 4px 0;
 }
 </style>
