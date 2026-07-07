@@ -1,5 +1,5 @@
 <template>
-  <div ref="mapContainer" class="map-container">
+  <div ref="mapContainer" class="map-container" @click.self="closeContextMenu">
     <div class="layer-switcher">
       <button
         v-for="(layer, index) in LAYERS"
@@ -9,6 +9,15 @@
       >
         {{ layer.label }}
       </button>
+    </div>
+    <div
+      v-if="contextMenuVisible"
+      class="context-menu"
+      :style="{ left: contextMenuPos.x + 'px', top: contextMenuPos.y + 'px' }"
+    >
+      <div class="context-menu-item" @click.stop="onMenuAction('investigate')">调查</div>
+      <div class="context-menu-item" @click.stop="onMenuAction('declare-war')">宣战</div>
+      <div class="context-menu-item danger" @click.stop="onMenuAction('surprise-attack')">奇袭</div>
     </div>
   </div>
 </template>
@@ -21,8 +30,12 @@ const mapContainer = ref()
 let app
 let worldContainer
 let labelContainer
+let highlightGraphics
 let currentLayerIndex = ref(0)
 let currentData = null
+let selectedFeature = null
+const contextMenuVisible = ref(false)
+const contextMenuPos = ref({ x: 0, y: 0 })
 
 const LAYERS = [
   { file: '/中国_省.geojson', label: '省级', color: 0x555555, fillColor: 0xdddddd },
@@ -163,8 +176,6 @@ function drawFeature(graphics, feature, width, height, style, scale) {
         : []
 
   for (const polygon of polygons) {
-    graphics.fill({ color: style.fillColor, alpha: 0.5 })
-    graphics.stroke({ width: 1.5, color: style.color, alpha: 1 })
     for (const ring of polygon) {
       if (ring.length < 3) continue
       const first = geoToScreen(ring[0][0], ring[0][1], width, height)
@@ -175,7 +186,74 @@ function drawFeature(graphics, feature, width, height, style, scale) {
       }
       graphics.closePath()
     }
+    graphics.fill({ color: style.fillColor, alpha: 0.5 })
+    graphics.stroke({ width: 0.5, color: style.color, alpha: 1 })
   }
+}
+
+function highlightFeature(feature) {
+  highlightGraphics.clear()
+  const width = app.screen.width
+  const height = app.screen.height
+  const { geometry } = feature
+  const polygons =
+    geometry.type === 'Polygon'
+      ? [geometry.coordinates]
+      : geometry.type === 'MultiPolygon'
+        ? geometry.coordinates
+        : []
+
+  for (const polygon of polygons) {
+    for (const ring of polygon) {
+      if (ring.length < 3) continue
+      const first = geoToScreen(ring[0][0], ring[0][1], width, height)
+      highlightGraphics.moveTo(first.x, first.y)
+      for (let i = 1; i < ring.length; i++) {
+        const p = geoToScreen(ring[i][0], ring[i][1], width, height)
+        highlightGraphics.lineTo(p.x, p.y)
+      }
+      highlightGraphics.closePath()
+    }
+    highlightGraphics.fill({ color: 0xff4444, alpha: 0.4 })
+    highlightGraphics.stroke({ width: 0.5, color: 0xff4444, alpha: 1 })
+  }
+}
+
+function onContextMenu(e) {
+  e.preventDefault()
+  if (!currentData) return
+
+  const rect = mapContainer.value.getBoundingClientRect()
+  const screenX = e.clientX - rect.left
+  const screenY = e.clientY - rect.top
+  const feature = hitTest(screenX, screenY, currentData, app.screen.width, app.screen.height)
+
+  if (feature) {
+    selectedFeature = feature
+    highlightFeature(feature)
+    contextMenuPos.value = { x: screenX, y: screenY }
+    contextMenuVisible.value = true
+  }
+}
+
+function closeContextMenu() {
+  contextMenuVisible.value = false
+}
+
+function onMenuAction(action) {
+  console.log('菜单操作:', action, selectedFeature?.properties)
+  closeContextMenu()
+}
+
+function onGlobalMouseDown(e) {
+  if (!contextMenuVisible.value) return
+  const menu = document.querySelector('.context-menu')
+  if (menu && menu.contains(e.target)) return
+  closeContextMenu()
+}
+
+function onKeyDown(e) {
+  if (e.key === 'Escape') closeContextMenu()
 }
 
 function getLabelStyle(layerIndex) {
@@ -262,8 +340,12 @@ async function loadLayer(index) {
     )
   }
   worldContainer.addChild(graphics)
+  worldContainer.addChild(highlightGraphics)
+  highlightGraphics.clear()
+  selectedFeature = null
 
   renderLabels(currentData, width, height, index)
+  updateLabels()
 }
 
 function onWheel(e) {
@@ -326,6 +408,11 @@ function onClick(e) {
   const feature = hitTest(screenX, screenY, currentData, width, height)
   if (feature) {
     console.log('点击区域:', feature.properties)
+    selectedFeature = feature
+    highlightFeature(feature)
+  } else {
+    selectedFeature = null
+    highlightGraphics.clear()
   }
 }
 
@@ -340,8 +427,10 @@ onMounted(async () => {
 
   worldContainer = new Container()
   labelContainer = new Container()
+  highlightGraphics = new Graphics()
   app.stage.addChild(worldContainer)
   app.stage.addChild(labelContainer)
+  worldContainer.addChild(highlightGraphics)
 
   const width = app.screen.width
   const height = app.screen.height
@@ -354,8 +443,11 @@ onMounted(async () => {
   app.canvas.addEventListener('wheel', onWheel, { passive: false })
   app.canvas.addEventListener('pointerdown', onPointerDown)
   app.canvas.addEventListener('click', onClick)
+  app.canvas.addEventListener('contextmenu', onContextMenu)
   window.addEventListener('pointermove', onPointerMove)
   window.addEventListener('pointerup', onPointerUp)
+  window.addEventListener('mousedown', onGlobalMouseDown)
+  window.addEventListener('keydown', onKeyDown)
 
   await loadLayer(0)
 })
@@ -364,8 +456,11 @@ onUnmounted(() => {
   app?.canvas?.removeEventListener('wheel', onWheel)
   app?.canvas?.removeEventListener('pointerdown', onPointerDown)
   app?.canvas?.removeEventListener('click', onClick)
+  app?.canvas?.removeEventListener('contextmenu', onContextMenu)
   window.removeEventListener('pointermove', onPointerMove)
   window.removeEventListener('pointerup', onPointerUp)
+  window.removeEventListener('mousedown', onGlobalMouseDown)
+  window.removeEventListener('keydown', onKeyDown)
   app?.destroy(true)
 })
 </script>
@@ -407,5 +502,37 @@ onUnmounted(() => {
 .layer-switcher button.active {
   background: rgba(59, 130, 246, 0.8);
   border-color: rgba(59, 130, 246, 1);
+}
+
+.context-menu {
+  position: absolute;
+  z-index: 2000;
+  background: rgba(20, 20, 40, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  padding: 4px;
+  min-width: 120px;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+.context-menu-item {
+  padding: 8px 16px;
+  color: #bbb;
+  font-size: 14px;
+  cursor: pointer;
+  border-radius: 4px;
+  user-select: none;
+  transition: background 0.15s, color 0.15s;
+}
+
+.context-menu-item:hover {
+  background: rgba(59, 130, 246, 0.3);
+  color: #fff;
+}
+
+.context-menu-item.danger:hover {
+  background: rgba(244, 68, 68, 0.3);
+  color: #ff8888;
 }
 </style>
