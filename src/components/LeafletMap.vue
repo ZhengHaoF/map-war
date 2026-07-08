@@ -56,6 +56,26 @@
         <GameButton danger @click="stopAllBattles">停止战斗</GameButton>
       </div>
     </GameModal>
+    <GameModal
+      :visible="disclaimerVisible"
+      title="免责声明"
+      @close="disclaimerVisible = false"
+    >
+      <div class="disclaimer-content">
+        <p>本游戏地图数据来源于网络公开数据源，仅用于游戏娱乐目的，可能存在边界线、地名标注等方面的偏差或不准确之处。</p>
+        <p>游戏中的政权划分、势力范围、外交关系等均为虚构游戏设定，不代表任何个人或组织的政治立场，亦不代表对现实世界领土归属的任何主张。地图边界不对应、不代表当下世界各国法定领土国界。</p>
+        <p>本人始终坚持遵循以中华人民共和国自然资源部（原国家测绘地理信息局）发布的标准地图。</p>
+        <p class="disclaimer-sources">数据来源：</p>
+        <ul>
+          <li>Natural Earth — <a href="https://www.naturalearthdata.com/" target="_blank" rel="noopener">https://www.naturalearthdata.com/</a></li>
+          <li>Apache ECharts — <a href="https://echarts.apache.org/" target="_blank" rel="noopener">https://echarts.apache.org/</a></li>
+          <li>天地图 — <a href="https://cloudcenter.tianditu.gov.cn/" target="_blank" rel="noopener">https://cloudcenter.tianditu.gov.cn/</a></li>
+        </ul>
+      </div>
+    </GameModal>
+    <div class="disclaimer-bar" @click="disclaimerVisible = true">
+      ⚠ 免责声明：本地图数据来源于网络公开数据源，仅供娱乐参考。游戏中的政权划分、边界线等均为虚构设定，不代表任何个人或组织的政治立场，亦不代表对现实世界领土归属的任何主张，不对应、不代表当下世界各国法定领土国界。本人始终坚持遵循以中华人民共和国自然资源部（原国家测绘地理信息局）发布的标准地图。 点击查看详情
+    </div>
   </div>
 </template>
 
@@ -64,6 +84,8 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { Application, Container, Graphics, Text, TextStyle } from 'pixi.js'
 import { OWNER_COLORS, OWNER_LABELS } from '@/data/ownerColors'
 import { Owner } from '@/data/owners'
+import { chinaCities } from '@/data/chinaCities'
+import { worldCountries } from '@/data/worldCountries'
 import { playArcAnimation, playScoutAnimation, startBattleAnimation } from '@/utils/troopAnimation'
 import GameButton from '@/components/ui/GameButton.vue'
 import GameContextMenu from '@/components/ui/GameContextMenu.vue'
@@ -85,7 +107,6 @@ const contextMenuPos = ref({ x: 0, y: 0 })
 const LAYERS = [
   { file: '/中国_省.geojson', label: '省级', color: 0x555555, fillColor: 0xdddddd },
   { file: '/中国_市.geojson', label: '市级', color: 0x444444, fillColor: 0xcccccc },
-  { file: '/中国_县.geojson', label: '县级', color: 0x333333, fillColor: 0xbbbbbb },
 ]
 
 const geoJsonCache = new Map()
@@ -106,6 +127,7 @@ const infoModalVisible = ref(false)
 const infoCityData = ref(null)
 const infoCountryData = ref(null)
 const testPanelVisible = ref(false)
+const disclaimerVisible = ref(false)
 const ownerColorEnabled = ref(true)
 const labelsVisible = ref(false)
 const baseMapVisible = ref(true)
@@ -415,6 +437,8 @@ function clearAllHighlights() {
 async function renderBaseMap() {
   const width = app.screen.width
   const height = app.screen.height
+
+  baseContainer.removeChildren()
 
   const gfx = new Graphics()
   for (const feature of worldData.features) {
@@ -859,6 +883,26 @@ function onClick(e) {
   }
 }
 
+function onResize() {
+  requestAnimationFrame(() => {
+    const width = app.screen.width
+    const height = app.screen.height
+
+    // 保持地图居中（以 104°E, 36°N 为中心）
+    const center = geoToScreen(104, 36, width, height)
+    mapX = width / 2 - center.x
+    mapY = height / 2 - center.y
+    worldContainer.position.set(mapX, mapY)
+    baseContainer.position.set(mapX, mapY)
+
+    // 用新的尺寸重绘两层地图
+    loadLayer(currentLayerIndex.value)
+    if (baseMapVisible.value) {
+      renderBaseMap()
+    }
+  })
+}
+
 onMounted(async () => {
   app = new Application()
   await app.init({
@@ -891,34 +935,24 @@ onMounted(async () => {
   app.canvas.addEventListener('pointerdown', onPointerDown)
   app.canvas.addEventListener('click', onClick)
   app.canvas.addEventListener('contextmenu', onContextMenu)
+  window.addEventListener('resize', onResize)
   window.addEventListener('pointermove', onPointerMove)
   window.addEventListener('pointerup', onPointerUp)
   window.addEventListener('mousedown', onGlobalMouseDown)
   window.addEventListener('keydown', onKeyDown)
 
   // 加载市列表
-  try {
-    const res = await fetch('/china_1931.json')
-    cityList = await res.json()
-    for (const c of cityList) {
-      if (c.gb) cityDataMap.set(c.gb, c)
-    }
-    console.log('市列表加载完成:', cityList.length, '个市')
-  } catch (e) {
-    console.error('市列表加载失败:', e)
+  cityList = chinaCities
+  for (const c of cityList) {
+    if (c.gb) cityDataMap.set(c.gb, c)
   }
+  console.log('市列表加载完成:', cityList.length, '个市')
 
   // 加载世界国家数据
-  try {
-    const res = await fetch('/world_1931.json')
-    const worldList = await res.json()
-    for (const c of worldList) {
-      if (c.iso_a3) worldDataMap.set(c.iso_a3, c)
-    }
-    console.log('世界国家数据加载完成:', worldList.length, '个')
-  } catch (e) {
-    console.error('世界国家数据加载失败:', e)
+  for (const c of worldCountries) {
+    if (c.iso_a3) worldDataMap.set(c.iso_a3, c)
   }
+  console.log('世界国家数据加载完成:', worldCountries.length, '个')
 
   // 加载世界地图
   try {
@@ -938,6 +972,7 @@ onUnmounted(() => {
   app?.canvas?.removeEventListener('pointerdown', onPointerDown)
   app?.canvas?.removeEventListener('click', onClick)
   app?.canvas?.removeEventListener('contextmenu', onContextMenu)
+  window.removeEventListener('resize', onResize)
   window.removeEventListener('pointermove', onPointerMove)
   window.removeEventListener('pointerup', onPointerUp)
   window.removeEventListener('mousedown', onGlobalMouseDown)
@@ -1001,5 +1036,59 @@ onUnmounted(() => {
   height: 1px;
   background: rgba(255, 255, 255, 0.15);
   margin: 4px 0;
+}
+
+.disclaimer-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 500;
+  background: rgba(0, 0, 0, 0.72);
+  color: #ccc;
+  font-size: 11px;
+  text-align: center;
+  padding: 7px 12px;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  transition: background 0.2s;
+  user-select: none;
+}
+
+.disclaimer-bar:hover {
+  background: rgba(0, 0, 0, 0.88);
+  color: #fff;
+}
+
+.disclaimer-content p {
+  margin: 0 0 10px;
+  line-height: 1.6;
+  color: #ddd;
+  font-size: 14px;
+}
+
+.disclaimer-content .disclaimer-sources {
+  margin-top: 12px;
+  margin-bottom: 4px;
+  font-weight: bold;
+  color: #fff;
+}
+
+.disclaimer-content ul {
+  margin: 0;
+  padding-left: 18px;
+  color: #ccc;
+  font-size: 13px;
+  line-height: 1.8;
+}
+
+.disclaimer-content a {
+  color: #7eb8ff;
+  text-decoration: none;
+}
+
+.disclaimer-content a:hover {
+  text-decoration: underline;
 }
 </style>
