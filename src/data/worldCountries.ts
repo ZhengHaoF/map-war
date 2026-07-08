@@ -11,6 +11,15 @@ export interface CountryData {
   diplomacy: string
 }
 
+/**
+ * 现代 GeoJSON iso_a3 → 1931 游戏 iso_a3 映射
+ * GeoJSON 文件用的是现代国家代码，游戏数据用的是 1931 年代代码
+ */
+export const GEO_TO_GAME_ISO: Record<string, string> = {
+  RUS: 'SUN',    // 俄罗斯 → 苏联
+  // 如有更多不一致，在此添加
+}
+
 export const worldCountries: CountryData[] = [
   {
     "iso_a3": "JPN",

@@ -1,12 +1,8 @@
 <template>
   <div ref="mapContainer" class="map-container" @click.self="closeContextMenu">
     <div class="layer-switcher">
-      <GameButton
-        v-for="(layer, index) in LAYERS"
-        :key="layer.file"
-        :active="currentLayerIndex === index"
-        @click="switchLayer(index)"
-      >
+      <GameButton v-for="(layer, index) in LAYERS" :key="layer.file" :active="currentLayerIndex === index"
+        @click="switchLayer(index)">
         {{ layer.label }}
       </GameButton>
       <div class="switcher-divider"></div>
@@ -25,29 +21,14 @@
       </GameButton>
     </div>
     <LegendPanel v-if="ownerColorEnabled" :items="legendItems" />
-    <GameContextMenu
-      :visible="contextMenuVisible"
-      :position="contextMenuPos"
-      :items="contextMenuItems"
-      @select="onMenuAction"
-    />
-    <GameModal
-      :visible="infoModalVisible"
-      :title="infoTitle"
-      @close="infoModalVisible = false"
-    >
+    <GameContextMenu :visible="contextMenuVisible" :position="contextMenuPos" :items="contextMenuItems"
+      @select="onMenuAction" />
+    <GameModal :visible="infoModalVisible" :title="infoTitle" @close="infoModalVisible = false">
       <InfoTable v-if="infoCityData" :rows="infoRows" />
       <InfoTable v-else-if="infoCountryData" :rows="countryInfoRows" />
     </GameModal>
-    <GameModal
-      :visible="testPanelVisible"
-      title="调试"
-      :draggable="true"
-      :overlay="false"
-      :init-x="160"
-      :init-y="160"
-      @close="testPanelVisible = false"
-    >
+    <GameModal :visible="testPanelVisible" title="调试" :draggable="true" :overlay="false" :init-x="160" :init-y="160"
+      @close="testPanelVisible = false">
       <div class="test-panel">
         <GameButton @click="testTroopMove">派兵测试</GameButton>
         <GameButton @click="testScout">探察测试</GameButton>
@@ -56,25 +37,27 @@
         <GameButton danger @click="stopAllBattles">停止战斗</GameButton>
       </div>
     </GameModal>
-    <GameModal
-      :visible="disclaimerVisible"
-      title="免责声明"
-      @close="disclaimerVisible = false"
-    >
+    <GameModal :visible="disclaimerVisible" title="免责声明" @close="disclaimerVisible = false">
       <div class="disclaimer-content">
         <p>本游戏地图数据来源于网络公开数据源，仅用于游戏娱乐目的，可能存在边界线、地名标注等方面的偏差或不准确之处。</p>
+        <p>其中国家边界线划分来自于ECharts网站中的数据，中国地图市划分来自于天地图数据</p>
         <p>游戏中的政权划分、势力范围、外交关系等均为虚构游戏设定，不代表任何个人或组织的政治立场，亦不代表对现实世界领土归属的任何主张。地图边界不对应、不代表当下世界各国法定领土国界。</p>
         <p>本人始终坚持遵循以中华人民共和国自然资源部（原国家测绘地理信息局）发布的标准地图。</p>
         <p class="disclaimer-sources">数据来源：</p>
         <ul>
-          <li>Natural Earth — <a href="https://www.naturalearthdata.com/" target="_blank" rel="noopener">https://www.naturalearthdata.com/</a></li>
-          <li>Apache ECharts — <a href="https://echarts.apache.org/" target="_blank" rel="noopener">https://echarts.apache.org/</a></li>
-          <li>天地图 — <a href="https://cloudcenter.tianditu.gov.cn/" target="_blank" rel="noopener">https://cloudcenter.tianditu.gov.cn/</a></li>
+          <li>Natural Earth — <a href="https://www.naturalearthdata.com/" target="_blank"
+              rel="noopener">https://www.naturalearthdata.com/</a></li>
+          <li>Apache ECharts — <a href="https://echarts.apache.org/" target="_blank"
+              rel="noopener">https://echarts.apache.org/</a></li>
+          <li>天地图 — <a href="https://cloudcenter.tianditu.gov.cn/" target="_blank"
+              rel="noopener">https://cloudcenter.tianditu.gov.cn/</a></li>
         </ul>
       </div>
     </GameModal>
     <div class="disclaimer-bar" @click="disclaimerVisible = true">
-      ⚠ 免责声明：本地图数据来源于网络公开数据源，仅供娱乐参考。游戏中的政权划分、边界线等均为虚构设定，不代表任何个人或组织的政治立场，亦不代表对现实世界领土归属的任何主张，不对应、不代表当下世界各国法定领土国界。本人始终坚持遵循以中华人民共和国自然资源部（原国家测绘地理信息局）发布的标准地图。 点击查看详情
+      ⚠
+      免责声明：本地图数据来源于网络公开数据源，仅供娱乐参考。游戏中的政权划分、边界线等均为虚构设定，不代表任何个人或组织的政治立场，亦不代表对现实世界领土归属的任何主张，不对应、不代表当下世界各国法定领土国界。本人始终坚持遵循以中华人民共和国自然资源部（原国家测绘地理信息局）发布的标准地图。
+      点击查看详情
     </div>
   </div>
 </template>
@@ -83,9 +66,8 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { Application, Container, Graphics, Text, TextStyle } from 'pixi.js'
 import { OWNER_COLORS, OWNER_LABELS } from '@/data/ownerColors'
-import { Owner } from '@/data/owners'
 import { chinaCities } from '@/data/chinaCities'
-import { worldCountries } from '@/data/worldCountries'
+import { worldCountries, GEO_TO_GAME_ISO } from '@/data/worldCountries'
 import { playArcAnimation, playScoutAnimation, startBattleAnimation } from '@/utils/troopAnimation'
 import GameButton from '@/components/ui/GameButton.vue'
 import GameContextMenu from '@/components/ui/GameContextMenu.vue'
@@ -948,9 +930,13 @@ onMounted(async () => {
   }
   console.log('市列表加载完成:', cityList.length, '个市')
 
-  // 加载世界国家数据
+  // 加载世界国家数据（同时注册 GeoJSON iso_a3 的映射，解决现代代码与 1931 代码不一致的问题）
   for (const c of worldCountries) {
     if (c.iso_a3) worldDataMap.set(c.iso_a3, c)
+  }
+  for (const [geoIso, gameIso] of Object.entries(GEO_TO_GAME_ISO)) {
+    const data = worldDataMap.get(gameIso)
+    if (data) worldDataMap.set(geoIso, data)
   }
   console.log('世界国家数据加载完成:', worldCountries.length, '个')
 
