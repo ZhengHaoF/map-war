@@ -5,13 +5,14 @@
  * AI 只需返回 { order, from, to, text }，不需要知道任何 Pixi.js 或容器细节。
  *
  * 使用方式：
- *   import { init, attack, scout, declareWar, battle, stopBattles, executeOrder } from '@/utils/gameOrders'
+ *   import { init, attack, scout, declareWar, battle, stopBattles, stopBattle, listBattles, executeOrder } from '@/utils/gameOrders'
  *   init(worldContainer)
  *   await attack('156500000', '156450200', '猛攻！')
  *   await executeOrder({ order: 'attack', from: '156500000', to: '156450200' })
  */
 
 import { playArcAnimation, playScoutAnimation, startBattleAnimation } from './troopAnimation'
+import { resolveLocation } from './locationResolver'
 
 // ─── 内部状态 ───
 
@@ -29,11 +30,39 @@ const locks = {
 }
 
 /**
- * 持续战斗动画列表。
- * battle() 每个目标创建一个 startBattleAnimation 实例并推入此数组，
- * stopBattles() 遍历调用 .stop() 后清空。
+ * 战斗注册表（纯数据，可序列化）。
+ * Map<id, { from, to, fromName, toName }>
  */
-const activeBattles = []
+const battleRegistry = new Map()
+
+/**
+ * 战斗运行时列表（Pixi.js 控制对象，不可序列化）。
+ * Map<id, { battle: { stop, graphics } }>
+ */
+const activeBattles = new Map()
+
+let battleIdCounter = 0
+
+// ─── 内部 helper ───
+
+/**
+ * 按地点 id 解析出可读名称（从 locationResolver 注册表中取 GeoJSON properties.name 等字段）
+ */
+function getLocationName(id) {
+  const f = resolveLocation(id)
+  if (!f?.properties) return id
+  return f.properties.name || f.properties.NAME || f.properties.name_local || id
+}
+
+/**
+ * 检查是否已存在相同 from → to 的战斗
+ */
+function hasActiveBattle(from, to) {
+  for (const entry of battleRegistry.values()) {
+    if (entry.from === from && entry.to === to) return true
+  }
+  return false
+}
 
 // ─── 初始化 ───
 
@@ -134,44 +163,94 @@ export async function declareWar(from, to, text) {
 }
 
 /**
- * 持续战斗动画 —— 双向箭头在起点和多个终点之间循环交火。
- * 每个目标独立创建一个动画实例，需手动 stopBattles() 停止。
+ * 持续战斗动画 —— 双向箭头在两个地点之间循环交火（一对一）。
+ * 同一对 from → to 不可重复发起。每个战斗分配唯一 id，可单独停止。
  * @param {string} from - 起点地点 id（己方城市）
- * @param {string[]} tos - 终点地点 id 数组（敌方城市，可多个）
- * @param {string} [text] - 目前未使用，保留供后续扩展
- * @returns {{ ok: boolean, reason?: string, count: number }}
+ * @param {string} to   - 终点地点 id（敌方城市）
+ * @returns {{ ok: boolean, reason?: string, id?: string }}
  */
-export function battle(from, tos, text) {
+export function battle(from, to) {
   if (!_container) return { ok: false, reason: 'gameOrders 未初始化' }
 
-  if (!Array.isArray(tos) || tos.length === 0) {
-    return { ok: false, reason: 'battle 的 to 参数需要是非空数组' }
+  // 重复检查：同一对地点不能重复发起战斗
+  if (hasActiveBattle(from, to)) {
+    return { ok: false, reason: `已存在 ${from} → ${to} 的战斗` }
   }
 
-  for (const to of tos) {
-    const b = startBattleAnimation({
-      fromId: from,
-      toId: to,
-      container: _container,
-      colorA: 0x3b82f6,
-      colorB: 0xef4444,
-    })
-    if (b.graphics) activeBattles.push(b)
+  const b = startBattleAnimation({
+    fromId: from,
+    toId: to,
+    container: _container,
+    colorA: 0x3b82f6,
+    colorB: 0xef4444,
+  })
+
+  if (!b.graphics) {
+    return { ok: false, reason: '战斗动画创建失败（无法解析坐标）' }
   }
 
-  return { ok: true, count: tos.length }
+  const id = `battle_${++battleIdCounter}`
+
+  // 写入注册表（纯数据，可序列化）
+  battleRegistry.set(id, {
+    from,
+    to,
+    fromName: getLocationName(from),
+    toName: getLocationName(to),
+  })
+
+  // 写入运行时（Pixi 控制对象）
+  activeBattles.set(id, { battle: b })
+
+  return { ok: true, id }
 }
 
 /**
- * 停止所有持续战斗动画并清空列表。
+ * 停止指定战斗（按 id 精确停止）。
+ * @param {string} id - 战斗 id
+ * @returns {{ ok: boolean, reason?: string }}
+ */
+export function stopBattle(id) {
+  const entry = activeBattles.get(id)
+  if (!entry) return { ok: false, reason: `战斗 ${id} 不存在` }
+
+  entry.battle.stop()
+  activeBattles.delete(id)
+  battleRegistry.delete(id)
+  return { ok: true }
+}
+
+/**
+ * 停止所有持续战斗动画并清空注册表。
  * @returns {{ ok: boolean }}
  */
 export function stopBattles() {
-  for (const b of activeBattles) {
-    b.stop()
+  for (const entry of activeBattles.values()) {
+    entry.battle.stop()
   }
-  activeBattles.length = 0
+  activeBattles.clear()
+  battleRegistry.clear()
   return { ok: true }
+}
+
+/**
+ * 返回当前所有战斗的数据列表（纯数据，不包含 Pixi 运行时对象）。
+ * 用于调试或 UI 展示当前战斗状态。
+ * @returns {{ id: string, from: string, to: string, fromName: string, toName: string, active: boolean }[]}
+ */
+export function listBattles() {
+  const result = []
+  for (const [id, data] of battleRegistry.entries()) {
+    result.push({
+      id,
+      from: data.from,
+      to: data.to,
+      fromName: data.fromName,
+      toName: data.toName,
+      active: activeBattles.has(id),
+    })
+  }
+  return result
 }
 
 // ─── AI JSON 协议解析器 ───
@@ -183,13 +262,16 @@ export function stopBattles() {
  *   { "order": "attack",      "from": "id", "to": "id",                    "text?": "xxx" }
  *   { "order": "scout",       "from": "id",                               "text?": "xxx" }
  *   { "order": "declareWar",  "from": "id", "to": "id",                    "text?": "xxx" }
- *   { "order": "battle",      "from": "id", "to": ["id1", "id2", ...] }
+ *   { "order": "battle",      "from": "id", "to": "id" }
+ *   { "order": "stopBattle",  "id": "battle_id" }
  *   { "order": "stopBattles" }
+ *   { "order": "listBattles" }
  *
  * @param {Object} json - AI 返回的指令对象
  * @param {string} json.order - 指令类型
  * @param {string} json.from - 起点地点 id
- * @param {string|string[]} [json.to] - 终点 id（attack/declareWar 为字符串，battle 为数组）
+ * @param {string} [json.to] - 终点地点 id
+ * @param {string} [json.id] - 战斗 id（仅 stopBattle 使用）
  * @param {string} [json.text] - 可选文字
  * @returns {{ ok: boolean, reason?: string }}
  */
@@ -209,10 +291,16 @@ export async function executeOrder(json) {
       return declareWar(json.from, json.to, json.text)
 
     case 'battle':
-      return battle(json.from, json.to, json.text)
+      return battle(json.from, json.to)
+
+    case 'stopBattle':
+      return stopBattle(json.id)
 
     case 'stopBattles':
       return stopBattles()
+
+    case 'listBattles':
+      return { ok: true, battles: listBattles() }
 
     default:
       return { ok: false, reason: `未知指令: ${json.order}` }

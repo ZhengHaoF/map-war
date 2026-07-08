@@ -33,8 +33,21 @@
         <GameButton @click="() => executeOrder({order:'attack', from:'156500000', to:'156450200', text:'出兵！'})">派兵测试</GameButton>
         <GameButton @click="() => executeOrder({order:'scout', from:'156500000', text:'侦察！'})">探察测试</GameButton>
         <GameButton @click="() => executeOrder({order:'declareWar', from:'156500000', to:'156450200', text:'宣战！'})">宣战测试</GameButton>
-        <GameButton @click="() => executeOrder({order:'battle', from:'156500000', to:['156450200','156451000']})">战斗测试</GameButton>
+        <GameButton @click="() => executeOrder({order:'battle', from:'156500000', to:'156450200'})">战斗测试1</GameButton>
+        <GameButton @click="() => executeOrder({order:'battle', from:'156500000', to:'156451000'})">战斗测试2</GameButton>
         <GameButton danger @click="() => executeOrder({order:'stopBattles'})">停止战斗</GameButton>
+        <GameButton @click="() => { const list = listBattles(); console.log('当前战斗:', JSON.stringify(list, null, 2)) }">查看战斗</GameButton>
+        <GameButton danger @click="openBattleList">结束战斗</GameButton>
+      </div>
+    </GameModal>
+    <GameModal :visible="battleListVisible" title="战斗管理" @close="battleListVisible = false">
+      <div v-if="battleList.length === 0" class="empty-hint">当前没有进行中的战斗</div>
+      <div v-for="b in battleList" :key="b.id" class="battle-item">
+        <span class="battle-info">
+          {{ b.fromName }} → {{ b.toName }}
+          <span v-if="!b.active" class="inactive">(已停止)</span>
+        </span>
+        <GameButton danger size="small" @click="endBattle(b.id)">结束</GameButton>
       </div>
     </GameModal>
     <GameModal :visible="disclaimerVisible" title="免责声明" @close="disclaimerVisible = false">
@@ -69,7 +82,7 @@ import { OWNER_COLORS, OWNER_LABELS } from '@/data/ownerColors'
 import { chinaCities } from '@/data/chinaCities'
 import { worldCountries, GEO_TO_GAME_ISO } from '@/data/worldCountries'
 import { playArcAnimation, playScoutAnimation, startBattleAnimation } from '@/utils/troopAnimation'
-import { init as initGameOrders, executeOrder } from '@/utils/gameOrders'
+import { init as initGameOrders, executeOrder, listBattles, stopBattle } from '@/utils/gameOrders'
 import {
   GEO_BOUNDS,
   geoToScreen,
@@ -118,6 +131,8 @@ const infoModalVisible = ref(false)
 const infoCityData = ref(null)
 const infoCountryData = ref(null)
 const testPanelVisible = ref(false)
+const battleListVisible = ref(false)
+const battleList = ref([])
 const disclaimerVisible = ref(false)
 const ownerColorEnabled = ref(true)
 const labelsVisible = ref(false)
@@ -448,6 +463,16 @@ function onMenuAction(action) {
     console.log('菜单操作:', action, selectedFeature?.properties || selectedWorldFeature?.properties)
   }
   closeContextMenu()
+}
+
+function openBattleList() {
+  battleList.value = listBattles()
+  battleListVisible.value = true
+}
+
+function endBattle(id) {
+  stopBattle(id)
+  battleList.value = listBattles()
 }
 
 function onGlobalMouseDown(e) {
@@ -870,6 +895,40 @@ onUnmounted(() => {
 .disclaimer-content a {
   color: #7eb8ff;
   text-decoration: none;
+}
+
+.battle-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  margin-bottom: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: #fff;
+  font-size: 14px;
+}
+
+.battle-item:last-child {
+  margin-bottom: 0;
+}
+
+.battle-info {
+  flex: 1;
+}
+
+.inactive {
+  color: #888;
+  font-size: 12px;
+  margin-left: 6px;
+}
+
+.empty-hint {
+  color: #aaa;
+  font-size: 13px;
+  text-align: center;
+  padding: 20px 0;
 }
 
 .disclaimer-content a:hover {
