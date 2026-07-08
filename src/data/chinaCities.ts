@@ -53,7 +53,7 @@ export const chinaCities: CityData[] = [
   {
     "name": "朝阳市",
     "gb": "156211300",
-    "owner": "JPN",
+    "owner": "NEA",
     "terrain": "PLAIN",
     "cityLevel": 2,
     "industry": 1,
@@ -143,7 +143,7 @@ export const chinaCities: CityData[] = [
   {
     "name": "大连市",
     "gb": "156210200",
-    "owner": "JPN",
+    "owner": "NEA",
     "terrain": "PLAIN",
     "cityLevel": 2,
     "industry": 1,
@@ -267,7 +267,7 @@ export const chinaCities: CityData[] = [
   {
     "name": "葫芦岛市",
     "gb": "156211400",
-    "owner": "JPN",
+    "owner": "NEA",
     "terrain": "PLAIN",
     "cityLevel": 2,
     "industry": 1,
@@ -307,7 +307,7 @@ export const chinaCities: CityData[] = [
   {
     "name": "长春市",
     "gb": "156220100",
-    "owner": "JPN",
+    "owner": "NEA",
     "terrain": "PLAIN",
     "cityLevel": 3,
     "industry": 3,
@@ -317,7 +317,7 @@ export const chinaCities: CityData[] = [
   {
     "name": "延边朝鲜族自治州",
     "gb": "156222400",
-    "owner": "JPN",
+    "owner": "NEA",
     "terrain": "PLAIN",
     "cityLevel": 2,
     "industry": 1,
@@ -387,7 +387,7 @@ export const chinaCities: CityData[] = [
   {
     "name": "鞍山市",
     "gb": "156210300",
-    "owner": "JPN",
+    "owner": "NEA",
     "terrain": "PLAIN",
     "cityLevel": 2,
     "industry": 1,
@@ -467,7 +467,7 @@ export const chinaCities: CityData[] = [
   {
     "name": "盘锦市",
     "gb": "156211100",
-    "owner": "JPN",
+    "owner": "NEA",
     "terrain": "PLAIN",
     "cityLevel": 2,
     "industry": 1,
@@ -621,7 +621,7 @@ export const chinaCities: CityData[] = [
   {
     "name": "牡丹江市",
     "gb": "156231000",
-    "owner": "JPN",
+    "owner": "NEA",
     "terrain": "FOREST",
     "cityLevel": 2,
     "industry": 1,
@@ -691,7 +691,7 @@ export const chinaCities: CityData[] = [
   {
     "name": "铁岭市",
     "gb": "156211200",
-    "owner": "JPN",
+    "owner": "NEA",
     "terrain": "PLAIN",
     "cityLevel": 2,
     "industry": 1,
@@ -821,7 +821,7 @@ export const chinaCities: CityData[] = [
   {
     "name": "沈阳市",
     "gb": "156210100",
-    "owner": "JPN",
+    "owner": "NEA",
     "terrain": "PLAIN",
     "cityLevel": 4,
     "industry": 8,
@@ -1021,7 +1021,7 @@ export const chinaCities: CityData[] = [
   {
     "name": "辽源市",
     "gb": "156220400",
-    "owner": "JPN",
+    "owner": "NEA",
     "terrain": "PLAIN",
     "cityLevel": 2,
     "industry": 1,
@@ -1031,7 +1031,7 @@ export const chinaCities: CityData[] = [
   {
     "name": "齐齐哈尔市",
     "gb": "156230200",
-    "owner": "JPN",
+    "owner": "NEA",
     "terrain": "FOREST",
     "cityLevel": 2,
     "industry": 1,
@@ -1091,7 +1091,7 @@ export const chinaCities: CityData[] = [
   {
     "name": "绥化市",
     "gb": "156231200",
-    "owner": "JPN",
+    "owner": "NEA",
     "terrain": "FOREST",
     "cityLevel": 2,
     "industry": 1,
@@ -1101,7 +1101,7 @@ export const chinaCities: CityData[] = [
   {
     "name": "丹东市",
     "gb": "156210600",
-    "owner": "JPN",
+    "owner": "NEA",
     "terrain": "PLAIN",
     "cityLevel": 2,
     "industry": 1,
@@ -1351,7 +1351,7 @@ export const chinaCities: CityData[] = [
   {
     "name": "通化市",
     "gb": "156220500",
-    "owner": "JPN",
+    "owner": "NEA",
     "terrain": "PLAIN",
     "cityLevel": 2,
     "industry": 1,
@@ -1381,7 +1381,7 @@ export const chinaCities: CityData[] = [
   {
     "name": "鸡西市",
     "gb": "156230300",
-    "owner": "JPN",
+    "owner": "NEA",
     "terrain": "FOREST",
     "cityLevel": 2,
     "industry": 1,
@@ -1431,7 +1431,7 @@ export const chinaCities: CityData[] = [
   {
     "name": "黑河市",
     "gb": "156231100",
-    "owner": "JPN",
+    "owner": "NEA",
     "terrain": "FOREST",
     "cityLevel": 2,
     "industry": 1,
@@ -1481,7 +1481,7 @@ export const chinaCities: CityData[] = [
   {
     "name": "锦州市",
     "gb": "156210700",
-    "owner": "JPN",
+    "owner": "NEA",
     "terrain": "PLAIN",
     "cityLevel": 2,
     "industry": 1,
@@ -1621,7 +1621,7 @@ export const chinaCities: CityData[] = [
   {
     "name": "吉林市",
     "gb": "156220200",
-    "owner": "JPN",
+    "owner": "NEA",
     "terrain": "PLAIN",
     "cityLevel": 2,
     "industry": 1,
@@ -1705,7 +1705,7 @@ export const chinaCities: CityData[] = [
   {
     "name": "抚顺市",
     "gb": "156210400",
-    "owner": "JPN",
+    "owner": "NEA",
     "terrain": "PLAIN",
     "cityLevel": 2,
     "industry": 1,
@@ -1955,7 +1955,7 @@ export const chinaCities: CityData[] = [
   {
     "name": "四平市",
     "gb": "156220300",
-    "owner": "JPN",
+    "owner": "NEA",
     "terrain": "PLAIN",
     "cityLevel": 2,
     "industry": 1,
@@ -1989,7 +1989,7 @@ export const chinaCities: CityData[] = [
   {
     "name": "哈尔滨市",
     "gb": "156230100",
-    "owner": "JPN",
+    "owner": "NEA",
     "terrain": "FOREST",
     "cityLevel": 4,
     "industry": 5,
@@ -2029,7 +2029,7 @@ export const chinaCities: CityData[] = [
   {
     "name": "本溪市",
     "gb": "156210500",
-    "owner": "JPN",
+    "owner": "NEA",
     "terrain": "PLAIN",
     "cityLevel": 2,
     "industry": 1,
@@ -2229,7 +2229,7 @@ export const chinaCities: CityData[] = [
   {
     "name": "大庆市",
     "gb": "156230600",
-    "owner": "JPN",
+    "owner": "NEA",
     "terrain": "FOREST",
     "cityLevel": 2,
     "industry": 1,
@@ -2249,7 +2249,7 @@ export const chinaCities: CityData[] = [
   {
     "name": "白城市",
     "gb": "156220800",
-    "owner": "JPN",
+    "owner": "NEA",
     "terrain": "PLAIN",
     "cityLevel": 2,
     "industry": 1,
@@ -2373,7 +2373,7 @@ export const chinaCities: CityData[] = [
   {
     "name": "大兴安岭地区",
     "gb": "156232700",
-    "owner": "JPN",
+    "owner": "NEA",
     "terrain": "FOREST",
     "cityLevel": 2,
     "industry": 1,
@@ -2453,7 +2453,7 @@ export const chinaCities: CityData[] = [
   {
     "name": "伊春市",
     "gb": "156230700",
-    "owner": "JPN",
+    "owner": "NEA",
     "terrain": "FOREST",
     "cityLevel": 2,
     "industry": 1,
@@ -2733,7 +2733,7 @@ export const chinaCities: CityData[] = [
   {
     "name": "鹤岗市",
     "gb": "156230400",
-    "owner": "JPN",
+    "owner": "NEA",
     "terrain": "FOREST",
     "cityLevel": 2,
     "industry": 1,
@@ -2743,7 +2743,7 @@ export const chinaCities: CityData[] = [
   {
     "name": "白山市",
     "gb": "156220600",
-    "owner": "JPN",
+    "owner": "NEA",
     "terrain": "PLAIN",
     "cityLevel": 2,
     "industry": 1,
@@ -2783,7 +2783,7 @@ export const chinaCities: CityData[] = [
   {
     "name": "营口市",
     "gb": "156210800",
-    "owner": "JPN",
+    "owner": "NEA",
     "terrain": "PLAIN",
     "cityLevel": 2,
     "industry": 1,
@@ -2963,7 +2963,7 @@ export const chinaCities: CityData[] = [
   {
     "name": "双鸭山市",
     "gb": "156230500",
-    "owner": "JPN",
+    "owner": "NEA",
     "terrain": "FOREST",
     "cityLevel": 2,
     "industry": 1,
@@ -2983,7 +2983,7 @@ export const chinaCities: CityData[] = [
   {
     "name": "松原市",
     "gb": "156220700",
-    "owner": "JPN",
+    "owner": "NEA",
     "terrain": "PLAIN",
     "cityLevel": 2,
     "industry": 1,
@@ -3043,7 +3043,7 @@ export const chinaCities: CityData[] = [
   {
     "name": "阜新市",
     "gb": "156210900",
-    "owner": "JPN",
+    "owner": "NEA",
     "terrain": "PLAIN",
     "cityLevel": 2,
     "industry": 1,
@@ -3323,7 +3323,7 @@ export const chinaCities: CityData[] = [
   {
     "name": "辽阳市",
     "gb": "156211000",
-    "owner": "JPN",
+    "owner": "NEA",
     "terrain": "PLAIN",
     "cityLevel": 2,
     "industry": 1,
@@ -3543,7 +3543,7 @@ export const chinaCities: CityData[] = [
   {
     "name": "佳木斯市",
     "gb": "156230800",
-    "owner": "JPN",
+    "owner": "NEA",
     "terrain": "FOREST",
     "cityLevel": 2,
     "industry": 1,
@@ -3713,7 +3713,7 @@ export const chinaCities: CityData[] = [
   {
     "name": "七台河市",
     "gb": "156230900",
-    "owner": "JPN",
+    "owner": "NEA",
     "terrain": "FOREST",
     "cityLevel": 2,
     "industry": 1,
