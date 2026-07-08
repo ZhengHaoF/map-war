@@ -20,7 +20,7 @@ defineProps({
 <style scoped>
 .legend {
   position: absolute;
-  bottom: 16px;
+  bottom: 40px;
   left: 16px;
   display: flex;
   flex-wrap: wrap;

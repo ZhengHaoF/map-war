@@ -80,6 +80,8 @@ let app
 let worldContainer
 let labelContainer
 let highlightGraphics
+let battleHighlightGfx
+let selectionHighlightGfx
 let currentLayerIndex = ref(1)
 let currentData = null
 let selectedFeature = null
@@ -339,6 +341,10 @@ function drawFeature(graphics, feature, width, height, style, scale) {
 }
 
 function highlightFeature(feature, color = 0xff4444) {
+  highlightOn(selectionHighlightGfx, feature, color)
+}
+
+function highlightOn(gfx, feature, color = 0xff4444) {
   const width = app.screen.width
   const height = app.screen.height
   const { geometry } = feature
@@ -353,15 +359,15 @@ function highlightFeature(feature, color = 0xff4444) {
     for (const ring of polygon) {
       if (ring.length < 3) continue
       const first = geoToScreen(ring[0][0], ring[0][1], width, height)
-      highlightGraphics.moveTo(first.x, first.y)
+      gfx.moveTo(first.x, first.y)
       for (let i = 1; i < ring.length; i++) {
         const p = geoToScreen(ring[i][0], ring[i][1], width, height)
-        highlightGraphics.lineTo(p.x, p.y)
+        gfx.lineTo(p.x, p.y)
       }
-      highlightGraphics.closePath()
+      gfx.closePath()
     }
-    highlightGraphics.fill({ color, alpha: 0.4 })
-    highlightGraphics.stroke({ width: 0.5, color, alpha: 1 })
+    gfx.fill({ color, alpha: 0.4 })
+    gfx.stroke({ width: 0.5, color, alpha: 1 })
   }
 }
 
@@ -410,7 +416,7 @@ function hitTestAll(screenX, screenY) {
 }
 
 function clearAllHighlights() {
-  highlightGraphics.clear()
+  selectionHighlightGfx.clear()
   baseHighlightGraphics.clear()
   selectedFeature = null
   selectedWorldFeature = null
@@ -588,10 +594,10 @@ function testBattle() {
       from,
       to,
       container: worldContainer,
-      highlightGfx: highlightGraphics,
+      highlightGfx: battleHighlightGfx,
       fromFeature,
       toFeature,
-      onHighlight: highlightFeature,
+      onHighlight: (feature, color) => highlightOn(battleHighlightGfx, feature, color),
       colorA: 0x3b82f6, // 重庆（蓝色）
       colorB: target.colorB,
     })
@@ -605,6 +611,7 @@ function stopAllBattles() {
     battle.stop()
   }
   activeBattles.length = 0
+  battleHighlightGfx.clear()
 }
 
 function onContextMenu(e) {
@@ -782,6 +789,8 @@ async function loadLayer(index) {
   }
   worldContainer.addChild(graphics)
   worldContainer.addChild(highlightGraphics)
+  worldContainer.addChild(battleHighlightGfx)
+  worldContainer.addChild(selectionHighlightGfx)
   highlightGraphics.clear()
   selectedFeature = null
 
@@ -898,11 +907,15 @@ onMounted(async () => {
   worldContainer = new Container()
   labelContainer = new Container()
   highlightGraphics = new Graphics()
+  battleHighlightGfx = new Graphics()
+  selectionHighlightGfx = new Graphics()
   baseHighlightGraphics = new Graphics()
   app.stage.addChild(baseContainer)
   app.stage.addChild(worldContainer)
   app.stage.addChild(labelContainer)
   worldContainer.addChild(highlightGraphics)
+  worldContainer.addChild(battleHighlightGfx)
+  worldContainer.addChild(selectionHighlightGfx)
 
   const width = app.screen.width
   const height = app.screen.height
