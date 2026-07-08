@@ -30,11 +30,11 @@
     <GameModal :visible="testPanelVisible" title="调试" :draggable="true" :overlay="false" :init-x="160" :init-y="160"
       @close="testPanelVisible = false">
       <div class="test-panel">
-        <GameButton @click="testTroopMove">派兵测试</GameButton>
-        <GameButton @click="testScout">探察测试</GameButton>
-        <GameButton @click="testDeclareWar">宣战测试</GameButton>
-        <GameButton @click="testBattle">战斗测试</GameButton>
-        <GameButton danger @click="stopAllBattles">停止战斗</GameButton>
+        <GameButton @click="() => executeOrder({order:'attack', from:'156500000', to:'156450200', text:'出兵！'})">派兵测试</GameButton>
+        <GameButton @click="() => executeOrder({order:'scout', from:'156500000', text:'侦察！'})">探察测试</GameButton>
+        <GameButton @click="() => executeOrder({order:'declareWar', from:'156500000', to:'156450200', text:'宣战！'})">宣战测试</GameButton>
+        <GameButton @click="() => executeOrder({order:'battle', from:'156500000', to:['156450200','156451000']})">战斗测试</GameButton>
+        <GameButton danger @click="() => executeOrder({order:'stopBattles'})">停止战斗</GameButton>
       </div>
     </GameModal>
     <GameModal :visible="disclaimerVisible" title="免责声明" @close="disclaimerVisible = false">
@@ -69,6 +69,7 @@ import { OWNER_COLORS, OWNER_LABELS } from '@/data/ownerColors'
 import { chinaCities } from '@/data/chinaCities'
 import { worldCountries, GEO_TO_GAME_ISO } from '@/data/worldCountries'
 import { playArcAnimation, playScoutAnimation, startBattleAnimation } from '@/utils/troopAnimation'
+import { init as initGameOrders, executeOrder } from '@/utils/gameOrders'
 import {
   GEO_BOUNDS,
   geoToScreen,
@@ -87,8 +88,6 @@ const mapContainer = ref()
 let app
 let worldContainer
 let labelContainer
-let highlightGraphics
-let battleHighlightGfx
 let selectionHighlightGfx
 let currentLayerIndex = ref(1)
 let currentData = null
@@ -185,7 +184,7 @@ const countryInfoRows = computed(() => {
   if (!infoCountryData.value) return []
   const d = infoCountryData.value
   return [
-    { label: '国名', value: d.name },
+    { label: '国名', value: `${d.name}（${d.iso_a3 || d.id || '—'}）` },
     { label: '全称', value: d.full_name || '—' },
     { label: '国家类型', value: COUNTRY_TYPE_NAMES[d.countryType] || d.countryType || '—' },
     { label: '军事实力', value: `${d.military ?? '—'} / 10` },
@@ -198,7 +197,10 @@ const countryInfoRows = computed(() => {
 
 const infoTitle = computed(() => {
   if (infoCityData.value) return infoCityData.value.name
-  if (infoCountryData.value) return infoCountryData.value.name
+  if (infoCountryData.value) {
+    const d = infoCountryData.value
+    return `${d.name}（${d.iso_a3 || d.id || ''}）`
+  }
   return ''
 })
 
@@ -392,109 +394,6 @@ function toggleBaseMap() {
   baseContainer.visible = baseMapVisible.value
 }
 
-// 派兵动画
-let troopAnimRunning = false
-
-async function testTroopMove() {
-  if (troopAnimRunning) return
-  troopAnimRunning = true
-
-  await playArcAnimation({
-    fromId: '156500000', // 重庆
-    toId: '156450200',   // 柳州
-    container: worldContainer,
-    mode: 'dots',
-    text: '出兵！',
-    highlightGfx: highlightGraphics,
-    onHighlight: highlightFeature,
-    color: 0xffcc00,
-    dots: 5,
-    duration: 2000,
-  })
-
-  troopAnimRunning = false
-}
-
-// 探察测试
-let scoutAnimRunning = false
-
-async function testScout() {
-  if (scoutAnimRunning) return
-  scoutAnimRunning = true
-
-  await playScoutAnimation({
-    fromId: '156500000', // 重庆
-    container: worldContainer,
-    color: 0x22c55e,
-    rings: 3,
-    duration: 1500,
-    text: '侦察！',
-  })
-
-  scoutAnimRunning = false
-}
-
-// 宣战测试
-let declareWarAnimRunning = false
-
-async function testDeclareWar() {
-  if (declareWarAnimRunning) return
-  declareWarAnimRunning = true
-
-  await playArcAnimation({
-    fromId: '156500000', // 重庆
-    toId: '156450200',   // 柳州
-    container: worldContainer,
-    mode: 'orb',
-    explosion: true,
-    shockwaves: 3,
-    text: '宣战！',
-    highlightGfx: highlightGraphics,
-    onHighlight: highlightFeature,
-    color: 0xff4444,
-    duration: 1200,
-    explosionDuration: 800,
-  })
-
-  declareWarAnimRunning = false
-}
-
-// 战斗测试（持续动画）
-const activeBattles = []
-
-function testBattle() {
-  const fromId = '156500000' // 重庆
-  const battleTargets = [
-    { toId: '156450200', colorB: 0xef4444 }, // 柳州（红色）
-    { toId: '156451000', colorB: 0x22c55e }, // 百色（绿色）
-  ]
-
-  // 先清除高亮
-  highlightGraphics.clear()
-
-  for (const target of battleTargets) {
-    const battle = startBattleAnimation({
-      fromId,
-      toId: target.toId,
-      container: worldContainer,
-      highlightGfx: battleHighlightGfx,
-      onHighlight: (feature, color) => highlightOn(battleHighlightGfx, feature, color),
-      colorA: 0x3b82f6, // 重庆（蓝色）
-      colorB: target.colorB,
-    })
-
-    if (battle.graphics) activeBattles.push(battle)
-  }
-}
-
-function stopAllBattles() {
-  for (const battle of activeBattles) {
-    battle.stop()
-  }
-  activeBattles.length = 0
-  battleHighlightGfx.clear()
-}
-
 function onContextMenu(e) {
   e.preventDefault()
 
@@ -669,10 +568,7 @@ async function loadLayer(index) {
     )
   }
   worldContainer.addChild(graphics)
-  worldContainer.addChild(highlightGraphics)
-  worldContainer.addChild(battleHighlightGfx)
   worldContainer.addChild(selectionHighlightGfx)
-  highlightGraphics.clear()
   selectedFeature = null
 
   renderLabels(currentData, width, height, index)
@@ -788,20 +684,17 @@ onMounted(async () => {
   baseContainer = new Container()
   worldContainer = new Container()
   labelContainer = new Container()
-  highlightGraphics = new Graphics()
-  battleHighlightGfx = new Graphics()
   selectionHighlightGfx = new Graphics()
   baseHighlightGraphics = new Graphics()
   app.stage.addChild(baseContainer)
   app.stage.addChild(worldContainer)
   app.stage.addChild(labelContainer)
-  worldContainer.addChild(highlightGraphics)
-  worldContainer.addChild(battleHighlightGfx)
   worldContainer.addChild(selectionHighlightGfx)
 
   const width = app.screen.width
   const height = app.screen.height
   setScreenSize(width, height)
+  initGameOrders(worldContainer)
   const center = geoToScreen(104, 36, width, height)
   mapX = width / 2 - center.x
   mapY = height / 2 - center.y

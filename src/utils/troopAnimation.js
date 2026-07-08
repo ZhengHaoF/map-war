@@ -1,5 +1,5 @@
 import { Graphics, Text, TextStyle } from 'pixi.js'
-import { resolveLocationXY, resolveLocation } from './locationResolver'
+import { resolveLocationXY, resolveLocation, geoToScreen } from './locationResolver'
 
 /**
  * 贝塞尔曲线插值（二阶）
@@ -22,6 +22,35 @@ function drawArrow(gfx, x, y, angle, color = 0xffcc00) {
   gfx.lineTo(x + Math.cos(angle - 2.5) * size * 0.7, y + Math.sin(angle - 2.5) * size * 0.7)
   gfx.closePath()
   gfx.fill({ color, alpha: 1 })
+}
+
+/**
+ * 在地图上描出某个 GeoJSON Feature 的轮廓（高亮用）
+ */
+function drawFeatureOutline(gfx, feature, color) {
+  if (!feature?.geometry) return
+  const { geometry } = feature
+  const polygons =
+    geometry.type === 'Polygon'
+      ? [geometry.coordinates]
+      : geometry.type === 'MultiPolygon'
+        ? geometry.coordinates
+        : []
+
+  for (const polygon of polygons) {
+    for (const ring of polygon) {
+      if (ring.length < 3) continue
+      const first = geoToScreen(ring[0][0], ring[0][1])
+      gfx.moveTo(first.x, first.y)
+      for (let i = 1; i < ring.length; i++) {
+        const p = geoToScreen(ring[i][0], ring[i][1])
+        gfx.lineTo(p.x, p.y)
+      }
+      gfx.closePath()
+    }
+    gfx.fill({ color, alpha: 0.4 })
+    gfx.stroke({ width: 0.5, color, alpha: 1 })
+  }
 }
 
 /**
@@ -80,8 +109,6 @@ function showPopupText(container, to, text, color = 0xffffff) {
  * @param {number} [options.shockwaves=3] - 爆炸冲击波层数
  * @param {string} [options.text] - 到达后弹出的文字（可选）
  * @param {number} [options.textColor=0xffffff] - 弹出文字颜色
- * @param {import('pixi.js').Graphics} [options.highlightGfx] - 高亮图形对象（可选）
- * @param {(feature: Object, color: number) => void} [options.onHighlight] - 高亮回调
  * @param {number} [options.color=0xffcc00] - 动画颜色
  * @param {number} [options.dots=5]       - 小箭头数量（dots模式）
  * @param {number} [options.spacing=0.08] - 箭头间距（dots模式）
@@ -98,8 +125,6 @@ export async function playArcAnimation({
   shockwaves = 3,
   text,
   textColor = 0xffffff,
-  highlightGfx,
-  onHighlight,
   color = 0xffcc00,
   dots = 5,
   spacing = 0.08,
@@ -114,14 +139,13 @@ export async function playArcAnimation({
     return
   }
 
-  // 高亮出发地和目的地（按 id 自动取对应 Feature）
-  if (highlightGfx && onHighlight) {
-    highlightGfx.clear()
-    const fFrom = resolveLocation(fromId)
-    const fTo = resolveLocation(toId)
-    if (fFrom) onHighlight(fFrom, color)
-    if (fTo) onHighlight(fTo, color)
-  }
+  // 内部高亮：创建独立 Graphics，描出出发地/目的地轮廓
+  const hlGfx = new Graphics()
+  container.addChild(hlGfx)
+  const fFrom = resolveLocation(fromId)
+  const fTo = resolveLocation(toId)
+  drawFeatureOutline(hlGfx, fFrom, color)
+  drawFeatureOutline(hlGfx, fTo, color)
 
   // 贝塞尔控制点（中点偏上，形成弧线）
   const p0 = from
@@ -253,7 +277,8 @@ export async function playArcAnimation({
   // 清理
   container.removeChild(animGfx)
   animGfx.destroy()
-  if (highlightGfx) highlightGfx.clear()
+  container.removeChild(hlGfx)
+  hlGfx.destroy()
 
   // 等待文字显示一段时间
   if (text) {
@@ -340,8 +365,6 @@ export async function playScoutAnimation({
  * @param {string} options.fromId - 起点地点 id（城市 gb / 国家 iso_a3），内部自动换算坐标
  * @param {string} options.toId   - 终点地点 id
  * @param {import('pixi.js').Container} options.container - 动画绘制的父容器
- * @param {import('pixi.js').Graphics} [options.highlightGfx] - 高亮图形对象（可选）
- * @param {(feature: Object, color: number) => void} [options.onHighlight] - 高亮回调
  * @param {number} [options.colorA=0x3b82f6] - 出发方颜色（蓝色）
  * @param {number} [options.colorB=0xef4444] - 目标方颜色（红色）
  * @param {number} [options.dotsA=3] - A方小球数量
@@ -354,8 +377,6 @@ export function startBattleAnimation({
   fromId,
   toId,
   container,
-  highlightGfx,
-  onHighlight,
   colorA = 0x3b82f6,
   colorB = 0xef4444,
   dotsA = 3,
@@ -371,13 +392,11 @@ export function startBattleAnimation({
     return { stop() {}, graphics: null }
   }
 
-  // 高亮出发地和目的地（按 id 自动取对应 Feature）
-  if (highlightGfx && onHighlight) {
-    const fFrom = resolveLocation(fromId)
-    const fTo = resolveLocation(toId)
-    if (fFrom) onHighlight(fFrom, colorA)
-    if (fTo) onHighlight(fTo, colorB)
-  }
+  // 内部高亮：创建独立 Graphics，描出出发地（A色）/目的地（B色）轮廓
+  const hlGfx = new Graphics()
+  container.addChild(hlGfx)
+  drawFeatureOutline(hlGfx, resolveLocation(fromId), colorA)
+  drawFeatureOutline(hlGfx, resolveLocation(toId), colorB)
 
   // 贝塞尔控制点（和派兵模式一样）
   const p0 = from
@@ -456,7 +475,8 @@ export function startBattleAnimation({
       container.removeChild(animGfx)
       animGfx.destroy()
       // 清除高亮
-      if (highlightGfx) highlightGfx.clear()
+      container.removeChild(hlGfx)
+      hlGfx.destroy()
     },
     graphics: animGfx,
   }
