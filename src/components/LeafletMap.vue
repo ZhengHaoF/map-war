@@ -69,6 +69,14 @@ import { OWNER_COLORS, OWNER_LABELS } from '@/data/ownerColors'
 import { chinaCities } from '@/data/chinaCities'
 import { worldCountries, GEO_TO_GAME_ISO } from '@/data/worldCountries'
 import { playArcAnimation, playScoutAnimation, startBattleAnimation } from '@/utils/troopAnimation'
+import {
+  GEO_BOUNDS,
+  geoToScreen,
+  calculateCentroid,
+  setScreenSize,
+  registerLocations,
+  registerAlias,
+} from '@/utils/locationResolver'
 import GameButton from '@/components/ui/GameButton.vue'
 import GameContextMenu from '@/components/ui/GameContextMenu.vue'
 import GameModal from '@/components/ui/GameModal.vue'
@@ -202,22 +210,6 @@ let mapScale = 1
 let mapX = 0
 let mapY = 0
 
-const GEO_BOUNDS = {
-  minLng: 73,
-  maxLng: 135,
-  minLat: 18,
-  maxLat: 54,
-}
-
-function geoToScreen(lng, lat, width, height) {
-  const lngRange = GEO_BOUNDS.maxLng - GEO_BOUNDS.minLng
-  const latRange = GEO_BOUNDS.maxLat - GEO_BOUNDS.minLat
-  const scale = Math.min(width / lngRange, height / latRange)
-  const x = (lng - GEO_BOUNDS.minLng) * scale
-  const y = (GEO_BOUNDS.maxLat - lat) * scale
-  return { x, y }
-}
-
 function screenToGeo(screenX, screenY, width, height) {
   const lngRange = GEO_BOUNDS.maxLng - GEO_BOUNDS.minLng
   const latRange = GEO_BOUNDS.maxLat - GEO_BOUNDS.minLat
@@ -265,54 +257,6 @@ function hitTest(screenX, screenY, data, width, height) {
     if (hit) return feature
   }
   return null
-}
-
-function calculateCentroid(geometry) {
-  const polygons = []
-  if (geometry.type === 'Polygon') {
-    polygons.push(geometry.coordinates[0])
-  } else if (geometry.type === 'MultiPolygon') {
-    for (const polygon of geometry.coordinates) {
-      polygons.push(polygon[0])
-    }
-  }
-
-  if (polygons.length === 0) return null
-
-  function ringCentroid(ring) {
-    let area = 0
-    let cx = 0
-    let cy = 0
-    for (let i = 0; i < ring.length - 1; i++) {
-      const [x0, y0] = ring[i]
-      const [x1, y1] = ring[i + 1]
-      const cross = x0 * y1 - x1 * y0
-      area += cross
-      cx += (x0 + x1) * cross
-      cy += (y0 + y1) * cross
-    }
-    area /= 2
-    const absArea = Math.abs(area)
-    if (absArea === 0) return null
-    cx /= 6 * area
-    cy /= 6 * area
-    return { lng: cx, lat: cy, area: absArea }
-  }
-
-  let totalArea = 0
-  let totalLng = 0
-  let totalLat = 0
-
-  for (const ring of polygons) {
-    const c = ringCentroid(ring)
-    if (!c) continue
-    totalArea += c.area
-    totalLng += c.lng * c.area
-    totalLat += c.lat * c.area
-  }
-
-  if (totalArea === 0) return null
-  return { lng: totalLng / totalArea, lat: totalLat / totalArea }
 }
 
 function drawFeature(graphics, feature, width, height, style, scale) {
@@ -451,43 +395,17 @@ function toggleBaseMap() {
 // 派兵动画
 let troopAnimRunning = false
 
-function getFeatureCentroid(feature) {
-  const centroid = calculateCentroid(feature.geometry)
-  if (!centroid) return null
-  const width = app.screen.width
-  const height = app.screen.height
-  return geoToScreen(centroid.lng, centroid.lat, width, height)
-}
-
 async function testTroopMove() {
-  if (troopAnimRunning || !currentData) return
-
-  const fromGB = '156500000' // 重庆
-  const toGB = '156450200'   // 柳州
-
-  const fromFeature = currentData.features.find(f => f.properties?.gb === fromGB)
-  const toFeature = currentData.features.find(f => f.properties?.gb === toGB)
-
-  if (!fromFeature || !toFeature) {
-    console.warn('未找到城市，请切换到市级图层')
-    return
-  }
-
-  const from = getFeatureCentroid(fromFeature)
-  const to = getFeatureCentroid(toFeature)
-  if (!from || !to) return
-
+  if (troopAnimRunning) return
   troopAnimRunning = true
 
   await playArcAnimation({
-    from,
-    to,
+    fromId: '156500000', // 重庆
+    toId: '156450200',   // 柳州
     container: worldContainer,
     mode: 'dots',
     text: '出兵！',
     highlightGfx: highlightGraphics,
-    fromFeature,
-    toFeature,
     onHighlight: highlightFeature,
     color: 0xffcc00,
     dots: 5,
@@ -501,19 +419,11 @@ async function testTroopMove() {
 let scoutAnimRunning = false
 
 async function testScout() {
-  if (scoutAnimRunning || !currentData) return
-
-  const fromGB = '156500000' // 重庆
-  const fromFeature = currentData.features.find(f => f.properties?.gb === fromGB)
-  if (!fromFeature) return
-
-  const from = getFeatureCentroid(fromFeature)
-  if (!from) return
-
+  if (scoutAnimRunning) return
   scoutAnimRunning = true
 
   await playScoutAnimation({
-    from,
+    fromId: '156500000', // 重庆
     container: worldContainer,
     color: 0x22c55e,
     rings: 3,
@@ -528,31 +438,18 @@ async function testScout() {
 let declareWarAnimRunning = false
 
 async function testDeclareWar() {
-  if (declareWarAnimRunning || !currentData) return
-
-  const fromGB = '156500000' // 重庆
-  const toGB = '156450200'   // 柳州
-
-  const fromFeature = currentData.features.find(f => f.properties?.gb === fromGB)
-  const toFeature = currentData.features.find(f => f.properties?.gb === toGB)
-  if (!fromFeature || !toFeature) return
-
-  const from = getFeatureCentroid(fromFeature)
-  const to = getFeatureCentroid(toFeature)
-  if (!from || !to) return
-
+  if (declareWarAnimRunning) return
   declareWarAnimRunning = true
 
   await playArcAnimation({
-    from,
-    to,
+    fromId: '156500000', // 重庆
+    toId: '156450200',   // 柳州
     container: worldContainer,
     mode: 'orb',
     explosion: true,
     shockwaves: 3,
     text: '宣战！',
     highlightGfx: highlightGraphics,
-    toFeature,
     onHighlight: highlightFeature,
     color: 0xff4444,
     duration: 1200,
@@ -566,43 +463,27 @@ async function testDeclareWar() {
 const activeBattles = []
 
 function testBattle() {
-  if (!currentData) return
-
-  const fromGB = '156500000' // 重庆
+  const fromId = '156500000' // 重庆
   const battleTargets = [
-    { toGB: '156450200', colorB: 0xef4444 }, // 柳州（红色）
-    { toGB: '156451000', colorB: 0x22c55e }, // 百色（绿色）
+    { toId: '156450200', colorB: 0xef4444 }, // 柳州（红色）
+    { toId: '156451000', colorB: 0x22c55e }, // 百色（绿色）
   ]
-
-  const fromFeature = currentData.features.find(f => f.properties?.gb === fromGB)
-  if (!fromFeature) return
-
-  const from = getFeatureCentroid(fromFeature)
-  if (!from) return
 
   // 先清除高亮
   highlightGraphics.clear()
 
   for (const target of battleTargets) {
-    const toFeature = currentData.features.find(f => f.properties?.gb === target.toGB)
-    if (!toFeature) continue
-
-    const to = getFeatureCentroid(toFeature)
-    if (!to) continue
-
     const battle = startBattleAnimation({
-      from,
-      to,
+      fromId,
+      toId: target.toId,
       container: worldContainer,
       highlightGfx: battleHighlightGfx,
-      fromFeature,
-      toFeature,
       onHighlight: (feature, color) => highlightOn(battleHighlightGfx, feature, color),
       colorA: 0x3b82f6, // 重庆（蓝色）
       colorB: target.colorB,
     })
 
-    activeBattles.push(battle)
+    if (battle.graphics) activeBattles.push(battle)
   }
 }
 
@@ -878,6 +759,7 @@ function onResize() {
   requestAnimationFrame(() => {
     const width = app.screen.width
     const height = app.screen.height
+    setScreenSize(width, height)
 
     // 保持地图居中（以 104°E, 36°N 为中心）
     const center = geoToScreen(104, 36, width, height)
@@ -919,6 +801,7 @@ onMounted(async () => {
 
   const width = app.screen.width
   const height = app.screen.height
+  setScreenSize(width, height)
   const center = geoToScreen(104, 36, width, height)
   mapX = width / 2 - center.x
   mapY = height / 2 - center.y
@@ -959,11 +842,20 @@ onMounted(async () => {
     worldData = await res.json()
     console.log('世界地图加载完成:', worldData.features.length, '个国家')
     await renderBaseMap()
+    // 注册国家地点（iso_a3 作为唯一 id），并处理现代码→游戏码别名
+    registerLocations(worldData.features, 'iso_a3')
+    for (const [geoIso, gameIso] of Object.entries(GEO_TO_GAME_ISO)) {
+      registerAlias(geoIso, gameIso)
+    }
   } catch (e) {
     console.error('世界地图加载失败:', e)
   }
 
   await loadLayer(currentLayerIndex.value)
+
+  // 注册城市地点（gb 作为唯一 id）
+  const cityJson = geoJsonCache.get(LAYERS[1].file)
+  if (cityJson) registerLocations(cityJson.features, 'gb')
 })
 
 onUnmounted(() => {

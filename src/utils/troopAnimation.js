@@ -1,4 +1,5 @@
 import { Graphics, Text, TextStyle } from 'pixi.js'
+import { resolveLocationXY, resolveLocation } from './locationResolver'
 
 /**
  * 贝塞尔曲线插值（二阶）
@@ -71,8 +72,8 @@ function showPopupText(container, to, text, color = 0xffffff) {
  * - mode='orb'   : 光球沿弧线移动（适合宣战、施法）
  *
  * @param {Object} options
- * @param {{ x: number, y: number }} options.from - 起点屏幕坐标
- * @param {{ x: number, y: number }} options.to   - 终点屏幕坐标
+ * @param {string} options.fromId - 起点地点 id（城市 gb / 国家 iso_a3），内部自动换算坐标
+ * @param {string} options.toId   - 终点地点 id
  * @param {import('pixi.js').Container} options.container - 动画绘制的父容器
  * @param {'dots'|'orb'} [options.mode='dots'] - 动画模式
  * @param {boolean} [options.explosion=false] - 到达后是否爆炸
@@ -80,8 +81,6 @@ function showPopupText(container, to, text, color = 0xffffff) {
  * @param {string} [options.text] - 到达后弹出的文字（可选）
  * @param {number} [options.textColor=0xffffff] - 弹出文字颜色
  * @param {import('pixi.js').Graphics} [options.highlightGfx] - 高亮图形对象（可选）
- * @param {Object} [options.fromFeature] - GeoJSON Feature，用于高亮出发地
- * @param {Object} [options.toFeature]   - GeoJSON Feature，用于高亮目的地
  * @param {(feature: Object, color: number) => void} [options.onHighlight] - 高亮回调
  * @param {number} [options.color=0xffcc00] - 动画颜色
  * @param {number} [options.dots=5]       - 小箭头数量（dots模式）
@@ -91,8 +90,8 @@ function showPopupText(container, to, text, color = 0xffffff) {
  * @returns {Promise<void>}
  */
 export async function playArcAnimation({
-  from,
-  to,
+  fromId,
+  toId,
   container,
   mode = 'dots',
   explosion = false,
@@ -100,8 +99,6 @@ export async function playArcAnimation({
   text,
   textColor = 0xffffff,
   highlightGfx,
-  fromFeature,
-  toFeature,
   onHighlight,
   color = 0xffcc00,
   dots = 5,
@@ -109,11 +106,21 @@ export async function playArcAnimation({
   duration = 2000,
   explosionDuration = 800,
 }) {
-  // 高亮出发地和目的地
+  // 解析起点/终点坐标（按 id 在地点注册表中查）
+  const from = resolveLocationXY(fromId)
+  const to = resolveLocationXY(toId)
+  if (!from || !to) {
+    console.warn('[playArcAnimation] 缺少有效的 fromId/toId，无法解析坐标')
+    return
+  }
+
+  // 高亮出发地和目的地（按 id 自动取对应 Feature）
   if (highlightGfx && onHighlight) {
     highlightGfx.clear()
-    if (fromFeature) onHighlight(fromFeature, color)
-    if (toFeature) onHighlight(toFeature, color)
+    const fFrom = resolveLocation(fromId)
+    const fTo = resolveLocation(toId)
+    if (fFrom) onHighlight(fFrom, color)
+    if (fTo) onHighlight(fTo, color)
   }
 
   // 贝塞尔控制点（中点偏上，形成弧线）
@@ -258,7 +265,7 @@ export async function playArcAnimation({
  * 播放探察动画 - 从起点向外扩散圆环
  *
  * @param {Object} options
- * @param {{ x: number, y: number }} options.from - 起点屏幕坐标
+ * @param {string} options.fromId - 起点地点 id（城市 gb / 国家 iso_a3），内部自动换算坐标
  * @param {import('pixi.js').Container} options.container - 动画绘制的父容器
  * @param {number} [options.color=0x22c55e] - 动画颜色（默认绿色）
  * @param {number} [options.rings=3] - 圆环数量
@@ -267,13 +274,19 @@ export async function playArcAnimation({
  * @returns {Promise<void>}
  */
 export async function playScoutAnimation({
-  from,
+  fromId,
   container,
   color = 0x22c55e,
   rings = 3,
   duration = 1500,
   text,
 }) {
+  const from = resolveLocationXY(fromId)
+  if (!from) {
+    console.warn('[playScoutAnimation] 缺少有效的 fromId，无法解析坐标')
+    return
+  }
+
   const animGfx = new Graphics()
   container.addChild(animGfx)
 
@@ -324,12 +337,10 @@ export async function playScoutAnimation({
  * 贝塞尔曲线路径，两种颜色小球相向移动
  *
  * @param {Object} options
- * @param {{ x: number, y: number }} options.from - 起点屏幕坐标
- * @param {{ x: number, y: number }} options.to - 终点屏幕坐标
+ * @param {string} options.fromId - 起点地点 id（城市 gb / 国家 iso_a3），内部自动换算坐标
+ * @param {string} options.toId   - 终点地点 id
  * @param {import('pixi.js').Container} options.container - 动画绘制的父容器
  * @param {import('pixi.js').Graphics} [options.highlightGfx] - 高亮图形对象（可选）
- * @param {Object} [options.fromFeature] - GeoJSON Feature，用于高亮出发地
- * @param {Object} [options.toFeature] - GeoJSON Feature，用于高亮目的地
  * @param {(feature: Object, color: number) => void} [options.onHighlight] - 高亮回调
  * @param {number} [options.colorA=0x3b82f6] - 出发方颜色（蓝色）
  * @param {number} [options.colorB=0xef4444] - 目标方颜色（红色）
@@ -340,12 +351,10 @@ export async function playScoutAnimation({
  * @returns {{ stop: () => void, graphics: import('pixi.js').Graphics }} 控制对象
  */
 export function startBattleAnimation({
-  from,
-  to,
+  fromId,
+  toId,
   container,
   highlightGfx,
-  fromFeature,
-  toFeature,
   onHighlight,
   colorA = 0x3b82f6,
   colorB = 0xef4444,
@@ -354,10 +363,20 @@ export function startBattleAnimation({
   spacing = 0.15,
   speed = 0.004,
 }) {
-  // 高亮出发地和目的地（参考派兵模式）
+  // 解析起点/终点坐标（按 id 在地点注册表中查）
+  const from = resolveLocationXY(fromId)
+  const to = resolveLocationXY(toId)
+  if (!from || !to) {
+    console.warn('[startBattleAnimation] 缺少有效的 fromId/toId，无法解析坐标')
+    return { stop() {}, graphics: null }
+  }
+
+  // 高亮出发地和目的地（按 id 自动取对应 Feature）
   if (highlightGfx && onHighlight) {
-    if (fromFeature) onHighlight(fromFeature, colorA)
-    if (toFeature) onHighlight(toFeature, colorB)
+    const fFrom = resolveLocation(fromId)
+    const fTo = resolveLocation(toId)
+    if (fFrom) onHighlight(fFrom, colorA)
+    if (fTo) onHighlight(fTo, colorB)
   }
 
   // 贝塞尔控制点（和派兵模式一样）
