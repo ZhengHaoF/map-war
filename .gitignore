@@ -41,4 +41,7 @@ __screenshots__/
 # Environment
 .env
 .env.*
+
+# NestJS backend
+map-war-server/
 /.omo/
