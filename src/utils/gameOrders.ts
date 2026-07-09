@@ -15,6 +15,8 @@ import type { Container } from 'pixi.js'
 import { playArcAnimation, playScoutAnimation, startBattleAnimation } from './troopAnimation'
 import type { BattleHandle } from './troopAnimation'
 import { resolveLocation } from './locationResolver'
+import { useGameStore } from '@/stores/game'
+import type { Owner } from '@/data/owners'
 
 // ─── 类型定义 ───
 
@@ -195,6 +197,16 @@ export function battle(from: string, to: string): BattleOrderResult {
 
   activeBattles.set(id, { battle: b })
 
+  // 桥接：同步元数据进响应式 store，战斗面板自动刷新
+  useGameStore().battles.push({
+    id,
+    from,
+    to,
+    fromName: getLocationName(from),
+    toName: getLocationName(to),
+    active: true,
+  })
+
   return { ok: true, id }
 }
 
@@ -205,6 +217,7 @@ export function stopBattle(id: string): OrderResult {
   entry.battle.stop()
   activeBattles.delete(id)
   battleRegistry.delete(id)
+  useGameStore().battles = useGameStore().battles.filter(b => b.id !== id)
   return { ok: true }
 }
 
@@ -214,22 +227,53 @@ export function stopBattles(): OrderResult {
   }
   activeBattles.clear()
   battleRegistry.clear()
+  useGameStore().battles = []
   return { ok: true }
 }
 
 export function listBattles(): BattleInfo[] {
-  const result: BattleInfo[] = []
-  for (const [id, data] of battleRegistry.entries()) {
-    result.push({
-      id,
-      from: data.from,
-      to: data.to,
-      fromName: data.fromName,
-      toName: data.toName,
-      active: activeBattles.has(id),
-    })
-  }
-  return result
+  return useGameStore().battles.slice()
+}
+
+// ─── AI 世界状态写回接口（最小参数）───
+// 这些 setter 是 AI 指令「落地」时回写 store 的入口：
+// 只接收最少必要参数，不直接碰 PixiJS，也不处理动画。
+
+/**
+ * 设置/变更某城市的控制政权（占领、易主）。
+ * @param gb    城市 gb 编码
+ * @param owner 新的控制政权
+ */
+export function setCityOwner(gb: string, owner: Owner): void {
+  useGameStore().ownership[gb] = owner
+}
+
+/**
+ * 设置某势力的存活状态。
+ * @param f     势力
+ * @param alive true=加入存活列表，false=从存活列表移除（灭亡）
+ */
+export function setFactionAlive(f: Owner, alive: boolean): void {
+  const s = useGameStore()
+  const has = s.activeFactions.includes(f)
+  if (alive && !has) s.activeFactions.push(f)
+  if (!alive && has) s.activeFactions = s.activeFactions.filter(x => x !== f)
+}
+
+/**
+ * 推进全局日期时钟。
+ * @param date ISO 格式日期字符串，如 '1931-10-01'
+ */
+export function setCurrentDate(date: string): void {
+  useGameStore().currentDate = date
+}
+
+/**
+ * 设置玩家所选势力（委托给 store 内置的 selectFaction，避免逻辑分叉）。
+ * @param f 玩家势力
+ */
+export function setCurrentFaction(f: Owner): void {
+  useGameStore().selectFaction(f)
 }
 
 // ─── AI JSON 协议解析器 ───

@@ -8,5 +8,6 @@ export enum Owner {
   SCC = "SCC",      // 川军
   MA = "MA",        // 马家军
   XJ = "XJ",        // 新疆
-  TIB = "TIB"       // 西藏
+  TIB = "TIB",      // 西藏
+  NEUTRAL = "NEUTRAL", // 中立/无主
 }

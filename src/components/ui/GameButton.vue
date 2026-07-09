@@ -17,6 +17,11 @@ defineEmits<{
 
 <style scoped>
 .game-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: center;
+  white-space: nowrap;
   padding: 8px 16px;
   border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: 6px;
@@ -26,6 +31,11 @@ defineEmits<{
   cursor: pointer;
   transition: all 0.2s;
   backdrop-filter: blur(4px);
+}
+
+.game-btn :deep(svg) {
+  display: block;
+  flex-shrink: 0;
 }
 
 .game-btn:hover {

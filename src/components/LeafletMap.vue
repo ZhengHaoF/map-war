@@ -3,51 +3,58 @@
     <div class="layer-switcher">
       <GameButton v-for="(layer, index) in LAYERS" :key="layer.file" :active="currentLayerIndex === index"
         @click="switchLayer(index)">
+        <component :is="ICONS['stack-2']" :size="16" />
         {{ layer.label }}
       </GameButton>
       <div class="switcher-divider"></div>
       <GameButton :active="ownerColorEnabled" @click="toggleOwnerColor">
+        <component :is="ICONS['flag']" :size="16" />
         政权着色
       </GameButton>
       <GameButton :active="labelsVisible" @click="toggleLabels">
+        <component :is="ICONS['tag']" :size="16" />
         显示地名
       </GameButton>
       <GameButton :active="baseMapVisible" @click="toggleBaseMap">
+        <component :is="ICONS['world']" :size="16" />
         世界背景
       </GameButton>
       <div class="switcher-divider"></div>
       <GameButton @click="testPanelVisible = !testPanelVisible">
+        <component :is="ICONS['bug']" :size="16" />
         调试
       </GameButton>
     </div>
-    <LegendPanel v-if="ownerColorEnabled" :items="legendItems" />
     <GameContextMenu :visible="contextMenuVisible" :position="contextMenuPos" :items="contextMenuItems"
       @select="onMenuAction" />
-    <GameModal :visible="infoModalVisible" :title="infoTitle" @close="infoModalVisible = false">
+    <GameModal :visible="infoModalVisible" :title="infoTitle" :z-index="5000" @close="closeInfoModal">
       <InfoTable v-if="infoCityData" :rows="infoRows" />
       <InfoTable v-else-if="infoCountryData" :rows="countryInfoRows" />
     </GameModal>
-    <GameModal :visible="testPanelVisible" title="调试" :draggable="true" :overlay="false" :init-x="160" :init-y="160"
+    <GameModal :visible="testPanelVisible" title="调试" :draggable="true" :overlay="false" :z-index="4000" :init-x="160" :init-y="160"
       @close="testPanelVisible = false">
       <div class="test-panel">
-        <GameButton @click="() => executeOrder({order:'attack', from:'156500000', to:'156450200', text:'出兵！'})">派兵测试</GameButton>
-        <GameButton @click="() => executeOrder({order:'scout', from:'156500000', text:'侦察！'})">探察测试</GameButton>
-        <GameButton @click="() => executeOrder({order:'declareWar', from:'156500000', to:'156450200', text:'宣战！'})">宣战测试</GameButton>
-        <GameButton @click="() => executeOrder({order:'battle', from:'156500000', to:'156450200'})">战斗测试1</GameButton>
-        <GameButton @click="() => executeOrder({order:'battle', from:'156500000', to:'156451000'})">战斗测试2</GameButton>
-        <GameButton danger @click="() => executeOrder({order:'stopBattles'})">停止战斗</GameButton>
-        <GameButton @click="() => { const list = listBattles(); console.log('当前战斗:', JSON.stringify(list, null, 2)) }">查看战斗</GameButton>
-        <GameButton danger @click="openBattleList">结束战斗</GameButton>
+        <GameButton @click="() => executeOrder({order:'attack', from:'156500000', to:'156450200', text:'出兵！'})"><component :is="ICONS['sword']" :size="16" />派兵测试</GameButton>
+        <GameButton @click="() => executeOrder({order:'scout', from:'156500000', text:'侦察！'})"><component :is="ICONS['eye']" :size="16" />探察测试</GameButton>
+        <GameButton @click="() => executeOrder({order:'declareWar', from:'156500000', to:'156450200', text:'宣战！'})"><component :is="ICONS['flag']" :size="16" />宣战测试</GameButton>
+        <GameButton @click="() => executeOrder({order:'battle', from:'156500000', to:'156450200'})"><component :is="ICONS['crosshair']" :size="16" />战斗测试1</GameButton>
+        <GameButton @click="() => executeOrder({order:'battle', from:'156500000', to:'156451000'})"><component :is="ICONS['crosshair']" :size="16" />战斗测试2</GameButton>
+        <GameButton danger @click="() => executeOrder({order:'stopBattles'})"><component :is="ICONS['player-stop']" :size="16" />停止战斗</GameButton>
+        <GameButton @click="() => { const list = listBattles(); console.log('当前战斗:', JSON.stringify(list, null, 2)) }"><component :is="ICONS['list']" :size="16" />查看战斗</GameButton>
+        <GameButton danger @click="openBattleList"><component :is="ICONS['circle-x']" :size="16" />结束战斗</GameButton>
       </div>
     </GameModal>
-    <GameModal :visible="battleListVisible" title="战斗管理" @close="battleListVisible = false">
+    <GameModal :visible="battleListVisible" title="战斗管理" :z-index="3500" @close="battleListVisible = false">
       <div v-if="battleList.length === 0" class="empty-hint">当前没有进行中的战斗</div>
       <div v-for="b in battleList" :key="b.id" class="battle-item">
         <span class="battle-info">
           {{ b.fromName }} → {{ b.toName }}
           <span v-if="!b.active" class="inactive">(已停止)</span>
         </span>
-        <GameButton danger size="small" @click="endBattle(b.id)">结束</GameButton>
+        <GameButton danger size="small" @click="endBattle(b.id)">
+          <component :is="ICONS['x']" :size="14" />
+          结束
+        </GameButton>
       </div>
     </GameModal>
     <GameModal :visible="disclaimerVisible" title="免责声明" @close="disclaimerVisible = false">
@@ -67,6 +74,7 @@
         </ul>
       </div>
     </GameModal>
+    <LegendPanel v-if="ownerColorEnabled" :items="legendItems" />
     <div class="disclaimer-bar" @click="disclaimerVisible = true">
       ⚠
       免责声明：本地图数据来源于网络公开数据源，仅供娱乐参考。游戏中的政权划分、边界线等均为虚构设定，不代表任何个人或组织的政治立场，亦不代表对现实世界领土归属的任何主张，不对应、不代表当下世界各国法定领土国界。本人始终坚持遵循以中华人民共和国自然资源部（原国家测绘地理信息局）发布的标准地图。
@@ -85,6 +93,7 @@ import type { CountryData } from '@/data/worldCountries'
 import { worldCountries, GEO_TO_GAME_ISO } from '@/data/worldCountries'
 import { init as initGameOrders, executeOrder, listBattles, stopBattle } from '@/utils/gameOrders'
 import type { GameOrder } from '@/utils/gameOrders'
+import { useGameStore } from '@/stores/game'
 import {
   geoToScreen,
   calculateCentroid,
@@ -98,6 +107,34 @@ import GameContextMenu from '@/components/ui/GameContextMenu.vue'
 import GameModal from '@/components/ui/GameModal.vue'
 import InfoTable from '@/components/ui/InfoTable.vue'
 import LegendPanel from '@/components/ui/LegendPanel.vue'
+import type { Component } from 'vue'
+import IconStack2 from '~icons/tabler/stack-2'
+import IconFlag from '~icons/tabler/flag'
+import IconTag from '~icons/tabler/tag'
+import IconWorld from '~icons/tabler/world'
+import IconBug from '~icons/tabler/bug'
+import IconSword from '~icons/tabler/sword'
+import IconEye from '~icons/tabler/eye'
+import IconCrosshair from '~icons/tabler/crosshair'
+import IconPlayerStop from '~icons/tabler/player-stop'
+import IconList from '~icons/tabler/list'
+import IconCircleX from '~icons/tabler/circle-x'
+import IconX from '~icons/tabler/x'
+
+const ICONS: Record<string, Component> = {
+  'stack-2': IconStack2,
+  flag: IconFlag,
+  tag: IconTag,
+  world: IconWorld,
+  bug: IconBug,
+  sword: IconSword,
+  eye: IconEye,
+  crosshair: IconCrosshair,
+  'player-stop': IconPlayerStop,
+  list: IconList,
+  'circle-x': IconCircleX,
+  x: IconX,
+}
 
 // ─── 类型定义 ───
 
@@ -191,7 +228,7 @@ const infoCityData = ref<CityData | null>(null)
 const infoCountryData = ref<CountryData | Record<string, unknown> | null>(null)
 const testPanelVisible = ref(false)
 const battleListVisible = ref(false)
-const battleList = ref<{ id: string; from: string; to: string; fromName: string; toName: string; active: boolean }[]>([])
+const battleList = computed(() => useGameStore().battles)
 const disclaimerVisible = ref(false)
 const ownerColorEnabled = ref(true)
 const labelsVisible = ref(false)
@@ -236,10 +273,10 @@ const legendItems = computed(() =>
 )
 
 const contextMenuItems = ref([
-  { action: 'info', label: '查看信息' },
-  { action: 'investigate', label: '调查' },
-  { action: 'declare-war', label: '宣战' },
-  { action: 'surprise-attack', label: '奇袭', danger: true },
+  { action: 'info', label: '查看信息', icon: 'info-circle' },
+  { action: 'investigate', label: '调查', icon: 'search' },
+  { action: 'declare-war', label: '宣战', icon: 'flag' },
+  { action: 'surprise-attack', label: '奇袭', danger: true, icon: 'bolt' },
 ])
 
 const infoRows = computed(() => {
@@ -477,16 +514,16 @@ function onContextMenu(e: PointerEvent | MouseEvent): void {
     selectedFeature = result.feature
     highlightFeature(result.feature)
     contextMenuItems.value = [
-      { action: 'info', label: '查看信息' },
-      { action: 'investigate', label: '调查' },
-      { action: 'declare-war', label: '宣战' },
-      { action: 'surprise-attack', label: '奇袭', danger: true },
+      { action: 'info', label: '查看信息', icon: 'info-circle' },
+      { action: 'investigate', label: '调查', icon: 'search' },
+      { action: 'declare-war', label: '宣战', icon: 'flag' },
+      { action: 'surprise-attack', label: '奇袭', danger: true, icon: 'bolt' },
     ]
   } else {
     selectedWorldFeature = result.feature
     highlightBaseFeature(result.feature)
     contextMenuItems.value = [
-      { action: 'info', label: '查看信息' },
+      { action: 'info', label: '查看信息', icon: 'info-circle' },
     ]
   }
 
@@ -496,6 +533,12 @@ function onContextMenu(e: PointerEvent | MouseEvent): void {
 
 function closeContextMenu(): void {
   contextMenuVisible.value = false
+}
+
+function closeInfoModal(): void {
+  console.log('[LeafletMap] closeInfoModal called, current value:', infoModalVisible.value)
+  infoModalVisible.value = false
+  console.log('[LeafletMap] closeInfoModal done, new value:', infoModalVisible.value)
 }
 
 function onMenuAction(action: string): void {
@@ -518,13 +561,11 @@ function onMenuAction(action: string): void {
 }
 
 function openBattleList(): void {
-  battleList.value = listBattles() as typeof battleList.value
   battleListVisible.value = true
 }
 
 function endBattle(id: string): void {
   stopBattle(id)
-  battleList.value = listBattles() as typeof battleList.value
 }
 
 function onGlobalMouseDown(e: MouseEvent): void {
@@ -537,7 +578,7 @@ function onGlobalMouseDown(e: MouseEvent): void {
 function onKeyDown(e: KeyboardEvent): void {
   if (e.key === 'Escape') {
     if (infoModalVisible.value) {
-      infoModalVisible.value = false
+      closeInfoModal()
     } else {
       closeContextMenu()
     }
@@ -631,9 +672,10 @@ async function loadLayer(index: number): Promise<void> {
     for (const feature of currentData.features) {
       let fillColor = config.fillColor
       if (ownerColorEnabled.value && index === 1 && feature.properties?.gb) {
-        const cityData = cityDataMap.get(feature.properties.gb as string)
-        if (cityData?.owner) {
-          fillColor = (OWNER_COLORS as Record<string, number>)[cityData.owner] ?? config.fillColor
+        const gb = feature.properties.gb as string
+        const owner = useGameStore().ownership[gb]
+        if (owner) {
+          fillColor = (OWNER_COLORS as Record<string, number>)[owner] ?? config.fillColor
         }
       }
       drawFeature(graphics, feature, width, height, { color: config.color, fillColor })
@@ -790,6 +832,7 @@ onMounted(async () => {
   window.addEventListener('mousedown', onGlobalMouseDown)
   window.addEventListener('keydown', onKeyDown)
 
+  useGameStore().initWorld()
   cityList = chinaCities
   for (const c of cityList) {
     if (c.gb) cityDataMap.set(c.gb, c)
@@ -862,6 +905,9 @@ onUnmounted(() => {
 }
 
 .layer-switcher button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   padding: 8px 16px;
   border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: 6px;

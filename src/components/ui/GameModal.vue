@@ -1,6 +1,12 @@
 <template>
   <Teleport to="body">
-    <div v-if="visible" class="modal-overlay" :class="{ transparent: !overlay }">
+    <div
+      v-if="visible"
+      class="modal-overlay"
+      :class="{ transparent: overlay === false }"
+      :style="{ zIndex: zIndex ?? 3000 }"
+      @click.self="$emit('close')"
+    >
       <div class="modal" :class="{ draggable }" :style="modalStyle">
         <div
           class="modal-header"
@@ -8,7 +14,7 @@
           @mousedown.prevent="onDragStart"
         >
           <span class="modal-title">{{ title }}</span>
-          <span class="modal-close" @click="$emit('close')">&times;</span>
+          <span class="modal-close" @click="onCloseClick">&times;</span>
         </div>
         <div class="modal-body">
           <slot />
@@ -21,17 +27,26 @@
 <script setup lang="ts">
 import { ref, computed, onUnmounted } from 'vue'
 
-const props = defineProps<{
-  visible?: boolean
-  title?: string
-  minWidth?: string
-  draggable?: boolean
-  overlay?: boolean
-  initX?: number
-  initY?: number
-}>()
+const props = withDefaults(
+  defineProps<{
+    visible?: boolean
+    title?: string
+    minWidth?: string
+    draggable?: boolean
+    overlay?: boolean
+    initX?: number
+    initY?: number
+    /** 弹窗层级，避免多个弹窗共用 3000 时互相遮挡可点区域 */
+    zIndex?: number
+  }>(),
+  {
+    overlay: true,
+    draggable: false,
+    visible: false,
+  },
+)
 
-defineEmits<{
+const emit = defineEmits<{
   close: []
 }>()
 
@@ -84,6 +99,11 @@ function cleanDragListeners(): void {
 onUnmounted(() => {
   cleanDragListeners()
 })
+
+function onCloseClick(): void {
+  console.log('[GameModal] close button clicked')
+  emit('close')
+}
 </script>
 
 <style scoped>
@@ -108,6 +128,7 @@ onUnmounted(() => {
   border-radius: 12px;
   backdrop-filter: blur(16px);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+  pointer-events: auto;
 }
 
 .modal.draggable {
