@@ -7,14 +7,15 @@
   </div>
 </template>
 
-<script setup>
-defineProps({
-  rows: {
-    type: Array,
-    default: () => [],
-    // rows: [{ label: string, value: string | number }]
-  },
-})
+<script setup lang="ts">
+interface TableRow {
+  label: string
+  value: string | number
+}
+
+defineProps<{
+  rows?: TableRow[]
+}>()
 </script>
 
 <style scoped>

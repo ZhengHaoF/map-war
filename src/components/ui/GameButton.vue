@@ -4,12 +4,15 @@
   </button>
 </template>
 
-<script setup>
-defineProps({
-  active: { type: Boolean, default: false },
-  danger: { type: Boolean, default: false },
-})
-defineEmits(['click'])
+<script setup lang="ts">
+defineProps<{
+  active?: boolean
+  danger?: boolean
+}>()
+
+defineEmits<{
+  click: [event: MouseEvent]
+}>()
 </script>
 
 <style scoped>

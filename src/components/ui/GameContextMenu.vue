@@ -2,7 +2,7 @@
   <div
     v-if="visible"
     class="context-menu"
-    :style="{ left: position.x + 'px', top: position.y + 'px' }"
+    :style="{ left: (position?.x ?? 0) + 'px', top: (position?.y ?? 0) + 'px' }"
   >
     <div
       v-for="item in items"
@@ -16,17 +16,22 @@
   </div>
 </template>
 
-<script setup>
-defineProps({
-  visible: { type: Boolean, default: false },
-  position: { type: Object, default: () => ({ x: 0, y: 0 }) },
-  items: {
-    type: Array,
-    default: () => [],
-    // items: [{ action: string, label: string, danger?: boolean }]
-  },
-})
-defineEmits(['select'])
+<script setup lang="ts">
+interface MenuItem {
+  action: string
+  label: string
+  danger?: boolean
+}
+
+defineProps<{
+  visible?: boolean
+  position?: { x: number; y: number }
+  items?: MenuItem[]
+}>()
+
+defineEmits<{
+  select: [action: string]
+}>()
 </script>
 
 <style scoped>

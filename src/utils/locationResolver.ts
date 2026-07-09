@@ -10,34 +10,68 @@
  * 与 LeafletMap 中 getFeatureCentroid 的算法完全一致。
  */
 
-export const GEO_BOUNDS = {
+// ─── 类型定义 ───
+
+export interface Point {
+  x: number
+  y: number
+}
+
+export interface LatLng {
+  lng: number
+  lat: number
+}
+
+export interface ScreenSize {
+  width: number
+  height: number
+}
+
+export interface GeoBounds {
+  minLng: number
+  maxLng: number
+  minLat: number
+  maxLat: number
+}
+
+export interface CentroidResult {
+  lng: number
+  lat: number
+  area: number
+}
+
+// ─── 地理边界 ───
+
+export const GEO_BOUNDS: GeoBounds = {
   minLng: 73,
   maxLng: 135,
   minLat: 18,
   maxLat: 54,
 }
 
-// 由 LeafletMap 在挂载 / resize 时写入当前画布尺寸
-let screenSize = { width: 1024, height: 768 }
+// ─── 内部状态 ───
 
-// id -> GeoJSON Feature 的注册表（城市用 gb，国家用 iso_a3）
-const featureById = new Map()
+let screenSize: ScreenSize = { width: 1024, height: 768 }
 
-export function setScreenSize(width, height) {
+/** id -> GeoJSON Feature 的注册表（城市用 gb，国家用 iso_a3） */
+const featureById = new Map<string, GeoJSON.Feature>()
+
+// ─── 公共 API ───
+
+export function setScreenSize(width: number, height: number): void {
   screenSize = { width, height }
 }
 
-export function clearLocations() {
+export function clearLocations(): void {
   featureById.clear()
 }
 
 /**
  * 注册一批 GeoJSON features，以 properties[idKey] 作为查找 id。
  */
-export function registerLocations(features, idKey) {
-  if (!Array.isArray(features)) return
+export function registerLocations(features: GeoJSON.Feature[], idKey: string): void {
   for (const f of features) {
-    const id = f?.properties?.[idKey]
+    const id = f?.properties?.[idKey] as string | undefined
     if (id != null) featureById.set(id, f)
   }
 }
@@ -45,12 +79,17 @@ export function registerLocations(features, idKey) {
 /**
  * 为同一 feature 注册一个别名 id（如现代国码 RUS → 游戏国码 SUN）。
  */
-export function registerAlias(fromId, toId) {
+export function registerAlias(fromId: string, toId: string): void {
   const f = featureById.get(toId)
   if (f) featureById.set(fromId, f)
 }
 
-export function geoToScreen(lng, lat, width = screenSize.width, height = screenSize.height) {
+export function geoToScreen(
+  lng: number,
+  lat: number,
+  width: number = screenSize.width,
+  height: number = screenSize.height,
+): Point {
   const lngRange = GEO_BOUNDS.maxLng - GEO_BOUNDS.minLng
   const latRange = GEO_BOUNDS.maxLat - GEO_BOUNDS.minLat
   const scale = Math.min(width / lngRange, height / latRange)
@@ -59,7 +98,9 @@ export function geoToScreen(lng, lat, width = screenSize.width, height = screenS
   return { x, y }
 }
 
-function ringCentroid(ring) {
+// ─── 质心计算 ───
+
+function ringCentroid(ring: [number, number][]): CentroidResult | null {
   let area = 0
   let cx = 0
   let cy = 0
@@ -79,16 +120,18 @@ function ringCentroid(ring) {
   return { lng: cx, lat: cy, area: absArea }
 }
 
-export function calculateCentroid(geometry) {
+export function calculateCentroid(geometry: GeoJSON.Geometry | null): LatLng | null {
   if (!geometry) return null
-  const polygons = []
+  const polygons: [number, number][][] = []
+
   if (geometry.type === 'Polygon') {
-    polygons.push(geometry.coordinates[0])
+    polygons.push(geometry.coordinates[0] as [number, number][])
   } else if (geometry.type === 'MultiPolygon') {
     for (const polygon of geometry.coordinates) {
-      polygons.push(polygon[0])
+      polygons.push(polygon[0] as [number, number][])
     }
   }
+
   if (polygons.length === 0) return null
 
   let totalArea = 0
@@ -105,21 +148,23 @@ export function calculateCentroid(geometry) {
   return { lng: totalLng / totalArea, lat: totalLat / totalArea }
 }
 
-export function getFeatureScreenCenter(feature) {
+export function getFeatureScreenCenter(feature: GeoJSON.Feature): Point | null {
   if (!feature?.geometry) return null
   const c = calculateCentroid(feature.geometry)
   if (!c) return null
   return geoToScreen(c.lng, c.lat)
 }
 
+// ─── 地点查找 ───
+
 /** 按 id 解析出 Feature（用于高亮） */
-export function resolveLocation(id) {
+export function resolveLocation(id: string | null | undefined): GeoJSON.Feature | null {
   if (id == null) return null
   return featureById.get(id) || null
 }
 
 /** 按 id 解析出屏幕坐标 {x, y}（用于动画起终点） */
-export function resolveLocationXY(id) {
+export function resolveLocationXY(id: string | null | undefined): Point | null {
   if (id == null) return null
   const f = featureById.get(id)
   if (!f) return null

@@ -7,14 +7,15 @@
   </div>
 </template>
 
-<script setup>
-defineProps({
-  items: {
-    type: Array,
-    default: () => [],
-    // items: [{ label: string, color: string }]
-  },
-})
+<script setup lang="ts">
+interface LegendItem {
+  label: string
+  color: string
+}
+
+defineProps<{
+  items?: LegendItem[]
+}>()
 </script>
 
 <style scoped>

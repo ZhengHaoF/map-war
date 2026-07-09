@@ -75,104 +75,164 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { Application, Container, Graphics, Text, TextStyle } from 'pixi.js'
 import { OWNER_COLORS, OWNER_LABELS } from '@/data/ownerColors'
+import type { CityData } from '@/data/chinaCities'
 import { chinaCities } from '@/data/chinaCities'
+import type { CountryData } from '@/data/worldCountries'
 import { worldCountries, GEO_TO_GAME_ISO } from '@/data/worldCountries'
-import { playArcAnimation, playScoutAnimation, startBattleAnimation } from '@/utils/troopAnimation'
 import { init as initGameOrders, executeOrder, listBattles, stopBattle } from '@/utils/gameOrders'
+import type { GameOrder } from '@/utils/gameOrders'
 import {
-  GEO_BOUNDS,
   geoToScreen,
   calculateCentroid,
   setScreenSize,
   registerLocations,
   registerAlias,
 } from '@/utils/locationResolver'
+import type { Point } from '@/utils/locationResolver'
 import GameButton from '@/components/ui/GameButton.vue'
 import GameContextMenu from '@/components/ui/GameContextMenu.vue'
 import GameModal from '@/components/ui/GameModal.vue'
 import InfoTable from '@/components/ui/InfoTable.vue'
 import LegendPanel from '@/components/ui/LegendPanel.vue'
 
-const mapContainer = ref()
-let app
-let worldContainer
-let labelContainer
-let selectionHighlightGfx
-let currentLayerIndex = ref(1)
-let currentData = null
-let selectedFeature = null
-const contextMenuVisible = ref(false)
-const contextMenuPos = ref({ x: 0, y: 0 })
+// ─── 类型定义 ───
 
-const LAYERS = [
-  { file: '/中国_省.geojson', label: '省级', color: 0x555555, fillColor: 0xdddddd },
-  { file: '/中国_市.geojson', label: '市级', color: 0x444444, fillColor: 0xcccccc },
-]
+interface LayerConfig {
+  file: string
+  label: string
+  color: number
+  fillColor: number
+}
 
-const geoJsonCache = new Map()
-let cityList = []
-let cityDataMap = new Map()
-let isDragging = false
+interface LayerStyle {
+  color: number
+  fillColor: number
+}
 
-const OWNER_NAMES = {
+interface HitResult {
+  layer: 'china' | 'world'
+  feature: GeoJSON.Feature
+}
+
+/** PixiJS Text 扩展：自定义属性用于地图标签变换 */
+interface LabelText extends Text {
+  _geoX: number
+  _geoY: number
+}
+
+type OwnerKey = keyof typeof OWNER_NAMES
+type TerrainKey = keyof typeof TERRAIN_NAMES
+type DiplomacyKey = keyof typeof DIPLOMACY_COLORS
+type CountryTypeKey = keyof typeof COUNTRY_TYPE_NAMES
+
+// ─── 常量 ───
+
+const GEO_BOUNDS = {
+  minLng: 73,
+  maxLng: 135,
+  minLat: 18,
+  maxLat: 54,
+} as const
+
+const OWNER_NAMES: Record<string, string> = {
   KMT: '国民政府', CCP: '中共苏区', JPN: '日本关东军', NEA: '东北军',
   SHX: '晋系', GXC: '桂系', SCC: '川军', MA: '马家军', XJ: '新疆', TIB: '西藏',
 }
-const TERRAIN_NAMES = {
+
+const TERRAIN_NAMES: Record<string, string> = {
   PLAIN: '平原', HILL: '丘陵', MOUNTAIN: '山地', FOREST: '森林', CITY: '城市',
 }
+
 const LEVEL_NAMES = ['', '县城/小城', '普通城市', '区域中心', '全国重要城市', '超级城市']
 
-const infoModalVisible = ref(false)
-const infoCityData = ref(null)
-const infoCountryData = ref(null)
-const testPanelVisible = ref(false)
-const battleListVisible = ref(false)
-const battleList = ref([])
-const disclaimerVisible = ref(false)
-const ownerColorEnabled = ref(true)
-const labelsVisible = ref(false)
-const baseMapVisible = ref(true)
-
-// 世界地图
-let worldData = null
-let worldDataMap = new Map()
-let baseContainer
-let baseHighlightGraphics
-let selectedWorldFeature = null
-
-const DIPLOMACY_COLORS = {
+const DIPLOMACY_COLORS: Record<string, number> = {
   HOSTILE: 0x6b2020,
   WAR: 0x4b0000,
   NEUTRAL: 0x2d3a2e,
   FRIENDLY: 0x2a3a5e,
   ALLIED: 0x1a3a7e,
 }
-const DIPLOMACY_BORDER_COLORS = {
+
+const DIPLOMACY_BORDER_COLORS: Record<string, number> = {
   HOSTILE: 0x8b3030,
   WAR: 0x6b1010,
   NEUTRAL: 0x3d4a3e,
   FRIENDLY: 0x3a5a7e,
   ALLIED: 0x2a5a9e,
 }
-const COUNTRY_TYPE_NAMES = {
+
+const COUNTRY_TYPE_NAMES: Record<string, string> = {
   EMPIRE: '帝国', REPUBLIC: '共和国', UNION: '联盟',
   COLONY: '殖民地', KINGDOM: '王国', SPLIT: '分裂',
 }
-const DIPLOMACY_NAMES = {
+
+const DIPLOMACY_NAMES: Record<string, string> = {
   ALLIED: '同盟', FRIENDLY: '友好', NEUTRAL: '中立',
   HOSTILE: '敌对', WAR: '交战中',
 }
 
+const LAYERS: LayerConfig[] = [
+  { file: '/中国_省.geojson', label: '省级', color: 0x555555, fillColor: 0xdddddd },
+  { file: '/中国_市.geojson', label: '市级', color: 0x444444, fillColor: 0xcccccc },
+]
+
+// ─── 响应式状态 ───
+
+const mapContainer = ref<HTMLElement | null>(null)
+const currentLayerIndex = ref(1)
+const contextMenuVisible = ref(false)
+const contextMenuPos = ref<Point>({ x: 0, y: 0 })
+const infoModalVisible = ref(false)
+const infoCityData = ref<CityData | null>(null)
+const infoCountryData = ref<CountryData | Record<string, unknown> | null>(null)
+const testPanelVisible = ref(false)
+const battleListVisible = ref(false)
+const battleList = ref<{ id: string; from: string; to: string; fromName: string; toName: string; active: boolean }[]>([])
+const disclaimerVisible = ref(false)
+const ownerColorEnabled = ref(true)
+const labelsVisible = ref(false)
+const baseMapVisible = ref(true)
+
+// ─── PixiJS 实例 ───
+
+let app: Application
+let worldContainer: Container
+let labelContainer: Container
+let selectionHighlightGfx: Graphics
+let baseContainer: Container
+let baseHighlightGraphics: Graphics
+
+// ─── 数据缓存 ───
+
+let currentData: GeoJSON.FeatureCollection | null = null
+let selectedFeature: GeoJSON.Feature | null = null
+let selectedWorldFeature: GeoJSON.Feature | null = null
+const geoJsonCache = new Map<string, GeoJSON.FeatureCollection>()
+let cityList: CityData[] = []
+const cityDataMap = new Map<string, CityData>()
+let worldData: GeoJSON.FeatureCollection | null = null
+const worldDataMap = new Map<string, CountryData>()
+
+// ─── 地图状态 ───
+
+let mapScale = 1
+let mapX = 0
+let mapY = 0
+let isDragging = false
+let lastPointer: Point = { x: 0, y: 0 }
+let pointerDownPos: Point = { x: 0, y: 0 }
+
+// ─── 计算属性 ───
+
 const legendItems = computed(() =>
   Object.entries(OWNER_LABELS).map(([key, label]) => ({
     label,
-    color: '#' + OWNER_COLORS[key].toString(16).padStart(6, '0'),
-  }))
+    color: '#' + (OWNER_COLORS as Record<string, number>)[key].toString(16).padStart(6, '0'),
+  })),
 )
 
 const contextMenuItems = ref([
@@ -186,48 +246,43 @@ const infoRows = computed(() => {
   if (!infoCityData.value) return []
   const d = infoCityData.value
   return [
-    { label: '政权', value: OWNER_NAMES[d.owner] || d.owner },
-    { label: '地形', value: TERRAIN_NAMES[d.terrain] || d.terrain },
-    { label: '城市规模', value: `${d.cityLevel}（${LEVEL_NAMES[d.cityLevel]}）` },
-    { label: '工业能力', value: `${d.industry} / 10` },
-    { label: '粮食生产', value: `${d.food} / 10` },
-    { label: '工事等级', value: `${d.fort} / 5` },
+    { label: '政权', value: (OWNER_NAMES[d.owner!] || d.owner || '—') as string },
+    { label: '地形', value: (TERRAIN_NAMES[d.terrain!] || d.terrain || '—') as string },
+    { label: '城市规模', value: `${d.cityLevel ?? '—'}（${LEVEL_NAMES[d.cityLevel!] || '—'}）` },
+    { label: '工业能力', value: `${d.industry ?? '—'} / 10` },
+    { label: '粮食生产', value: `${d.food ?? '—'} / 10` },
+    { label: '工事等级', value: `${d.fort ?? '—'} / 5` },
   ]
 })
 
 const countryInfoRows = computed(() => {
   if (!infoCountryData.value) return []
   const d = infoCountryData.value
+  const dc = d as CountryData
   return [
-    { label: '国名', value: `${d.name}（${d.iso_a3 || d.id || '—'}）` },
-    { label: '全称', value: d.full_name || '—' },
-    { label: '国家类型', value: COUNTRY_TYPE_NAMES[d.countryType] || d.countryType || '—' },
-    { label: '军事实力', value: `${d.military ?? '—'} / 10` },
-    { label: '工业能力', value: `${d.industry ?? '—'} / 10` },
-    { label: '人口/资源', value: `${d.population ?? '—'} / 10` },
-    { label: '对华威胁', value: `${d.threat ?? '—'} / 10` },
-    { label: '外交关系', value: DIPLOMACY_NAMES[d.diplomacy] || d.diplomacy || '—' },
+    { label: '国名', value: `${dc.name || '—'}（${dc.iso_a3 || dc.id || '—'}）` },
+    { label: '全称', value: dc.full_name || '—' },
+    { label: '国家类型', value: COUNTRY_TYPE_NAMES[dc.countryType as CountryTypeKey] || dc.countryType || '—' },
+    { label: '军事实力', value: `${dc.military ?? '—'} / 10` },
+    { label: '工业能力', value: `${dc.industry ?? '—'} / 10` },
+    { label: '人口/资源', value: `${dc.population ?? '—'} / 10` },
+    { label: '对华威胁', value: `${dc.threat ?? '—'} / 10` },
+    { label: '外交关系', value: DIPLOMACY_NAMES[dc.diplomacy as DiplomacyKey] || dc.diplomacy || '—' },
   ]
 })
 
 const infoTitle = computed(() => {
   if (infoCityData.value) return infoCityData.value.name
   if (infoCountryData.value) {
-    const d = infoCountryData.value
+    const d = infoCountryData.value as CountryData
     return `${d.name}（${d.iso_a3 || d.id || ''}）`
   }
   return ''
 })
 
-let lastPointer = { x: 0, y: 0 }
-let pointerDownPos = { x: 0, y: 0 }
+// ─── 坐标工具 ───
 
-// 地图状态
-let mapScale = 1
-let mapX = 0
-let mapY = 0
-
-function screenToGeo(screenX, screenY, width, height) {
+function screenToGeo(screenX: number, screenY: number, width: number, height: number): { lng: number; lat: number } {
   const lngRange = GEO_BOUNDS.maxLng - GEO_BOUNDS.minLng
   const latRange = GEO_BOUNDS.maxLat - GEO_BOUNDS.minLat
   const scale = Math.min(width / lngRange, height / latRange)
@@ -236,7 +291,7 @@ function screenToGeo(screenX, screenY, width, height) {
   return { lng, lat }
 }
 
-function pointInPolygon(lng, lat, coordinates) {
+function pointInPolygon(lng: number, lat: number, coordinates: GeoJSON.Position[]): boolean {
   let inside = false
   for (let i = 0, j = coordinates.length - 1; i < coordinates.length; j = i++) {
     const [xi, yi] = coordinates[i]
@@ -248,12 +303,17 @@ function pointInPolygon(lng, lat, coordinates) {
   return inside
 }
 
-function hitTest(screenX, screenY, data, width, height) {
-  // 屏幕坐标 → 世界坐标（考虑地图偏移和缩放）
+// ─── 点击测试 ───
+
+function hitTest(
+  screenX: number,
+  screenY: number,
+  data: GeoJSON.FeatureCollection,
+  width: number,
+  height: number,
+): GeoJSON.Feature | null {
   const worldX = (screenX - mapX) / mapScale
   const worldY = (screenY - mapY) / mapScale
-
-  // 世界坐标 → 经纬度
   const geo = screenToGeo(worldX, worldY, width, height)
 
   for (const feature of data.features) {
@@ -261,10 +321,10 @@ function hitTest(screenX, screenY, data, width, height) {
     let hit = false
 
     if (geometry.type === 'Polygon') {
-      hit = pointInPolygon(geo.lng, geo.lat, geometry.coordinates[0])
+      hit = pointInPolygon(geo.lng, geo.lat, geometry.coordinates[0] as GeoJSON.Position[])
     } else if (geometry.type === 'MultiPolygon') {
       for (const polygon of geometry.coordinates) {
-        if (pointInPolygon(geo.lng, geo.lat, polygon[0])) {
+        if (pointInPolygon(geo.lng, geo.lat, polygon[0] as GeoJSON.Position[])) {
           hit = true
           break
         }
@@ -276,13 +336,21 @@ function hitTest(screenX, screenY, data, width, height) {
   return null
 }
 
-function drawFeature(graphics, feature, width, height, style, scale) {
+// ─── 绘图引擎 ───
+
+function drawFeature(
+  graphics: Graphics,
+  feature: GeoJSON.Feature,
+  width: number,
+  height: number,
+  style: LayerStyle,
+): void {
   const { geometry } = feature
-  const polygons =
+  const polygons: GeoJSON.Position[][][] =
     geometry.type === 'Polygon'
-      ? [geometry.coordinates]
+      ? [geometry.coordinates as GeoJSON.Position[][]]
       : geometry.type === 'MultiPolygon'
-        ? geometry.coordinates
+        ? (geometry.coordinates as GeoJSON.Position[][][])
         : []
 
   for (const polygon of polygons) {
@@ -301,19 +369,15 @@ function drawFeature(graphics, feature, width, height, style, scale) {
   }
 }
 
-function highlightFeature(feature, color = 0xff4444) {
-  highlightOn(selectionHighlightGfx, feature, color)
-}
-
-function highlightOn(gfx, feature, color = 0xff4444) {
+function highlightOn(gfx: Graphics, feature: GeoJSON.Feature, color = 0xff4444): void {
   const width = app.screen.width
   const height = app.screen.height
   const { geometry } = feature
-  const polygons =
+  const polygons: GeoJSON.Position[][][] =
     geometry.type === 'Polygon'
-      ? [geometry.coordinates]
+      ? [geometry.coordinates as GeoJSON.Position[][]]
       : geometry.type === 'MultiPolygon'
-        ? geometry.coordinates
+        ? (geometry.coordinates as GeoJSON.Position[][][])
         : []
 
   for (const polygon of polygons) {
@@ -332,34 +396,15 @@ function highlightOn(gfx, feature, color = 0xff4444) {
   }
 }
 
-function highlightBaseFeature(feature, color = 0xff4444) {
-  const width = app.screen.width
-  const height = app.screen.height
-  const { geometry } = feature
-  const polygons =
-    geometry.type === 'Polygon'
-      ? [geometry.coordinates]
-      : geometry.type === 'MultiPolygon'
-        ? geometry.coordinates
-        : []
-
-  for (const polygon of polygons) {
-    for (const ring of polygon) {
-      if (ring.length < 3) continue
-      const first = geoToScreen(ring[0][0], ring[0][1], width, height)
-      baseHighlightGraphics.moveTo(first.x, first.y)
-      for (let i = 1; i < ring.length; i++) {
-        const p = geoToScreen(ring[i][0], ring[i][1], width, height)
-        baseHighlightGraphics.lineTo(p.x, p.y)
-      }
-      baseHighlightGraphics.closePath()
-    }
-    baseHighlightGraphics.fill({ color, alpha: 0.4 })
-    baseHighlightGraphics.stroke({ width: 0.5, color, alpha: 1 })
-  }
+function highlightFeature(feature: GeoJSON.Feature, color = 0xff4444): void {
+  highlightOn(selectionHighlightGfx, feature, color)
 }
 
-function hitTestAll(screenX, screenY) {
+function highlightBaseFeature(feature: GeoJSON.Feature, color = 0xff4444): void {
+  highlightOn(baseHighlightGraphics, feature, color)
+}
+
+function hitTestAll(screenX: number, screenY: number): HitResult | null {
   const width = app.screen.width
   const height = app.screen.height
 
@@ -376,14 +421,17 @@ function hitTestAll(screenX, screenY) {
   return null
 }
 
-function clearAllHighlights() {
+function clearAllHighlights(): void {
   selectionHighlightGfx.clear()
   baseHighlightGraphics.clear()
   selectedFeature = null
   selectedWorldFeature = null
 }
 
-async function renderBaseMap() {
+// ─── 世界背景地图 ───
+
+async function renderBaseMap(): Promise<void> {
+  if (!worldData) return
   const width = app.screen.width
   const height = app.screen.height
 
@@ -391,8 +439,9 @@ async function renderBaseMap() {
 
   const gfx = new Graphics()
   for (const feature of worldData.features) {
-    const countryData = worldDataMap.get(feature.properties?.iso_a3)
-    const diplomacy = countryData?.diplomacy || 'NEUTRAL'
+    const isoA3 = feature.properties?.iso_a3 as string | undefined
+    const countryData = isoA3 ? worldDataMap.get(isoA3) : undefined
+    const diplomacy = (countryData?.diplomacy || 'NEUTRAL') as DiplomacyKey
     const fillColor = DIPLOMACY_COLORS[diplomacy] || DIPLOMACY_COLORS.NEUTRAL
     const borderColor = DIPLOMACY_BORDER_COLORS[diplomacy] || DIPLOMACY_BORDER_COLORS.NEUTRAL
     drawFeature(gfx, feature, width, height, {
@@ -404,14 +453,17 @@ async function renderBaseMap() {
   baseContainer.addChild(baseHighlightGraphics)
 }
 
-function toggleBaseMap() {
+function toggleBaseMap(): void {
   baseMapVisible.value = !baseMapVisible.value
   baseContainer.visible = baseMapVisible.value
 }
 
-function onContextMenu(e) {
+// ─── 交互 ───
+
+function onContextMenu(e: PointerEvent | MouseEvent): void {
   e.preventDefault()
 
+  if (!mapContainer.value) return
   const rect = mapContainer.value.getBoundingClientRect()
   const screenX = e.clientX - rect.left
   const screenY = e.clientY - rect.top
@@ -442,20 +494,20 @@ function onContextMenu(e) {
   contextMenuVisible.value = true
 }
 
-function closeContextMenu() {
+function closeContextMenu(): void {
   contextMenuVisible.value = false
 }
 
-function onMenuAction(action) {
+function onMenuAction(action: string): void {
   if (action === 'info') {
     if (selectedFeature) {
-      const gb = selectedFeature.properties.gb
-      infoCityData.value = cityDataMap.get(gb) || null
+      const gb = selectedFeature.properties?.gb as string | undefined
+      infoCityData.value = gb ? (cityDataMap.get(gb) || null) : null
       infoCountryData.value = null
       infoModalVisible.value = true
     } else if (selectedWorldFeature) {
-      const iso_a3 = selectedWorldFeature.properties.iso_a3
-      infoCountryData.value = worldDataMap.get(iso_a3) || selectedWorldFeature.properties
+      const isoA3 = selectedWorldFeature.properties?.iso_a3 as string | undefined
+      infoCountryData.value = isoA3 ? (worldDataMap.get(isoA3) || selectedWorldFeature.properties) : selectedWorldFeature.properties
       infoCityData.value = null
       infoModalVisible.value = true
     }
@@ -465,24 +517,24 @@ function onMenuAction(action) {
   closeContextMenu()
 }
 
-function openBattleList() {
-  battleList.value = listBattles()
+function openBattleList(): void {
+  battleList.value = listBattles() as typeof battleList.value
   battleListVisible.value = true
 }
 
-function endBattle(id) {
+function endBattle(id: string): void {
   stopBattle(id)
-  battleList.value = listBattles()
+  battleList.value = listBattles() as typeof battleList.value
 }
 
-function onGlobalMouseDown(e) {
+function onGlobalMouseDown(e: MouseEvent): void {
   if (!contextMenuVisible.value) return
   const menu = document.querySelector('.context-menu')
-  if (menu && menu.contains(e.target)) return
+  if (menu && menu.contains(e.target as Node)) return
   closeContextMenu()
 }
 
-function onKeyDown(e) {
+function onKeyDown(e: KeyboardEvent): void {
   if (e.key === 'Escape') {
     if (infoModalVisible.value) {
       infoModalVisible.value = false
@@ -492,7 +544,9 @@ function onKeyDown(e) {
   }
 }
 
-function getLabelStyle(layerIndex) {
+// ─── 标签图层 ───
+
+function getLabelStyle(layerIndex: number): TextStyle {
   const sizes = [16, 13, 11]
   return new TextStyle({
     fontSize: sizes[layerIndex],
@@ -503,16 +557,15 @@ function getLabelStyle(layerIndex) {
       color: 0x000000,
       width: 2,
     },
-    resolution: 2,
   })
 }
 
-function renderLabels(data, width, height, layerIndex) {
+function renderLabels(data: GeoJSON.FeatureCollection, width: number, height: number, layerIndex: number): void {
   labelContainer.removeChildren()
   const style = getLabelStyle(layerIndex)
 
   for (const feature of data.features) {
-    const name = feature.properties?.name
+    const name = feature.properties?.name as string | undefined
     if (!name) continue
 
     const centroid = calculateCentroid(feature.geometry)
@@ -522,8 +575,7 @@ function renderLabels(data, width, height, layerIndex) {
     const text = new Text({
       text: name,
       style,
-      resolution: 2,
-    })
+    }) as LabelText
     text.anchor.set(0.5)
     text._geoX = screenPos.x
     text._geoY = screenPos.y
@@ -533,38 +585,41 @@ function renderLabels(data, width, height, layerIndex) {
   }
 }
 
-function updateLabels() {
+function updateLabels(): void {
   if (!labelContainer) return
   for (const child of labelContainer.children) {
-    child.x = child._geoX * mapScale + mapX
-    child.y = child._geoY * mapScale + mapY
+    const label = child as LabelText
+    label.x = label._geoX * mapScale + mapX
+    label.y = label._geoY * mapScale + mapY
   }
 }
 
-async function switchLayer(index) {
+// ─── 图层切换 ───
+
+async function switchLayer(index: number): Promise<void> {
   if (currentLayerIndex.value === index) return
   currentLayerIndex.value = index
   await loadLayer(index)
 }
 
-async function toggleOwnerColor() {
+async function toggleOwnerColor(): Promise<void> {
   ownerColorEnabled.value = !ownerColorEnabled.value
   await loadLayer(currentLayerIndex.value)
 }
 
-function toggleLabels() {
+function toggleLabels(): void {
   labelsVisible.value = !labelsVisible.value
   labelContainer.visible = labelsVisible.value
 }
 
-async function loadLayer(index) {
+async function loadLayer(index: number): Promise<void> {
   const config = LAYERS[index]
   if (!geoJsonCache.has(config.file)) {
     const res = await fetch(config.file)
     geoJsonCache.set(config.file, await res.json())
   }
 
-  currentData = geoJsonCache.get(config.file)
+  currentData = geoJsonCache.get(config.file) ?? null
   const width = app.screen.width
   const height = app.screen.height
 
@@ -572,38 +627,35 @@ async function loadLayer(index) {
   labelContainer.removeChildren()
 
   const graphics = new Graphics()
-  for (const feature of currentData.features) {
-    let fillColor = config.fillColor
-    if (ownerColorEnabled.value && index === 1 && feature.properties?.gb) {
-      const cityData = cityDataMap.get(feature.properties.gb)
-      if (cityData?.owner) {
-        fillColor = OWNER_COLORS[cityData.owner] ?? config.fillColor
+  if (currentData) {
+    for (const feature of currentData.features) {
+      let fillColor = config.fillColor
+      if (ownerColorEnabled.value && index === 1 && feature.properties?.gb) {
+        const cityData = cityDataMap.get(feature.properties.gb as string)
+        if (cityData?.owner) {
+          fillColor = (OWNER_COLORS as Record<string, number>)[cityData.owner] ?? config.fillColor
+        }
       }
+      drawFeature(graphics, feature, width, height, { color: config.color, fillColor })
     }
-    drawFeature(
-      graphics,
-      feature,
-      width,
-      height,
-      {
-        color: config.color,
-        fillColor,
-      },
-      mapScale,
-    )
   }
   worldContainer.addChild(graphics)
   worldContainer.addChild(selectionHighlightGfx)
   selectedFeature = null
 
-  renderLabels(currentData, width, height, index)
+  if (currentData) {
+    renderLabels(currentData, width, height, index)
+  }
   labelContainer.visible = labelsVisible.value
   updateLabels()
 }
 
-function onWheel(e) {
+// ─── 平移/缩放 ───
+
+function onWheel(e: WheelEvent): void {
   e.preventDefault()
 
+  if (!mapContainer.value) return
   const rect = mapContainer.value.getBoundingClientRect()
   const mouseX = e.clientX - rect.left
   const mouseY = e.clientY - rect.top
@@ -623,7 +675,7 @@ function onWheel(e) {
   updateLabels()
 }
 
-function onPointerDown(e) {
+function onPointerDown(e: PointerEvent): void {
   isDragging = true
   lastPointer.x = e.clientX
   lastPointer.y = e.clientY
@@ -632,7 +684,7 @@ function onPointerDown(e) {
   app.canvas.style.cursor = 'grabbing'
 }
 
-function onPointerMove(e) {
+function onPointerMove(e: PointerEvent): void {
   if (!isDragging) return
   mapX += e.clientX - lastPointer.x
   mapY += e.clientY - lastPointer.y
@@ -643,16 +695,17 @@ function onPointerMove(e) {
   updateLabels()
 }
 
-function onPointerUp() {
+function onPointerUp(): void {
   isDragging = false
   app.canvas.style.cursor = 'grab'
 }
 
-function onClick(e) {
+function onClick(e: MouseEvent): void {
   const dx = e.clientX - pointerDownPos.x
   const dy = e.clientY - pointerDownPos.y
   if (Math.sqrt(dx * dx + dy * dy) > 5) return
 
+  if (!mapContainer.value) return
   const rect = mapContainer.value.getBoundingClientRect()
   const screenX = e.clientX - rect.left
   const screenY = e.clientY - rect.top
@@ -676,20 +729,18 @@ function onClick(e) {
   }
 }
 
-function onResize() {
+function onResize(): void {
   requestAnimationFrame(() => {
     const width = app.screen.width
     const height = app.screen.height
     setScreenSize(width, height)
 
-    // 保持地图居中（以 104°E, 36°N 为中心）
     const center = geoToScreen(104, 36, width, height)
     mapX = width / 2 - center.x
     mapY = height / 2 - center.y
     worldContainer.position.set(mapX, mapY)
     baseContainer.position.set(mapX, mapY)
 
-    // 用新的尺寸重绘两层地图
     loadLayer(currentLayerIndex.value)
     if (baseMapVisible.value) {
       renderBaseMap()
@@ -697,14 +748,16 @@ function onResize() {
   })
 }
 
+// ─── 生命周期 ───
+
 onMounted(async () => {
   app = new Application()
   await app.init({
-    resizeTo: mapContainer.value,
+    resizeTo: mapContainer.value!,
     backgroundColor: 0x1a1a2e,
     antialias: true,
   })
-  mapContainer.value.appendChild(app.canvas)
+  mapContainer.value!.appendChild(app.canvas)
 
   baseContainer = new Container()
   worldContainer = new Container()
@@ -737,14 +790,12 @@ onMounted(async () => {
   window.addEventListener('mousedown', onGlobalMouseDown)
   window.addEventListener('keydown', onKeyDown)
 
-  // 加载市列表
   cityList = chinaCities
   for (const c of cityList) {
     if (c.gb) cityDataMap.set(c.gb, c)
   }
   console.log('市列表加载完成:', cityList.length, '个市')
 
-  // 加载世界国家数据（同时注册 GeoJSON iso_a3 的映射，解决现代代码与 1931 代码不一致的问题）
   for (const c of worldCountries) {
     if (c.iso_a3) worldDataMap.set(c.iso_a3, c)
   }
@@ -754,14 +805,12 @@ onMounted(async () => {
   }
   console.log('世界国家数据加载完成:', worldCountries.length, '个')
 
-  // 加载世界地图
   try {
     const res = await fetch('/世界.geojson')
     worldData = await res.json()
-    console.log('世界地图加载完成:', worldData.features.length, '个国家')
+    console.log('世界地图加载完成:', worldData!.features.length, '个国家')
     await renderBaseMap()
-    // 注册国家地点（iso_a3 作为唯一 id），并处理现代码→游戏码别名
-    registerLocations(worldData.features, 'iso_a3')
+    registerLocations(worldData!.features, 'iso_a3')
     for (const [geoIso, gameIso] of Object.entries(GEO_TO_GAME_ISO)) {
       registerAlias(geoIso, gameIso)
     }
@@ -771,7 +820,6 @@ onMounted(async () => {
 
   await loadLayer(currentLayerIndex.value)
 
-  // 注册城市地点（gb 作为唯一 id）
   const cityJson = geoJsonCache.get(LAYERS[1].file)
   if (cityJson) registerLocations(cityJson.features, 'gb')
 })

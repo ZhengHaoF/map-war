@@ -18,31 +18,33 @@
   </Teleport>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onUnmounted } from 'vue'
 
-const props = defineProps({
-  visible: { type: Boolean, default: false },
-  title: { type: String, default: '' },
-  minWidth: { type: String, default: '280px' },
-  draggable: { type: Boolean, default: false },
-  overlay: { type: Boolean, default: true },
-  initX: { type: Number, default: 160 },
-  initY: { type: Number, default: 160 },
-})
+const props = defineProps<{
+  visible?: boolean
+  title?: string
+  minWidth?: string
+  draggable?: boolean
+  overlay?: boolean
+  initX?: number
+  initY?: number
+}>()
 
-defineEmits(['close'])
+defineEmits<{
+  close: []
+}>()
 
-const posX = ref(props.initX)
-const posY = ref(props.initY)
+const posX = ref(props.initX ?? 160)
+const posY = ref(props.initY ?? 160)
 let dragStartX = 0
 let dragStartY = 0
 let dragOrigX = 0
 let dragOrigY = 0
 let isDragging = false
 
-const modalStyle = computed(() => {
-  const style = { minWidth: props.minWidth }
+const modalStyle = computed<Record<string, string>>(() => {
+  const style: Record<string, string> = { minWidth: props.minWidth ?? '280px' }
   if (props.draggable) {
     style.position = 'fixed'
     style.left = posX.value + 'px'
@@ -52,7 +54,7 @@ const modalStyle = computed(() => {
   return style
 })
 
-function onDragStart(e) {
+function onDragStart(e: MouseEvent): void {
   if (!props.draggable) return
   isDragging = true
   dragStartX = e.clientX
@@ -63,14 +65,18 @@ function onDragStart(e) {
   window.addEventListener('mouseup', onDragEnd)
 }
 
-function onDragMove(e) {
+function onDragMove(e: MouseEvent): void {
   if (!isDragging) return
   posX.value = dragOrigX + (e.clientX - dragStartX)
   posY.value = dragOrigY + (e.clientY - dragStartY)
 }
 
-function onDragEnd() {
+function onDragEnd(): void {
   isDragging = false
+  cleanDragListeners()
+}
+
+function cleanDragListeners(): void {
   window.removeEventListener('mousemove', onDragMove)
   window.removeEventListener('mouseup', onDragEnd)
 }
@@ -78,11 +84,6 @@ function onDragEnd() {
 onUnmounted(() => {
   cleanDragListeners()
 })
-
-function cleanDragListeners() {
-  window.removeEventListener('mousemove', onDragMove)
-  window.removeEventListener('mouseup', onDragEnd)
-}
 </script>
 
 <style scoped>
