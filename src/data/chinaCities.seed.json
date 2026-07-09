@@ -1,0 +1,3772 @@
+[
+  {
+    "name": "梅州市",
+    "gb": "156441400",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "鄂州市",
+    "gb": "156420700",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "吕梁市",
+    "gb": "156141100",
+    "owner": "SHX",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "舟山市",
+    "gb": "156330900",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "朝阳市",
+    "gb": "156211300",
+    "owner": "NEA",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "广安市",
+    "gb": "156511600",
+    "owner": "SCC",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "濮阳市",
+    "gb": "156410900",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "宣城市",
+    "gb": "156341800",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "六盘水市",
+    "gb": "156520200",
+    "owner": "KMT",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "深圳市",
+    "gb": "156440300",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "三明市",
+    "gb": "156350400",
+    "owner": "CCP",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "景德镇市",
+    "gb": "156360200",
+    "owner": "CCP",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "楚雄彝族自治州",
+    "gb": "156532300",
+    "owner": "KMT",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "大连市",
+    "gb": "156210200",
+    "owner": "NEA",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "攀枝花市",
+    "gb": "156510400",
+    "owner": "SCC",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "贺州市",
+    "gb": "156451100",
+    "owner": "GXC",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "西安市",
+    "gb": "156610100",
+    "owner": "KMT",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 4,
+    "industry": 3,
+    "food": 3,
+    "fort": 4
+  },
+  {
+    "name": "境界线",
+    "gb": ""
+  },
+  {
+    "name": "淮北市",
+    "gb": "156340600",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "邵阳市",
+    "gb": "156430500",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "石家庄市",
+    "gb": "156130100",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 3,
+    "industry": 4,
+    "food": 6,
+    "fort": 3
+  },
+  {
+    "name": "汕尾市",
+    "gb": "156441500",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "荆门市",
+    "gb": "156420800",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "衢州市",
+    "gb": "156330800",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "迪庆藏族自治州",
+    "gb": "156533400",
+    "owner": "KMT",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "宜宾市",
+    "gb": "156511500",
+    "owner": "SCC",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "葫芦岛市",
+    "gb": "156211400",
+    "owner": "NEA",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "济南市",
+    "gb": "156370100",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 4,
+    "industry": 5,
+    "food": 6,
+    "fort": 3
+  },
+  {
+    "name": "贵阳市",
+    "gb": "156520100",
+    "owner": "KMT",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 3,
+    "industry": 2,
+    "food": 3,
+    "fort": 2
+  },
+  {
+    "name": "珠海市",
+    "gb": "156440400",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "长春市",
+    "gb": "156220100",
+    "owner": "NEA",
+    "terrain": "PLAIN",
+    "cityLevel": 3,
+    "industry": 3,
+    "food": 5,
+    "fort": 1
+  },
+  {
+    "name": "延边朝鲜族自治州",
+    "gb": "156222400",
+    "owner": "NEA",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "萍乡市",
+    "gb": "156360300",
+    "owner": "CCP",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "庆阳市",
+    "gb": "156621000",
+    "owner": "MA",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "泉州市",
+    "gb": "156350500",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "自贡市",
+    "gb": "156510300",
+    "owner": "SCC",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "临沂市",
+    "gb": "156371300",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "百色市",
+    "gb": "156451000",
+    "owner": "GXC",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "鞍山市",
+    "gb": "156210300",
+    "owner": "NEA",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "铜陵市",
+    "gb": "156340700",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "唐山市",
+    "gb": "156130200",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "岳阳市",
+    "gb": "156430600",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "河源市",
+    "gb": "156441600",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "孝感市",
+    "gb": "156420900",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "金华市",
+    "gb": "156330700",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "兴安盟",
+    "gb": "156152200",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "盘锦市",
+    "gb": "156211100",
+    "owner": "NEA",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "雅安市",
+    "gb": "156511800",
+    "owner": "SCC",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "亳州市",
+    "gb": "156341600",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "商洛市",
+    "gb": "156611000",
+    "owner": "KMT",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "盐城市",
+    "gb": "156320900",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "汕头市",
+    "gb": "156440500",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "境界线",
+    "gb": ""
+  },
+  {
+    "name": "安顺市",
+    "gb": "156520400",
+    "owner": "KMT",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "黔南布依族苗族自治州",
+    "gb": "156522700",
+    "owner": "KMT",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "厦门市",
+    "gb": "156350200",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "太子山天然林保护区",
+    "gb": "156629900",
+    "owner": "MA",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "阿克苏地区",
+    "gb": "156652900",
+    "owner": "XJ",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "红河哈尼族彝族自治州",
+    "gb": "156532500",
+    "owner": "KMT",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "甘南藏族自治州",
+    "gb": "156623000",
+    "owner": "MA",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "太原市",
+    "gb": "156140100",
+    "owner": "SHX",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 3,
+    "industry": 4,
+    "food": 5,
+    "fort": 4
+  },
+  {
+    "name": "常德市",
+    "gb": "156430700",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "牡丹江市",
+    "gb": "156231000",
+    "owner": "NEA",
+    "terrain": "FOREST",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "淮南市",
+    "gb": "156340400",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "德阳市",
+    "gb": "156510600",
+    "owner": "SCC",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "威海市",
+    "gb": "156371000",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "秦皇岛市",
+    "gb": "156130300",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "绍兴市",
+    "gb": "156330600",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "阳江市",
+    "gb": "156441700",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "铁岭市",
+    "gb": "156211200",
+    "owner": "NEA",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "达州市",
+    "gb": "156511700",
+    "owner": "SCC",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "池州市",
+    "gb": "156341700",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "淮安市",
+    "gb": "156320800",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "遵义市",
+    "gb": "156520300",
+    "owner": "KMT",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "黔东南苗族侗族自治州",
+    "gb": "156522600",
+    "owner": "KMT",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "莆田市",
+    "gb": "156350300",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "南昌市",
+    "gb": "156360100",
+    "owner": "CCP",
+    "terrain": "HILL",
+    "cityLevel": 3,
+    "industry": 3,
+    "food": 7,
+    "fort": 2
+  },
+  {
+    "name": "佛山市",
+    "gb": "156440600",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "大同市",
+    "gb": "156140200",
+    "owner": "SHX",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "昆明市",
+    "gb": "156530100",
+    "owner": "KMT",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 4,
+    "industry": 3,
+    "food": 4,
+    "fort": 3
+  },
+  {
+    "name": "张家界市",
+    "gb": "156430800",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "泸州市",
+    "gb": "156510500",
+    "owner": "SCC",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "沈阳市",
+    "gb": "156210100",
+    "owner": "NEA",
+    "terrain": "PLAIN",
+    "cityLevel": 4,
+    "industry": 8,
+    "food": 5,
+    "fort": 2
+  },
+  {
+    "name": "邯郸市",
+    "gb": "156130400",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "马鞍山市",
+    "gb": "156340500",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "日照市",
+    "gb": "156371100",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "三亚市",
+    "gb": "156460200",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "台湾省",
+    "gb": "156710000",
+    "owner": "JPN",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "十堰市",
+    "gb": "156420300",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "呼和浩特市",
+    "gb": "156150100",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 3,
+    "industry": 2,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "德宏傣族景颇族自治州",
+    "gb": "156533100",
+    "owner": "KMT",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "梧州市",
+    "gb": "156450400",
+    "owner": "GXC",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "枣庄市",
+    "gb": "156370400",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "安阳市",
+    "gb": "156410500",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "怀化市",
+    "gb": "156431200",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "阳泉市",
+    "gb": "156140300",
+    "owner": "SHX",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "保亭黎族苗族自治县",
+    "gb": "156469029",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "中农发山丹马场",
+    "gb": "156629700",
+    "owner": "MA",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "鹰潭市",
+    "gb": "156360600",
+    "owner": "CCP",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "陵水黎族自治县",
+    "gb": "156469028",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "博尔塔拉蒙古自治州",
+    "gb": "156652700",
+    "owner": "XJ",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "乐东黎族自治县",
+    "gb": "156469027",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "辽源市",
+    "gb": "156220400",
+    "owner": "NEA",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "齐齐哈尔市",
+    "gb": "156230200",
+    "owner": "NEA",
+    "terrain": "FOREST",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "龙岩市",
+    "gb": "156350800",
+    "owner": "CCP",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "天门市",
+    "gb": "156429006",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "潜江市",
+    "gb": "156429005",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "邢台市",
+    "gb": "156130500",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "仙桃市",
+    "gb": "156429004",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "绥化市",
+    "gb": "156231200",
+    "owner": "NEA",
+    "terrain": "FOREST",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "丹东市",
+    "gb": "156210600",
+    "owner": "NEA",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "滨州市",
+    "gb": "156371600",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "镇江市",
+    "gb": "156321100",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "昌江黎族自治县",
+    "gb": "156469026",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "周口市",
+    "gb": "156411600",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "白沙黎族自治县",
+    "gb": "156469025",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "临高县",
+    "gb": "156469024",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "吐鲁番市",
+    "gb": "156650400",
+    "owner": "XJ",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "澄迈县",
+    "gb": "156469023",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "长沙市",
+    "gb": "156430100",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 4,
+    "industry": 4,
+    "food": 7,
+    "fort": 4
+  },
+  {
+    "name": "屯昌县",
+    "gb": "156469022",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "定安县",
+    "gb": "156469021",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "海口市",
+    "gb": "156460100",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "乐山市",
+    "gb": "156511100",
+    "owner": "SCC",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "凉山彝族自治州",
+    "gb": "156513400",
+    "owner": "SCC",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "桂林市",
+    "gb": "156450300",
+    "owner": "GXC",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "东营市",
+    "gb": "156370500",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "鹤壁市",
+    "gb": "156410600",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "娄底市",
+    "gb": "156431300",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "包头市",
+    "gb": "156150200",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "锡林郭勒盟",
+    "gb": "156152500",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "琼中黎族苗族自治县",
+    "gb": "156469030",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "长治市",
+    "gb": "156140400",
+    "owner": "SHX",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "赣州市",
+    "gb": "156360700",
+    "owner": "CCP",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "莲花山风景林自然保护区",
+    "gb": "156629800",
+    "owner": "MA",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "通化市",
+    "gb": "156220500",
+    "owner": "NEA",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "巴音郭楞蒙古自治州",
+    "gb": "156652800",
+    "owner": "XJ",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "上海市",
+    "gb": "156310000",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 5,
+    "industry": 10,
+    "food": 2,
+    "fort": 2
+  },
+  {
+    "name": "鸡西市",
+    "gb": "156230300",
+    "owner": "NEA",
+    "terrain": "FOREST",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "宁德市",
+    "gb": "156350900",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "保定市",
+    "gb": "156130600",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "菏泽市",
+    "gb": "156371700",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "崇左市",
+    "gb": "156451400",
+    "owner": "GXC",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "黑河市",
+    "gb": "156231100",
+    "owner": "NEA",
+    "terrain": "FOREST",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "扬州市",
+    "gb": "156321000",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "驻马店市",
+    "gb": "156411700",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "哈密市",
+    "gb": "156650500",
+    "owner": "XJ",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "株洲市",
+    "gb": "156430200",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "锦州市",
+    "gb": "156210700",
+    "owner": "NEA",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "肇庆市",
+    "gb": "156441200",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "恩施土家族苗族自治州",
+    "gb": "156422800",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "宜昌市",
+    "gb": "156420500",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "怒江傈僳族自治州",
+    "gb": "156533300",
+    "owner": "KMT",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "柳州市",
+    "gb": "156450200",
+    "owner": "GXC",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "平凉市",
+    "gb": "156620800",
+    "owner": "MA",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "眉山市",
+    "gb": "156511400",
+    "owner": "SCC",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "青岛市",
+    "gb": "156370200",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "新乡市",
+    "gb": "156410700",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "乌海市",
+    "gb": "156150300",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "黔西南布依族苗族自治州",
+    "gb": "156522300",
+    "owner": "KMT",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "晋城市",
+    "gb": "156140500",
+    "owner": "SHX",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "广州市",
+    "gb": "156440100",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 5,
+    "industry": 6,
+    "food": 6,
+    "fort": 3
+  },
+  {
+    "name": "吉林市",
+    "gb": "156220200",
+    "owner": "NEA",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "九江市",
+    "gb": "156360400",
+    "owner": "CCP",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "境界线",
+    "gb": ""
+  },
+  {
+    "name": "漳州市",
+    "gb": "156350600",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "来宾市",
+    "gb": "156451300",
+    "owner": "GXC",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "张家口市",
+    "gb": "156130700",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "德州市",
+    "gb": "156371400",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "胡杨河市",
+    "gb": "156659010",
+    "owner": "XJ",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "固原市",
+    "gb": "156640400",
+    "owner": "MA",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "抚顺市",
+    "gb": "156210400",
+    "owner": "NEA",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "安庆市",
+    "gb": "156340800",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "白杨市",
+    "gb": "156659012",
+    "owner": "XJ",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "新星市",
+    "gb": "156659011",
+    "owner": "XJ",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "克拉玛依市",
+    "gb": "156650200",
+    "owner": "XJ",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "湘潭市",
+    "gb": "156430300",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "昆玉市",
+    "gb": "156659009",
+    "owner": "XJ",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "惠州市",
+    "gb": "156441300",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "可克达拉市",
+    "gb": "156659008",
+    "owner": "XJ",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "襄阳市",
+    "gb": "156420600",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "南宁市",
+    "gb": "156450100",
+    "owner": "GXC",
+    "terrain": "HILL",
+    "cityLevel": 3,
+    "industry": 3,
+    "food": 4,
+    "fort": 2
+  },
+  {
+    "name": "南充市",
+    "gb": "156511300",
+    "owner": "SCC",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "酒泉市",
+    "gb": "156620900",
+    "owner": "MA",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "淄博市",
+    "gb": "156370300",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "图木舒克市",
+    "gb": "156659003",
+    "owner": "XJ",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "阿拉尔市",
+    "gb": "156659002",
+    "owner": "XJ",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "焦作市",
+    "gb": "156410800",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "石河子市",
+    "gb": "156659001",
+    "owner": "XJ",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "赤峰市",
+    "gb": "156150400",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "双河市",
+    "gb": "156659007",
+    "owner": "XJ",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "铁门关市",
+    "gb": "156659006",
+    "owner": "XJ",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "北屯市",
+    "gb": "156659005",
+    "owner": "XJ",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "五家渠市",
+    "gb": "156659004",
+    "owner": "XJ",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "韶关市",
+    "gb": "156440200",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "朔州市",
+    "gb": "156140600",
+    "owner": "SHX",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "四平市",
+    "gb": "156220300",
+    "owner": "NEA",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "新余市",
+    "gb": "156360500",
+    "owner": "CCP",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "境界线",
+    "gb": ""
+  },
+  {
+    "name": "南平市",
+    "gb": "156350700",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "哈尔滨市",
+    "gb": "156230100",
+    "owner": "NEA",
+    "terrain": "FOREST",
+    "cityLevel": 4,
+    "industry": 5,
+    "food": 5,
+    "fort": 2
+  },
+  {
+    "name": "成都市",
+    "gb": "156510100",
+    "owner": "SCC",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 4,
+    "industry": 5,
+    "food": 9,
+    "fort": 5
+  },
+  {
+    "name": "河池市",
+    "gb": "156451200",
+    "owner": "GXC",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "中卫市",
+    "gb": "156640500",
+    "owner": "MA",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "本溪市",
+    "gb": "156210500",
+    "owner": "NEA",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "承德市",
+    "gb": "156130800",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "聊城市",
+    "gb": "156371500",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "衡阳市",
+    "gb": "156430400",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "湘西土家族苗族自治州",
+    "gb": "156433100",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "杭州市",
+    "gb": "156330100",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 4,
+    "industry": 4,
+    "food": 7,
+    "fort": 3
+  },
+  {
+    "name": "玉树藏族自治州",
+    "gb": "156632700",
+    "owner": "MA",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "武威市",
+    "gb": "156620600",
+    "owner": "MA",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "临夏回族自治州",
+    "gb": "156622900",
+    "owner": "MA",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "黄山市",
+    "gb": "156341000",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "徐州市",
+    "gb": "156320300",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "济宁市",
+    "gb": "156370800",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "揭阳市",
+    "gb": "156445200",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "那曲市",
+    "gb": "156540600",
+    "owner": "TIB",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 1,
+    "fort": 1
+  },
+  {
+    "name": "郑州市",
+    "gb": "156410100",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 4,
+    "industry": 5,
+    "food": 6,
+    "fort": 2
+  },
+  {
+    "name": "通辽市",
+    "gb": "156150500",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "贵港市",
+    "gb": "156450800",
+    "owner": "GXC",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "安康市",
+    "gb": "156610900",
+    "owner": "KMT",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "昌吉回族自治州",
+    "gb": "156652300",
+    "owner": "XJ",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "晋中市",
+    "gb": "156140700",
+    "owner": "SHX",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "大庆市",
+    "gb": "156230600",
+    "owner": "NEA",
+    "terrain": "FOREST",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "普洱市",
+    "gb": "156530800",
+    "owner": "KMT",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "白城市",
+    "gb": "156220800",
+    "owner": "NEA",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "香港特别行政区",
+    "gb": "156810000",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "石嘴山市",
+    "gb": "156640200",
+    "owner": "MA",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "荆州市",
+    "gb": "156421000",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "沧州市",
+    "gb": "156130900",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "三门峡市",
+    "gb": "156411200",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "海西蒙古族藏族自治州",
+    "gb": "156632800",
+    "owner": "MA",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "云浮市",
+    "gb": "156445300",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "境界线",
+    "gb": ""
+  },
+  {
+    "name": "张掖市",
+    "gb": "156620700",
+    "owner": "MA",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "滁州市",
+    "gb": "156341100",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "泰安市",
+    "gb": "156370900",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "无锡市",
+    "gb": "156320200",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "大兴安岭地区",
+    "gb": "156232700",
+    "owner": "NEA",
+    "terrain": "FOREST",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "鄂尔多斯市",
+    "gb": "156150600",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "阿拉善盟",
+    "gb": "156152900",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "山南市",
+    "gb": "156540500",
+    "owner": "TIB",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "开封市",
+    "gb": "156410200",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 10,
+    "fort": 1
+  },
+  {
+    "name": "重庆市",
+    "gb": "156500000",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 5,
+    "industry": 4,
+    "food": 5,
+    "fort": 5
+  },
+  {
+    "name": "钦州市",
+    "gb": "156450700",
+    "owner": "GXC",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "榆林市",
+    "gb": "156610800",
+    "owner": "KMT",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "伊春市",
+    "gb": "156230700",
+    "owner": "NEA",
+    "terrain": "FOREST",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "运城市",
+    "gb": "156140800",
+    "owner": "SHX",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "丽江市",
+    "gb": "156530700",
+    "owner": "KMT",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "黄冈市",
+    "gb": "156421100",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "吴忠市",
+    "gb": "156640300",
+    "owner": "MA",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "南阳市",
+    "gb": "156411300",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "乌鲁木齐市",
+    "gb": "156650100",
+    "owner": "XJ",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 4,
+    "industry": 2,
+    "food": 2,
+    "fort": 1
+  },
+  {
+    "name": "和田地区",
+    "gb": "156653200",
+    "owner": "XJ",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "海南藏族自治州",
+    "gb": "156632500",
+    "owner": "MA",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "海东市",
+    "gb": "156630200",
+    "owner": "MA",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "武汉市",
+    "gb": "156420100",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 5,
+    "industry": 7,
+    "food": 9,
+    "fort": 4
+  },
+  {
+    "name": "儋州市",
+    "gb": "156460400",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "甘孜藏族自治州",
+    "gb": "156513300",
+    "owner": "SCC",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "内江市",
+    "gb": "156511000",
+    "owner": "SCC",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "烟台市",
+    "gb": "156370600",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "南京市",
+    "gb": "156320100",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 5,
+    "industry": 6,
+    "food": 8,
+    "fort": 3
+  },
+  {
+    "name": "白银市",
+    "gb": "156620400",
+    "owner": "MA",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "郴州市",
+    "gb": "156431000",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "呼伦贝尔市",
+    "gb": "156150700",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "防城港市",
+    "gb": "156450600",
+    "owner": "GXC",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "北京市",
+    "gb": "156110000",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 5,
+    "industry": 6,
+    "food": 5,
+    "fort": 3
+  },
+  {
+    "name": "洛阳市",
+    "gb": "156410300",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "澳门特别行政区",
+    "gb": "156820000",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "汉中市",
+    "gb": "156610700",
+    "owner": "KMT",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "吉安市",
+    "gb": "156360800",
+    "owner": "CCP",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "丽水市",
+    "gb": "156331100",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "忻州市",
+    "gb": "156140900",
+    "owner": "SHX",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "中山市",
+    "gb": "156442000",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "鹤岗市",
+    "gb": "156230400",
+    "owner": "NEA",
+    "terrain": "FOREST",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "白山市",
+    "gb": "156220600",
+    "owner": "NEA",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "咸宁市",
+    "gb": "156421200",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "宿迁市",
+    "gb": "156321300",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "济源市",
+    "gb": "156419001",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "营口市",
+    "gb": "156210800",
+    "owner": "NEA",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "商丘市",
+    "gb": "156411400",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "果洛藏族自治州",
+    "gb": "156632600",
+    "owner": "MA",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "三沙市",
+    "gb": "156460300",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "黄石市",
+    "gb": "156420200",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "阿坝藏族羌族自治州",
+    "gb": "156513200",
+    "owner": "SCC",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "潍坊市",
+    "gb": "156370700",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "天水市",
+    "gb": "156620500",
+    "owner": "MA",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "永州市",
+    "gb": "156431100",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "巴彦淖尔市",
+    "gb": "156150800",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "北海市",
+    "gb": "156450500",
+    "owner": "GXC",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "平顶山市",
+    "gb": "156410400",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "宜春市",
+    "gb": "156360900",
+    "owner": "CCP",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "台州市",
+    "gb": "156331000",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "东方市",
+    "gb": "156469007",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "延安市",
+    "gb": "156610600",
+    "owner": "KMT",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "万宁市",
+    "gb": "156469006",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "文昌市",
+    "gb": "156469005",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "双鸭山市",
+    "gb": "156230500",
+    "owner": "NEA",
+    "terrain": "FOREST",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "临沧市",
+    "gb": "156530900",
+    "owner": "KMT",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "松原市",
+    "gb": "156220700",
+    "owner": "NEA",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "随州市",
+    "gb": "156421300",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "资阳市",
+    "gb": "156512000",
+    "owner": "SCC",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "银川市",
+    "gb": "156640100",
+    "owner": "MA",
+    "terrain": "PLAIN",
+    "cityLevel": 4,
+    "industry": 2,
+    "food": 2,
+    "fort": 1
+  },
+  {
+    "name": "泰州市",
+    "gb": "156321200",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "神农架林区",
+    "gb": "156429021",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "阜新市",
+    "gb": "156210900",
+    "owner": "NEA",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "琼海市",
+    "gb": "156469002",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "五指山市",
+    "gb": "156469001",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "信阳市",
+    "gb": "156411500",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "湖州市",
+    "gb": "156330500",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "黄南藏族自治州",
+    "gb": "156632300",
+    "owner": "MA",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "抚州市",
+    "gb": "156361000",
+    "owner": "CCP",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "清远市",
+    "gb": "156441800",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "天津市",
+    "gb": "156120000",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 5,
+    "industry": 8,
+    "food": 5,
+    "fort": 2
+  },
+  {
+    "name": "嘉峪关市",
+    "gb": "156620200",
+    "owner": "MA",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "乌兰察布市",
+    "gb": "156150900",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "阿里地区",
+    "gb": "156542500",
+    "owner": "TIB",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 1,
+    "fort": 1
+  },
+  {
+    "name": "连云港市",
+    "gb": "156320700",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "克孜勒苏柯尔克孜自治州",
+    "gb": "156653000",
+    "owner": "XJ",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "日喀则市",
+    "gb": "156540200",
+    "owner": "TIB",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "渭南市",
+    "gb": "156610500",
+    "owner": "KMT",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "铜仁市",
+    "gb": "156520600",
+    "owner": "KMT",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "玉溪市",
+    "gb": "156530400",
+    "owner": "KMT",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "江门市",
+    "gb": "156440700",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "益阳市",
+    "gb": "156430900",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "广元市",
+    "gb": "156510800",
+    "owner": "SCC",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "芜湖市",
+    "gb": "156340200",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "塔城地区",
+    "gb": "156654200",
+    "owner": "XJ",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "嘉兴市",
+    "gb": "156330400",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "西宁市",
+    "gb": "156630100",
+    "owner": "MA",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 4,
+    "industry": 2,
+    "food": 2,
+    "fort": 1
+  },
+  {
+    "name": "上饶市",
+    "gb": "156361100",
+    "owner": "CCP",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "东莞市",
+    "gb": "156441900",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "南通市",
+    "gb": "156320600",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "辽阳市",
+    "gb": "156211000",
+    "owner": "NEA",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "巴中市",
+    "gb": "156511900",
+    "owner": "SCC",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "六安市",
+    "gb": "156341500",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "金昌市",
+    "gb": "156620300",
+    "owner": "MA",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "廊坊市",
+    "gb": "156131000",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "拉萨市",
+    "gb": "156540100",
+    "owner": "TIB",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 3,
+    "industry": 2,
+    "food": 2,
+    "fort": 1
+  },
+  {
+    "name": "喀什地区",
+    "gb": "156653100",
+    "owner": "XJ",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "阿勒泰地区",
+    "gb": "156654300",
+    "owner": "XJ",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "毕节市",
+    "gb": "156520500",
+    "owner": "KMT",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "福州市",
+    "gb": "156350100",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 4,
+    "industry": 4,
+    "food": 4,
+    "fort": 2
+  },
+  {
+    "name": "咸阳市",
+    "gb": "156610400",
+    "owner": "KMT",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "文山壮族苗族自治州",
+    "gb": "156532600",
+    "owner": "KMT",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "湛江市",
+    "gb": "156440800",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "曲靖市",
+    "gb": "156530300",
+    "owner": "KMT",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "蚌埠市",
+    "gb": "156340300",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "绵阳市",
+    "gb": "156510700",
+    "owner": "SCC",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "温州市",
+    "gb": "156330300",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "苏州市",
+    "gb": "156320500",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "阜阳市",
+    "gb": "156341200",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "林芝市",
+    "gb": "156540400",
+    "owner": "TIB",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "衡水市",
+    "gb": "156131100",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "许昌市",
+    "gb": "156411000",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "佳木斯市",
+    "gb": "156230800",
+    "owner": "NEA",
+    "terrain": "FOREST",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "宝鸡市",
+    "gb": "156610300",
+    "owner": "KMT",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "昭通市",
+    "gb": "156530600",
+    "owner": "KMT",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "大理白族自治州",
+    "gb": "156532900",
+    "owner": "KMT",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "定西市",
+    "gb": "156621100",
+    "owner": "MA",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "茂名市",
+    "gb": "156440900",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "伊犁哈萨克自治州",
+    "gb": "156654000",
+    "owner": "XJ",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "宁波市",
+    "gb": "156330200",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "兰州市",
+    "gb": "156620100",
+    "owner": "MA",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 4,
+    "industry": 2,
+    "food": 2,
+    "fort": 4
+  },
+  {
+    "name": "临汾市",
+    "gb": "156141000",
+    "owner": "SHX",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "常州市",
+    "gb": "156320400",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "宿州市",
+    "gb": "156341300",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "潮州市",
+    "gb": "156445100",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "昌都市",
+    "gb": "156540300",
+    "owner": "TIB",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "玉林市",
+    "gb": "156450900",
+    "owner": "GXC",
+    "terrain": "HILL",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "海北藏族自治州",
+    "gb": "156632200",
+    "owner": "MA",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "漯河市",
+    "gb": "156411100",
+    "owner": "KMT",
+    "terrain": "PLAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "七台河市",
+    "gb": "156230900",
+    "owner": "NEA",
+    "terrain": "FOREST",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "西双版纳傣族自治州",
+    "gb": "156532800",
+    "owner": "KMT",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "陇南市",
+    "gb": "156621200",
+    "owner": "MA",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "保山市",
+    "gb": "156530500",
+    "owner": "KMT",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "遂宁市",
+    "gb": "156510900",
+    "owner": "SCC",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  },
+  {
+    "name": "合肥市",
+    "gb": "156340100",
+    "owner": "KMT",
+    "terrain": "HILL",
+    "cityLevel": 3,
+    "industry": 3,
+    "food": 8,
+    "fort": 2
+  },
+  {
+    "name": "铜川市",
+    "gb": "156610200",
+    "owner": "KMT",
+    "terrain": "MOUNTAIN",
+    "cityLevel": 2,
+    "industry": 1,
+    "food": 3,
+    "fort": 1
+  }
+]
