@@ -1,51 +1,47 @@
-# Logs
-logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
-
+# ─── Dependencies ───
 node_modules
-.DS_Store
+.pnpm-store
+
+# ─── Build output ───
 dist
 dist-ssr
 coverage
-*.local
+*.tsbuildinfo
 
-# Editor directories and files
+# ─── Logs ───
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# ─── Environment ───
+.env
+.env.*
+!.env.example
+
+# ─── Database (sqlite) ───
+*.db
+*.db-journal
+
+# ─── Editor / OS ───
 .vscode/*
 !.vscode/extensions.json
-.idea
+.idea/
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
+.DS_Store
 
-*.tsbuildinfo
-
+# ─── Tooling artifacts (excluded by request) ───
+.workbuddy/
+.mimocode/
+.omo/
 .eslintcache
-
-# Cypress
-/cypress/videos/
-/cypress/screenshots/
-
-# Vitest
 __screenshots__/
 
-# Vite
+# ─── Vite ───
 *.timestamp-*-*.mjs
-
-# Environment
-.env
-.env.*
-
-# WorkBuddy
-.workbuddy/
-
-# NestJS backend
-map-war-server/
-/.omo/
-/文档/
