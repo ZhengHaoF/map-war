@@ -73,6 +73,8 @@ function showPopupText(
 
   const textObj = new Text({ text, style })
   textObj.anchor.set(0.5)
+  // 反向缩放：弹字画在 worldContainer 内会随相机放大，这里抵消保持屏幕恒定大小
+  if (container.scale.x !== 1) textObj.scale.set(1 / container.scale.x)
   textObj.x = to.x
   textObj.y = to.y - 30
   container.addChild(textObj)

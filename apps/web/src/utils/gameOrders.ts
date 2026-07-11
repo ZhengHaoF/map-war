@@ -70,9 +70,38 @@ export interface GameOrder {
   text?: string
 }
 
+// ─── 相机控制接口（由 LeafletMap 依赖注入）───
+export interface CameraTarget {
+  scale: number
+  x: number
+  y: number
+}
+
+export interface CameraController {
+  /** 当前相机状态快照（用于演出后归位） */
+  snapshot(): CameraTarget
+  /** 锁定/解锁用户输入（演出期间防止滚轮/拖拽抢相机） */
+  setLocked(v: boolean): void
+  /** 放大并居中某地点 */
+  focusOn(id: string, duration?: number): Promise<void>
+  /** 保持缩放、平移到某地点（镜头跟随行军） */
+  followTo(id: string, duration: number): Promise<void>
+  /** 还原到指定相机状态 */
+  reset(target: CameraTarget, duration?: number): Promise<void>
+  /** 取消进行中的镜头补间并解锁（ESC / 快进跳过） */
+  cancel(): void
+}
+
 // ─── 内部状态 ───
 
 let _container: Container | null = null
+let _camera: CameraController | null = null
+/** 镜头演出总开关：快进循环里应设为 false，避免每个事件都播 2-4s */
+let cinematicEnabled = true
+
+export function setCinematicEnabled(v: boolean): void {
+  cinematicEnabled = v
+}
 
 const locks: Record<string, boolean> = {
   attack: false,
@@ -102,8 +131,9 @@ function hasActiveBattle(from: string, to: string): boolean {
 
 // ─── 初始化 ───
 
-export function init(container: Container): void {
+export function init(container: Container, camera?: CameraController): void {
   _container = container
+  _camera = camera ?? null
 }
 
 // ─── 五个游戏指令 ───
@@ -112,18 +142,40 @@ export async function attack(from: string, to: string, text?: string): Promise<O
   if (locks.attack) return { ok: false, reason: '派兵动画进行中' }
   if (!_container) return { ok: false, reason: 'gameOrders 未初始化' }
 
+  const duration = 2000
   locks.attack = true
   try {
-    await playArcAnimation({
-      fromId: from,
-      toId: to,
-      container: _container,
-      mode: 'dots',
-      text: text || '出兵！',
-      color: 0xffcc00,
-      dots: 5,
-      duration: 2000,
-    })
+    if (_camera && cinematicEnabled) {
+      // 镜头演出：放大 A → 跟随行军平移到 B → 演出后归位
+      const before = _camera.snapshot()
+      _camera.setLocked(true)
+      await _camera.focusOn(from, 600)
+      const follow = _camera.followTo(to, duration)
+      await playArcAnimation({
+        fromId: from,
+        toId: to,
+        container: _container,
+        mode: 'dots',
+        text: text || '出兵！',
+        color: 0xffcc00,
+        dots: 5,
+        duration,
+      })
+      await follow
+      await _camera.reset(before)
+      _camera.setLocked(false)
+    } else {
+      await playArcAnimation({
+        fromId: from,
+        toId: to,
+        container: _container,
+        mode: 'dots',
+        text: text || '出兵！',
+        color: 0xffcc00,
+        dots: 5,
+        duration,
+      })
+    }
     return { ok: true }
   } finally {
     locks.attack = false
@@ -154,20 +206,43 @@ export async function declareWar(from: string, to: string, text?: string): Promi
   if (locks.war) return { ok: false, reason: '宣战动画进行中' }
   if (!_container) return { ok: false, reason: 'gameOrders 未初始化' }
 
+  const duration = 2000
   locks.war = true
   try {
-    await playArcAnimation({
-      fromId: from,
-      toId: to,
-      container: _container,
-      mode: 'orb',
-      explosion: true,
-      shockwaves: 3,
-      text: text || '宣战！',
-      color: 0xff4444,
-      duration: 1200,
-      explosionDuration: 800,
-    })
+    if (_camera && cinematicEnabled) {
+      const before = _camera.snapshot()
+      _camera.setLocked(true)
+      await _camera.focusOn(from, 600)
+      const follow = _camera.followTo(to, duration)
+      await playArcAnimation({
+        fromId: from,
+        toId: to,
+        container: _container,
+        mode: 'orb',
+        explosion: true,
+        shockwaves: 3,
+        text: text || '宣战！',
+        color: 0xff4444,
+        duration: 1200,
+        explosionDuration: 800,
+      })
+      await follow
+      await _camera.reset(before)
+      _camera.setLocked(false)
+    } else {
+      await playArcAnimation({
+        fromId: from,
+        toId: to,
+        container: _container,
+        mode: 'orb',
+        explosion: true,
+        shockwaves: 3,
+        text: text || '宣战！',
+        color: 0xff4444,
+        duration: 1200,
+        explosionDuration: 800,
+      })
+    }
     return { ok: true }
   } finally {
     locks.war = false

@@ -193,6 +193,7 @@ import {
   setScreenSize,
   registerLocations,
   registerAlias,
+  resolveLocationXY,
 } from '@/utils/locationResolver'
 import type { Point } from '@/utils/locationResolver'
 import GameButton from '@/components/ui/GameButton.vue'
@@ -709,6 +710,7 @@ function onGlobalMouseDown(e: MouseEvent): void {
 
 function onKeyDown(e: KeyboardEvent): void {
   if (e.key === 'Escape') {
+    cameraController.cancel()
     if (infoModalVisible.value) {
       closeInfoModal()
     } else {
@@ -829,6 +831,114 @@ async function loadLayer(index: number): Promise<void> {
   updateLabels()
 }
 
+// ─── 相机控制（镜头演出）───
+let cameraLocked = false
+let cameraRaf: number | null = null
+let cameraInterrupt = false
+let cameraResolve: (() => void) | null = null
+const FOCUS_SCALE = 2.8
+const cameraEase = (t: number): number => 1 - Math.pow(1 - t, 3) // easeOutCubic
+
+interface CameraTarget {
+  scale: number
+  x: number
+  y: number
+}
+
+/** 将当前相机状态应用到所有容器（抽出给镜头补间复用，替代各 handler 里的重复 transform） */
+function applyCamera(): void {
+  worldContainer.scale.set(mapScale)
+  worldContainer.position.set(mapX, mapY)
+  baseContainer.scale.set(mapScale)
+  baseContainer.position.set(mapX, mapY)
+  updateLabels()
+}
+
+/** 将相机平滑补间到目标 {scale, x, y} */
+function animateCameraTo(target: CameraTarget, duration: number): Promise<void> {
+  return new Promise((resolve) => {
+    if (cameraRaf) cancelAnimationFrame(cameraRaf)
+    cameraInterrupt = false
+    cameraResolve = resolve
+    const start: CameraTarget = { scale: mapScale, x: mapX, y: mapY }
+    const startTime = performance.now()
+    const step = (now: number): void => {
+      if (cameraInterrupt) {
+        cameraRaf = null
+        cameraResolve = null
+        resolve()
+        return
+      }
+      const p = Math.min((now - startTime) / duration, 1)
+      const e = cameraEase(p)
+      mapScale = start.scale + (target.scale - start.scale) * e
+      mapX = start.x + (target.x - start.x) * e
+      mapY = start.y + (target.y - start.y) * e
+      applyCamera()
+      if (p < 1) {
+        cameraRaf = requestAnimationFrame(step)
+      } else {
+        cameraRaf = null
+        cameraResolve = null
+        resolve()
+      }
+    }
+    cameraRaf = requestAnimationFrame(step)
+  })
+}
+
+/** 计算「把某地点居中并缩放」的相机目标（用世界坐标，与动画库 resolveLocationXY 一致） */
+function cameraTargetFor(id: string, scale: number): CameraTarget | null {
+  const local = resolveLocationXY(id)
+  if (!local) return null
+  return {
+    scale,
+    x: app.screen.width / 2 - local.x * scale,
+    y: app.screen.height / 2 - local.y * scale,
+  }
+}
+
+/** 暴露给 gameOrders 的相机控制接口（依赖注入，避免把相机状态迁到 composable） */
+const cameraController = {
+  snapshot(): CameraTarget {
+    return { scale: mapScale, x: mapX, y: mapY }
+  },
+  setLocked(v: boolean): void {
+    cameraLocked = v
+  },
+  /** 放大并居中某地点 */
+  focusOn(id: string, duration = 600): Promise<void> {
+    const scale = Math.max(mapScale, FOCUS_SCALE)
+    const target = cameraTargetFor(id, scale)
+    if (!target) return Promise.resolve()
+    return animateCameraTo(target, duration)
+  },
+  /** 保持当前缩放，平移到某地点（镜头跟随行军） */
+  followTo(id: string, duration: number): Promise<void> {
+    const scale = Math.max(mapScale, FOCUS_SCALE)
+    const target = cameraTargetFor(id, scale)
+    if (!target) return Promise.resolve()
+    return animateCameraTo(target, duration)
+  },
+  /** 还原到指定相机状态（演出结束归位） */
+  reset(target: CameraTarget, duration = 500): Promise<void> {
+    return animateCameraTo(target, duration)
+  },
+  /** 取消进行中的镜头补间并解锁（ESC / 快进跳过） */
+  cancel(): void {
+    cameraInterrupt = true
+    if (cameraRaf) {
+      cancelAnimationFrame(cameraRaf)
+      cameraRaf = null
+    }
+    if (cameraResolve) {
+      cameraResolve()
+      cameraResolve = null
+    }
+    cameraLocked = false
+  },
+}
+
 // ─── 平移/缩放 ───
 
 function onWheel(e: WheelEvent): void {
@@ -839,6 +949,8 @@ function onWheel(e: WheelEvent): void {
   const mouseX = e.clientX - rect.left
   const mouseY = e.clientY - rect.top
 
+  if (cameraLocked) return
+
   const delta = e.deltaY > 0 ? 0.9 : 1.1
   const newScale = Math.max(0.5, Math.min(8, mapScale * delta))
 
@@ -847,14 +959,11 @@ function onWheel(e: WheelEvent): void {
   mapY = mouseY - (mouseY - mapY) * scaleRatio
   mapScale = newScale
 
-  worldContainer.scale.set(mapScale)
-  worldContainer.position.set(mapX, mapY)
-  baseContainer.scale.set(mapScale)
-  baseContainer.position.set(mapX, mapY)
-  updateLabels()
+  applyCamera()
 }
 
 function onPointerDown(e: PointerEvent): void {
+  if (cameraLocked) return
   isDragging = true
   lastPointer.x = e.clientX
   lastPointer.y = e.clientY
@@ -869,9 +978,7 @@ function onPointerMove(e: PointerEvent): void {
   mapY += e.clientY - lastPointer.y
   lastPointer.x = e.clientX
   lastPointer.y = e.clientY
-  worldContainer.position.set(mapX, mapY)
-  baseContainer.position.set(mapX, mapY)
-  updateLabels()
+  applyCamera()
 }
 
 function onPointerUp(): void {
@@ -917,8 +1024,7 @@ function onResize(): void {
     const center = geoToScreen(104, 36, width, height)
     mapX = width / 2 - center.x
     mapY = height / 2 - center.y
-    worldContainer.position.set(mapX, mapY)
-    baseContainer.position.set(mapX, mapY)
+    applyCamera()
 
     loadLayer(currentLayerIndex.value)
     if (baseMapVisible.value) {
@@ -951,7 +1057,7 @@ onMounted(async () => {
   const width = app.screen.width
   const height = app.screen.height
   setScreenSize(width, height)
-  initGameOrders(worldContainer)
+  initGameOrders(worldContainer, cameraController)
   const center = geoToScreen(104, 36, width, height)
   mapX = width / 2 - center.x
   mapY = height / 2 - center.y
