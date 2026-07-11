@@ -177,7 +177,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { Application, Container, Graphics, Text, TextStyle } from 'pixi.js'
 import { OWNER_COLORS, OWNER_LABELS } from '@/data/owners'
 import type { CityData } from '@/data/chinaCities'
@@ -719,6 +719,45 @@ function onKeyDown(e: KeyboardEvent): void {
   }
 }
 
+// ─── 面板 → 地图 联动（聚焦请求）───
+watch(
+  () => useGameStore().focusTarget,
+  (target) => {
+    if (!target) return
+    if (target.type === 'city') {
+      focusCity(target.id)
+    } else if (target.type === 'battle') {
+      focusBattle(target.id)
+    }
+  },
+)
+
+function findCityFeature(gb: string): GeoJSON.Feature | null {
+  const cityJson = geoJsonCache.get(LAYERS[1].file)
+  if (!cityJson) return null
+  return cityJson.features.find((f) => (f.properties?.gb as string | undefined) === gb) ?? null
+}
+
+function focusCity(gb: string): void {
+  cameraController.focusOn(gb)
+  const feat = findCityFeature(gb)
+  if (feat) {
+    clearAllHighlights()
+    highlightFeature(feat, 0xb04a3a)
+  }
+}
+
+function focusBattle(id: string): void {
+  const b = useGameStore().battles.find((x) => x.id === id)
+  if (!b) return
+  if (b.to) cameraController.focusOn(b.to)
+  clearAllHighlights()
+  const fTo = b.to ? findCityFeature(b.to) : null
+  const fFrom = b.from ? findCityFeature(b.from) : null
+  if (fTo) highlightFeature(fTo, 0xb04a3a)
+  if (fFrom) highlightFeature(fFrom, 0x3b82f6)
+}
+
 // ─── 标签图层 ───
 
 function getLabelStyle(layerIndex: number): TextStyle {
@@ -1140,7 +1179,7 @@ onUnmounted(() => {
 .layer-switcher {
   position: absolute;
   top: 16px;
-  right: 16px;
+  left: 16px;
   display: flex;
   flex-direction: column;
   gap: 8px;

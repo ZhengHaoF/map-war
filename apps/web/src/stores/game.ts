@@ -68,6 +68,69 @@ export const useGameStore = defineStore('game', () => {
       .filter(([, o]) => o === f)
       .map(([gb]) => gb)
 
+  // ── 聚焦请求（面板 → 地图联动）──
+  const focusTarget = ref<{ type: 'city' | 'battle'; id: string } | null>(null)
+  function requestFocus(type: 'city' | 'battle', id: string): void {
+    focusTarget.value = { type, id }
+  }
+
+  // ── 我方聚合（派生，不存）──
+  interface MyCityStat {
+    gb: string
+    name: string
+    cityLevel: number
+    industry: number
+    food: number
+    fort: number
+  }
+  interface MyStats {
+    cityCount: number
+    totalIndustry: number
+    totalFood: number
+    avgFort: number
+    levelDistribution: Record<number, number>
+    cities: MyCityStat[]
+  }
+  const myStats = computed<MyStats>(() => {
+    const f = currentFaction.value
+    const cities: MyCityStat[] = []
+    if (f) {
+      for (const [gb, o] of Object.entries(ownership)) {
+        if (o !== f) continue
+        const c = chinaCities.find((x) => x.gb === gb)
+        cities.push({
+          gb,
+          name: c?.name ?? gb,
+          cityLevel: c?.cityLevel ?? 0,
+          industry: c?.industry ?? 0,
+          food: c?.food ?? 0,
+          fort: c?.fort ?? 0,
+        })
+      }
+      cities.sort((a, b) => b.cityLevel - a.cityLevel || a.name.localeCompare(b.name))
+    }
+    const totalIndustry = cities.reduce((s, c) => s + c.industry, 0)
+    const totalFood = cities.reduce((s, c) => s + c.food, 0)
+    const avgFort = cities.length
+      ? Math.round((cities.reduce((s, c) => s + c.fort, 0) / cities.length) * 10) / 10
+      : 0
+    const levelDistribution: Record<number, number> = {}
+    for (const c of cities) {
+      levelDistribution[c.cityLevel] = (levelDistribution[c.cityLevel] ?? 0) + 1
+    }
+    return { cityCount: cities.length, totalIndustry, totalFood, avgFort, levelDistribution, cities }
+  })
+
+  const myBattles = computed(() => {
+    const f = currentFaction.value
+    if (!f) return []
+    return battles.value.filter((b) => {
+      const oFrom = b.from ? ownership[b.from] : undefined
+      const oTo = b.to ? ownership[b.to] : undefined
+      return oFrom === f || oTo === f
+    })
+  })
+
   // ── 初始化 / 设置 ──
   function initWorld(): void {
     for (const c of chinaCities) {
@@ -112,6 +175,10 @@ export const useGameStore = defineStore('game', () => {
     cityOwner,
     isAlive,
     factionCities,
+    focusTarget,
+    requestFocus,
+    myStats,
+    myBattles,
     initWorld,
     selectFaction,
     setPlayer,

@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { useGameStore } from '@/stores/game'
 import GameModal from '@/components/ui/GameModal.vue'
 import OnboardingView from '@/views/OnboardingView.vue'
+import PlayerStatusPanel from '@/components/PlayerStatusPanel.vue'
 
 const gameStore = useGameStore()
 const showOnboarding = computed(() => gameStore.currentFaction === null)
@@ -10,6 +11,7 @@ const showOnboarding = computed(() => gameStore.currentFaction === null)
 
 <template>
   <RouterView />
+  <PlayerStatusPanel v-if="!showOnboarding" />
   <GameModal
     :visible="showOnboarding"
     title="择势"
