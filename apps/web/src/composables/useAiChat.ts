@@ -27,9 +27,10 @@ export function useAiChat() {
 
       if (!res.ok) {
         const errBody = await res.json().catch(() => ({}))
-        const detail = (errBody as { detail?: string })?.detail
-          ?? (errBody as { error?: string })?.error
-          ?? `HTTP ${res.status}`
+        const detail =
+          (errBody as { detail?: string })?.detail ??
+          (errBody as { error?: string })?.error ??
+          `HTTP ${res.status}`
         throw new Error(detail)
       }
 

@@ -1,8 +1,12 @@
 <template>
   <div ref="mapContainer" class="map-container" @click.self="closeContextMenu">
     <div class="layer-switcher">
-      <GameButton v-for="(layer, index) in LAYERS" :key="layer.file" :active="currentLayerIndex === index"
-        @click="switchLayer(index)">
+      <GameButton
+        v-for="(layer, index) in LAYERS"
+        :key="layer.file"
+        :active="currentLayerIndex === index"
+        @click="switchLayer(index)"
+      >
         <component :is="ICONS['stack-2']" :size="16" />
         {{ layer.label }}
       </GameButton>
@@ -26,30 +30,98 @@
       </GameButton>
     </div>
     <GameDateDisplay />
-    <GameContextMenu :visible="contextMenuVisible" :position="contextMenuPos" :items="contextMenuItems"
-      @select="onMenuAction" />
-    <GameModal :visible="infoModalVisible" :title="infoTitle" :z-index="5000" @close="closeInfoModal">
+    <GameContextMenu
+      :visible="contextMenuVisible"
+      :position="contextMenuPos"
+      :items="contextMenuItems"
+      @select="onMenuAction"
+    />
+    <GameModal
+      :visible="infoModalVisible"
+      :title="infoTitle"
+      :z-index="5000"
+      @close="closeInfoModal"
+    >
       <InfoTable v-if="infoCityData" :rows="infoRows" />
       <InfoTable v-else-if="infoCountryData" :rows="countryInfoRows" />
     </GameModal>
-    <GameModal :visible="testPanelVisible" title="调试" :draggable="true" :overlay="false" :z-index="4000" :init-x="160" :init-y="160"
-      @close="testPanelVisible = false">
+    <GameModal
+      :visible="testPanelVisible"
+      title="调试"
+      :draggable="true"
+      :overlay="false"
+      :z-index="4000"
+      :init-x="160"
+      :init-y="160"
+      @close="testPanelVisible = false"
+    >
       <div class="test-panel">
-        <GameButton @click="() => executeOrder({order:'attack', from:'156500000', to:'156450200', text:'出兵！'})"><component :is="ICONS['sword']" :size="16" />派兵测试</GameButton>
-        <GameButton @click="() => executeOrder({order:'scout', from:'156500000', text:'侦察！'})"><component :is="ICONS['eye']" :size="16" />探察测试</GameButton>
-        <GameButton @click="() => executeOrder({order:'declareWar', from:'156500000', to:'156450200', text:'宣战！'})"><component :is="ICONS['flag']" :size="16" />宣战测试</GameButton>
-        <GameButton @click="() => executeOrder({order:'battle', from:'156500000', to:'156450200'})"><component :is="ICONS['crosshair']" :size="16" />战斗测试1</GameButton>
-        <GameButton @click="() => executeOrder({order:'battle', from:'156500000', to:'156451000'})"><component :is="ICONS['crosshair']" :size="16" />战斗测试2</GameButton>
-        <GameButton danger @click="() => executeOrder({order:'stopBattles'})"><component :is="ICONS['player-stop']" :size="16" />停止战斗</GameButton>
-        <GameButton @click="() => { const list = listBattles(); console.log('当前战斗:', JSON.stringify(list, null, 2)) }"><component :is="ICONS['list']" :size="16" />查看战斗</GameButton>
-        <GameButton danger @click="openBattleList"><component :is="ICONS['circle-x']" :size="16" />结束战斗</GameButton>
-        <GameButton @click="aiPanelVisible = true"><component :is="ICONS.brain" :size="16" />AI 调试</GameButton>
+        <GameButton
+          @click="
+            () =>
+              executeOrder({ order: 'attack', from: '156500000', to: '156450200', text: '出兵！' })
+          "
+          ><component :is="ICONS['sword']" :size="16" />派兵测试</GameButton
+        >
+        <GameButton
+          @click="() => executeOrder({ order: 'scout', from: '156500000', text: '侦察！' })"
+          ><component :is="ICONS['eye']" :size="16" />探察测试</GameButton
+        >
+        <GameButton
+          @click="
+            () =>
+              executeOrder({
+                order: 'declareWar',
+                from: '156500000',
+                to: '156450200',
+                text: '宣战！',
+              })
+          "
+          ><component :is="ICONS['flag']" :size="16" />宣战测试</GameButton
+        >
+        <GameButton
+          @click="() => executeOrder({ order: 'battle', from: '156500000', to: '156450200' })"
+          ><component :is="ICONS['crosshair']" :size="16" />战斗测试1</GameButton
+        >
+        <GameButton
+          @click="() => executeOrder({ order: 'battle', from: '156500000', to: '156451000' })"
+          ><component :is="ICONS['crosshair']" :size="16" />战斗测试2</GameButton
+        >
+        <GameButton danger @click="() => executeOrder({ order: 'stopBattles' })"
+          ><component :is="ICONS['player-stop']" :size="16" />停止战斗</GameButton
+        >
+        <GameButton
+          @click="
+            () => {
+              const list = listBattles()
+              console.log('当前战斗:', JSON.stringify(list, null, 2))
+            }
+          "
+          ><component :is="ICONS['list']" :size="16" />查看战斗</GameButton
+        >
+        <GameButton danger @click="openBattleList"
+          ><component :is="ICONS['circle-x']" :size="16" />结束战斗</GameButton
+        >
+        <GameButton @click="aiPanelVisible = true"
+          ><component :is="ICONS.brain" :size="16" />AI 调试</GameButton
+        >
       </div>
     </GameModal>
-    <GameModal :visible="aiPanelVisible" title="AI 调试" :z-index="4100" width="600px" @close="aiPanelVisible = false">
+    <GameModal
+      :visible="aiPanelVisible"
+      title="AI 调试"
+      :z-index="4100"
+      width="600px"
+      @close="aiPanelVisible = false"
+    >
       <AiDebugPanel />
     </GameModal>
-    <GameModal :visible="battleListVisible" title="战斗管理" :z-index="3500" @close="battleListVisible = false">
+    <GameModal
+      :visible="battleListVisible"
+      title="战斗管理"
+      :z-index="3500"
+      @close="battleListVisible = false"
+    >
       <div v-if="battleList.length === 0" class="empty-hint">当前没有进行中的战斗</div>
       <div v-for="b in battleList" :key="b.id" class="battle-item">
         <span class="battle-info">
@@ -64,18 +136,34 @@
     </GameModal>
     <GameModal :visible="disclaimerVisible" title="免责声明" @close="disclaimerVisible = false">
       <div class="disclaimer-content">
-        <p>本游戏地图数据来源于网络公开数据源，仅用于游戏娱乐目的，可能存在边界线、地名标注等方面的偏差或不准确之处。</p>
+        <p>
+          本游戏地图数据来源于网络公开数据源，仅用于游戏娱乐目的，可能存在边界线、地名标注等方面的偏差或不准确之处。
+        </p>
         <p>其中国家边界线划分来自于ECharts网站中的数据，中国地图市划分来自于天地图数据</p>
-        <p>游戏中的政权划分、势力范围、外交关系等均为虚构游戏设定，不代表任何个人或组织的政治立场，亦不代表对现实世界领土归属的任何主张。地图边界不对应、不代表当下世界各国法定领土国界。</p>
+        <p>
+          游戏中的政权划分、势力范围、外交关系等均为虚构游戏设定，不代表任何个人或组织的政治立场，亦不代表对现实世界领土归属的任何主张。地图边界不对应、不代表当下世界各国法定领土国界。
+        </p>
         <p>本人始终坚持遵循以中华人民共和国自然资源部（原国家测绘地理信息局）发布的标准地图。</p>
         <p class="disclaimer-sources">数据来源：</p>
         <ul>
-          <li>Natural Earth — <a href="https://www.naturalearthdata.com/" target="_blank"
-              rel="noopener">https://www.naturalearthdata.com/</a></li>
-          <li>Apache ECharts — <a href="https://echarts.apache.org/" target="_blank"
-              rel="noopener">https://echarts.apache.org/</a></li>
-          <li>天地图 — <a href="https://cloudcenter.tianditu.gov.cn/" target="_blank"
-              rel="noopener">https://cloudcenter.tianditu.gov.cn/</a></li>
+          <li>
+            Natural Earth —
+            <a href="https://www.naturalearthdata.com/" target="_blank" rel="noopener"
+              >https://www.naturalearthdata.com/</a
+            >
+          </li>
+          <li>
+            Apache ECharts —
+            <a href="https://echarts.apache.org/" target="_blank" rel="noopener"
+              >https://echarts.apache.org/</a
+            >
+          </li>
+          <li>
+            天地图 —
+            <a href="https://cloudcenter.tianditu.gov.cn/" target="_blank" rel="noopener"
+              >https://cloudcenter.tianditu.gov.cn/</a
+            >
+          </li>
         </ul>
       </div>
     </GameModal>
@@ -185,12 +273,24 @@ const GEO_BOUNDS = {
 } as const
 
 const OWNER_NAMES: Record<string, string> = {
-  KMT: '国民政府', CCP: '中共苏区', JPN: '日本关东军', NEA: '东北军',
-  SHX: '晋系', GXC: '桂系', SCC: '川军', MA: '马家军', XJ: '新疆', TIB: '西藏',
+  KMT: '国民政府',
+  CCP: '中共苏区',
+  JPN: '日本关东军',
+  NEA: '东北军',
+  SHX: '晋系',
+  GXC: '桂系',
+  SCC: '川军',
+  MA: '马家军',
+  XJ: '新疆',
+  TIB: '西藏',
 }
 
 const TERRAIN_NAMES: Record<string, string> = {
-  PLAIN: '平原', HILL: '丘陵', MOUNTAIN: '山地', FOREST: '森林', CITY: '城市',
+  PLAIN: '平原',
+  HILL: '丘陵',
+  MOUNTAIN: '山地',
+  FOREST: '森林',
+  CITY: '城市',
 }
 
 const LEVEL_NAMES = ['', '县城/小城', '普通城市', '区域中心', '全国重要城市', '超级城市']
@@ -212,13 +312,20 @@ const DIPLOMACY_BORDER_COLORS: Record<string, number> = {
 }
 
 const COUNTRY_TYPE_NAMES: Record<string, string> = {
-  EMPIRE: '帝国', REPUBLIC: '共和国', UNION: '联盟',
-  COLONY: '殖民地', KINGDOM: '王国', SPLIT: '分裂',
+  EMPIRE: '帝国',
+  REPUBLIC: '共和国',
+  UNION: '联盟',
+  COLONY: '殖民地',
+  KINGDOM: '王国',
+  SPLIT: '分裂',
 }
 
 const DIPLOMACY_NAMES: Record<string, string> = {
-  ALLIED: '同盟', FRIENDLY: '友好', NEUTRAL: '中立',
-  HOSTILE: '敌对', WAR: '交战中',
+  ALLIED: '同盟',
+  FRIENDLY: '友好',
+  NEUTRAL: '中立',
+  HOSTILE: '敌对',
+  WAR: '交战中',
 }
 
 const LAYERS: LayerConfig[] = [
@@ -309,12 +416,18 @@ const countryInfoRows = computed(() => {
   return [
     { label: '国名', value: `${dc.name || '—'}（${dc.iso_a3 || dc.id || '—'}）` },
     { label: '全称', value: dc.full_name || '—' },
-    { label: '国家类型', value: COUNTRY_TYPE_NAMES[dc.countryType as CountryTypeKey] || dc.countryType || '—' },
+    {
+      label: '国家类型',
+      value: COUNTRY_TYPE_NAMES[dc.countryType as CountryTypeKey] || dc.countryType || '—',
+    },
     { label: '军事实力', value: `${dc.military ?? '—'} / 10` },
     { label: '工业能力', value: `${dc.industry ?? '—'} / 10` },
     { label: '人口/资源', value: `${dc.population ?? '—'} / 10` },
     { label: '对华威胁', value: `${dc.threat ?? '—'} / 10` },
-    { label: '外交关系', value: DIPLOMACY_NAMES[dc.diplomacy as DiplomacyKey] || dc.diplomacy || '—' },
+    {
+      label: '外交关系',
+      value: DIPLOMACY_NAMES[dc.diplomacy as DiplomacyKey] || dc.diplomacy || '—',
+    },
   ]
 })
 
@@ -329,7 +442,12 @@ const infoTitle = computed(() => {
 
 // ─── 坐标工具 ───
 
-function screenToGeo(screenX: number, screenY: number, width: number, height: number): { lng: number; lat: number } {
+function screenToGeo(
+  screenX: number,
+  screenY: number,
+  width: number,
+  height: number,
+): { lng: number; lat: number } {
   const lngRange = GEO_BOUNDS.maxLng - GEO_BOUNDS.minLng
   const latRange = GEO_BOUNDS.maxLat - GEO_BOUNDS.minLat
   const scale = Math.min(width / lngRange, height / latRange)
@@ -532,9 +650,7 @@ function onContextMenu(e: PointerEvent | MouseEvent): void {
   } else {
     selectedWorldFeature = result.feature
     highlightBaseFeature(result.feature)
-    contextMenuItems.value = [
-      { action: 'info', label: '查看信息', icon: 'info-circle' },
-    ]
+    contextMenuItems.value = [{ action: 'info', label: '查看信息', icon: 'info-circle' }]
   }
 
   contextMenuPos.value = { x: screenX, y: screenY }
@@ -555,17 +671,23 @@ function onMenuAction(action: string): void {
   if (action === 'info') {
     if (selectedFeature) {
       const gb = selectedFeature.properties?.gb as string | undefined
-      infoCityData.value = gb ? (cityDataMap.get(gb) || null) : null
+      infoCityData.value = gb ? cityDataMap.get(gb) || null : null
       infoCountryData.value = null
       infoModalVisible.value = true
     } else if (selectedWorldFeature) {
       const isoA3 = selectedWorldFeature.properties?.iso_a3 as string | undefined
-      infoCountryData.value = isoA3 ? (worldDataMap.get(isoA3) || selectedWorldFeature.properties) : selectedWorldFeature.properties
+      infoCountryData.value = isoA3
+        ? worldDataMap.get(isoA3) || selectedWorldFeature.properties
+        : selectedWorldFeature.properties
       infoCityData.value = null
       infoModalVisible.value = true
     }
   } else {
-    console.log('菜单操作:', action, selectedFeature?.properties || selectedWorldFeature?.properties)
+    console.log(
+      '菜单操作:',
+      action,
+      selectedFeature?.properties || selectedWorldFeature?.properties,
+    )
   }
   closeContextMenu()
 }
@@ -611,7 +733,12 @@ function getLabelStyle(layerIndex: number): TextStyle {
   })
 }
 
-function renderLabels(data: GeoJSON.FeatureCollection, width: number, height: number, layerIndex: number): void {
+function renderLabels(
+  data: GeoJSON.FeatureCollection,
+  width: number,
+  height: number,
+  layerIndex: number,
+): void {
   labelContainer.removeChildren()
   const style = getLabelStyle(layerIndex)
 

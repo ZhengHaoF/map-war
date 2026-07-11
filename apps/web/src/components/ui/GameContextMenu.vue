@@ -73,7 +73,9 @@ defineEmits<{
   cursor: pointer;
   border-radius: 4px;
   user-select: none;
-  transition: background 0.15s, color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s;
 }
 
 .context-menu-item .menu-icon {

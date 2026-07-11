@@ -7,12 +7,12 @@
       :style="{ zIndex: zIndex ?? 3000 }"
       @click.self="closable ? $emit('close') : undefined"
     >
-      <div class="modal" :class="{ draggable }" :style="modalStyle">
-        <div
-          class="modal-header"
-          :class="{ draggable }"
-          @mousedown.prevent="onDragStart"
-        >
+      <div
+        class="modal"
+        :class="{ draggable, parchment: variant === 'parchment' }"
+        :style="modalStyle"
+      >
+        <div class="modal-header" :class="{ draggable }" @mousedown.prevent="onDragStart">
           <span class="modal-title">{{ title }}</span>
           <span v-if="closable" class="modal-close" @click="onCloseClick">&times;</span>
         </div>
@@ -40,12 +40,15 @@ const props = withDefaults(
     initY?: number
     /** 弹窗层级，避免多个弹窗共用 3000 时互相遮挡可点区域 */
     zIndex?: number
+    /** 主题变体：dark 为默认深色，parchment 为古籍/羊皮纸风格 */
+    variant?: 'dark' | 'parchment'
   }>(),
   {
     overlay: true,
     draggable: false,
     visible: false,
     closable: true,
+    variant: 'dark',
   },
 )
 
@@ -156,6 +159,47 @@ function onCloseClick(): void {
 
 .modal-header.draggable:active {
   cursor: grabbing;
+}
+
+/* 古籍/羊皮纸主题 */
+.modal.parchment {
+  background: #f3e9d2;
+  border: 1px solid #b8a07a;
+  border-radius: 2px;
+  box-shadow:
+    0 0 0 1px #7a5c30 inset,
+    0 0 0 4px #f3e9d2 inset,
+    0 0 0 5px #7a5c30 inset,
+    0 12px 40px rgba(0, 0, 0, 0.5);
+  color: #2c1f0f;
+}
+
+.modal.parchment .modal-header {
+  border-bottom: 1px solid rgba(90, 70, 40, 0.25);
+  padding: 14px 20px;
+  background: linear-gradient(to bottom, #f7eed9, #efe3c3);
+}
+
+.modal.parchment .modal-title {
+  color: #5a3d1f;
+  font-family: Georgia, 'Songti SC', 'SimSun', serif;
+  letter-spacing: 4px;
+  font-size: 16px;
+}
+
+.modal.parchment .modal-close {
+  color: #8a6d4b;
+}
+
+.modal.parchment .modal-close:hover {
+  color: #b04a3a;
+}
+
+.modal.parchment .modal-body {
+  padding: 0;
+  background:
+    radial-gradient(circle at 20% 30%, rgba(120, 80, 40, 0.04) 0%, transparent 40%),
+    radial-gradient(circle at 80% 70%, rgba(120, 80, 40, 0.04) 0%, transparent 40%), #f3e9d2;
 }
 
 .modal-title {

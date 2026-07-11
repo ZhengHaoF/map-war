@@ -2,12 +2,22 @@
   <div class="ai-debug">
     <div class="ai-field">
       <label class="ai-label">System Prompt</label>
-      <textarea v-model="systemPrompt" class="ai-textarea" rows="4" placeholder="输入 system prompt..." />
+      <textarea
+        v-model="systemPrompt"
+        class="ai-textarea"
+        rows="4"
+        placeholder="输入 system prompt..."
+      />
     </div>
 
     <div class="ai-field">
       <label class="ai-label">User Message</label>
-      <textarea v-model="userMessage" class="ai-textarea" rows="6" placeholder="输入 user message 或 JSON..." />
+      <textarea
+        v-model="userMessage"
+        class="ai-textarea"
+        rows="6"
+        placeholder="输入 user message 或 JSON..."
+      />
     </div>
 
     <div class="ai-actions">
@@ -22,13 +32,26 @@
     <div v-if="respData" class="ai-response">
       <div class="ai-card" :class="{ open: cards.raw }" @click="cards.raw = !cards.raw">
         <span class="ai-card-title">原始响应</span>
-        <component :is="cards.raw ? ICONS.chevronUp : ICONS.chevronDown" :size="16" class="ai-card-icon" />
+        <component
+          :is="cards.raw ? ICONS.chevronUp : ICONS.chevronDown"
+          :size="16"
+          class="ai-card-icon"
+        />
       </div>
       <pre v-if="cards.raw" class="ai-pre ai-raw">{{ respData.rawJson }}</pre>
 
-      <div v-if="respData.toolCalls.length" class="ai-card" :class="{ open: cards.tools }" @click="cards.tools = !cards.tools">
+      <div
+        v-if="respData.toolCalls.length"
+        class="ai-card"
+        :class="{ open: cards.tools }"
+        @click="cards.tools = !cards.tools"
+      >
         <span class="ai-card-title">Tool Calls ({{ respData.toolCalls.length }})</span>
-        <component :is="cards.tools ? ICONS.chevronUp : ICONS.chevronDown" :size="16" class="ai-card-icon" />
+        <component
+          :is="cards.tools ? ICONS.chevronUp : ICONS.chevronDown"
+          :size="16"
+          class="ai-card-icon"
+        />
       </div>
       <div v-if="cards.tools && respData.toolCalls.length" class="ai-card-body">
         <div v-for="(tc, i) in respData.toolCalls" :key="i" class="ai-toolcall">
@@ -38,12 +61,17 @@
       </div>
 
       <div class="ai-tokens">
-        请求 {{ respData.usage.prompt }} tokens / 响应 {{ respData.usage.completion }} tokens / 总计 {{ respData.usage.total }}
+        请求 {{ respData.usage.prompt }} tokens / 响应 {{ respData.usage.completion }} tokens / 总计
+        {{ respData.usage.total }}
       </div>
 
       <div class="ai-card" :class="{ open: cards.text }" @click="cards.text = !cards.text">
         <span class="ai-card-title">文本回复</span>
-        <component :is="cards.text ? ICONS.chevronUp : ICONS.chevronDown" :size="16" class="ai-card-icon" />
+        <component
+          :is="cards.text ? ICONS.chevronUp : ICONS.chevronDown"
+          :size="16"
+          class="ai-card-icon"
+        />
       </div>
       <div v-if="cards.text" class="ai-card-body">
         <pre class="ai-pre">{{ respData.content || '(无文本输出)' }}</pre>

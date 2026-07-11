@@ -53,7 +53,14 @@ export interface BattleInfo {
   active: boolean
 }
 
-export type OrderType = 'attack' | 'scout' | 'declareWar' | 'battle' | 'stopBattle' | 'stopBattles' | 'listBattles'
+export type OrderType =
+  | 'attack'
+  | 'scout'
+  | 'declareWar'
+  | 'battle'
+  | 'stopBattle'
+  | 'stopBattles'
+  | 'listBattles'
 
 export interface GameOrder {
   order: OrderType
@@ -217,7 +224,7 @@ export function stopBattle(id: string): OrderResult {
   entry.battle.stop()
   activeBattles.delete(id)
   battleRegistry.delete(id)
-  useGameStore().battles = useGameStore().battles.filter(b => b.id !== id)
+  useGameStore().battles = useGameStore().battles.filter((b) => b.id !== id)
   return { ok: true }
 }
 
@@ -257,7 +264,7 @@ export function setFactionAlive(f: Owner, alive: boolean): void {
   const s = useGameStore()
   const has = s.activeFactions.includes(f)
   if (alive && !has) s.activeFactions.push(f)
-  if (!alive && has) s.activeFactions = s.activeFactions.filter(x => x !== f)
+  if (!alive && has) s.activeFactions = s.activeFactions.filter((x) => x !== f)
 }
 
 /**
@@ -281,7 +288,9 @@ export function setCurrentFaction(f: Owner): void {
 /**
  * AI JSON 指令解析器 —— 将 AI 返回的 JSON 分发到对应方法。
  */
-export async function executeOrder(json: GameOrder): Promise<OrderResult | BattleOrderResult | BattleListResult> {
+export async function executeOrder(
+  json: GameOrder,
+): Promise<OrderResult | BattleOrderResult | BattleListResult> {
   if (!json || !json.order) {
     return { ok: false, reason: '缺少 order 字段' }
   }

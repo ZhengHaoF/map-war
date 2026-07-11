@@ -35,17 +35,23 @@ export const useGameStore = defineStore('game', () => {
   // ── 全局要用的变量（唯一真相源）──
   const ownership = reactive<Record<string, Owner>>(
     Object.fromEntries(
-      chinaCities
-        .filter(c => c.gb)
-        .map(c => [c.gb, (c.owner as Owner) ?? Owner.NEUTRAL]),
+      chinaCities.filter((c) => c.gb).map((c) => [c.gb, (c.owner as Owner) ?? Owner.NEUTRAL]),
     ) as Record<string, Owner>,
   )
   const currentDate = ref('1931-01-01')
   const currentFaction = ref<Owner | null>(null)
   const playerName = ref('')
   const activeFactions = ref<Owner[]>([
-    Owner.KMT, Owner.CCP, Owner.JPN, Owner.NEA, Owner.SHX,
-    Owner.GXC, Owner.SCC, Owner.MA, Owner.XJ, Owner.TIB,
+    Owner.KMT,
+    Owner.CCP,
+    Owner.JPN,
+    Owner.NEA,
+    Owner.SHX,
+    Owner.GXC,
+    Owner.SCC,
+    Owner.MA,
+    Owner.XJ,
+    Owner.TIB,
   ])
   const battles = ref<BattleInfo[]>([])
 
@@ -91,13 +97,24 @@ export const useGameStore = defineStore('game', () => {
       currentFaction: currentFaction.value,
       activeFactions: [...activeFactions.value],
       ownership: { ...ownership },
-      battles: battles.value.map(b => ({ ...b })),
+      battles: battles.value.map((b) => ({ ...b })),
     }
   }
 
   return {
-    ownership, currentDate, currentFaction, playerName, activeFactions, battles,
-    myCities, cityOwner, isAlive, factionCities,
-    initWorld, selectFaction, setPlayer, getSnapshot,
+    ownership,
+    currentDate,
+    currentFaction,
+    playerName,
+    activeFactions,
+    battles,
+    myCities,
+    cityOwner,
+    isAlive,
+    factionCities,
+    initWorld,
+    selectFaction,
+    setPlayer,
+    getSnapshot,
   }
 })

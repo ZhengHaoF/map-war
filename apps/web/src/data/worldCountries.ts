@@ -18,7 +18,7 @@ export interface CountryData {
  * GeoJSON 文件用的是现代国家代码，游戏数据用的是 1931 年代代码
  */
 export const GEO_TO_GAME_ISO: Record<string, string> = {
-  RUS: 'SUN',    // 俄罗斯 → 苏联
+  RUS: 'SUN', // 俄罗斯 → 苏联
   // 如有更多不一致，在此添加
 }
 

@@ -16,6 +16,7 @@ const showOnboarding = computed(() => gameStore.currentFaction === null)
     width="760px"
     :z-index="10000"
     :closable="false"
+    variant="parchment"
     @close="() => {}"
   >
     <OnboardingView />
@@ -29,7 +30,9 @@ const showOnboarding = computed(() => gameStore.currentFaction === null)
   box-sizing: border-box;
 }
 
-html, body, #app {
+html,
+body,
+#app {
   width: 100%;
   height: 100%;
   overflow: hidden;
