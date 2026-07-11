@@ -22,13 +22,16 @@ defineProps<{
 .info-table {
   display: flex;
   flex-direction: column;
+  padding: 16px 20px;
+  font-family: var(--font-kai);
 }
 
 .info-row {
   display: flex;
   justify-content: space-between;
+  gap: 16px;
   padding: 8px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px dashed var(--brown-line-faint);
 }
 
 .info-row:last-child {
@@ -36,13 +39,18 @@ defineProps<{
 }
 
 .info-label {
-  color: #888;
+  color: var(--ink-soft);
   font-size: 14px;
+  letter-spacing: 1px;
+  flex-shrink: 0;
 }
 
 .info-value {
-  color: #ddd;
+  color: var(--ink);
   font-size: 14px;
   font-weight: 500;
+  text-align: right;
+  word-break: break-word;
+  min-width: 0;
 }
 </style>

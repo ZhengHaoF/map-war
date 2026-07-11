@@ -9,26 +9,66 @@
 
     <div class="corner-ornament tl" aria-hidden="true">
       <svg viewBox="0 0 40 40" width="40" height="40">
-        <path d="M2 38 L2 12 Q2 2 12 2 L38 2" fill="none" stroke="#8a6d4b" stroke-width="1.5" />
-        <path d="M8 38 L8 18 Q8 8 18 8 L38 8" fill="none" stroke="#b8a07a" stroke-width="0.8" />
+        <path
+          d="M2 38 L2 12 Q2 2 12 2 L38 2"
+          fill="none"
+          stroke="var(--brown)"
+          stroke-width="1.5"
+        />
+        <path
+          d="M8 38 L8 18 Q8 8 18 8 L38 8"
+          fill="none"
+          stroke="var(--brown-line)"
+          stroke-width="0.8"
+        />
       </svg>
     </div>
     <div class="corner-ornament tr" aria-hidden="true">
       <svg viewBox="0 0 40 40" width="40" height="40">
-        <path d="M38 38 L38 12 Q38 2 28 2 L2 2" fill="none" stroke="#8a6d4b" stroke-width="1.5" />
-        <path d="M32 38 L32 18 Q32 8 22 8 L2 8" fill="none" stroke="#b8a07a" stroke-width="0.8" />
+        <path
+          d="M38 38 L38 12 Q38 2 28 2 L2 2"
+          fill="none"
+          stroke="var(--brown)"
+          stroke-width="1.5"
+        />
+        <path
+          d="M32 38 L32 18 Q32 8 22 8 L2 8"
+          fill="none"
+          stroke="var(--brown-line)"
+          stroke-width="0.8"
+        />
       </svg>
     </div>
     <div class="corner-ornament bl" aria-hidden="true">
       <svg viewBox="0 0 40 40" width="40" height="40">
-        <path d="M2 2 L2 28 Q2 38 12 38 L38 38" fill="none" stroke="#8a6d4b" stroke-width="1.5" />
-        <path d="M8 2 L8 22 Q8 32 18 32 L38 32" fill="none" stroke="#b8a07a" stroke-width="0.8" />
+        <path
+          d="M2 2 L2 28 Q2 38 12 38 L38 38"
+          fill="none"
+          stroke="var(--brown)"
+          stroke-width="1.5"
+        />
+        <path
+          d="M8 2 L8 22 Q8 32 18 32 L38 32"
+          fill="none"
+          stroke="var(--brown-line)"
+          stroke-width="0.8"
+        />
       </svg>
     </div>
     <div class="corner-ornament br" aria-hidden="true">
       <svg viewBox="0 0 40 40" width="40" height="40">
-        <path d="M38 2 L38 28 Q38 38 28 38 L2 38" fill="none" stroke="#8a6d4b" stroke-width="1.5" />
-        <path d="M32 2 L32 22 Q32 32 22 32 L2 32" fill="none" stroke="#b8a07a" stroke-width="0.8" />
+        <path
+          d="M38 2 L38 28 Q38 38 28 38 L2 38"
+          fill="none"
+          stroke="var(--brown)"
+          stroke-width="1.5"
+        />
+        <path
+          d="M32 2 L32 22 Q32 32 22 32 L2 32"
+          fill="none"
+          stroke="var(--brown-line)"
+          stroke-width="0.8"
+        />
       </svg>
     </div>
 
@@ -36,8 +76,8 @@
       <span class="head-line" />
       <div class="title-block">
         <span class="title-year">一九三一</span>
-<!--        <span class="title-dot">·</span>-->
-<!--        <span class="title-theme">山河破碎</span>-->
+        <!--        <span class="title-dot">·</span>-->
+        <!--        <span class="title-theme">山河破碎</span>-->
       </div>
       <span class="head-line" />
     </div>
@@ -199,8 +239,8 @@ function handleEnter() {
   background:
     radial-gradient(circle at 18% 22%, rgba(160, 110, 50, 0.06) 0%, transparent 45%),
     radial-gradient(circle at 82% 78%, rgba(140, 90, 40, 0.05) 0%, transparent 40%),
-    radial-gradient(circle at 60% 12%, rgba(180, 130, 60, 0.04) 0%, transparent 35%), #f7f0e1;
-  color: #3b2a18;
+    radial-gradient(circle at 60% 12%, rgba(180, 130, 60, 0.04) 0%, transparent 35%), var(--paper);
+  color: var(--ink);
   min-height: 480px;
 }
 
@@ -293,7 +333,7 @@ function handleEnter() {
 .head-line {
   width: 70px;
   height: 1px;
-  background: linear-gradient(to right, transparent, #a08050, transparent);
+  background: linear-gradient(to right, transparent, var(--brown-warm), transparent);
   position: relative;
 }
 
@@ -305,7 +345,7 @@ function handleEnter() {
   transform: translate(-50%, -50%) rotate(45deg);
   width: 6px;
   height: 6px;
-  background: #a08050;
+  background: var(--brown-warm);
 }
 
 .title-block {
@@ -313,7 +353,7 @@ function handleEnter() {
   align-items: baseline;
   gap: 10px;
   font-family: 'STXingkai', 'Xingkai SC', 'KaiTi', 'KaiTi_GB2312', 'SimSun', serif;
-  color: #4a3018;
+  color: var(--ink-mid);
 }
 
 .title-year {
@@ -324,7 +364,7 @@ function handleEnter() {
 
 .title-dot {
   font-size: 22px;
-  color: #b04a3a;
+  color: var(--cinnabar);
   opacity: 0.8;
 }
 
@@ -338,7 +378,7 @@ function handleEnter() {
   margin: -6px 0 0;
   text-align: center;
   font-size: 13px;
-  color: #7a5c38;
+  color: var(--ink-soft);
   letter-spacing: 5px;
   font-family: 'KaiTi', 'KaiTi_GB2312', 'SimSun', serif;
 }
@@ -348,7 +388,7 @@ function handleEnter() {
   align-items: center;
   gap: 8px;
   font-size: 12px;
-  color: #6b4e2e;
+  color: var(--ink-mute);
   letter-spacing: 4px;
   margin-bottom: 10px;
   font-family: 'KaiTi', 'KaiTi_GB2312', 'SimSun', serif;
@@ -357,7 +397,7 @@ function handleEnter() {
 .label-mark {
   width: 4px;
   height: 14px;
-  background: linear-gradient(to bottom, #b04a3a, #8a3a2a);
+  background: linear-gradient(to bottom, var(--cinnabar), var(--cinnabar-edge));
   border-radius: 1px;
 }
 
@@ -383,7 +423,7 @@ function handleEnter() {
 .input-frame {
   position: relative;
   padding: 3px;
-  background: linear-gradient(to right, #8a6d4b, #d4c4a0, #8a6d4b);
+  background: linear-gradient(to right, var(--brown), var(--brown-paler), var(--brown));
   border-radius: 2px;
 }
 
@@ -407,10 +447,10 @@ function handleEnter() {
 
 .name-input {
   width: 100%;
-  background: #fbf6ea;
+  background: var(--paper-input);
   border: none;
   border-radius: 1px;
-  color: #3b2a18;
+  color: var(--ink);
   font-size: 15px;
   padding: 10px 14px;
   outline: none;
@@ -420,16 +460,16 @@ function handleEnter() {
 }
 
 .name-input:focus {
-  background: #fffdf5;
+  background: var(--paper-hi);
 }
 
 .name-input::placeholder {
-  color: #9a8560;
+  color: var(--ink-muted);
   letter-spacing: 2px;
 }
 
 .name-error {
-  color: #b04a3a;
+  color: var(--cinnabar);
   font-size: 12px;
   margin: 0;
   font-family: 'KaiTi', 'KaiTi_GB2312', 'SimSun', serif;
@@ -438,7 +478,7 @@ function handleEnter() {
 .detail-panel {
   position: relative;
   border: 1px solid rgba(138, 109, 75, 0.35);
-  background: #fcf7ed;
+  background: var(--paper-panel);
   box-shadow: 0 2px 8px rgba(90, 60, 20, 0.06);
   display: flex;
   flex-direction: column;
@@ -454,7 +494,13 @@ function handleEnter() {
 .panel-scroll-cap,
 .panel-scroll-foot {
   height: 10px;
-  background: repeating-linear-gradient(90deg, #e8dcc0 0px, #e8dcc0 8px, #d4c4a0 8px, #d4c4a0 10px);
+  background: repeating-linear-gradient(
+    90deg,
+    var(--paper-faint) 0px,
+    var(--paper-faint) 8px,
+    var(--brown-paler) 8px,
+    var(--brown-paler) 10px
+  );
   opacity: 0.6;
 }
 
@@ -465,10 +511,10 @@ function handleEnter() {
   padding: 10px 14px;
   border-bottom: 2px solid rgba(180, 150, 100, 0.4);
   font-size: 15px;
-  color: #3b2a18;
+  color: var(--ink);
   font-family: 'KaiTi', 'KaiTi_GB2312', 'SimSun', serif;
   letter-spacing: 2px;
-  background: linear-gradient(to right, #f7f0e1, transparent 70%);
+  background: linear-gradient(to right, var(--paper), transparent 70%);
 }
 
 .panel-seal {
@@ -501,14 +547,14 @@ function handleEnter() {
 }
 
 .panel-key {
-  color: #7a5c38;
+  color: var(--ink-soft);
   min-width: 36px;
   flex-shrink: 0;
   font-family: 'KaiTi', 'KaiTi_GB2312', 'SimSun', serif;
 }
 
 .panel-val {
-  color: #4a3018;
+  color: var(--ink-mid);
   font-family: 'KaiTi', 'KaiTi_GB2312', 'SimSun', serif;
 }
 
@@ -521,7 +567,7 @@ function handleEnter() {
 .panel-desc {
   margin: 0;
   font-size: 13px;
-  color: #5a4326;
+  color: var(--ink-deep);
   line-height: 1.85;
   font-family: 'KaiTi', 'KaiTi_GB2312', 'SimSun', serif;
   text-align: justify;
@@ -533,7 +579,7 @@ function handleEnter() {
   align-items: center;
   gap: 12px;
   padding: 24px 0;
-  color: #9a8560;
+  color: var(--ink-muted);
 }
 
 .empty-seal {
@@ -542,10 +588,10 @@ function handleEnter() {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #b04a3a;
+  color: var(--cinnabar);
   font-size: 28px;
   font-family: 'KaiTi', 'KaiTi_GB2312', 'SimSun', serif;
-  border: 2px solid #b04a3a;
+  border: 2px solid var(--cinnabar);
   border-radius: 4px;
   opacity: 0.5;
   transform: rotate(-6deg);
@@ -576,11 +622,11 @@ function handleEnter() {
   align-items: center;
   gap: 10px;
   padding: 9px 12px;
-  background: linear-gradient(to bottom, #fbf6ea, #f5edd9);
+  background: linear-gradient(to bottom, var(--paper-input), var(--paper-darker));
   border: 1px solid rgba(138, 109, 75, 0.25);
   border-radius: 2px;
   cursor: pointer;
-  color: #4a3018;
+  color: var(--ink-mid);
   font-size: 14px;
   font-family: 'KaiTi', 'KaiTi_GB2312', 'SimSun', serif;
   letter-spacing: 1px;
@@ -599,7 +645,7 @@ function handleEnter() {
 }
 
 .faction-card:hover {
-  background: linear-gradient(to bottom, #fffdf5, #f8f0de);
+  background: linear-gradient(to bottom, var(--paper-hi), var(--paper-hi2));
   border-color: rgba(138, 109, 75, 0.45);
   transform: translateY(-1px);
   box-shadow: 0 3px 6px rgba(90, 60, 20, 0.08);
@@ -607,7 +653,7 @@ function handleEnter() {
 
 .faction-card.selected {
   border-width: 1px;
-  color: #2c1a0a;
+  color: var(--ink-strong);
   font-weight: 600;
 }
 
@@ -641,15 +687,15 @@ function handleEnter() {
   font-size: 18px;
   letter-spacing: 12px;
   color: #fff;
-  background: linear-gradient(135deg, #c24a3a 0%, #a03020 100%);
+  background: linear-gradient(135deg, var(--cinnabar-bright) 0%, var(--cinnabar-deep) 100%);
   border: none;
   border-radius: 3px;
   cursor: pointer;
   font-family: 'KaiTi', 'KaiTi_GB2312', 'SimSun', serif;
   transition: all 0.15s ease;
   box-shadow:
-    0 0 0 2px #f7f0e1,
-    0 0 0 3px #a03020,
+    0 0 0 2px var(--paper),
+    0 0 0 3px var(--cinnabar-deep),
     0 6px 14px rgba(120, 30, 20, 0.3);
   margin-top: 6px;
   position: relative;
@@ -665,21 +711,21 @@ function handleEnter() {
 }
 
 .enter-btn:hover:not(:disabled) {
-  background: linear-gradient(135deg, #d45842 0%, #b23828 100%);
+  background: linear-gradient(135deg, var(--cinnabar-line) 0%, var(--cinnabar-deep2) 100%);
   transform: translateY(-1px);
   box-shadow:
-    0 0 0 2px #f7f0e1,
-    0 0 0 3px #b23828,
+    0 0 0 2px var(--paper),
+    0 0 0 3px var(--cinnabar-deep2),
     0 8px 18px rgba(120, 30, 20, 0.35);
 }
 
 .enter-btn:disabled {
-  background: linear-gradient(135deg, #c9bca0 0%, #b0a080 100%);
+  background: linear-gradient(135deg, var(--brown-pale) 0%, var(--brown-soft) 100%);
   box-shadow:
-    0 0 0 2px #f7f0e1,
-    0 0 0 3px #b0a080,
+    0 0 0 2px var(--paper),
+    0 0 0 3px var(--brown-soft),
     0 4px 10px rgba(90, 60, 20, 0.1);
-  color: #7a6a50;
+  color: var(--ink-faint);
   cursor: not-allowed;
 }
 

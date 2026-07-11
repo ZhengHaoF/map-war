@@ -163,43 +163,44 @@ function onCloseClick(): void {
 
 /* 古籍/羊皮纸主题 */
 .modal.parchment {
-  background: #f3e9d2;
-  border: 1px solid #b8a07a;
+  background: var(--paper-deep);
+  border: 1px solid var(--brown-line);
   border-radius: 2px;
   box-shadow:
-    0 0 0 1px #7a5c30 inset,
-    0 0 0 4px #f3e9d2 inset,
-    0 0 0 5px #7a5c30 inset,
+    0 0 0 1px var(--brown-deep) inset,
+    0 0 0 4px var(--paper-deep) inset,
+    0 0 0 5px var(--brown-deep) inset,
     0 12px 40px rgba(0, 0, 0, 0.5);
-  color: #2c1f0f;
+  color: var(--ink-darkest);
 }
 
 .modal.parchment .modal-header {
   border-bottom: 1px solid rgba(90, 70, 40, 0.25);
   padding: 14px 20px;
-  background: linear-gradient(to bottom, #f7eed9, #efe3c3);
+  background: linear-gradient(to bottom, var(--paper-head), var(--paper-head2));
 }
 
 .modal.parchment .modal-title {
-  color: #5a3d1f;
+  color: var(--ink-panel);
   font-family: Georgia, 'Songti SC', 'SimSun', serif;
   letter-spacing: 4px;
   font-size: 16px;
 }
 
 .modal.parchment .modal-close {
-  color: #8a6d4b;
+  color: var(--brown);
 }
 
 .modal.parchment .modal-close:hover {
-  color: #b04a3a;
+  color: var(--cinnabar);
 }
 
 .modal.parchment .modal-body {
   padding: 0;
   background:
     radial-gradient(circle at 20% 30%, rgba(120, 80, 40, 0.04) 0%, transparent 40%),
-    radial-gradient(circle at 80% 70%, rgba(120, 80, 40, 0.04) 0%, transparent 40%), #f3e9d2;
+    radial-gradient(circle at 80% 70%, rgba(120, 80, 40, 0.04) 0%, transparent 40%),
+    var(--paper-deep);
 }
 
 .modal-title {

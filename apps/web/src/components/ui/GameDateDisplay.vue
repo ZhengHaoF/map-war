@@ -78,12 +78,16 @@ const rocYear = computed(() => {
   display: flex;
   align-items: center;
   gap: 0;
-  background: rgba(0, 0, 0, 0.7);
-  border: 1px solid rgba(180, 200, 220, 0.2);
+  background: var(--paper-panel);
+  border: 1px solid rgba(138, 109, 75, 0.4);
   padding: 10px 28px;
-  backdrop-filter: blur(6px);
+  box-shadow:
+    0 0 0 1px var(--paper-panel) inset,
+    0 0 0 2px rgba(138, 109, 75, 0.4) inset,
+    0 6px 18px rgba(60, 40, 15, 0.22);
   user-select: none;
   pointer-events: none;
+  font-family: var(--font-kai);
 }
 
 .corner {
@@ -95,29 +99,29 @@ const rocYear = computed(() => {
 .corner-tl {
   top: 0;
   left: 0;
-  border-top: 1px solid rgba(180, 200, 220, 0.6);
-  border-left: 1px solid rgba(180, 200, 220, 0.6);
+  border-top: 1px solid rgba(138, 109, 75, 0.7);
+  border-left: 1px solid rgba(138, 109, 75, 0.7);
 }
 
 .corner-tr {
   top: 0;
   right: 0;
-  border-top: 1px solid rgba(180, 200, 220, 0.6);
-  border-right: 1px solid rgba(180, 200, 220, 0.6);
+  border-top: 1px solid rgba(138, 109, 75, 0.7);
+  border-right: 1px solid rgba(138, 109, 75, 0.7);
 }
 
 .corner-bl {
   bottom: 0;
   left: 0;
-  border-bottom: 1px solid rgba(180, 200, 220, 0.6);
-  border-left: 1px solid rgba(180, 200, 220, 0.6);
+  border-bottom: 1px solid rgba(138, 109, 75, 0.7);
+  border-left: 1px solid rgba(138, 109, 75, 0.7);
 }
 
 .corner-br {
   bottom: 0;
   right: 0;
-  border-bottom: 1px solid rgba(180, 200, 220, 0.6);
-  border-right: 1px solid rgba(180, 200, 220, 0.6);
+  border-bottom: 1px solid rgba(138, 109, 75, 0.7);
+  border-right: 1px solid rgba(138, 109, 75, 0.7);
 }
 
 .date-left {
@@ -128,10 +132,11 @@ const rocYear = computed(() => {
 
 .date-main {
   font-size: 20px;
-  color: #e8dcc8;
-  font-weight: 500;
+  color: var(--ink);
+  font-weight: 600;
   letter-spacing: 4px;
   line-height: 1.3;
+  font-family: var(--font-xing);
 }
 
 .date-sub {
@@ -140,7 +145,7 @@ const rocYear = computed(() => {
   gap: 10px;
   margin-top: 2px;
   font-size: 11px;
-  color: #8899aa;
+  color: var(--ink-soft);
   letter-spacing: 2px;
 }
 
@@ -148,13 +153,13 @@ const rocYear = computed(() => {
   display: inline-block;
   width: 20px;
   height: 1px;
-  background: rgba(180, 200, 220, 0.3);
+  background: rgba(138, 109, 75, 0.4);
 }
 
 .date-divider {
   width: 1px;
   height: 42px;
-  background: rgba(180, 200, 220, 0.25);
+  background: rgba(138, 109, 75, 0.3);
   margin: 0 24px;
 }
 
@@ -165,8 +170,9 @@ const rocYear = computed(() => {
 
 .date-event {
   font-size: 12px;
-  color: #d4a84b;
+  color: var(--cinnabar);
   letter-spacing: 1px;
   white-space: nowrap;
+  font-family: var(--font-kai);
 }
 </style>

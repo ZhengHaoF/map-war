@@ -54,13 +54,17 @@ defineEmits<{
 .context-menu {
   position: absolute;
   z-index: 2000;
-  background: rgba(20, 20, 40, 0.95);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 8px;
+  background: var(--paper-panel);
+  border: 1px solid rgba(138, 109, 75, 0.4);
+  border-radius: 4px;
   padding: 4px;
-  min-width: 120px;
-  backdrop-filter: blur(12px);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  min-width: 128px;
+  box-shadow:
+    0 0 0 1px var(--paper-panel) inset,
+    0 0 0 2px rgba(138, 109, 75, 0.4) inset,
+    0 6px 18px rgba(60, 40, 15, 0.25);
+  font-family: var(--font-kai);
+  letter-spacing: 1px;
 }
 
 .context-menu-item {
@@ -68,10 +72,10 @@ defineEmits<{
   align-items: center;
   gap: 8px;
   padding: 8px 16px;
-  color: #bbb;
+  color: var(--ink-mid);
   font-size: 14px;
   cursor: pointer;
-  border-radius: 4px;
+  border-radius: 3px;
   user-select: none;
   transition:
     background 0.15s,
@@ -83,12 +87,12 @@ defineEmits<{
 }
 
 .context-menu-item:hover {
-  background: rgba(59, 130, 246, 0.3);
-  color: #fff;
+  background: rgba(176, 74, 58, 0.12);
+  color: var(--ink-strong);
 }
 
 .context-menu-item.danger:hover {
-  background: rgba(244, 68, 68, 0.3);
-  color: #ff8888;
+  background: rgba(176, 74, 58, 0.16);
+  color: var(--cinnabar);
 }
 </style>

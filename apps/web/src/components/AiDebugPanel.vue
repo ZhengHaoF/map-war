@@ -281,7 +281,7 @@ async function handleSend() {
   display: inline-block;
   font-size: 12px;
   font-weight: 500;
-  color: #7eb8ff;
+  color: var(--link);
   background: rgba(59, 130, 246, 0.15);
   border-radius: 4px;
   padding: 2px 8px;

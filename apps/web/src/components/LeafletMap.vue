@@ -39,7 +39,9 @@
     <GameModal
       :visible="infoModalVisible"
       :title="infoTitle"
+      width="340px"
       :z-index="5000"
+      variant="parchment"
       @close="closeInfoModal"
     >
       <InfoTable v-if="infoCityData" :rows="infoRows" />
@@ -51,6 +53,7 @@
       :draggable="true"
       :overlay="false"
       :z-index="4000"
+      variant="parchment"
       :init-x="160"
       :init-y="160"
       @close="testPanelVisible = false"
@@ -87,19 +90,10 @@
           @click="() => executeOrder({ order: 'battle', from: '156500000', to: '156451000' })"
           ><component :is="ICONS['crosshair']" :size="16" />战斗测试2</GameButton
         >
-        <GameButton danger @click="() => executeOrder({ order: 'stopBattles' })"
-          ><component :is="ICONS['player-stop']" :size="16" />停止战斗</GameButton
-        >
-        <GameButton
-          @click="
-            () => {
-              const list = listBattles()
-              console.log('当前战斗:', JSON.stringify(list, null, 2))
-            }
-          "
+        <GameButton @click="openBattleList"
           ><component :is="ICONS['list']" :size="16" />查看战斗</GameButton
         >
-        <GameButton danger @click="openBattleList"
+        <GameButton danger @click="() => executeOrder({ order: 'stopBattles' })"
           ><component :is="ICONS['circle-x']" :size="16" />结束战斗</GameButton
         >
         <GameButton @click="aiPanelVisible = true"
@@ -120,6 +114,7 @@
       :visible="battleListVisible"
       title="战斗管理"
       :z-index="3500"
+      variant="parchment"
       @close="battleListVisible = false"
     >
       <div v-if="battleList.length === 0" class="empty-hint">当前没有进行中的战斗</div>
@@ -134,7 +129,12 @@
         </GameButton>
       </div>
     </GameModal>
-    <GameModal :visible="disclaimerVisible" title="免责声明" @close="disclaimerVisible = false">
+    <GameModal
+      :visible="disclaimerVisible"
+      title="免责声明"
+      variant="parchment"
+      @close="disclaimerVisible = false"
+    >
       <div class="disclaimer-content">
         <p>
           本游戏地图数据来源于网络公开数据源，仅用于游戏娱乐目的，可能存在边界线、地名标注等方面的偏差或不准确之处。
@@ -184,7 +184,7 @@ import type { CityData } from '@/data/chinaCities'
 import { chinaCities } from '@/data/chinaCities'
 import type { CountryData } from '@/data/worldCountries'
 import { worldCountries, GEO_TO_GAME_ISO } from '@/data/worldCountries'
-import { init as initGameOrders, executeOrder, listBattles, stopBattle } from '@/utils/gameOrders'
+import { init as initGameOrders, executeOrder, stopBattle } from '@/utils/gameOrders'
 import type { GameOrder } from '@/utils/gameOrders'
 import { useGameStore } from '@/stores/game'
 import {
@@ -534,7 +534,7 @@ function drawFeature(
   }
 }
 
-function highlightOn(gfx: Graphics, feature: GeoJSON.Feature, color = 0xff4444): void {
+function highlightOn(gfx: Graphics, feature: GeoJSON.Feature, color = 0xb04a3a): void {
   const width = app.screen.width
   const height = app.screen.height
   const { geometry } = feature
@@ -1046,35 +1046,40 @@ onUnmounted(() => {
   align-items: center;
   gap: 6px;
   padding: 8px 16px;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 6px;
-  background: rgba(0, 0, 0, 0.6);
-  color: #fff;
+  border: 1px solid rgba(138, 109, 75, 0.35);
+  border-radius: 3px;
+  background: linear-gradient(to bottom, var(--paper-input), var(--paper-darker));
+  color: var(--ink);
+  font-family: var(--font-kai);
+  letter-spacing: 1px;
   font-size: 14px;
   cursor: pointer;
   transition: all 0.2s;
-  backdrop-filter: blur(4px);
+  box-shadow: 0 1px 2px rgba(90, 60, 20, 0.06);
 }
 
 .layer-switcher button:hover {
-  background: rgba(0, 0, 0, 0.8);
-  border-color: rgba(255, 255, 255, 0.5);
+  background: linear-gradient(to bottom, var(--paper-hi), var(--paper-hi2));
+  border-color: rgba(138, 109, 75, 0.55);
+  color: var(--ink-strong);
 }
 
 .layer-switcher button.active {
-  background: rgba(59, 130, 246, 0.8);
-  border-color: rgba(59, 130, 246, 1);
+  background: linear-gradient(to bottom, var(--paper-dark), var(--paper-darkest));
+  border-color: var(--cinnabar);
+  color: var(--cinnabar-ink);
+  box-shadow: 0 0 0 1px var(--cinnabar-ring) inset;
 }
 
 .owner-toggle {
   margin-top: 8px;
-  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  border-top: 1px solid rgba(138, 109, 75, 0.2);
   padding-top: 8px;
 }
 
 .switcher-divider {
   height: 1px;
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(138, 109, 75, 0.3);
   margin: 4px 0;
 }
 
@@ -1084,47 +1089,50 @@ onUnmounted(() => {
   left: 0;
   right: 0;
   z-index: 500;
-  background: rgba(0, 0, 0, 0.72);
-  color: #ccc;
+  background: var(--paper-panel);
+  color: var(--ink-mute);
   font-size: 11px;
+  font-family: var(--font-kai);
+  letter-spacing: 1px;
   text-align: center;
   padding: 7px 12px;
   cursor: pointer;
-  backdrop-filter: blur(6px);
-  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  border-top: 1px solid rgba(138, 109, 75, 0.4);
+  box-shadow: 0 -2px 8px rgba(60, 40, 15, 0.12);
   transition: background 0.2s;
   user-select: none;
 }
 
 .disclaimer-bar:hover {
-  background: rgba(0, 0, 0, 0.88);
-  color: #fff;
+  background: var(--paper-head2);
+  color: var(--ink-mid);
 }
 
 .disclaimer-content p {
   margin: 0 0 10px;
-  line-height: 1.6;
-  color: #ddd;
+  line-height: 1.7;
+  color: var(--ink);
   font-size: 14px;
+  font-family: var(--font-kai);
 }
 
 .disclaimer-content .disclaimer-sources {
   margin-top: 12px;
   margin-bottom: 4px;
   font-weight: bold;
-  color: #fff;
+  color: var(--ink-strong);
 }
 
 .disclaimer-content ul {
   margin: 0;
   padding-left: 18px;
-  color: #ccc;
+  color: var(--ink-deep);
   font-size: 13px;
   line-height: 1.8;
 }
 
 .disclaimer-content a {
-  color: #7eb8ff;
+  color: var(--cinnabar);
   text-decoration: none;
 }
 
@@ -1132,13 +1140,16 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 10px;
   padding: 10px 14px;
   margin-bottom: 8px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  color: #fff;
+  background: var(--paper-panel);
+  border: 1px solid rgba(138, 109, 75, 0.35);
+  border-radius: 3px;
+  color: var(--ink);
   font-size: 14px;
+  font-family: var(--font-kai);
+  box-shadow: 0 1px 3px rgba(90, 60, 20, 0.06);
 }
 
 .battle-item:last-child {
@@ -1150,19 +1161,60 @@ onUnmounted(() => {
 }
 
 .inactive {
-  color: #888;
+  color: var(--ink-muted);
   font-size: 12px;
   margin-left: 6px;
 }
 
 .empty-hint {
-  color: #aaa;
+  color: var(--ink-muted);
   font-size: 13px;
+  font-family: var(--font-kai);
   text-align: center;
   padding: 20px 0;
 }
 
 .disclaimer-content a:hover {
   text-decoration: underline;
+}
+
+/* 弹窗内按钮统一为羊皮纸变体 */
+.test-panel :deep(.game-btn),
+.battle-item :deep(.game-btn) {
+  border: 1px solid rgba(138, 109, 75, 0.35);
+  background: linear-gradient(to bottom, var(--paper-input), var(--paper-darker));
+  color: var(--ink);
+  font-family: var(--font-kai);
+  letter-spacing: 1px;
+  backdrop-filter: none;
+  box-shadow: 0 1px 2px rgba(90, 60, 20, 0.06);
+}
+
+.test-panel :deep(.game-btn:hover),
+.battle-item :deep(.game-btn:hover) {
+  background: linear-gradient(to bottom, var(--paper-hi), var(--paper-hi2));
+  border-color: rgba(138, 109, 75, 0.55);
+  color: var(--ink-strong);
+}
+
+.test-panel :deep(.game-btn.active),
+.battle-item :deep(.game-btn.active) {
+  background: linear-gradient(to bottom, var(--paper-dark), var(--paper-darkest));
+  border-color: var(--cinnabar);
+  color: var(--cinnabar-ink);
+  box-shadow: 0 0 0 1px var(--cinnabar-ring) inset;
+}
+
+.test-panel :deep(.game-btn.danger),
+.battle-item :deep(.game-btn.danger) {
+  border-color: rgba(176, 74, 58, 0.5);
+  color: var(--cinnabar);
+}
+
+.test-panel :deep(.game-btn.danger:hover),
+.battle-item :deep(.game-btn.danger:hover) {
+  background: linear-gradient(to bottom, var(--danger-bg), var(--danger-bg2));
+  border-color: var(--cinnabar);
+  color: var(--danger-ink);
 }
 </style>
