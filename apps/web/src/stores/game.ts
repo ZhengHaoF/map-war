@@ -42,6 +42,7 @@ export const useGameStore = defineStore('game', () => {
   )
   const currentDate = ref('1931-01-01')
   const currentFaction = ref<Owner | null>(null)
+  const playerName = ref('')
   const activeFactions = ref<Owner[]>([
     Owner.KMT, Owner.CCP, Owner.JPN, Owner.NEA, Owner.SHX,
     Owner.GXC, Owner.SCC, Owner.MA, Owner.XJ, Owner.TIB,
@@ -74,6 +75,11 @@ export const useGameStore = defineStore('game', () => {
     currentFaction.value = f
   }
 
+  function setPlayer(name: string, faction: Owner): void {
+    playerName.value = name
+    currentFaction.value = faction
+  }
+
   /**
    * 读取世界态快照（非响应式副本）。
    * 用途：把当前局势一次性交给 AI 当只读上下文。
@@ -90,8 +96,8 @@ export const useGameStore = defineStore('game', () => {
   }
 
   return {
-    ownership, currentDate, currentFaction, activeFactions, battles,
+    ownership, currentDate, currentFaction, playerName, activeFactions, battles,
     myCities, cityOwner, isAlive, factionCities,
-    initWorld, selectFaction, getSnapshot,
+    initWorld, selectFaction, setPlayer, getSnapshot,
   }
 })

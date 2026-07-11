@@ -25,6 +25,7 @@
         调试
       </GameButton>
     </div>
+    <GameDateDisplay />
     <GameContextMenu :visible="contextMenuVisible" :position="contextMenuPos" :items="contextMenuItems"
       @select="onMenuAction" />
     <GameModal :visible="infoModalVisible" :title="infoTitle" :z-index="5000" @close="closeInfoModal">
@@ -42,7 +43,11 @@
         <GameButton danger @click="() => executeOrder({order:'stopBattles'})"><component :is="ICONS['player-stop']" :size="16" />停止战斗</GameButton>
         <GameButton @click="() => { const list = listBattles(); console.log('当前战斗:', JSON.stringify(list, null, 2)) }"><component :is="ICONS['list']" :size="16" />查看战斗</GameButton>
         <GameButton danger @click="openBattleList"><component :is="ICONS['circle-x']" :size="16" />结束战斗</GameButton>
+        <GameButton @click="aiPanelVisible = true"><component :is="ICONS.brain" :size="16" />AI 调试</GameButton>
       </div>
+    </GameModal>
+    <GameModal :visible="aiPanelVisible" title="AI 调试" :z-index="4100" width="600px" @close="aiPanelVisible = false">
+      <AiDebugPanel />
     </GameModal>
     <GameModal :visible="battleListVisible" title="战斗管理" :z-index="3500" @close="battleListVisible = false">
       <div v-if="battleList.length === 0" class="empty-hint">当前没有进行中的战斗</div>
@@ -86,7 +91,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { Application, Container, Graphics, Text, TextStyle } from 'pixi.js'
-import { OWNER_COLORS, OWNER_LABELS } from '@/data/ownerColors'
+import { OWNER_COLORS, OWNER_LABELS } from '@/data/owners'
 import type { CityData } from '@/data/chinaCities'
 import { chinaCities } from '@/data/chinaCities'
 import type { CountryData } from '@/data/worldCountries'
@@ -120,6 +125,9 @@ import IconPlayerStop from '~icons/tabler/player-stop'
 import IconList from '~icons/tabler/list'
 import IconCircleX from '~icons/tabler/circle-x'
 import IconX from '~icons/tabler/x'
+import IconBrain from '~icons/tabler/brain'
+import AiDebugPanel from '@/components/AiDebugPanel.vue'
+import GameDateDisplay from '@/components/ui/GameDateDisplay.vue'
 
 const ICONS: Record<string, Component> = {
   'stack-2': IconStack2,
@@ -134,6 +142,7 @@ const ICONS: Record<string, Component> = {
   list: IconList,
   'circle-x': IconCircleX,
   x: IconX,
+  brain: IconBrain,
 }
 
 // ─── 类型定义 ───
@@ -227,6 +236,7 @@ const infoModalVisible = ref(false)
 const infoCityData = ref<CityData | null>(null)
 const infoCountryData = ref<CountryData | Record<string, unknown> | null>(null)
 const testPanelVisible = ref(false)
+const aiPanelVisible = ref(false)
 const battleListVisible = ref(false)
 const battleList = computed(() => useGameStore().battles)
 const disclaimerVisible = ref(false)

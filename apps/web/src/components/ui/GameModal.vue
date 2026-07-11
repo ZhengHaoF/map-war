@@ -5,7 +5,7 @@
       class="modal-overlay"
       :class="{ transparent: overlay === false }"
       :style="{ zIndex: zIndex ?? 3000 }"
-      @click.self="$emit('close')"
+      @click.self="closable ? $emit('close') : undefined"
     >
       <div class="modal" :class="{ draggable }" :style="modalStyle">
         <div
@@ -14,7 +14,7 @@
           @mousedown.prevent="onDragStart"
         >
           <span class="modal-title">{{ title }}</span>
-          <span class="modal-close" @click="onCloseClick">&times;</span>
+          <span v-if="closable" class="modal-close" @click="onCloseClick">&times;</span>
         </div>
         <div class="modal-body">
           <slot />
@@ -32,8 +32,10 @@ const props = withDefaults(
     visible?: boolean
     title?: string
     minWidth?: string
+    width?: string
     draggable?: boolean
     overlay?: boolean
+    closable?: boolean
     initX?: number
     initY?: number
     /** 弹窗层级，避免多个弹窗共用 3000 时互相遮挡可点区域 */
@@ -43,6 +45,7 @@ const props = withDefaults(
     overlay: true,
     draggable: false,
     visible: false,
+    closable: true,
   },
 )
 
@@ -60,6 +63,9 @@ let isDragging = false
 
 const modalStyle = computed<Record<string, string>>(() => {
   const style: Record<string, string> = { minWidth: props.minWidth ?? '280px' }
+  if (props.width) {
+    style.width = props.width
+  }
   if (props.draggable) {
     style.position = 'fixed'
     style.left = posX.value + 'px'

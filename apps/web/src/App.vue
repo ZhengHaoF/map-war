@@ -1,7 +1,25 @@
-<script setup lang="ts"></script>
+<script setup lang="ts">
+import { computed } from 'vue'
+import { useGameStore } from '@/stores/game'
+import GameModal from '@/components/ui/GameModal.vue'
+import OnboardingView from '@/views/OnboardingView.vue'
+
+const gameStore = useGameStore()
+const showOnboarding = computed(() => gameStore.currentFaction === null)
+</script>
 
 <template>
   <RouterView />
+  <GameModal
+    :visible="showOnboarding"
+    title="择势"
+    width="760px"
+    :z-index="10000"
+    :closable="false"
+    @close="() => {}"
+  >
+    <OnboardingView />
+  </GameModal>
 </template>
 
 <style>
