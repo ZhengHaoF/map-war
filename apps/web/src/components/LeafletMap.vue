@@ -1,6 +1,6 @@
 <template>
   <div ref="mapContainer" class="map-container" @click.self="closeContextMenu">
-    <div class="layer-switcher">
+    <div class="layer-switcher map-ui">
       <GameButton
         v-for="(layer, index) in LAYERS"
         :key="layer.file"
@@ -29,14 +29,15 @@
         调试
       </GameButton>
     </div>
-    <GameDateDisplay />
+    <GameDateDisplay class="map-ui" />
     <GameContextMenu
+      class="map-ui"
       :visible="contextMenuVisible"
       :position="contextMenuPos"
       :items="contextMenuItems"
       @select="onMenuAction"
     />
-    <GameModal
+    <GameModal class="map-ui"
       :visible="infoModalVisible"
       :title="infoTitle"
       width="340px"
@@ -47,7 +48,7 @@
       <InfoTable v-if="infoCityData" :rows="infoRows" />
       <InfoTable v-else-if="infoCountryData" :rows="countryInfoRows" />
     </GameModal>
-    <GameModal
+    <GameModal class="map-ui"
       :visible="testPanelVisible"
       title="调试"
       :draggable="true"
@@ -99,9 +100,12 @@
         <GameButton @click="aiPanelVisible = true"
           ><component :is="ICONS.brain" :size="16" />AI 调试</GameButton
         >
+        <GameButton @click="playCloudTest"
+          ><component :is="ICONS.cloud" :size="16" />云雾切换测试</GameButton
+        >
       </div>
     </GameModal>
-    <GameModal
+    <GameModal class="map-ui"
       :visible="aiPanelVisible"
       title="AI 调试"
       :z-index="4100"
@@ -110,7 +114,7 @@
     >
       <AiDebugPanel />
     </GameModal>
-    <GameModal
+    <GameModal class="map-ui"
       :visible="battleListVisible"
       title="战斗管理"
       :z-index="3500"
@@ -129,7 +133,7 @@
         </GameButton>
       </div>
     </GameModal>
-    <GameModal
+    <GameModal class="map-ui"
       :visible="disclaimerVisible"
       title="免责声明"
       variant="parchment"
@@ -167,8 +171,8 @@
         </ul>
       </div>
     </GameModal>
-    <LegendPanel v-if="ownerColorEnabled" :items="legendItems" />
-    <div class="disclaimer-bar" @click="disclaimerVisible = true">
+    <LegendPanel v-if="ownerColorEnabled" class="map-ui" :items="legendItems" />
+    <div class="disclaimer-bar map-ui" @click="disclaimerVisible = true">
       ⚠
       免责声明：本地图数据来源于网络公开数据源，仅供娱乐参考。游戏中的政权划分、边界线等均为虚构设定，不代表任何个人或组织的政治立场，亦不代表对现实世界领土归属的任何主张，不对应、不代表当下世界各国法定领土国界。本人始终坚持遵循以中华人民共和国自然资源部（原国家测绘地理信息局）发布的标准地图。
       点击查看详情
@@ -215,8 +219,10 @@ import IconList from '~icons/tabler/list'
 import IconCircleX from '~icons/tabler/circle-x'
 import IconX from '~icons/tabler/x'
 import IconBrain from '~icons/tabler/brain'
+import IconCloud from '~icons/tabler/cloud'
 import AiDebugPanel from '@/components/AiDebugPanel.vue'
 import GameDateDisplay from '@/components/ui/GameDateDisplay.vue'
+import { playCloudTransition, disposeCloudTransition } from '@/utils/cloudTransition'
 
 const ICONS: Record<string, Component> = {
   'stack-2': IconStack2,
@@ -232,6 +238,7 @@ const ICONS: Record<string, Component> = {
   'circle-x': IconCircleX,
   x: IconX,
   brain: IconBrain,
+  cloud: IconCloud,
 }
 
 // ─── 类型定义 ───
@@ -697,6 +704,16 @@ function openBattleList(): void {
   battleListVisible.value = true
 }
 
+/** 调试：播放云雾蒙太奇（盖住 → 停顿 → 揭开），演出期间锁定相机 */
+async function playCloudTest(): Promise<void> {
+  cameraController.setLocked(true)
+  try {
+    await playCloudTransition(app)
+  } finally {
+    cameraController.setLocked(false)
+  }
+}
+
 function endBattle(id: string): void {
   stopBattle(id)
 }
@@ -1096,7 +1113,7 @@ onMounted(async () => {
   const width = app.screen.width
   const height = app.screen.height
   setScreenSize(width, height)
-  initGameOrders(worldContainer, cameraController)
+  initGameOrders(worldContainer, cameraController, app)
   const center = geoToScreen(104, 36, width, height)
   mapX = width / 2 - center.x
   mapY = height / 2 - center.y
@@ -1159,6 +1176,7 @@ onUnmounted(() => {
   window.removeEventListener('pointerup', onPointerUp)
   window.removeEventListener('mousedown', onGlobalMouseDown)
   window.removeEventListener('keydown', onKeyDown)
+  disposeCloudTransition()
   app?.destroy(true)
 })
 </script>

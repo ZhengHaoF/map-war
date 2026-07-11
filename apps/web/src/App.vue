@@ -11,7 +11,7 @@ const showOnboarding = computed(() => gameStore.currentFaction === null)
 
 <template>
   <RouterView />
-  <PlayerStatusPanel v-if="!showOnboarding" />
+  <PlayerStatusPanel v-if="!showOnboarding" class="map-ui" />
   <GameModal
     :visible="showOnboarding"
     title="择势"
@@ -100,5 +100,14 @@ body,
   width: 100%;
   height: 100%;
   overflow: hidden;
+}
+
+/* 云雾演出期间：淡出所有顶层 UI，使 PixiJS 云雾视觉覆盖整屏 */
+.map-ui {
+  transition: opacity 0.45s ease;
+}
+body.cloud-active .map-ui {
+  opacity: 0;
+  pointer-events: none;
 }
 </style>

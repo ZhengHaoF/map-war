@@ -5,15 +5,17 @@
  * AI 只需返回 { order, from, to, text }，不需要知道任何 Pixi.js 或容器细节。
  *
  * 使用方式：
- *   import { init, attack, scout, declareWar, battle, stopBattles, stopBattle, listBattles, executeOrder } from '@/utils/gameOrders'
- *   init(worldContainer)
+ *   import { init, attack, scout, declareWar, battle, stopBattles, stopBattle, listBattles, cloudTransition, executeOrder } from '@/utils/gameOrders'
+ *   init(worldContainer, cameraController, app)   // 第三个参数注入 PixiJS app（云雾蒙太奇需要）
  *   await attack('156500000', '156450200', '猛攻！')
  *   await executeOrder({ order: 'attack', from: '156500000', to: '156450200' })
+ *   await executeOrder({ order: 'cloud' })         // 云雾蒙太奇（时间流逝演出）
  */
 
-import type { Container } from 'pixi.js'
+import type { Container, Application } from 'pixi.js'
 import { playArcAnimation, playScoutAnimation, startBattleAnimation } from './troopAnimation'
 import type { BattleHandle } from './troopAnimation'
+import { playCloudTransition, type CloudOptions } from './cloudTransition'
 import { resolveLocation } from './locationResolver'
 import { useGameStore } from '@/stores/game'
 import type { Owner } from '@/data/owners'
@@ -61,6 +63,7 @@ export type OrderType =
   | 'stopBattle'
   | 'stopBattles'
   | 'listBattles'
+  | 'cloud'
 
 export interface GameOrder {
   order: OrderType
@@ -96,6 +99,7 @@ export interface CameraController {
 
 let _container: Container | null = null
 let _camera: CameraController | null = null
+let _app: Application | null = null
 /** 镜头演出总开关：快进循环里应设为 false，避免每个事件都播 2-4s */
 let cinematicEnabled = true
 
@@ -131,9 +135,10 @@ function hasActiveBattle(from: string, to: string): boolean {
 
 // ─── 初始化 ───
 
-export function init(container: Container, camera?: CameraController): void {
+export function init(container: Container, camera?: CameraController, app?: Application): void {
   _container = container
   _camera = camera ?? null
+  _app = app ?? null
 }
 
 // ─── 五个游戏指令 ───
@@ -246,6 +251,24 @@ export async function declareWar(from: string, to: string, text?: string): Promi
     return { ok: true }
   } finally {
     locks.war = false
+  }
+}
+
+/**
+ * 云雾蒙太奇（时间流逝演出）。
+ * AI 可用它把「回合推进 / 政权重洗」等状态切换藏进雾里：
+ *   await cloudTransition({ onMidpoint: () => setCurrentDate('1931-11-01') })
+ * 快进模式下（cinematicEnabled=false）直接跳过，不阻塞事件流。
+ */
+export async function cloudTransition(opts?: CloudOptions): Promise<OrderResult> {
+  if (!_app) return { ok: false, reason: 'gameOrders 未注入 PixiJS app' }
+  if (!cinematicEnabled) return { ok: true }
+  _camera?.setLocked(true)
+  try {
+    await playCloudTransition(_app, opts)
+    return { ok: true }
+  } finally {
+    _camera?.setLocked(false)
   }
 }
 
@@ -391,6 +414,10 @@ export async function executeOrder(
 
     case 'listBattles':
       return { ok: true, battles: listBattles() }
+
+    case 'cloud':
+      // 云雾蒙太奇：盖住 → 停顿 → 揭开；可在暂停段藏状态切换（由 playCloudTransition 的 onMidpoint 处理）
+      return cloudTransition()
 
     default:
       return { ok: false, reason: `未知指令: ${json.order}` }
