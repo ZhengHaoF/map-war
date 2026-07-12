@@ -18,6 +18,33 @@ export interface BattleInfo {
  * getSnapshot() 返回的是普通对象拷贝，序列化给 LLM 安全，
  * 且不会在调用方建立任何 Pinia 响应式依赖。
  */
+/** 单座城市的完整可变态。seed 仅在 initWorld() 单向灌溉一次，之后只经 applyEvent 改写。 */
+export interface CityState {
+  gb: string
+  name: string
+  owner: Owner
+  terrain?: string
+  cityLevel: number
+  industry: number
+  food: number
+  fort: number
+  troops: number // 驻军，单位：千（k）
+  morale: number // 城市士气 0-100
+}
+
+/**
+ * 世界态事件（Kernel 的 reducer 输入）。
+ * 所有世界态变更（城市态 owner/troops/morale、日期推进、势力存亡）
+ * 都必须封装成 GameEvent，经 applyEvent 落地——这是唯一写者（initWorld 播种除外）。
+ */
+export type GameEvent =
+  | { type: 'capture'; targetGb: string; actor: Owner; resultTroops?: number }
+  | { type: 'attack'; fromGb: string; targetGb: string; attackerLoss: number; defenderLoss: number }
+  | { type: 'moraleChange'; targetGb: string; delta: number }
+  | { type: 'produce'; targetGb: string; amount: number }
+  | { type: 'dateAdvance'; date: string }
+  | { type: 'setFactionAlive'; faction: Owner; alive: boolean }
+
 export interface WorldStateSnapshot {
   /** 当前推演日期 */
   currentDate: string
@@ -25,18 +52,26 @@ export interface WorldStateSnapshot {
   currentFaction: Owner | null
   /** 当前存活的势力列表 */
   activeFactions: Owner[]
-  /** 城市归属表：gb 编码 -> 控制政权 */
+  /** 城市归属表：gb 编码 -> 控制政权（派生自 cities） */
   ownership: Record<string, Owner>
+  /** 每城动态态，供 AI 据局势决策 */
+  cities: Record<string, { owner: Owner; troops: number; morale: number }>
+  /** 势力派生聚合（不存）：总兵力，单位 k */
+  factionTroops: Record<string, number>
+  /** 势力派生聚合（不存）：按兵力加权的平均士气 */
+  factionMorale: Record<string, number>
   /** 进行中的战斗元数据列表 */
   battles: BattleInfo[]
 }
 
 export const useGameStore = defineStore('game', () => {
-  // ── 全局要用的变量（唯一真相源）──
-  const ownership = reactive<Record<string, Owner>>(
-    Object.fromEntries(
-      chinaCities.filter((c) => c.gb).map((c) => [c.gb, (c.owner as Owner) ?? Owner.NEUTRAL]),
-    ) as Record<string, Owner>,
+  // ── 城市态：唯一真相源 ──
+  // seed 仅在 initWorld() 单向灌溉一次；之后任何城市态变更只经 applyEvent（Kernel 唯一写者）。
+  const cities = reactive<Record<string, CityState>>({})
+
+  // 派生投影：owner 视图（保持旧接口，读自 cities）
+  const ownership = computed<Record<string, Owner>>(() =>
+    Object.fromEntries(Object.entries(cities).map(([gb, c]) => [gb, c.owner])),
   )
   const currentDate = ref('1931-01-01')
   const currentFaction = ref<Owner | null>(null)
@@ -57,16 +92,29 @@ export const useGameStore = defineStore('game', () => {
 
   // ── 派生（不存）──
   const myCities = computed(() =>
-    Object.entries(ownership)
+    Object.entries(ownership.value)
       .filter(([, o]) => o === currentFaction.value)
       .map(([gb]) => gb),
   )
-  const cityOwner = (gb: string): Owner | undefined => ownership[gb]
+  const cityOwner = (gb: string): Owner | undefined => ownership.value[gb]
   const isAlive = (f: Owner): boolean => activeFactions.value.includes(f)
   const factionCities = (f: Owner): string[] =>
-    Object.entries(ownership)
+    Object.entries(ownership.value)
       .filter(([, o]) => o === f)
       .map(([gb]) => gb)
+
+  // 势力级数字 = 所辖城市态的派生聚合（不存，永远是算出来的）
+  function factionTroops(o: Owner): number {
+    return Object.values(cities)
+      .filter((c) => c.owner === o)
+      .reduce((s, c) => s + c.troops, 0)
+  }
+  function factionMorale(o: Owner): number {
+    const owned = Object.values(cities).filter((c) => c.owner === o)
+    const total = owned.reduce((s, c) => s + c.troops, 0)
+    if (!total) return 0
+    return Math.round(owned.reduce((s, c) => s + c.morale * c.troops, 0) / total)
+  }
 
   // ── 聚焦请求（面板 → 地图联动）──
   const focusTarget = ref<{ type: 'city' | 'battle'; id: string } | null>(null)
@@ -93,49 +141,60 @@ export const useGameStore = defineStore('game', () => {
   }
   const myStats = computed<MyStats>(() => {
     const f = currentFaction.value
-    const cities: MyCityStat[] = []
+    const stats: MyCityStat[] = []
     if (f) {
-      for (const [gb, o] of Object.entries(ownership)) {
-        if (o !== f) continue
-        const c = chinaCities.find((x) => x.gb === gb)
-        cities.push({
-          gb,
-          name: c?.name ?? gb,
-          cityLevel: c?.cityLevel ?? 0,
-          industry: c?.industry ?? 0,
-          food: c?.food ?? 0,
-          fort: c?.fort ?? 0,
+      for (const c of Object.values(cities)) {
+        if (c.owner !== f) continue
+        stats.push({
+          gb: c.gb,
+          name: c.name,
+          cityLevel: c.cityLevel,
+          industry: c.industry,
+          food: c.food,
+          fort: c.fort,
         })
       }
-      cities.sort((a, b) => b.cityLevel - a.cityLevel || a.name.localeCompare(b.name))
+      stats.sort((a, b) => b.cityLevel - a.cityLevel || a.name.localeCompare(b.name))
     }
-    const totalIndustry = cities.reduce((s, c) => s + c.industry, 0)
-    const totalFood = cities.reduce((s, c) => s + c.food, 0)
-    const avgFort = cities.length
-      ? Math.round((cities.reduce((s, c) => s + c.fort, 0) / cities.length) * 10) / 10
+    const totalIndustry = stats.reduce((s, c) => s + c.industry, 0)
+    const totalFood = stats.reduce((s, c) => s + c.food, 0)
+    const avgFort = stats.length
+      ? Math.round((stats.reduce((s, c) => s + c.fort, 0) / stats.length) * 10) / 10
       : 0
     const levelDistribution: Record<number, number> = {}
-    for (const c of cities) {
+    for (const c of stats) {
       levelDistribution[c.cityLevel] = (levelDistribution[c.cityLevel] ?? 0) + 1
     }
-    return { cityCount: cities.length, totalIndustry, totalFood, avgFort, levelDistribution, cities }
+    return { cityCount: stats.length, totalIndustry, totalFood, avgFort, levelDistribution, cities: stats }
   })
 
   const myBattles = computed(() => {
     const f = currentFaction.value
     if (!f) return []
     return battles.value.filter((b) => {
-      const oFrom = b.from ? ownership[b.from] : undefined
-      const oTo = b.to ? ownership[b.to] : undefined
+      const oFrom = b.from ? ownership.value[b.from] : undefined
+      const oTo = b.to ? ownership.value[b.to] : undefined
       return oFrom === f || oTo === f
     })
   })
 
   // ── 初始化 / 设置 ──
+  // seed 单向灌溉：仅在此处读取 chinaCities，之后世界态完全活在 cities 里。
   function initWorld(): void {
     for (const c of chinaCities) {
       if (!c.gb) continue
-      ownership[c.gb] = (c.owner as Owner) ?? Owner.NEUTRAL
+      cities[c.gb] = {
+        gb: c.gb,
+        name: c.name,
+        owner: (c.owner as Owner) ?? Owner.NEUTRAL,
+        terrain: c.terrain,
+        cityLevel: c.cityLevel ?? 0,
+        industry: c.industry ?? 0,
+        food: c.food ?? 0,
+        fort: c.fort ?? 0,
+        troops: c.troops ?? 0,
+        morale: c.morale ?? 70,
+      }
     }
     currentDate.value = '1931-09-18'
   }
@@ -155,16 +214,71 @@ export const useGameStore = defineStore('game', () => {
    * 所有字段均为拷贝，调用方对返回值的修改不会影响 store 本身。
    */
   function getSnapshot(): WorldStateSnapshot {
+    const factionTroopsMap: Record<string, number> = {}
+    const factionMoraleMap: Record<string, number> = {}
+    for (const f of activeFactions.value) {
+      factionTroopsMap[f] = factionTroops(f)
+      factionMoraleMap[f] = factionMorale(f)
+    }
     return {
       currentDate: currentDate.value,
       currentFaction: currentFaction.value,
       activeFactions: [...activeFactions.value],
-      ownership: { ...ownership },
+      ownership: { ...ownership.value },
+      cities: Object.fromEntries(
+        Object.entries(cities).map(([gb, c]) => [gb, { owner: c.owner, troops: c.troops, morale: c.morale }]),
+      ),
+      factionTroops: factionTroopsMap,
+      factionMorale: factionMoraleMap,
       battles: battles.value.map((b) => ({ ...b })),
     }
   }
 
+  /**
+   * Kernel = 唯一写者。任何世界态变更（城市态 / 日期 / 势力存亡）都必须走这里，
+   * 确定性地 apply 事件。外部（gameOrders / AI）不得直接改世界态，只能 submit 事件。
+   * 例外：initWorld() 开局播种可直接写（仅此一处）。
+   */
+  function clamp(v: number, lo: number, hi: number): number {
+    return Math.max(lo, Math.min(hi, v))
+  }
+  function applyEvent(e: GameEvent): void {
+    // 非城市态事件：无 targetGb，提前处理并 return
+    if (e.type === 'dateAdvance') {
+      currentDate.value = e.date
+      return
+    }
+    if (e.type === 'setFactionAlive') {
+      const has = activeFactions.value.includes(e.faction)
+      if (e.alive && !has) activeFactions.value = [...activeFactions.value, e.faction]
+      if (!e.alive && has) activeFactions.value = activeFactions.value.filter((x) => x !== e.faction)
+      return
+    }
+    // 以下均为城市态事件，需 targetGb
+    const t = cities[e.targetGb]
+    if (!t) return
+    switch (e.type) {
+      case 'capture': // 占领：易主 + 设定新驻军
+        t.owner = e.actor
+        if (e.resultTroops != null) t.troops = Math.max(0, e.resultTroops)
+        break
+      case 'attack': { // 进攻未占：双方按裁定损耗扣兵（fromGb 为调兵源城）
+        const from = cities[e.fromGb]
+        if (from) from.troops = Math.max(0, from.troops - e.attackerLoss)
+        t.troops = Math.max(0, t.troops - e.defenderLoss)
+        break
+      }
+      case 'moraleChange': // 士气增减（胜升/败降/被孤立）
+        t.morale = clamp(t.morale + e.delta, 0, 100)
+        break
+      case 'produce': // 生产/征兵
+        t.troops += e.amount
+        break
+    }
+  }
+
   return {
+    cities,
     ownership,
     currentDate,
     currentFaction,
@@ -175,6 +289,8 @@ export const useGameStore = defineStore('game', () => {
     cityOwner,
     isAlive,
     factionCities,
+    factionTroops,
+    factionMorale,
     focusTarget,
     requestFocus,
     myStats,
@@ -182,6 +298,7 @@ export const useGameStore = defineStore('game', () => {
     initWorld,
     selectFaction,
     setPlayer,
+    applyEvent,
     getSnapshot,
   }
 })

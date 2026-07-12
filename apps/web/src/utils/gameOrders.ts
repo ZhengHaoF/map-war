@@ -5,20 +5,21 @@
  * AI 只需返回 { order, from, to, text }，不需要知道任何 Pixi.js 或容器细节。
  *
  * 使用方式：
- *   import { init, attack, scout, declareWar, battle, stopBattles, stopBattle, listBattles, cloudTransition, executeOrder } from '@/utils/gameOrders'
+ *   import { init, attack, scout, declareWar, battle, capture, stopBattles, stopBattle, listBattles, cloudTransition, executeOrder } from '@/utils/gameOrders'
  *   init(worldContainer, cameraController, app)   // 第三个参数注入 PixiJS app（云雾蒙太奇需要）
  *   await attack('156500000', '156450200', '猛攻！')
+ *   await capture('156450200', Owner.KMT, 20)     // 先播占领动画，再变更归属（写入新驻军 20k）
  *   await executeOrder({ order: 'attack', from: '156500000', to: '156450200' })
  *   await executeOrder({ order: 'cloud' })         // 云雾蒙太奇（时间流逝演出）
  */
 
 import type { Container, Application } from 'pixi.js'
-import { playArcAnimation, playScoutAnimation, startBattleAnimation } from './troopAnimation'
+import { playArcAnimation, playScoutAnimation, startBattleAnimation, playCaptureAnimation } from './troopAnimation'
 import type { BattleHandle } from './troopAnimation'
 import { playCloudTransition, type CloudOptions } from './cloudTransition'
 import { resolveLocation } from './locationResolver'
 import { useGameStore } from '@/stores/game'
-import type { Owner } from '@/data/owners'
+import { Owner, OWNER_COLORS } from '@/data/owners'
 
 // ─── 类型定义 ───
 
@@ -345,32 +346,77 @@ export function listBattles(): BattleInfo[] {
 // 只接收最少必要参数，不直接碰 PixiJS，也不处理动画。
 
 /**
- * 设置/变更某城市的控制政权（占领、易主）。
- * @param gb    城市 gb 编码
- * @param owner 新的控制政权
+ * 占领功能（组合入口）：先播放占领动画，再提交状态变更。
+ *
+ * 1. 播放占领动画：在目标城高亮轮廓（新城主配色）+ 向外扩散圆环 + 弹字；
+ *    有相机且处于普通演出模式（`cinematicEnabled`）时，先聚焦目标城、演完归位。
+ * 2. 动画播完后再调 `captureCity`（→ applyEvent `capture`）变更城市归属（可选写入新驻军）。
+ *
+ * 语义：先动画、后 applyEvent（用户拍板）。快进（长跳蒙太奇）模式下跳过逐事件动画，
+ * 由蒙太奇统一演出，但状态变更仍照常提交——"快进 ≠ 跳过动画"。
+ *
+ * @param gb          城市 gb 编码
+ * @param owner       占领方政权（Owner 枚举，类型安全）
+ * @param resultTroops 新驻军（可选，单位 k）；占领后由新城主入驻，不传则仅易主
  */
-export function setCityOwner(gb: string, owner: Owner): void {
-  useGameStore().ownership[gb] = owner
+export async function capture(gb: string, owner: Owner, resultTroops?: number): Promise<OrderResult> {
+  if (!_container) return { ok: false, reason: 'gameOrders 未初始化' }
+
+  const color = OWNER_COLORS[owner]
+  const duration = 1500
+
+  // 1) 先播放占领动画
+  if (cinematicEnabled) {
+    if (_camera) {
+      const before = _camera.snapshot()
+      _camera.setLocked(true)
+      try {
+        await _camera.focusOn(gb, 500)
+        await playCaptureAnimation({ targetId: gb, container: _container, color, text: '占领！', duration })
+        await _camera.reset(before)
+      } finally {
+        _camera.setLocked(false)
+      }
+    } else {
+      await playCaptureAnimation({ targetId: gb, container: _container, color, text: '占领！', duration })
+    }
+  }
+
+  // 2) 动画播完（或快进省略动画）后再提交状态
+  captureCity(gb, owner, resultTroops)
+  return { ok: true }
+}
+
+/**
+ * 占领/接收某城市（武力攻取或割让易主），经 Kernel（applyEvent）落地。
+ * store.cities 是唯一写者，禁止直接赋值 ownership。
+ * 割让时原势力撤军、新城主带入自己的兵——用 resultTroops 写入新驻军；
+ * 不传 resultTroops 则仅易主、驻军保持不变。
+ * @param gb          城市 gb 编码
+ * @param owner       新的控制政权
+ * @param resultTroops 新驻军（可选，单位 k）；割让/占领后由新城主入驻
+ */
+export function captureCity(gb: string, owner: Owner, resultTroops?: number): void {
+  useGameStore().applyEvent({ type: 'capture', targetGb: gb, actor: owner, resultTroops })
 }
 
 /**
  * 设置某势力的存活状态。
+ * 经 Kernel（applyEvent）落地——世界态唯一写者。
  * @param f     势力
  * @param alive true=加入存活列表，false=从存活列表移除（灭亡）
  */
 export function setFactionAlive(f: Owner, alive: boolean): void {
-  const s = useGameStore()
-  const has = s.activeFactions.includes(f)
-  if (alive && !has) s.activeFactions.push(f)
-  if (!alive && has) s.activeFactions = s.activeFactions.filter((x) => x !== f)
+  useGameStore().applyEvent({ type: 'setFactionAlive', faction: f, alive })
 }
 
 /**
  * 推进全局日期时钟。
+ * 经 Kernel（applyEvent）落地——世界态唯一写者。
  * @param date ISO 格式日期字符串，如 '1931-10-01'
  */
 export function setCurrentDate(date: string): void {
-  useGameStore().currentDate = date
+  useGameStore().applyEvent({ type: 'dateAdvance', date })
 }
 
 /**

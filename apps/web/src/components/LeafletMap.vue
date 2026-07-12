@@ -103,6 +103,9 @@
         <GameButton @click="playCloudTest"
           ><component :is="ICONS.cloud" :size="16" />云雾切换测试</GameButton
         >
+        <GameButton @click="captureTest"
+          ><component :is="ICONS['tag']" :size="16" />占领测试</GameButton
+        >
       </div>
     </GameModal>
     <GameModal class="map-ui"
@@ -183,12 +186,11 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { Application, Container, Graphics, Text, TextStyle } from 'pixi.js'
-import { OWNER_COLORS, OWNER_LABELS } from '@/data/owners'
+import { OWNER_COLORS, OWNER_LABELS, Owner } from '@/data/owners'
 import type { CityData } from '@/data/chinaCities'
-import { chinaCities } from '@/data/chinaCities'
 import type { CountryData } from '@/data/worldCountries'
 import { worldCountries, GEO_TO_GAME_ISO } from '@/data/worldCountries'
-import { init as initGameOrders, executeOrder, stopBattle } from '@/utils/gameOrders'
+import { init as initGameOrders, executeOrder, stopBattle, capture } from '@/utils/gameOrders'
 import type { GameOrder } from '@/utils/gameOrders'
 import { useGameStore } from '@/stores/game'
 import {
@@ -266,7 +268,6 @@ interface LabelText extends Text {
   _geoY: number
 }
 
-type OwnerKey = keyof typeof OWNER_NAMES
 type TerrainKey = keyof typeof TERRAIN_NAMES
 type DiplomacyKey = keyof typeof DIPLOMACY_COLORS
 type CountryTypeKey = keyof typeof COUNTRY_TYPE_NAMES
@@ -279,19 +280,6 @@ const GEO_BOUNDS = {
   minLat: 18,
   maxLat: 54,
 } as const
-
-const OWNER_NAMES: Record<string, string> = {
-  KMT: '国民政府',
-  CCP: '中共苏区',
-  JPN: '日本关东军',
-  NEA: '东北军',
-  SHX: '晋系',
-  GXC: '桂系',
-  SCC: '川军',
-  MA: '马家军',
-  XJ: '新疆',
-  TIB: '西藏',
-}
 
 const TERRAIN_NAMES: Record<string, string> = {
   PLAIN: '平原',
@@ -374,8 +362,6 @@ let currentData: GeoJSON.FeatureCollection | null = null
 let selectedFeature: GeoJSON.Feature | null = null
 let selectedWorldFeature: GeoJSON.Feature | null = null
 const geoJsonCache = new Map<string, GeoJSON.FeatureCollection>()
-let cityList: CityData[] = []
-const cityDataMap = new Map<string, CityData>()
 let worldData: GeoJSON.FeatureCollection | null = null
 const worldDataMap = new Map<string, CountryData>()
 
@@ -408,12 +394,14 @@ const infoRows = computed(() => {
   if (!infoCityData.value) return []
   const d = infoCityData.value
   return [
-    { label: '政权', value: (OWNER_NAMES[d.owner!] || d.owner || '—') as string },
+    { label: '政权', value: ((OWNER_LABELS as Record<string, string>)[d.owner!] || d.owner || '—') as string },
     { label: '地形', value: (TERRAIN_NAMES[d.terrain!] || d.terrain || '—') as string },
     { label: '城市规模', value: `${d.cityLevel ?? '—'}（${LEVEL_NAMES[d.cityLevel!] || '—'}）` },
     { label: '工业能力', value: `${d.industry ?? '—'} / 10` },
     { label: '粮食生产', value: `${d.food ?? '—'} / 10` },
     { label: '工事等级', value: `${d.fort ?? '—'} / 5` },
+    { label: '驻军', value: `${d.troops ?? 0} k` },
+    { label: '士气', value: `${d.morale ?? 0} / 100` },
   ]
 })
 
@@ -679,7 +667,7 @@ function onMenuAction(action: string): void {
   if (action === 'info') {
     if (selectedFeature) {
       const gb = selectedFeature.properties?.gb as string | undefined
-      infoCityData.value = gb ? cityDataMap.get(gb) || null : null
+      infoCityData.value = gb ? (useGameStore().cities[gb] ?? null) : null
       infoCountryData.value = null
       infoModalVisible.value = true
     } else if (selectedWorldFeature) {
@@ -712,6 +700,11 @@ async function playCloudTest(): Promise<void> {
   } finally {
     cameraController.setLocked(false)
   }
+}
+
+/** 调试：占领测试——把宝鸡（gb=156610300）划给川军（SCC） */
+async function captureTest(): Promise<void> {
+  await capture('156610300', Owner.SCC)
 }
 
 function endBattle(id: string): void {
@@ -1132,11 +1125,7 @@ onMounted(async () => {
   window.addEventListener('keydown', onKeyDown)
 
   useGameStore().initWorld()
-  cityList = chinaCities
-  for (const c of cityList) {
-    if (c.gb) cityDataMap.set(c.gb, c)
-  }
-  console.log('市列表加载完成:', cityList.length, '个市')
+  console.log('城市态加载完成:', Object.keys(useGameStore().cities).length, '个市')
 
   for (const c of worldCountries) {
     if (c.iso_a3) worldDataMap.set(c.iso_a3, c)
@@ -1164,6 +1153,14 @@ onMounted(async () => {
 
   const cityJson = geoJsonCache.get(LAYERS[1].file)
   if (cityJson) registerLocations(cityJson.features, 'gb')
+
+  // 归属变化时实时重绘当前图层，确保占领/易主后政权着色立即更新
+  watch(
+    () => useGameStore().ownership,
+    () => {
+      loadLayer(currentLayerIndex.value)
+    },
+  )
 })
 
 onUnmounted(() => {

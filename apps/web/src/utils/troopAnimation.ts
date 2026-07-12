@@ -25,8 +25,16 @@ function drawArrow(gfx: Graphics, x: number, y: number, angle: number, color = 0
 
 /**
  * 在地图上描出某个 GeoJSON Feature 的轮廓（高亮用）
+ * @param fillAlpha 填充透明度（默认 0.4）
+ * @param lineWidth 轮廓线宽（默认 0.5）
  */
-function drawFeatureOutline(gfx: Graphics, feature: GeoJSON.Feature | null, color: number): void {
+function drawFeatureOutline(
+  gfx: Graphics,
+  feature: GeoJSON.Feature | null,
+  color: number,
+  fillAlpha = 0.4,
+  lineWidth = 0.5,
+): void {
   if (!feature?.geometry) return
   const { geometry } = feature
   const polygons: GeoJSON.Position[][][] =
@@ -47,8 +55,8 @@ function drawFeatureOutline(gfx: Graphics, feature: GeoJSON.Feature | null, colo
       }
       gfx.closePath()
     }
-    gfx.fill({ color, alpha: 0.4 })
-    gfx.stroke({ width: 0.5, color, alpha: 1 })
+    gfx.fill({ color, alpha: fillAlpha })
+    gfx.stroke({ width: lineWidth, color, alpha: 1 })
   }
 }
 
@@ -164,6 +172,19 @@ export interface BattleAnimationOptions {
   spacing?: number
   /** 每帧移动速度 */
   speed?: number
+}
+
+export interface CaptureAnimationOptions {
+  /** 目标地点 id（城市 gb） */
+  targetId: string
+  /** 动画绘制的父容器 */
+  container: Container
+  /** 动画颜色（新城主配色） */
+  color?: number
+  /** 动画时长（毫秒） */
+  duration?: number
+  /** 弹出文字 */
+  text?: string
 }
 
 export interface BattleHandle {
@@ -523,5 +544,96 @@ export function startBattleAnimation({
       hlGfx.destroy()
     },
     graphics: animGfx,
+  }
+}
+
+/**
+ * 播放占领动画 - 城池点亮（脉冲填充）+ 双层冲击波扩散 + 粒子爆发 + 弹字
+ * 以新城主配色演出"插旗接管"语义：目标城先被点亮，再向外扩散冲击波与碎屑。
+ */
+export async function playCaptureAnimation({
+  targetId,
+  container,
+  color = 0xffcc00,
+  duration = 1700,
+  text,
+}: CaptureAnimationOptions): Promise<void> {
+  const target = resolveLocationXY(targetId)
+  if (!target) {
+    console.warn('[playCaptureAnimation] 缺少有效的 targetId，无法解析坐标')
+    return
+  }
+  const tx = target.x
+  const ty = target.y
+  const feature = resolveLocation(targetId)
+
+  const gfx = new Graphics()
+  container.addChild(gfx)
+
+  const startTime = performance.now()
+  const easeOut = (t: number): number => 1 - Math.pow(1 - t, 3)
+
+  await new Promise<void>((resolve) => {
+    function animate(now: number): void {
+      const elapsed = now - startTime
+      const t = Math.min(elapsed / duration, 1)
+
+      gfx.clear()
+
+      // 1) 城池轮廓脉冲点亮（新区主配色）：先亮一下、再回落到稳态淡填充
+      const flash = t < 0.35 ? t / 0.35 : 1 - ((t - 0.35) / 0.65) * 0.45
+      drawFeatureOutline(gfx, feature, color, 0.1 + 0.45 * flash, 1.5 + 3 * flash)
+
+      // 2) 双层冲击波（easeOut 扩散，先后错开）
+      const waves = [
+        { delay: 0.0, maxR: 72 },
+        { delay: 0.18, maxR: 100 },
+      ]
+      for (const w of waves) {
+        const wt = (t - w.delay) / 0.7
+        if (wt <= 0 || wt >= 1) continue
+        const radius = w.maxR * easeOut(wt)
+        const alpha = (1 - wt) * 0.7
+        gfx.circle(tx, ty, radius)
+        gfx.stroke({ width: 0.5 + 3 * (1 - wt), color, alpha })
+      }
+
+      // 3) 粒子爆发：8 枚菱形碎片向外辐射并淡出
+      const burstStart = 0.06
+      const burstT = (t - burstStart) / 0.5
+      if (burstT > 0 && burstT < 1) {
+        const dist = 60 * easeOut(burstT)
+        const pa = (1 - burstT) * 0.9
+        const s = 1 + 4 * (1 - burstT)
+        for (let i = 0; i < 8; i++) {
+          const ang = (Math.PI * 2 * i) / 8 - Math.PI / 2
+          const px = tx + Math.cos(ang) * dist
+          const py = ty + Math.sin(ang) * dist
+          gfx.moveTo(px, py - s)
+          gfx.lineTo(px + s, py)
+          gfx.lineTo(px, py + s)
+          gfx.lineTo(px - s, py)
+          gfx.closePath()
+          gfx.fill({ color, alpha: pa })
+        }
+      }
+
+      if (t < 1) {
+        requestAnimationFrame(animate)
+      } else {
+        setTimeout(() => resolve(), 250)
+      }
+    }
+    requestAnimationFrame(animate)
+  })
+
+  showPopupText(container, target, text, color)
+
+  // 清理
+  container.removeChild(gfx)
+  gfx.destroy()
+
+  if (text) {
+    await new Promise<void>((resolve) => setTimeout(resolve, 500))
   }
 }

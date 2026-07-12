@@ -9,6 +9,8 @@ export interface CityData {
   industry?: number
   food?: number
   fort?: number
+  troops?: number // 驻军，单位：千（k）；势力总兵力 = 所辖城市 troops 之和（派生）
+  morale?: number // 城市士气 0-100；势力士气 = 按兵力加权的各城 morale 均值（派生）
 }
 
 // 初始局势种子（1931-09-18），裸数据见 ./chinaCities.seed.json

@@ -7,7 +7,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 5,
+    "morale": 55
   },
   {
     "name": "鄂州市",
@@ -17,7 +19,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 5,
+    "morale": 55
   },
   {
     "name": "吕梁市",
@@ -27,7 +31,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 7,
+    "morale": 59
   },
   {
     "name": "舟山市",
@@ -37,7 +43,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 5,
+    "morale": 55
   },
   {
     "name": "朝阳市",
@@ -47,7 +55,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 47
   },
   {
     "name": "广安市",
@@ -57,7 +67,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 8,
+    "morale": 42
   },
   {
     "name": "濮阳市",
@@ -67,7 +79,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 5,
+    "morale": 55
   },
   {
     "name": "宣城市",
@@ -77,7 +91,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 5,
+    "morale": 55
   },
   {
     "name": "六盘水市",
@@ -87,7 +103,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 5,
+    "morale": 55
   },
   {
     "name": "深圳市",
@@ -97,7 +115,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 5,
+    "morale": 55
   },
   {
     "name": "三明市",
@@ -107,7 +127,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 3,
+    "morale": 82
   },
   {
     "name": "景德镇市",
@@ -117,7 +139,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 3,
+    "morale": 82
   },
   {
     "name": "楚雄彝族自治州",
@@ -127,7 +151,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 5,
+    "morale": 55
   },
   {
     "name": "大连市",
@@ -137,7 +163,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 47
   },
   {
     "name": "攀枝花市",
@@ -147,7 +175,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 8,
+    "morale": 42
   },
   {
     "name": "贺州市",
@@ -157,7 +187,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 5,
+    "morale": 75
   },
   {
     "name": "西安市",
@@ -167,11 +199,15 @@
     "cityLevel": 4,
     "industry": 3,
     "food": 3,
-    "fort": 4
+    "fort": 4,
+    "troops": 26,
+    "morale": 61
   },
   {
     "name": "境界线",
-    "gb": ""
+    "gb": "",
+    "troops": 4,
+    "morale": 46
   },
   {
     "name": "淮北市",
@@ -181,7 +217,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 5,
+    "morale": 55
   },
   {
     "name": "邵阳市",
@@ -191,7 +229,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 5,
+    "morale": 55
   },
   {
     "name": "石家庄市",
@@ -201,7 +241,9 @@
     "cityLevel": 3,
     "industry": 4,
     "food": 6,
-    "fort": 3
+    "fort": 3,
+    "troops": 26,
+    "morale": 58
   },
   {
     "name": "汕尾市",
@@ -211,7 +253,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 5,
+    "morale": 55
   },
   {
     "name": "荆门市",
@@ -221,7 +265,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 5,
+    "morale": 55
   },
   {
     "name": "衢州市",
@@ -231,7 +277,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 5,
+    "morale": 55
   },
   {
     "name": "迪庆藏族自治州",
@@ -241,7 +289,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 5,
+    "morale": 55
   },
   {
     "name": "宜宾市",
@@ -251,7 +301,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 8,
+    "morale": 42
   },
   {
     "name": "葫芦岛市",
@@ -261,7 +313,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 47
   },
   {
     "name": "济南市",
@@ -271,7 +325,9 @@
     "cityLevel": 4,
     "industry": 5,
     "food": 6,
-    "fort": 3
+    "fort": 3,
+    "troops": 42,
+    "morale": 61
   },
   {
     "name": "贵阳市",
@@ -281,7 +337,9 @@
     "cityLevel": 3,
     "industry": 2,
     "food": 3,
-    "fort": 2
+    "fort": 2,
+    "troops": 13,
+    "morale": 58
   },
   {
     "name": "珠海市",
@@ -291,7 +349,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 5,
+    "morale": 55
   },
   {
     "name": "长春市",
@@ -301,7 +361,9 @@
     "cityLevel": 3,
     "industry": 3,
     "food": 5,
-    "fort": 1
+    "fort": 1,
+    "troops": 17,
+    "morale": 50
   },
   {
     "name": "延边朝鲜族自治州",
@@ -311,7 +373,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 47
   },
   {
     "name": "萍乡市",
@@ -321,7 +385,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 3,
+    "morale": 82
   },
   {
     "name": "庆阳市",
@@ -331,7 +397,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 2,
+    "morale": 72
   },
   {
     "name": "泉州市",
@@ -341,7 +409,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 5,
+    "morale": 55
   },
   {
     "name": "自贡市",
@@ -351,7 +421,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 8,
+    "morale": 42
   },
   {
     "name": "临沂市",
@@ -361,7 +433,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 5,
+    "morale": 55
   },
   {
     "name": "百色市",
@@ -371,7 +445,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 5,
+    "morale": 75
   },
   {
     "name": "鞍山市",
@@ -381,7 +457,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 47
   },
   {
     "name": "铜陵市",
@@ -391,7 +469,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 5,
+    "morale": 55
   },
   {
     "name": "唐山市",
@@ -401,7 +481,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 5,
+    "morale": 55
   },
   {
     "name": "岳阳市",
@@ -411,7 +493,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 5,
+    "morale": 55
   },
   {
     "name": "河源市",
@@ -421,7 +505,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 5,
+    "morale": 55
   },
   {
     "name": "孝感市",
@@ -431,7 +517,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 5,
+    "morale": 55
   },
   {
     "name": "金华市",
@@ -441,7 +529,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 5,
+    "morale": 55
   },
   {
     "name": "兴安盟",
@@ -451,7 +541,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 5,
+    "morale": 55
   },
   {
     "name": "盘锦市",
@@ -461,7 +553,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 47
   },
   {
     "name": "雅安市",
@@ -471,7 +565,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 8,
+    "morale": 42
   },
   {
     "name": "亳州市",
@@ -481,7 +577,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 5,
+    "morale": 55
   },
   {
     "name": "商洛市",
@@ -491,7 +589,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 5,
+    "morale": 55
   },
   {
     "name": "盐城市",
@@ -501,7 +601,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 5,
+    "morale": 55
   },
   {
     "name": "汕头市",
@@ -511,11 +613,15 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 5,
+    "morale": 55
   },
   {
     "name": "境界线",
-    "gb": ""
+    "gb": "",
+    "troops": 4,
+    "morale": 46
   },
   {
     "name": "安顺市",
@@ -525,7 +631,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 5,
+    "morale": 55
   },
   {
     "name": "黔南布依族苗族自治州",
@@ -535,7 +643,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 5,
+    "morale": 55
   },
   {
     "name": "厦门市",
@@ -545,7 +655,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 5,
+    "morale": 55
   },
   {
     "name": "太子山天然林保护区",
@@ -555,7 +667,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 2,
+    "morale": 72
   },
   {
     "name": "阿克苏地区",
@@ -565,7 +679,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 1,
+    "morale": 37
   },
   {
     "name": "红河哈尼族彝族自治州",
@@ -575,7 +691,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 5,
+    "morale": 55
   },
   {
     "name": "甘南藏族自治州",
@@ -585,7 +703,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 2,
+    "morale": 72
   },
   {
     "name": "太原市",
@@ -595,7 +715,9 @@
     "cityLevel": 3,
     "industry": 4,
     "food": 5,
-    "fort": 4
+    "fort": 4,
+    "troops": 81,
+    "morale": 70
   },
   {
     "name": "常德市",
@@ -605,7 +727,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 5,
+    "morale": 55
   },
   {
     "name": "牡丹江市",
@@ -615,7 +739,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 47
   },
   {
     "name": "淮南市",
@@ -625,7 +751,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 5,
+    "morale": 55
   },
   {
     "name": "德阳市",
@@ -635,7 +763,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 8,
+    "morale": 42
   },
   {
     "name": "威海市",
@@ -645,7 +775,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 5,
+    "morale": 55
   },
   {
     "name": "秦皇岛市",
@@ -655,7 +787,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 5,
+    "morale": 55
   },
   {
     "name": "绍兴市",
@@ -665,7 +799,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 5,
+    "morale": 55
   },
   {
     "name": "阳江市",
@@ -675,7 +811,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "铁岭市",
@@ -685,7 +823,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 47
   },
   {
     "name": "达州市",
@@ -695,7 +835,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 8,
+    "morale": 42
   },
   {
     "name": "池州市",
@@ -705,7 +847,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "淮安市",
@@ -715,7 +859,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "遵义市",
@@ -725,7 +871,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "黔东南苗族侗族自治州",
@@ -735,7 +883,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "莆田市",
@@ -745,7 +895,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "南昌市",
@@ -755,7 +907,9 @@
     "cityLevel": 3,
     "industry": 3,
     "food": 7,
-    "fort": 2
+    "fort": 2,
+    "troops": 11,
+    "morale": 85
   },
   {
     "name": "佛山市",
@@ -765,7 +919,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "大同市",
@@ -775,7 +931,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 7,
+    "morale": 59
   },
   {
     "name": "昆明市",
@@ -785,7 +943,9 @@
     "cityLevel": 4,
     "industry": 3,
     "food": 4,
-    "fort": 3
+    "fort": 3,
+    "troops": 26,
+    "morale": 61
   },
   {
     "name": "张家界市",
@@ -795,7 +955,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "泸州市",
@@ -805,7 +967,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 8,
+    "morale": 42
   },
   {
     "name": "沈阳市",
@@ -815,7 +979,9 @@
     "cityLevel": 4,
     "industry": 8,
     "food": 5,
-    "fort": 2
+    "fort": 2,
+    "troops": 120,
+    "morale": 61
   },
   {
     "name": "邯郸市",
@@ -825,7 +991,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "马鞍山市",
@@ -835,7 +1003,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "日照市",
@@ -845,7 +1015,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "三亚市",
@@ -855,7 +1027,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "台湾省",
@@ -865,7 +1039,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 20,
+    "morale": 85
   },
   {
     "name": "十堰市",
@@ -875,7 +1051,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "呼和浩特市",
@@ -885,7 +1063,9 @@
     "cityLevel": 3,
     "industry": 2,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 13,
+    "morale": 58
   },
   {
     "name": "德宏傣族景颇族自治州",
@@ -895,7 +1075,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "梧州市",
@@ -905,7 +1087,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 5,
+    "morale": 75
   },
   {
     "name": "枣庄市",
@@ -915,7 +1099,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "安阳市",
@@ -925,7 +1111,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "怀化市",
@@ -935,7 +1123,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "阳泉市",
@@ -945,7 +1135,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 7,
+    "morale": 59
   },
   {
     "name": "保亭黎族苗族自治县",
@@ -955,7 +1147,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "中农发山丹马场",
@@ -965,7 +1159,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 1,
+    "morale": 72
   },
   {
     "name": "鹰潭市",
@@ -975,7 +1171,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 3,
+    "morale": 82
   },
   {
     "name": "陵水黎族自治县",
@@ -985,7 +1183,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "博尔塔拉蒙古自治州",
@@ -995,7 +1195,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 1,
+    "morale": 37
   },
   {
     "name": "乐东黎族自治县",
@@ -1005,7 +1207,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "辽源市",
@@ -1015,7 +1219,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 47
   },
   {
     "name": "齐齐哈尔市",
@@ -1025,7 +1231,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 47
   },
   {
     "name": "龙岩市",
@@ -1035,7 +1243,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 3,
+    "morale": 82
   },
   {
     "name": "天门市",
@@ -1045,7 +1255,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "潜江市",
@@ -1055,7 +1267,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "邢台市",
@@ -1065,7 +1279,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "仙桃市",
@@ -1075,7 +1291,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "绥化市",
@@ -1085,7 +1303,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 47
   },
   {
     "name": "丹东市",
@@ -1095,7 +1315,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 47
   },
   {
     "name": "滨州市",
@@ -1105,7 +1327,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "镇江市",
@@ -1115,7 +1339,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "昌江黎族自治县",
@@ -1125,7 +1351,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "周口市",
@@ -1135,7 +1363,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "白沙黎族自治县",
@@ -1145,7 +1375,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "临高县",
@@ -1155,7 +1387,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "吐鲁番市",
@@ -1165,7 +1399,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 1,
+    "morale": 37
   },
   {
     "name": "澄迈县",
@@ -1175,7 +1411,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "长沙市",
@@ -1185,7 +1423,9 @@
     "cityLevel": 4,
     "industry": 4,
     "food": 7,
-    "fort": 4
+    "fort": 4,
+    "troops": 34,
+    "morale": 61
   },
   {
     "name": "屯昌县",
@@ -1195,7 +1435,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "定安县",
@@ -1205,7 +1447,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "海口市",
@@ -1215,7 +1459,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "乐山市",
@@ -1225,7 +1471,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 8,
+    "morale": 42
   },
   {
     "name": "凉山彝族自治州",
@@ -1235,7 +1483,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 8,
+    "morale": 42
   },
   {
     "name": "桂林市",
@@ -1245,7 +1495,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 5,
+    "morale": 75
   },
   {
     "name": "东营市",
@@ -1255,7 +1507,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "鹤壁市",
@@ -1265,7 +1519,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "娄底市",
@@ -1275,7 +1531,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "包头市",
@@ -1285,7 +1543,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "锡林郭勒盟",
@@ -1295,7 +1555,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "琼中黎族苗族自治县",
@@ -1305,7 +1567,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "长治市",
@@ -1315,7 +1579,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 7,
+    "morale": 59
   },
   {
     "name": "赣州市",
@@ -1325,7 +1591,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 2,
+    "morale": 82
   },
   {
     "name": "莲花山风景林自然保护区",
@@ -1335,7 +1603,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 1,
+    "morale": 72
   },
   {
     "name": "通化市",
@@ -1345,7 +1615,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 47
   },
   {
     "name": "巴音郭楞蒙古自治州",
@@ -1355,7 +1627,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 1,
+    "morale": 37
   },
   {
     "name": "上海市",
@@ -1365,7 +1639,9 @@
     "cityLevel": 5,
     "industry": 10,
     "food": 2,
-    "fort": 2
+    "fort": 2,
+    "troops": 106,
+    "morale": 64
   },
   {
     "name": "鸡西市",
@@ -1375,7 +1651,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 47
   },
   {
     "name": "宁德市",
@@ -1385,7 +1663,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "保定市",
@@ -1395,7 +1675,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "菏泽市",
@@ -1405,7 +1687,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "崇左市",
@@ -1415,7 +1699,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 5,
+    "morale": 75
   },
   {
     "name": "黑河市",
@@ -1425,7 +1711,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 47
   },
   {
     "name": "扬州市",
@@ -1435,7 +1723,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "驻马店市",
@@ -1445,7 +1735,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "哈密市",
@@ -1455,7 +1747,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 1,
+    "morale": 37
   },
   {
     "name": "株洲市",
@@ -1465,7 +1759,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "锦州市",
@@ -1475,7 +1771,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 47
   },
   {
     "name": "肇庆市",
@@ -1485,7 +1783,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "恩施土家族苗族自治州",
@@ -1495,7 +1795,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "宜昌市",
@@ -1505,7 +1807,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "怒江傈僳族自治州",
@@ -1515,7 +1819,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "柳州市",
@@ -1525,7 +1831,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 5,
+    "morale": 75
   },
   {
     "name": "平凉市",
@@ -1535,7 +1843,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 1,
+    "morale": 72
   },
   {
     "name": "眉山市",
@@ -1545,7 +1855,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 7,
+    "morale": 42
   },
   {
     "name": "青岛市",
@@ -1555,7 +1867,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "新乡市",
@@ -1565,7 +1879,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "乌海市",
@@ -1575,7 +1891,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "黔西南布依族苗族自治州",
@@ -1585,7 +1903,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "晋城市",
@@ -1595,7 +1915,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 7,
+    "morale": 59
   },
   {
     "name": "广州市",
@@ -1605,7 +1927,9 @@
     "cityLevel": 5,
     "industry": 6,
     "food": 6,
-    "fort": 3
+    "fort": 3,
+    "troops": 64,
+    "morale": 64
   },
   {
     "name": "吉林市",
@@ -1615,7 +1939,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 47
   },
   {
     "name": "九江市",
@@ -1625,11 +1951,15 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 2,
+    "morale": 82
   },
   {
     "name": "境界线",
-    "gb": ""
+    "gb": "",
+    "troops": 4,
+    "morale": 46
   },
   {
     "name": "漳州市",
@@ -1639,7 +1969,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "来宾市",
@@ -1649,7 +1981,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 5,
+    "morale": 75
   },
   {
     "name": "张家口市",
@@ -1659,7 +1993,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "德州市",
@@ -1669,7 +2005,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "胡杨河市",
@@ -1679,7 +2017,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 1,
+    "morale": 37
   },
   {
     "name": "固原市",
@@ -1689,7 +2029,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 1,
+    "morale": 72
   },
   {
     "name": "抚顺市",
@@ -1699,7 +2041,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 47
   },
   {
     "name": "安庆市",
@@ -1709,7 +2053,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "白杨市",
@@ -1719,7 +2065,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 1,
+    "morale": 37
   },
   {
     "name": "新星市",
@@ -1729,7 +2077,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 1,
+    "morale": 37
   },
   {
     "name": "克拉玛依市",
@@ -1739,7 +2089,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 1,
+    "morale": 37
   },
   {
     "name": "湘潭市",
@@ -1749,7 +2101,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "昆玉市",
@@ -1759,7 +2113,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 1,
+    "morale": 37
   },
   {
     "name": "惠州市",
@@ -1769,7 +2125,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "可克达拉市",
@@ -1779,7 +2137,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 1,
+    "morale": 37
   },
   {
     "name": "襄阳市",
@@ -1789,7 +2149,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "南宁市",
@@ -1799,7 +2161,9 @@
     "cityLevel": 3,
     "industry": 3,
     "food": 4,
-    "fort": 2
+    "fort": 2,
+    "troops": 41,
+    "morale": 86
   },
   {
     "name": "南充市",
@@ -1809,7 +2173,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 7,
+    "morale": 42
   },
   {
     "name": "酒泉市",
@@ -1819,7 +2185,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 1,
+    "morale": 72
   },
   {
     "name": "淄博市",
@@ -1829,7 +2197,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "图木舒克市",
@@ -1839,7 +2209,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 0,
+    "morale": 37
   },
   {
     "name": "阿拉尔市",
@@ -1849,7 +2221,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 0,
+    "morale": 37
   },
   {
     "name": "焦作市",
@@ -1859,7 +2233,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "石河子市",
@@ -1869,7 +2245,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 0,
+    "morale": 37
   },
   {
     "name": "赤峰市",
@@ -1879,7 +2257,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "双河市",
@@ -1889,7 +2269,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 0,
+    "morale": 37
   },
   {
     "name": "铁门关市",
@@ -1899,7 +2281,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 0,
+    "morale": 37
   },
   {
     "name": "北屯市",
@@ -1909,7 +2293,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 0,
+    "morale": 37
   },
   {
     "name": "五家渠市",
@@ -1919,7 +2305,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 0,
+    "morale": 37
   },
   {
     "name": "韶关市",
@@ -1929,7 +2317,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "朔州市",
@@ -1939,7 +2329,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 7,
+    "morale": 59
   },
   {
     "name": "四平市",
@@ -1949,7 +2341,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 47
   },
   {
     "name": "新余市",
@@ -1959,11 +2353,15 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 2,
+    "morale": 82
   },
   {
     "name": "境界线",
-    "gb": ""
+    "gb": "",
+    "troops": 4,
+    "morale": 46
   },
   {
     "name": "南平市",
@@ -1973,7 +2371,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "哈尔滨市",
@@ -1983,7 +2383,9 @@
     "cityLevel": 4,
     "industry": 5,
     "food": 5,
-    "fort": 2
+    "fort": 2,
+    "troops": 37,
+    "morale": 53
   },
   {
     "name": "成都市",
@@ -1993,7 +2395,9 @@
     "cityLevel": 4,
     "industry": 5,
     "food": 9,
-    "fort": 5
+    "fort": 5,
+    "troops": 150,
+    "morale": 56
   },
   {
     "name": "河池市",
@@ -2003,7 +2407,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 75
   },
   {
     "name": "中卫市",
@@ -2013,7 +2419,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 1,
+    "morale": 72
   },
   {
     "name": "本溪市",
@@ -2023,7 +2431,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 47
   },
   {
     "name": "承德市",
@@ -2033,7 +2443,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "聊城市",
@@ -2043,7 +2455,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "衡阳市",
@@ -2053,7 +2467,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "湘西土家族苗族自治州",
@@ -2063,7 +2479,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "杭州市",
@@ -2073,7 +2491,9 @@
     "cityLevel": 4,
     "industry": 4,
     "food": 7,
-    "fort": 3
+    "fort": 3,
+    "troops": 34,
+    "morale": 61
   },
   {
     "name": "玉树藏族自治州",
@@ -2083,7 +2503,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 1,
+    "morale": 72
   },
   {
     "name": "武威市",
@@ -2093,7 +2515,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 1,
+    "morale": 72
   },
   {
     "name": "临夏回族自治州",
@@ -2103,7 +2527,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 1,
+    "morale": 72
   },
   {
     "name": "黄山市",
@@ -2113,7 +2539,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "徐州市",
@@ -2123,7 +2551,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "济宁市",
@@ -2133,7 +2563,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "揭阳市",
@@ -2143,7 +2575,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "那曲市",
@@ -2153,7 +2587,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 1,
-    "fort": 1
+    "fort": 1,
+    "troops": 1,
+    "morale": 52
   },
   {
     "name": "郑州市",
@@ -2163,7 +2599,9 @@
     "cityLevel": 4,
     "industry": 5,
     "food": 6,
-    "fort": 2
+    "fort": 2,
+    "troops": 42,
+    "morale": 61
   },
   {
     "name": "通辽市",
@@ -2173,7 +2611,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "贵港市",
@@ -2183,7 +2623,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 75
   },
   {
     "name": "安康市",
@@ -2193,7 +2635,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "昌吉回族自治州",
@@ -2203,7 +2647,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 0,
+    "morale": 37
   },
   {
     "name": "晋中市",
@@ -2213,7 +2659,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 7,
+    "morale": 59
   },
   {
     "name": "大庆市",
@@ -2223,7 +2671,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 47
   },
   {
     "name": "普洱市",
@@ -2233,7 +2683,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "白城市",
@@ -2243,7 +2695,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 47
   },
   {
     "name": "香港特别行政区",
@@ -2253,7 +2707,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "石嘴山市",
@@ -2263,7 +2719,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 1,
+    "morale": 72
   },
   {
     "name": "荆州市",
@@ -2273,7 +2731,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "沧州市",
@@ -2283,7 +2743,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "三门峡市",
@@ -2293,7 +2755,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "海西蒙古族藏族自治州",
@@ -2303,7 +2767,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 1,
+    "morale": 72
   },
   {
     "name": "云浮市",
@@ -2313,11 +2779,15 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "境界线",
-    "gb": ""
+    "gb": "",
+    "troops": 4,
+    "morale": 46
   },
   {
     "name": "张掖市",
@@ -2327,7 +2797,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 1,
+    "morale": 72
   },
   {
     "name": "滁州市",
@@ -2337,7 +2809,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "泰安市",
@@ -2347,7 +2821,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "无锡市",
@@ -2357,7 +2833,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "大兴安岭地区",
@@ -2367,7 +2845,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 47
   },
   {
     "name": "鄂尔多斯市",
@@ -2377,7 +2857,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "阿拉善盟",
@@ -2387,7 +2869,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "山南市",
@@ -2397,7 +2881,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 1,
+    "morale": 52
   },
   {
     "name": "开封市",
@@ -2407,7 +2893,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 10,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "重庆市",
@@ -2417,7 +2905,9 @@
     "cityLevel": 5,
     "industry": 4,
     "food": 5,
-    "fort": 5
+    "fort": 5,
+    "troops": 42,
+    "morale": 64
   },
   {
     "name": "钦州市",
@@ -2427,7 +2917,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 75
   },
   {
     "name": "榆林市",
@@ -2437,7 +2929,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "伊春市",
@@ -2447,7 +2941,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 47
   },
   {
     "name": "运城市",
@@ -2457,7 +2953,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 7,
+    "morale": 59
   },
   {
     "name": "丽江市",
@@ -2467,7 +2965,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "黄冈市",
@@ -2477,7 +2977,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "吴忠市",
@@ -2487,7 +2989,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 1,
+    "morale": 72
   },
   {
     "name": "南阳市",
@@ -2497,7 +3001,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "乌鲁木齐市",
@@ -2507,7 +3013,9 @@
     "cityLevel": 4,
     "industry": 2,
     "food": 2,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 51
   },
   {
     "name": "和田地区",
@@ -2517,7 +3025,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 0,
+    "morale": 37
   },
   {
     "name": "海南藏族自治州",
@@ -2527,7 +3037,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 1,
+    "morale": 72
   },
   {
     "name": "海东市",
@@ -2537,7 +3049,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 1,
+    "morale": 72
   },
   {
     "name": "武汉市",
@@ -2547,7 +3061,9 @@
     "cityLevel": 5,
     "industry": 7,
     "food": 9,
-    "fort": 4
+    "fort": 4,
+    "troops": 74,
+    "morale": 64
   },
   {
     "name": "儋州市",
@@ -2557,7 +3073,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "甘孜藏族自治州",
@@ -2567,7 +3085,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 7,
+    "morale": 42
   },
   {
     "name": "内江市",
@@ -2577,7 +3097,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 7,
+    "morale": 42
   },
   {
     "name": "烟台市",
@@ -2587,7 +3109,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "南京市",
@@ -2597,7 +3121,9 @@
     "cityLevel": 5,
     "industry": 6,
     "food": 8,
-    "fort": 3
+    "fort": 3,
+    "troops": 127,
+    "morale": 72
   },
   {
     "name": "白银市",
@@ -2607,7 +3133,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 1,
+    "morale": 72
   },
   {
     "name": "郴州市",
@@ -2617,7 +3145,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "呼伦贝尔市",
@@ -2627,7 +3157,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "防城港市",
@@ -2637,7 +3169,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 75
   },
   {
     "name": "北京市",
@@ -2647,7 +3181,9 @@
     "cityLevel": 5,
     "industry": 6,
     "food": 5,
-    "fort": 3
+    "fort": 3,
+    "troops": 64,
+    "morale": 64
   },
   {
     "name": "洛阳市",
@@ -2657,7 +3193,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "澳门特别行政区",
@@ -2667,7 +3205,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "汉中市",
@@ -2677,7 +3217,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "吉安市",
@@ -2687,7 +3229,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 2,
+    "morale": 82
   },
   {
     "name": "丽水市",
@@ -2697,7 +3241,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "忻州市",
@@ -2707,7 +3253,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 7,
+    "morale": 59
   },
   {
     "name": "中山市",
@@ -2717,7 +3265,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "鹤岗市",
@@ -2727,7 +3277,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 47
   },
   {
     "name": "白山市",
@@ -2737,7 +3289,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 47
   },
   {
     "name": "咸宁市",
@@ -2747,7 +3301,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "宿迁市",
@@ -2757,7 +3313,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "济源市",
@@ -2767,7 +3325,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "营口市",
@@ -2777,7 +3337,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 47
   },
   {
     "name": "商丘市",
@@ -2787,7 +3349,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "果洛藏族自治州",
@@ -2797,7 +3361,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 1,
+    "morale": 72
   },
   {
     "name": "三沙市",
@@ -2807,7 +3373,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "黄石市",
@@ -2817,7 +3385,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "阿坝藏族羌族自治州",
@@ -2827,7 +3397,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 7,
+    "morale": 42
   },
   {
     "name": "潍坊市",
@@ -2837,7 +3409,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "天水市",
@@ -2847,7 +3421,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 1,
+    "morale": 72
   },
   {
     "name": "永州市",
@@ -2857,7 +3433,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "巴彦淖尔市",
@@ -2867,7 +3445,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "北海市",
@@ -2877,7 +3457,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 75
   },
   {
     "name": "平顶山市",
@@ -2887,7 +3469,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "宜春市",
@@ -2897,7 +3481,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 2,
+    "morale": 82
   },
   {
     "name": "台州市",
@@ -2907,7 +3493,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "东方市",
@@ -2917,7 +3505,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "延安市",
@@ -2927,7 +3517,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "万宁市",
@@ -2937,7 +3529,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "文昌市",
@@ -2947,7 +3541,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "双鸭山市",
@@ -2957,7 +3553,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 3,
+    "morale": 47
   },
   {
     "name": "临沧市",
@@ -2967,7 +3565,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "松原市",
@@ -2977,7 +3577,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 3,
+    "morale": 47
   },
   {
     "name": "随州市",
@@ -2987,7 +3589,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "资阳市",
@@ -2997,7 +3601,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 7,
+    "morale": 42
   },
   {
     "name": "银川市",
@@ -3007,7 +3613,9 @@
     "cityLevel": 4,
     "industry": 2,
     "food": 2,
-    "fort": 1
+    "fort": 1,
+    "troops": 5,
+    "morale": 78
   },
   {
     "name": "泰州市",
@@ -3017,7 +3625,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "神农架林区",
@@ -3027,7 +3637,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "阜新市",
@@ -3037,7 +3649,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 3,
+    "morale": 47
   },
   {
     "name": "琼海市",
@@ -3047,7 +3661,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "五指山市",
@@ -3057,7 +3673,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "信阳市",
@@ -3067,7 +3685,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "湖州市",
@@ -3077,7 +3697,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "黄南藏族自治州",
@@ -3087,7 +3709,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 1,
+    "morale": 72
   },
   {
     "name": "抚州市",
@@ -3097,7 +3721,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 2,
+    "morale": 82
   },
   {
     "name": "清远市",
@@ -3107,7 +3733,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "天津市",
@@ -3117,7 +3745,9 @@
     "cityLevel": 5,
     "industry": 8,
     "food": 5,
-    "fort": 2
+    "fort": 2,
+    "troops": 85,
+    "morale": 64
   },
   {
     "name": "嘉峪关市",
@@ -3127,7 +3757,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 1,
+    "morale": 72
   },
   {
     "name": "乌兰察布市",
@@ -3137,7 +3769,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "阿里地区",
@@ -3147,7 +3781,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 1,
-    "fort": 1
+    "fort": 1,
+    "troops": 1,
+    "morale": 52
   },
   {
     "name": "连云港市",
@@ -3157,7 +3793,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "克孜勒苏柯尔克孜自治州",
@@ -3167,7 +3805,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 0,
+    "morale": 37
   },
   {
     "name": "日喀则市",
@@ -3177,7 +3817,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 1,
+    "morale": 52
   },
   {
     "name": "渭南市",
@@ -3187,7 +3829,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "铜仁市",
@@ -3197,7 +3841,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "玉溪市",
@@ -3207,7 +3853,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "江门市",
@@ -3217,7 +3865,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "益阳市",
@@ -3227,7 +3877,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "广元市",
@@ -3237,7 +3889,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 7,
+    "morale": 42
   },
   {
     "name": "芜湖市",
@@ -3247,7 +3901,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "塔城地区",
@@ -3257,7 +3913,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 0,
+    "morale": 37
   },
   {
     "name": "嘉兴市",
@@ -3267,7 +3925,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "西宁市",
@@ -3277,7 +3937,9 @@
     "cityLevel": 4,
     "industry": 2,
     "food": 2,
-    "fort": 1
+    "fort": 1,
+    "troops": 10,
+    "morale": 86
   },
   {
     "name": "上饶市",
@@ -3287,7 +3949,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 2,
+    "morale": 82
   },
   {
     "name": "东莞市",
@@ -3297,7 +3961,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "南通市",
@@ -3307,7 +3973,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "辽阳市",
@@ -3317,7 +3985,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 3,
+    "morale": 47
   },
   {
     "name": "巴中市",
@@ -3327,7 +3997,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 7,
+    "morale": 42
   },
   {
     "name": "六安市",
@@ -3337,7 +4009,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "金昌市",
@@ -3347,7 +4021,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 1,
+    "morale": 72
   },
   {
     "name": "廊坊市",
@@ -3357,7 +4033,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "拉萨市",
@@ -3367,7 +4045,9 @@
     "cityLevel": 3,
     "industry": 2,
     "food": 2,
-    "fort": 1
+    "fort": 1,
+    "troops": 5,
+    "morale": 63
   },
   {
     "name": "喀什地区",
@@ -3377,7 +4057,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 0,
+    "morale": 37
   },
   {
     "name": "阿勒泰地区",
@@ -3387,7 +4069,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 0,
+    "morale": 37
   },
   {
     "name": "毕节市",
@@ -3397,7 +4081,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "福州市",
@@ -3407,7 +4093,9 @@
     "cityLevel": 4,
     "industry": 4,
     "food": 4,
-    "fort": 2
+    "fort": 2,
+    "troops": 34,
+    "morale": 61
   },
   {
     "name": "咸阳市",
@@ -3417,7 +4105,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "文山壮族苗族自治州",
@@ -3427,7 +4117,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "湛江市",
@@ -3437,7 +4129,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "曲靖市",
@@ -3447,7 +4141,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "蚌埠市",
@@ -3457,7 +4153,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "绵阳市",
@@ -3467,7 +4165,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 7,
+    "morale": 42
   },
   {
     "name": "温州市",
@@ -3477,7 +4177,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "苏州市",
@@ -3487,7 +4189,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "阜阳市",
@@ -3497,7 +4201,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "林芝市",
@@ -3507,7 +4213,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 1,
+    "morale": 52
   },
   {
     "name": "衡水市",
@@ -3517,7 +4225,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "许昌市",
@@ -3527,7 +4237,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "佳木斯市",
@@ -3537,7 +4249,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 3,
+    "morale": 47
   },
   {
     "name": "宝鸡市",
@@ -3547,7 +4261,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "昭通市",
@@ -3557,7 +4273,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "大理白族自治州",
@@ -3567,7 +4285,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "定西市",
@@ -3577,7 +4297,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 1,
+    "morale": 72
   },
   {
     "name": "茂名市",
@@ -3587,7 +4309,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "伊犁哈萨克自治州",
@@ -3597,7 +4321,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 0,
+    "morale": 37
   },
   {
     "name": "宁波市",
@@ -3607,7 +4333,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "兰州市",
@@ -3617,7 +4345,9 @@
     "cityLevel": 4,
     "industry": 2,
     "food": 2,
-    "fort": 4
+    "fort": 4,
+    "troops": 5,
+    "morale": 78
   },
   {
     "name": "临汾市",
@@ -3627,7 +4357,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 6,
+    "morale": 59
   },
   {
     "name": "常州市",
@@ -3637,7 +4369,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "宿州市",
@@ -3647,7 +4381,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "潮州市",
@@ -3657,7 +4393,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "昌都市",
@@ -3667,7 +4405,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 0,
+    "morale": 52
   },
   {
     "name": "玉林市",
@@ -3677,7 +4417,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 75
   },
   {
     "name": "海北藏族自治州",
@@ -3687,7 +4429,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 1,
+    "morale": 72
   },
   {
     "name": "漯河市",
@@ -3697,7 +4441,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "七台河市",
@@ -3707,7 +4453,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 3,
+    "morale": 47
   },
   {
     "name": "西双版纳傣族自治州",
@@ -3717,7 +4465,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "陇南市",
@@ -3727,7 +4477,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 1,
+    "morale": 72
   },
   {
     "name": "保山市",
@@ -3737,7 +4489,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   },
   {
     "name": "遂宁市",
@@ -3747,7 +4501,9 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 7,
+    "morale": 42
   },
   {
     "name": "合肥市",
@@ -3757,7 +4513,9 @@
     "cityLevel": 3,
     "industry": 3,
     "food": 8,
-    "fort": 2
+    "fort": 2,
+    "troops": 19,
+    "morale": 58
   },
   {
     "name": "铜川市",
@@ -3767,6 +4525,8 @@
     "cityLevel": 2,
     "industry": 1,
     "food": 3,
-    "fort": 1
+    "fort": 1,
+    "troops": 4,
+    "morale": 55
   }
 ]
