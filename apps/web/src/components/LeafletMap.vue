@@ -1213,6 +1213,18 @@ onMounted(async () => {
       loadLayer(currentLayerIndex.value)
     },
   )
+
+  // 读档收尾：store.load() 只重建状态并保持 isReplaying=true，真正的地图重绘 +
+  // 战斗动画重建 + 复位 isReplaying 在此完成（那三步的能力只在本组件里）。
+  // 存档选择器/useSaveGame 读档后调 requestMapReload() ++token 触发。
+  watch(
+    () => useGameStore().reloadToken,
+    async () => {
+      await loadLayer(currentLayerIndex.value)
+      restoreActiveAnimations()
+      useGameStore().isReplaying = false // 动画恢复完成后才解锁 ownership watcher
+    },
+  )
 })
 
 onUnmounted(() => {

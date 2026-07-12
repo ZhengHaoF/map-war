@@ -1,17 +1,51 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useGameStore } from '@/stores/game'
+import { useSaveGame } from '@/composables/useSaveGame'
 import GameModal from '@/components/ui/GameModal.vue'
 import OnboardingView from '@/views/OnboardingView.vue'
+import SaveSelectorModal from '@/components/SaveSelectorModal.vue'
 import PlayerStatusPanel from '@/components/PlayerStatusPanel.vue'
 
 const gameStore = useGameStore()
-const showOnboarding = computed(() => gameStore.currentFaction === null)
+const { loadGame } = useSaveGame()
+
+// 进入页面时是否已有存档（listSaves 读 localStorage，非响应式；用于开局路由 + 返回链接）
+const hasSaves = computed(() => Object.keys(gameStore.listSaves()).length > 0)
+// 用户在选择器点了"另起新局"，把舞台让给择势面板
+const dismissed = ref(false)
+
+const inGame = computed(() => gameStore.currentFaction !== null)
+
+// 三态互斥；replay 期间都不弹，避免读档瞬间多个 body Teleport 挂载竞态
+const showSelector = computed(
+  () => !gameStore.isReplaying && !inGame.value && hasSaves.value && !dismissed.value,
+)
+const showOnboarding = computed(
+  () => !gameStore.isReplaying && !inGame.value && (!hasSaves.value || dismissed.value),
+)
+
+function onLoad(slot: string): void {
+  // 读档成功后 currentFaction 恢复为真实值 → 两弹窗自动隐藏，进入游戏；
+  // 失败（存档损坏等）则保持选择器，用户可另选。
+  loadGame(slot)
+}
+
+function onNewGame(): void {
+  dismissed.value = true
+}
+
+function onBackToSelector(): void {
+  dismissed.value = false
+}
 </script>
 
 <template>
   <RouterView />
-  <PlayerStatusPanel v-if="!showOnboarding" class="map-ui" />
+  <PlayerStatusPanel v-if="inGame" class="map-ui" />
+
+  <SaveSelectorModal :visible="showSelector" @load="onLoad" @new-game="onNewGame" />
+
   <GameModal
     :visible="showOnboarding"
     title="择势"
@@ -21,7 +55,7 @@ const showOnboarding = computed(() => gameStore.currentFaction === null)
     variant="parchment"
     @close="() => {}"
   >
-    <OnboardingView />
+    <OnboardingView :show-back="hasSaves && dismissed" @back="onBackToSelector" />
   </GameModal>
 </template>
 
@@ -111,3 +145,4 @@ body.cloud-active .map-ui {
   pointer-events: none;
 }
 </style>
+

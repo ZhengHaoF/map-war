@@ -66,7 +66,7 @@ interface SaveData {
 }
 
 /** 存档摘要（供选择界面用，不入存档文件） */
-interface SaveMeta {
+export interface SaveMeta {
   slot: string
   label: string
   savedAt: number
@@ -102,6 +102,10 @@ export const useGameStore = defineStore('game', () => {
   // ── 事件日志（存档 / replay 的核心数据）──
   const eventLog = ref<GameEvent[]>([])
   const isReplaying = ref(false) // replay 期间抑制日志重复追加 + 自动存档 + watcher 重绘
+  // 读档后请求地图重绘的信号：load() 只重建 store 状态，地图重绘/动画重建/复位 isReplaying
+  // 这段"收尾"能力在 LeafletMap（loadLayer/restoreActiveAnimations）里。store 不反向依赖组件，
+  // 改用计数器信号：requestMapReload() ++token → LeafletMap watch(token) 收尾。
+  const reloadToken = ref(0)
 
   // 派生投影：owner 视图（保持旧接口，读自 cities）
   const ownership = computed<Record<string, Owner>>(() =>
@@ -405,6 +409,15 @@ export const useGameStore = defineStore('game', () => {
     }
   }
 
+  /**
+   * 请求地图重绘收尾（读档后调用）。
+   * load() 只重建 store 状态并保持 isReplaying=true；真正的地图重绘 + 战斗动画重建 + 复位
+   * isReplaying 由 LeafletMap 的 watch(reloadToken) 完成（那里才有 loadLayer/restoreActiveAnimations）。
+   */
+  function requestMapReload(): void {
+    reloadToken.value++
+  }
+
   /** 删除指定槽位的存档 */
   function deleteSave(slot: string): void {
     localStorage.removeItem(`${SAVE_PREFIX}${slot}`)
@@ -433,6 +446,7 @@ export const useGameStore = defineStore('game', () => {
     battles,
     eventLog,
     isReplaying,
+    reloadToken,
     myCities,
     cityOwner,
     isAlive,
@@ -452,5 +466,6 @@ export const useGameStore = defineStore('game', () => {
     load,
     deleteSave,
     listSaves,
+    requestMapReload,
   }
 })

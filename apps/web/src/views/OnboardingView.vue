@@ -72,6 +72,11 @@
       </svg>
     </div>
 
+    <button v-if="showBack" class="back-link" @click="$emit('back')">
+      <span class="back-arrow">‹</span>
+      返回存档
+    </button>
+
     <div class="onboard-head">
       <span class="head-line" />
       <div class="title-block">
@@ -177,6 +182,15 @@
 import { ref, computed } from 'vue'
 import { Owner, OWNER_LABELS, OWNER_COLORS, OWNER_DETAILS } from '@/data/owners'
 import { useGameStore } from '@/stores/game'
+
+defineProps<{
+  /** 是否显示"返回存档"链接（仅当存在存档且从选择器点新游戏进来时） */
+  showBack?: boolean
+}>()
+
+defineEmits<{
+  back: []
+}>()
 
 const gameStore = useGameStore()
 const owners = [
@@ -320,6 +334,34 @@ function handleEnter() {
   bottom: 6px;
   right: 6px;
   transform: rotate(180deg);
+}
+
+.back-link {
+  position: absolute;
+  top: 22px;
+  left: 30px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--brown);
+  font-size: 13px;
+  letter-spacing: 2px;
+  font-family: 'KaiTi', 'KaiTi_GB2312', 'SimSun', serif;
+  padding: 4px 6px;
+  transition: color 0.15s ease;
+}
+
+.back-link:hover {
+  color: var(--cinnabar);
+}
+
+.back-arrow {
+  font-size: 18px;
+  line-height: 1;
 }
 
 .onboard-head {

@@ -1,5 +1,5 @@
 <template>
-  <Teleport to="body">
+  <Teleport defer to="body">
     <div
       v-if="visible"
       class="modal-overlay"
