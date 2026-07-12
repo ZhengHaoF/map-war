@@ -303,14 +303,14 @@ export function battle(from: string, to: string): BattleOrderResult {
 
   activeBattles.set(id, { battle: b })
 
-  // 桥接：同步元数据进响应式 store，战斗面板自动刷新
-  useGameStore().battles.push({
-    id,
-    from,
-    to,
+  // 桥接：同步元数据进响应式 store，战斗面板自动刷新（经 applyEvent 进事件日志）
+  useGameStore().applyEvent({
+    type: 'battleStart',
+    battleId: id,
+    fromGb: from,
+    targetGb: to,
     fromName: getLocationName(from),
     toName: getLocationName(to),
-    active: true,
   })
 
   return { ok: true, id }
@@ -323,22 +323,64 @@ export function stopBattle(id: string): OrderResult {
   entry.battle.stop()
   activeBattles.delete(id)
   battleRegistry.delete(id)
-  useGameStore().battles = useGameStore().battles.filter((b) => b.id !== id)
+  useGameStore().applyEvent({ type: 'battleEnd', battleId: id })
   return { ok: true }
 }
 
 export function stopBattles(): OrderResult {
-  for (const entry of activeBattles.values()) {
+  for (const [id, entry] of activeBattles) {
+    entry.battle.stop()
+    useGameStore().applyEvent({ type: 'battleEnd', battleId: id })
+  }
+  activeBattles.clear()
+  battleRegistry.clear()
+  return { ok: true }
+}
+
+/** 重置战斗运行时状态（读档/初始化时调用）。停止所有动画并清空模块级映射。 */
+export function resetBattleRuntime(): void {
+  for (const [, entry] of activeBattles) {
     entry.battle.stop()
   }
   activeBattles.clear()
   battleRegistry.clear()
-  useGameStore().battles = []
-  return { ok: true }
+  battleIdCounter = 0
 }
 
 export function listBattles(): BattleInfo[] {
   return useGameStore().battles.slice()
+}
+
+/**
+ * 重建运行中的战斗动画（用于读档后恢复）。
+ * 从 store.battles 中筛选 active=true 的条目，逐一重建 PixiJS 动画并注册到模块内部映射。
+ * 不碰 store / applyEvent，保持 state 层纯净。
+ */
+export function restoreActiveAnimations(): void {
+  // eslint-disable-next-line no-console
+  console.log('[restoreActiveAnimations] 开始, _container=', !!_container, 'battles=', useGameStore().battles.length)
+  if (!_container) return
+  const store = useGameStore()
+  for (const b of store.battles) {
+    // eslint-disable-next-line no-console
+    console.log('[restoreActiveAnimations] battle:', b.id, 'active=', b.active, 'from=', b.from, 'to=', b.to)
+    if (!b.active) continue
+    if (hasActiveBattle(b.from, b.to)) continue
+
+    const anim = startBattleAnimation({
+      fromId: b.from,
+      toId: b.to,
+      container: _container,
+      colorA: 0x3b82f6,
+      colorB: 0xef4444,
+    })
+    // eslint-disable-next-line no-console
+    console.log('[restoreActiveAnimations] anim.graphics=', !!anim.graphics)
+    if (!anim.graphics) continue
+
+    battleRegistry.set(b.id, { from: b.from, to: b.to, fromName: b.fromName, toName: b.toName })
+    activeBattles.set(b.id, { battle: anim })
+  }
 }
 
 // ─── AI 世界状态写回接口（最小参数）───

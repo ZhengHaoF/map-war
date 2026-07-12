@@ -1,7 +1,8 @@
 import { defineStore } from 'pinia'
-import { ref, reactive, computed } from 'vue'
+import { ref, shallowRef, computed, triggerRef } from 'vue'
 import { chinaCities } from '@/data/chinaCities'
 import { Owner } from '@/data/owners'
+import { resetBattleRuntime } from '@/utils/gameOrders'
 
 // 战斗元数据（PixiJS 句柄不进 store，由 gameOrders 模块本地持有）
 export interface BattleInfo {
@@ -44,6 +45,35 @@ export type GameEvent =
   | { type: 'produce'; targetGb: string; amount: number }
   | { type: 'dateAdvance'; date: string }
   | { type: 'setFactionAlive'; faction: Owner; alive: boolean }
+  | { type: 'battleStart'; battleId: string; fromGb: string; targetGb: string; fromName: string; toName: string }
+  | { type: 'battleEnd'; battleId: string }
+  | { type: 'selectFaction'; faction: Owner; playerName: string }
+
+// ── 存档 / 持久化 ──
+
+const SAVE_PREFIX = 'mapwar_save_'
+const AUTO_SLOT = 'auto'
+const META_KEY = `${SAVE_PREFIX}meta`
+
+/** localStorage 持久化的存档结构 */
+interface SaveData {
+  version: number
+  label: string
+  savedAt: number
+  playerName: string
+  currentFaction: Owner | null
+  eventLog: GameEvent[]
+}
+
+/** 存档摘要（供选择界面用，不入存档文件） */
+interface SaveMeta {
+  slot: string
+  label: string
+  savedAt: number
+  playerName: string
+  currentDate: string
+  eventCount: number
+}
 
 export interface WorldStateSnapshot {
   /** 当前推演日期 */
@@ -67,11 +97,15 @@ export interface WorldStateSnapshot {
 export const useGameStore = defineStore('game', () => {
   // ── 城市态：唯一真相源 ──
   // seed 仅在 initWorld() 单向灌溉一次；之后任何城市态变更只经 applyEvent（Kernel 唯一写者）。
-  const cities = reactive<Record<string, CityState>>({})
+  const cities = shallowRef<Record<string, CityState>>({})
+
+  // ── 事件日志（存档 / replay 的核心数据）──
+  const eventLog = ref<GameEvent[]>([])
+  const isReplaying = ref(false) // replay 期间抑制日志重复追加 + 自动存档 + watcher 重绘
 
   // 派生投影：owner 视图（保持旧接口，读自 cities）
   const ownership = computed<Record<string, Owner>>(() =>
-    Object.fromEntries(Object.entries(cities).map(([gb, c]) => [gb, c.owner])),
+    Object.fromEntries(Object.entries(cities.value).map(([gb, c]) => [gb, c.owner])),
   )
   const currentDate = ref('1931-01-01')
   const currentFaction = ref<Owner | null>(null)
@@ -105,12 +139,12 @@ export const useGameStore = defineStore('game', () => {
 
   // 势力级数字 = 所辖城市态的派生聚合（不存，永远是算出来的）
   function factionTroops(o: Owner): number {
-    return Object.values(cities)
+    return Object.values(cities.value)
       .filter((c) => c.owner === o)
       .reduce((s, c) => s + c.troops, 0)
   }
   function factionMorale(o: Owner): number {
-    const owned = Object.values(cities).filter((c) => c.owner === o)
+    const owned = Object.values(cities.value).filter((c) => c.owner === o)
     const total = owned.reduce((s, c) => s + c.troops, 0)
     if (!total) return 0
     return Math.round(owned.reduce((s, c) => s + c.morale * c.troops, 0) / total)
@@ -143,7 +177,7 @@ export const useGameStore = defineStore('game', () => {
     const f = currentFaction.value
     const stats: MyCityStat[] = []
     if (f) {
-      for (const c of Object.values(cities)) {
+      for (const c of Object.values(cities.value)) {
         if (c.owner !== f) continue
         stats.push({
           gb: c.gb,
@@ -181,9 +215,14 @@ export const useGameStore = defineStore('game', () => {
   // ── 初始化 / 设置 ──
   // seed 单向灌溉：仅在此处读取 chinaCities，之后世界态完全活在 cities 里。
   function initWorld(): void {
+    activeFactions.value = [
+      Owner.KMT, Owner.CCP, Owner.JPN, Owner.NEA,
+      Owner.SHX, Owner.GXC, Owner.SCC, Owner.MA, Owner.XJ, Owner.TIB,
+    ]
+    const seed: Record<string, CityState> = {}
     for (const c of chinaCities) {
       if (!c.gb) continue
-      cities[c.gb] = {
+      seed[c.gb] = {
         gb: c.gb,
         name: c.name,
         owner: (c.owner as Owner) ?? Owner.NEUTRAL,
@@ -196,16 +235,20 @@ export const useGameStore = defineStore('game', () => {
         morale: c.morale ?? 70,
       }
     }
+    cities.value = seed // 一次替换，一次触发
     currentDate.value = '1931-09-18'
+    playerName.value = ''
+    currentFaction.value = null
+    eventLog.value = [] // 重置事件日志
+    battles.value = []   // 重置战斗列表（否则重复读档会叠加）
   }
 
   function selectFaction(f: Owner): void {
-    currentFaction.value = f
+    applyEvent({ type: 'selectFaction', faction: f, playerName: playerName.value })
   }
 
   function setPlayer(name: string, faction: Owner): void {
-    playerName.value = name
-    currentFaction.value = faction
+    applyEvent({ type: 'selectFaction', faction, playerName: name })
   }
 
   /**
@@ -226,7 +269,7 @@ export const useGameStore = defineStore('game', () => {
       activeFactions: [...activeFactions.value],
       ownership: { ...ownership.value },
       cities: Object.fromEntries(
-        Object.entries(cities).map(([gb, c]) => [gb, { owner: c.owner, troops: c.troops, morale: c.morale }]),
+        Object.entries(cities.value).map(([gb, c]) => [gb, { owner: c.owner, troops: c.troops, morale: c.morale }]),
       ),
       factionTroops: factionTroopsMap,
       factionMorale: factionMoraleMap,
@@ -243,9 +286,13 @@ export const useGameStore = defineStore('game', () => {
     return Math.max(lo, Math.min(hi, v))
   }
   function applyEvent(e: GameEvent): void {
+    // replay 时不重复追加日志（load 中会直接赋值完整日志），也不自动存档
+    if (!isReplaying.value) eventLog.value.push(e)
+
     // 非城市态事件：无 targetGb，提前处理并 return
     if (e.type === 'dateAdvance') {
       currentDate.value = e.date
+      if (!isReplaying.value) autoSave()
       return
     }
     if (e.type === 'setFactionAlive') {
@@ -254,8 +301,23 @@ export const useGameStore = defineStore('game', () => {
       if (!e.alive && has) activeFactions.value = activeFactions.value.filter((x) => x !== e.faction)
       return
     }
+    // 战斗生命周期事件（无 targetGb，管理 battles 数组）
+    if (e.type === 'battleStart') {
+      battles.value.push({ id: e.battleId, from: e.fromGb, to: e.targetGb, fromName: e.fromName, toName: e.toName, active: true })
+      return
+    }
+    if (e.type === 'battleEnd') {
+      battles.value = battles.value.filter((b) => b.id !== e.battleId)
+      return
+    }
+    // 玩家择势事件
+    if (e.type === 'selectFaction') {
+      playerName.value = e.playerName
+      currentFaction.value = e.faction
+      return
+    }
     // 以下均为城市态事件，需 targetGb
-    const t = cities[e.targetGb]
+    const t = cities.value[e.targetGb]
     if (!t) return
     switch (e.type) {
       case 'capture': // 占领：易主 + 设定新驻军
@@ -263,7 +325,7 @@ export const useGameStore = defineStore('game', () => {
         if (e.resultTroops != null) t.troops = Math.max(0, e.resultTroops)
         break
       case 'attack': { // 进攻未占：双方按裁定损耗扣兵（fromGb 为调兵源城）
-        const from = cities[e.fromGb]
+        const from = cities.value[e.fromGb]
         if (from) from.troops = Math.max(0, from.troops - e.attackerLoss)
         t.troops = Math.max(0, t.troops - e.defenderLoss)
         break
@@ -275,6 +337,90 @@ export const useGameStore = defineStore('game', () => {
         t.troops += e.amount
         break
     }
+    triggerRef(cities) // shallowRef 手动通知：城市态已变更
+  }
+
+  // ── 存档 / 读档（事件日志持久化到 localStorage）──
+
+  /** 读取所有存档槽位的摘要（供选择 UI 用） */
+  function _readAllMeta(): Record<string, SaveMeta> {
+    try {
+      return JSON.parse(localStorage.getItem(META_KEY) || '{}')
+    } catch {
+      return {}
+    }
+  }
+
+  function _updateMeta(slot: string, meta: SaveMeta): void {
+    const all = _readAllMeta()
+    all[slot] = meta
+    localStorage.setItem(META_KEY, JSON.stringify(all))
+  }
+
+  /** 存档：当前事件日志 + 玩家身份序列化到指定槽位。返回是否成功。 */
+  function save(slot: string, opts?: { label?: string }): boolean {
+    const label = opts?.label || `存档 ${currentDate.value}`
+    const data: SaveData = {
+      version: 1,
+      label,
+      savedAt: Date.now(),
+      playerName: playerName.value,
+      currentFaction: currentFaction.value,
+      eventLog: eventLog.value,
+    }
+    try {
+      localStorage.setItem(`${SAVE_PREFIX}${slot}`, JSON.stringify(data))
+      _updateMeta(slot, {
+        slot,
+        label,
+        savedAt: data.savedAt,
+        playerName: playerName.value,
+        currentDate: currentDate.value,
+        eventCount: eventLog.value.length,
+      })
+      return true
+    } catch {
+      return false
+    }
+  }
+
+  /** 读档：initWorld 重置基线 → 逐事件重放 → 恢复玩家身份。返回是否成功。 */
+  function load(slot: string): boolean {
+    const raw = localStorage.getItem(`${SAVE_PREFIX}${slot}`)
+    if (!raw) return false
+    try {
+      const data: SaveData = JSON.parse(raw)
+      if (data.version !== 1) return false
+
+      isReplaying.value = true
+      initWorld()
+      resetBattleRuntime()
+      for (const e of data.eventLog) applyEvent(e)
+      eventLog.value = data.eventLog
+
+      return true
+    } catch {
+      isReplaying.value = false
+      return false
+    }
+  }
+
+  /** 删除指定槽位的存档 */
+  function deleteSave(slot: string): void {
+    localStorage.removeItem(`${SAVE_PREFIX}${slot}`)
+    const all = _readAllMeta()
+    delete all[slot]
+    localStorage.setItem(META_KEY, JSON.stringify(all))
+  }
+
+  /** 列出所有存档摘要（slot → meta） */
+  function listSaves(): Record<string, SaveMeta> {
+    return _readAllMeta()
+  }
+
+  /** 自动存档（写入 "auto" 槽，每次 dateAdvance 后触发） */
+  function autoSave(): void {
+    save(AUTO_SLOT, { label: `自动存档 ${currentDate.value}` })
   }
 
   return {
@@ -285,6 +431,8 @@ export const useGameStore = defineStore('game', () => {
     playerName,
     activeFactions,
     battles,
+    eventLog,
+    isReplaying,
     myCities,
     cityOwner,
     isAlive,
@@ -300,5 +448,9 @@ export const useGameStore = defineStore('game', () => {
     setPlayer,
     applyEvent,
     getSnapshot,
+    save,
+    load,
+    deleteSave,
+    listSaves,
   }
 })

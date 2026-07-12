@@ -106,6 +106,15 @@
         <GameButton @click="captureTest"
           ><component :is="ICONS['tag']" :size="16" />占领测试</GameButton
         >
+        <GameButton @click="saveTest"
+          ><component :is="ICONS['player-stop']" :size="16" />存档测试</GameButton
+        >
+        <GameButton @click="loadTest"
+          ><component :is="ICONS['stack-2']" :size="16" />读档测试</GameButton
+        >
+        <GameButton @click="eventLogPanelVisible = true"
+          ><component :is="ICONS['clipboard-text']" :size="16" />事件日志</GameButton
+        >
       </div>
     </GameModal>
     <GameModal class="map-ui"
@@ -116,6 +125,18 @@
       @close="aiPanelVisible = false"
     >
       <AiDebugPanel />
+    </GameModal>
+    <GameModal class="map-ui"
+      :visible="eventLogPanelVisible"
+      title="事件日志"
+      :draggable="true"
+      :overlay="false"
+      :z-index="4100"
+      width="540px"
+      variant="parchment"
+      @close="eventLogPanelVisible = false"
+    >
+      <EventLogPanel />
     </GameModal>
     <GameModal class="map-ui"
       :visible="battleListVisible"
@@ -184,13 +205,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { Application, Container, Graphics, Text, TextStyle } from 'pixi.js'
 import { OWNER_COLORS, OWNER_LABELS, Owner } from '@/data/owners'
 import type { CityData } from '@/data/chinaCities'
 import type { CountryData } from '@/data/worldCountries'
 import { worldCountries, GEO_TO_GAME_ISO } from '@/data/worldCountries'
-import { init as initGameOrders, executeOrder, stopBattle, capture } from '@/utils/gameOrders'
+import { init as initGameOrders, executeOrder, stopBattle, capture, restoreActiveAnimations } from '@/utils/gameOrders'
 import type { GameOrder } from '@/utils/gameOrders'
 import { useGameStore } from '@/stores/game'
 import {
@@ -222,7 +243,9 @@ import IconCircleX from '~icons/tabler/circle-x'
 import IconX from '~icons/tabler/x'
 import IconBrain from '~icons/tabler/brain'
 import IconCloud from '~icons/tabler/cloud'
+import IconClipboardText from '~icons/tabler/clipboard-text'
 import AiDebugPanel from '@/components/AiDebugPanel.vue'
+import EventLogPanel from '@/components/EventLogPanel.vue'
 import GameDateDisplay from '@/components/ui/GameDateDisplay.vue'
 import { playCloudTransition, disposeCloudTransition } from '@/utils/cloudTransition'
 
@@ -241,6 +264,7 @@ const ICONS: Record<string, Component> = {
   x: IconX,
   brain: IconBrain,
   cloud: IconCloud,
+  'clipboard-text': IconClipboardText,
 }
 
 // ─── 类型定义 ───
@@ -341,6 +365,7 @@ const infoCountryData = ref<CountryData | Record<string, unknown> | null>(null)
 const testPanelVisible = ref(false)
 const aiPanelVisible = ref(false)
 const battleListVisible = ref(false)
+const eventLogPanelVisible = ref(false)
 const battleList = computed(() => useGameStore().battles)
 const disclaimerVisible = ref(false)
 const ownerColorEnabled = ref(true)
@@ -707,6 +732,30 @@ async function captureTest(): Promise<void> {
   await capture('156610300', Owner.SCC)
 }
 
+/** 调试：存档测试——当前世界态序列化到 test 槽 */
+function saveTest(): void {
+  const ok = useGameStore().save('test', { label: `调试存档 ${useGameStore().currentDate}` })
+  if (ok) {
+    const m = useGameStore().listSaves()['test']
+    // eslint-disable-next-line no-console
+    console.log(`[saveTest] 已存档 → slot=test, 事件数=${m?.eventCount}, 日期=${m?.currentDate}`)
+  }
+}
+
+/** 调试：读档测试——从 test 槽恢复世界态 */
+async function loadTest(): Promise<void> {
+  const ok = useGameStore().load('test')
+  // eslint-disable-next-line no-console
+  console.log('[loadTest] load 返回, ok=', ok, 'battles=', useGameStore().battles.length)
+  if (!ok) return
+  // watcher 在 isReplaying 期间被跳过，手动重绘地图
+  await loadLayer(currentLayerIndex.value)
+  restoreActiveAnimations()
+  useGameStore().isReplaying = false // 动画恢复完成后才解锁 watcher
+  // eslint-disable-next-line no-console
+  console.log(`[loadTest] 已读档 → slot=test, 日期=${useGameStore().currentDate}`)
+}
+
 function endBattle(id: string): void {
   stopBattle(id)
 }
@@ -842,6 +891,7 @@ function toggleLabels(): void {
 }
 
 async function loadLayer(index: number): Promise<void> {
+  if (!app?.renderer) return // 防御：HMR 或销毁后 app 可能无效
   const config = LAYERS[index]
   if (!geoJsonCache.has(config.file)) {
     const res = await fetch(config.file)
@@ -1155,9 +1205,11 @@ onMounted(async () => {
   if (cityJson) registerLocations(cityJson.features, 'gb')
 
   // 归属变化时实时重绘当前图层，确保占领/易主后政权着色立即更新
+  // 读档期间跳过（isReplaying），由 loadTest 手动调 loadLayer
   watch(
     () => useGameStore().ownership,
     () => {
+      if (useGameStore().isReplaying) return
       loadLayer(currentLayerIndex.value)
     },
   )
