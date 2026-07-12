@@ -410,6 +410,40 @@ export const useGameStore = defineStore('game', () => {
   }
 
   /**
+   * 单步撤销帧：克隆当前可变异世界态，供调试工具「执行前打快照、出错/后悔时回滚」。
+   * 仅克隆调试需要回退的字段，不碰事件日志以外的派生投影（它们会随重赋值自动重算）。
+   */
+  interface UndoFrame {
+    cities: Record<string, CityState>
+    currentDate: string
+    currentFaction: Owner | null
+    activeFactions: Owner[]
+    battles: BattleInfo[]
+    eventLog: GameEvent[]
+  }
+
+  function snapshotForUndo(): UndoFrame {
+    return {
+      cities: structuredClone(cities.value),
+      currentDate: currentDate.value,
+      currentFaction: currentFaction.value,
+      activeFactions: [...activeFactions.value],
+      battles: structuredClone(battles.value),
+      eventLog: structuredClone(eventLog.value),
+    }
+  }
+
+  function restoreUndo(frame: UndoFrame): void {
+    cities.value = structuredClone(frame.cities)
+    currentDate.value = frame.currentDate
+    currentFaction.value = frame.currentFaction
+    activeFactions.value = [...frame.activeFactions]
+    battles.value = structuredClone(frame.battles)
+    eventLog.value = structuredClone(frame.eventLog)
+    reloadToken.value++ // 触发地图重绘（与读档收尾同一信号）
+  }
+
+  /**
    * 请求地图重绘收尾（读档后调用）。
    * load() 只重建 store 状态并保持 isReplaying=true；真正的地图重绘 + 战斗动画重建 + 复位
    * isReplaying 由 LeafletMap 的 watch(reloadToken) 完成（那里才有 loadLayer/restoreActiveAnimations）。
@@ -462,6 +496,8 @@ export const useGameStore = defineStore('game', () => {
     setPlayer,
     applyEvent,
     getSnapshot,
+    snapshotForUndo,
+    restoreUndo,
     save,
     load,
     deleteSave,

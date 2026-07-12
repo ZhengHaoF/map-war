@@ -1,153 +1,148 @@
 <template>
   <div class="ai-debug">
-    <div class="ai-field">
-      <label class="ai-label">System Prompt</label>
-      <textarea
-        v-model="systemPrompt"
-        class="ai-textarea"
-        rows="4"
-        placeholder="输入 system prompt..."
-      />
+    <!-- 工具栏：上下文注入 / 动画 / 撤销 / 重置 -->
+    <div class="ai-toolbar">
+      <label class="ai-toggle">
+        <input type="checkbox" v-model="injectContext" />
+        注入世界态
+      </label>
+      <label class="ai-toggle">
+        <input type="checkbox" v-model="cinematic" />
+        播放动画
+      </label>
+      <GameButton size="small" :disabled="!undoStack.length" @click="undo">
+        <component :is="ICONS.undo" :size="14" />撤销
+      </GameButton>
+      <GameButton size="small" danger @click="resetWorld">
+        <component :is="ICONS.reset" :size="14" />重置世界
+      </GameButton>
     </div>
 
     <div class="ai-field">
-      <label class="ai-label">User Message</label>
+      <label class="ai-label">System Prompt（自动生成，可改）</label>
+      <textarea v-model="systemPrompt" class="ai-textarea" rows="3" />
+    </div>
+
+    <div class="ai-field">
+      <label class="ai-label">User Message（给 god-mode AI 的自然语言指令）</label>
       <textarea
         v-model="userMessage"
         class="ai-textarea"
-        rows="6"
-        placeholder="输入 user message 或 JSON..."
+        rows="4"
+        placeholder="例如：占领北平给 KMT，并把日期推进到 1937-07-07"
       />
     </div>
 
     <div class="ai-actions">
-      <GameButton :active="loading" :disabled="loading" @click="handleSend">
+      <GameButton :active="loading" :disabled="loading" @click="runSend">
         <component :is="ICONS.send" :size="16" />
         {{ loading ? '请求中...' : '发送' }}
+      </GameButton>
+      <GameButton :disabled="!parsed || loading" @click="runExecute">
+        <component :is="ICONS.play" :size="16" />执行校验通过的指令
       </GameButton>
     </div>
 
     <div v-if="error" class="ai-error">{{ error }}</div>
+    <div v-if="parseError" class="ai-error">{{ parseError }}</div>
 
-    <div v-if="respData" class="ai-response">
-      <div class="ai-card" :class="{ open: cards.raw }" @click="cards.raw = !cards.raw">
-        <span class="ai-card-title">原始响应</span>
-        <component
-          :is="cards.raw ? ICONS.chevronUp : ICONS.chevronDown"
-          :size="16"
-          class="ai-card-icon"
-        />
+    <!-- 解析 + 校验结果 -->
+    <div v-if="parsed" class="ai-section">
+      <div class="ai-section-title">
+        解析结果：{{ parsed.orders.length }} 条，校验{{ parsed.allOk ? '全部通过 ✓' : '有错误 ✗' }}
       </div>
-      <pre v-if="cards.raw" class="ai-pre ai-raw">{{ respData.rawJson }}</pre>
-
       <div
-        v-if="respData.toolCalls.length"
-        class="ai-card"
-        :class="{ open: cards.tools }"
-        @click="cards.tools = !cards.tools"
+        v-for="(o, i) in parsed.orders"
+        :key="i"
+        class="ai-order"
+        :class="{ bad: parsed.errors[i].length }"
       >
-        <span class="ai-card-title">Tool Calls ({{ respData.toolCalls.length }})</span>
-        <component
-          :is="cards.tools ? ICONS.chevronUp : ICONS.chevronDown"
-          :size="16"
-          class="ai-card-icon"
-        />
-      </div>
-      <div v-if="cards.tools && respData.toolCalls.length" class="ai-card-body">
-        <div v-for="(tc, i) in respData.toolCalls" :key="i" class="ai-toolcall">
-          <span class="ai-toolcall-name">{{ tc.name }}</span>
-          <pre class="ai-pre">{{ tc.args }}</pre>
+        <pre class="ai-pre">{{ JSON.stringify(o, null, 2) }}</pre>
+        <div v-if="parsed.errors[i].length" class="ai-errlist">
+          <div v-for="(e, j) in parsed.errors[i]" :key="j" class="ai-err">✗ {{ e }}</div>
         </div>
-      </div>
-
-      <div class="ai-tokens">
-        请求 {{ respData.usage.prompt }} tokens / 响应 {{ respData.usage.completion }} tokens / 总计
-        {{ respData.usage.total }}
-      </div>
-
-      <div class="ai-card" :class="{ open: cards.text }" @click="cards.text = !cards.text">
-        <span class="ai-card-title">文本回复</span>
-        <component
-          :is="cards.text ? ICONS.chevronUp : ICONS.chevronDown"
-          :size="16"
-          class="ai-card-icon"
-        />
-      </div>
-      <div v-if="cards.text" class="ai-card-body">
-        <pre class="ai-pre">{{ respData.content || '(无文本输出)' }}</pre>
+        <div v-else class="ai-ok">✓ 结构校验通过</div>
       </div>
     </div>
+
+    <!-- 执行结果 -->
+    <div v-if="execResults.length" class="ai-section">
+      <div class="ai-section-title">执行结果</div>
+      <div
+        v-for="(r, i) in execResults"
+        :key="i"
+        class="ai-exec"
+        :class="{ bad: !r.valid || !r.result?.ok }"
+      >
+        <div class="ai-exec-head">
+          <span class="ai-badge">{{ r.order.order }}</span>
+          <span
+            :class="r.valid ? (r.result?.ok ? 'ai-ok' : 'ai-err') : 'ai-err'"
+          >
+            {{
+              r.valid
+                ? r.result?.ok
+                  ? '执行成功'
+                  : '执行失败：' + (r.result?.reason ?? '未知')
+                : '未执行（校验错）'
+            }}
+          </span>
+        </div>
+        <div v-if="r.detail" class="ai-detail">{{ r.detail }}</div>
+      </div>
+    </div>
+
+    <!-- 原始响应（可折叠） -->
+    <div v-if="response" class="ai-card" :class="{ open: cards.raw }" @click="cards.raw = !cards.raw">
+      <span class="ai-card-title">原始响应</span>
+      <component :is="cards.raw ? ICONS.chevronUp : ICONS.chevronDown" :size="16" class="ai-card-icon" />
+    </div>
+    <pre v-if="cards.raw && response" class="ai-pre ai-raw">{{ rawJson }}</pre>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, reactive } from 'vue'
-import { useAiChat } from '@/composables/useAiChat'
+import { useAiDebug } from '@/composables/useAiDebug'
 import GameButton from '@/components/ui/GameButton.vue'
 import type { Component } from 'vue'
 import IconSend from '~icons/tabler/send'
+import IconPlay from '~icons/tabler/player-play'
+import IconUndo from '~icons/tabler/arrow-back-up'
+import IconReset from '~icons/tabler/reload'
 import IconChevronDown from '~icons/tabler/chevron-down'
 import IconChevronUp from '~icons/tabler/chevron-up'
 
 const ICONS: Record<string, Component> = {
   send: IconSend,
+  play: IconPlay,
+  undo: IconUndo,
+  reset: IconReset,
   chevronDown: IconChevronDown,
   chevronUp: IconChevronUp,
 }
 
-const { loading, error, response, send } = useAiChat()
+const {
+  systemPrompt,
+  userMessage,
+  injectContext,
+  cinematic,
+  loading,
+  error,
+  response,
+  parsed,
+  parseError,
+  execResults,
+  undoStack,
+  runSend,
+  runExecute,
+  undo,
+  resetWorld,
+} = useAiDebug()
 
-const systemPrompt = ref('')
-const userMessage = ref('')
+const cards = reactive({ raw: false })
 
-const cards = reactive({
-  text: true,
-  tools: false,
-  raw: false,
-})
-
-interface ToolCallDisplay {
-  name: string
-  args: string
-}
-
-const respData = computed(() => {
-  const raw = response.value as Record<string, unknown> | null
-  if (!raw) return null
-
-  const choice = ((raw.choices as unknown[]) ?? [])[0] as Record<string, unknown> | undefined
-  const message = choice?.message as Record<string, unknown> | undefined
-  const content = (message?.content as string) ?? ''
-  const rawToolCalls = (message?.tool_calls as Array<Record<string, unknown>>) ?? []
-  const toolCalls: ToolCallDisplay[] = rawToolCalls.map((tc) => ({
-    name: (tc.function as Record<string, string>)?.name ?? 'unknown',
-    args: JSON.stringify((tc.function as Record<string, unknown>)?.arguments ?? {}, null, 2),
-  }))
-
-  const usage = raw.usage as Record<string, number> | undefined
-  return {
-    content,
-    toolCalls,
-    usage: {
-      prompt: usage?.prompt_tokens ?? 0,
-      completion: usage?.completion_tokens ?? 0,
-      total: usage?.total_tokens ?? 0,
-    },
-    rawJson: JSON.stringify(raw, null, 2),
-  }
-})
-
-async function handleSend() {
-  if (!userMessage.value.trim()) return
-
-  const messages = []
-  if (systemPrompt.value.trim()) {
-    messages.push({ role: 'system', content: systemPrompt.value })
-  }
-  messages.push({ role: 'user', content: userMessage.value })
-
-  await send({ messages })
-}
+const rawJson = computed(() => (response.value ? JSON.stringify(response.value, null, 2) : ''))
 </script>
 
 <style scoped>
@@ -155,6 +150,32 @@ async function handleSend() {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  padding: 4px;
+  max-height: 70vh;
+  overflow: auto;
+}
+
+.ai-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding-bottom: 4px;
+  border-bottom: 1px dashed var(--brown-line-faint);
+}
+
+.ai-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--ink-soft);
+  cursor: pointer;
+  user-select: none;
+}
+
+.ai-toggle input {
+  accent-color: var(--cinnabar);
 }
 
 .ai-field {
@@ -165,28 +186,28 @@ async function handleSend() {
 
 .ai-label {
   font-size: 12px;
-  color: #999;
+  color: var(--ink-muted);
   font-weight: 500;
 }
 
 .ai-textarea {
   width: 100%;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: var(--paper-input);
+  border: 1px solid var(--brown-line);
   border-radius: 6px;
-  color: #ddd;
+  color: var(--ink);
   font-size: 13px;
   font-family: 'Consolas', 'Courier New', monospace;
-  padding: 8px 10px;
+  padding: 10px 12px;
   resize: vertical;
   outline: none;
-  line-height: 1.5;
+  line-height: 1.6;
   box-sizing: border-box;
 }
 
 .ai-textarea:focus {
-  border-color: rgba(59, 130, 246, 0.5);
-  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--cinnabar);
+  background: var(--paper-hi);
 }
 
 .ai-actions {
@@ -196,64 +217,45 @@ async function handleSend() {
 }
 
 .ai-error {
-  background: rgba(244, 68, 68, 0.15);
-  border: 1px solid rgba(244, 68, 68, 0.3);
+  background: var(--danger-bg);
+  border: 1px solid var(--danger-ink);
   border-radius: 6px;
-  padding: 8px 12px;
-  color: #f88;
+  padding: 10px 14px;
+  color: var(--danger-ink);
   font-size: 13px;
 }
 
-.ai-response {
+.ai-section {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.ai-card {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 12px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 6px;
-  cursor: pointer;
-  user-select: none;
-  transition: background 0.15s;
-}
-
-.ai-card:hover {
-  background: rgba(255, 255, 255, 0.08);
-}
-
-.ai-card.open {
-  border-color: rgba(59, 130, 246, 0.3);
-  background: rgba(59, 130, 246, 0.06);
-}
-
-.ai-card-title {
+.ai-section-title {
   font-size: 13px;
-  color: #ccc;
-  font-weight: 500;
+  font-weight: 600;
+  color: var(--ink);
+  border-left: 3px solid var(--cinnabar);
+  padding-left: 8px;
 }
 
-.ai-card-icon {
-  color: #888;
-  flex-shrink: 0;
-}
-
-.ai-card-body {
-  background: rgba(0, 0, 0, 0.2);
+.ai-order,
+.ai-exec {
+  background: var(--paper-faint);
+  border: 1px solid var(--brown-line-faint);
   border-radius: 6px;
   padding: 10px;
-  max-height: 300px;
-  overflow: auto;
+}
+
+.ai-order.bad,
+.ai-exec.bad {
+  border-color: var(--danger-ink);
+  background: var(--danger-bg);
 }
 
 .ai-pre {
   margin: 0;
-  color: #bbb;
+  color: var(--ink-soft);
   font-size: 12px;
   font-family: 'Consolas', 'Courier New', monospace;
   white-space: pre-wrap;
@@ -261,36 +263,78 @@ async function handleSend() {
   line-height: 1.5;
 }
 
-.ai-raw {
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 6px;
-  padding: 10px;
-  max-height: 240px;
-  overflow: auto;
+.ai-errlist {
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
-.ai-toolcall {
-  margin-bottom: 8px;
-}
-
-.ai-toolcall:last-child {
-  margin-bottom: 0;
-}
-
-.ai-toolcall-name {
-  display: inline-block;
+.ai-err {
+  color: var(--danger-ink);
   font-size: 12px;
-  font-weight: 500;
-  color: var(--link);
-  background: rgba(59, 130, 246, 0.15);
+}
+
+.ai-ok {
+  color: #2f9e44;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.ai-exec-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.ai-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--cinnabar);
+  background: var(--paper-input);
   border-radius: 4px;
   padding: 2px 8px;
-  margin-bottom: 4px;
 }
 
-.ai-tokens {
+.ai-detail {
+  margin-top: 4px;
   font-size: 12px;
-  color: #777;
-  text-align: right;
+  color: var(--ink-muted);
+}
+
+.ai-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: var(--paper-faint);
+  border: 1px solid var(--brown-line-faint);
+  border-radius: 6px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.ai-card.open {
+  border-color: var(--cinnabar);
+}
+
+.ai-card-title {
+  font-size: 13px;
+  color: var(--ink-soft);
+  font-weight: 500;
+}
+
+.ai-card-icon {
+  color: var(--ink-muted);
+}
+
+.ai-raw {
+  background: var(--paper-dark);
+  border-radius: 6px;
+  padding: 12px;
+  max-height: 240px;
+  overflow: auto;
 }
 </style>

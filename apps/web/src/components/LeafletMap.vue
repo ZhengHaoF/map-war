@@ -97,7 +97,7 @@
         <GameButton danger @click="() => executeOrder({ order: 'stopBattles' })"
           ><component :is="ICONS['circle-x']" :size="16" />结束战斗</GameButton
         >
-        <GameButton @click="aiPanelVisible = true"
+        <GameButton v-if="isDev" @click="aiPanelVisible = true"
           ><component :is="ICONS.brain" :size="16" />AI 调试</GameButton
         >
         <GameButton @click="playCloudTest"
@@ -117,10 +117,11 @@
         >
       </div>
     </GameModal>
-    <GameModal class="map-ui"
+    <GameModal v-if="isDev" class="map-ui"
       :visible="aiPanelVisible"
       title="AI 调试"
       :z-index="4100"
+      variant="parchment"
       width="600px"
       @close="aiPanelVisible = false"
     >
@@ -248,6 +249,9 @@ import AiDebugPanel from '@/components/AiDebugPanel.vue'
 import EventLogPanel from '@/components/EventLogPanel.vue'
 import GameDateDisplay from '@/components/ui/GameDateDisplay.vue'
 import { playCloudTransition, disposeCloudTransition } from '@/utils/cloudTransition'
+
+/** 开发构建标志：AI 调试面板仅在 dev 下挂载，不进生产包。 */
+const isDev = import.meta.env.DEV
 
 const ICONS: Record<string, Component> = {
   'stack-2': IconStack2,

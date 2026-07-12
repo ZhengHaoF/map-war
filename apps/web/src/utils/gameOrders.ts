@@ -65,6 +65,11 @@ export type OrderType =
   | 'stopBattles'
   | 'listBattles'
   | 'cloud'
+  // 世界态写回（god-mode 调试 / 真实 agent 共用统一契约）
+  | 'capture'
+  | 'setFactionAlive'
+  | 'setCurrentDate'
+  | 'setCurrentFaction'
 
 export interface GameOrder {
   order: OrderType
@@ -72,6 +77,13 @@ export interface GameOrder {
   to?: string
   id?: string
   text?: string
+  // 世界态写回字段
+  gb?: string // capture 目标城市 gb 编码
+  owner?: Owner // capture 占领方
+  resultTroops?: number // capture 新驻军（单位 k）
+  faction?: Owner // setFactionAlive / setCurrentFaction 目标势力
+  alive?: boolean // setFactionAlive：true=存活，false=灭亡
+  date?: string // setCurrentDate：ISO 日期
 }
 
 // ─── 相机控制接口（由 LeafletMap 依赖注入）───
@@ -506,6 +518,23 @@ export async function executeOrder(
     case 'cloud':
       // 云雾蒙太奇：盖住 → 停顿 → 揭开；可在暂停段藏状态切换（由 playCloudTransition 的 onMidpoint 处理）
       return cloudTransition()
+
+    // ── 世界态写回（无动画，直接经 Kernel applyEvent 落地）──
+    case 'capture':
+      // 占领（含动画）：gb/owner 必填，resultTroops 可选
+      return capture(json.gb!, json.owner!, json.resultTroops)
+
+    case 'setFactionAlive':
+      setFactionAlive(json.faction!, json.alive!)
+      return { ok: true }
+
+    case 'setCurrentDate':
+      setCurrentDate(json.date!)
+      return { ok: true }
+
+    case 'setCurrentFaction':
+      setCurrentFaction(json.faction!)
+      return { ok: true }
 
     default:
       return { ok: false, reason: `未知指令: ${json.order}` }
