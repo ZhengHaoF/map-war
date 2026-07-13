@@ -123,6 +123,8 @@
       :z-index="4100"
       variant="parchment"
       width="600px"
+      :overlay="false"
+      :draggable="true"
       @close="aiPanelVisible = false"
     >
       <AiDebugPanel />
