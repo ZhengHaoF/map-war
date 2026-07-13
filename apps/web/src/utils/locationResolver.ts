@@ -56,6 +56,9 @@ let screenSize: ScreenSize = { width: 1024, height: 768 }
 /** id -> GeoJSON Feature 的注册表（城市用 gb，国家用 iso_a3） */
 const featureById = new Map<string, GeoJSON.Feature>()
 
+/** name -> id 的注册表（城市名 / 国名等自然语言地名解析用） */
+const nameToId = new Map<string, string>()
+
 // ─── 公共 API ───
 
 export function setScreenSize(width: number, height: number): void {
@@ -64,15 +67,23 @@ export function setScreenSize(width: number, height: number): void {
 
 export function clearLocations(): void {
   featureById.clear()
+  nameToId.clear()
 }
 
 /**
  * 注册一批 GeoJSON features，以 properties[idKey] 作为查找 id。
+ * 同步将 properties.name 注册到 nameToId（自然语言地名 → id）。
  */
 export function registerLocations(features: GeoJSON.Feature[], idKey: string): void {
   for (const f of features) {
     const id = f?.properties?.[idKey] as string | undefined
-    if (id != null) featureById.set(id, f)
+    if (id != null) {
+      featureById.set(id, f)
+      const name = f.properties?.name
+      if (name && typeof name === 'string' && !nameToId.has(name)) {
+        nameToId.set(name, id)
+      }
+    }
   }
 }
 
@@ -169,4 +180,53 @@ export function resolveLocationXY(id: string | null | undefined): Point | null {
   const f = featureById.get(id)
   if (!f) return null
   return getFeatureScreenCenter(f)
+}
+
+// ─── 地名解析 ───
+
+/**
+ * 按自然语言地名解析出 ID（gb / iso_a3）。文件内 helper，不对外暴露。
+ * 解析策略：
+ *   1. 精确匹配（注册名如「咸阳市」）
+ *   2. 兜底「名称包含」匹配 —— 注册名中含该子串且唯一时返回（如「咸阳」→「咸阳市」）
+ *   子串匹配多义（如「州」命中多城）则返回 null，让 AI 用更完整的名重试。
+ * 无结果返回 null。
+ */
+function resolveLocationName(name: string): string | null {
+  const exact = nameToId.get(name)
+  if (exact) return exact
+
+  let matchedId: string | null = null
+  let matchedCount = 0
+  for (const key of nameToId.keys()) {
+    if (key.includes(name)) {
+      matchedCount++
+      if (matchedCount === 1) matchedId = nameToId.get(key)!
+      if (matchedCount > 1) return null // 多义，放弃
+    }
+  }
+  return matchedCount === 1 ? matchedId : null
+}
+
+/**
+ * 地点解析统一入口（对外唯一）：先按自然语言地名查，查不到再当作 gb / iso_a3 直接查。
+ * name 空间（中文）与 id 空间（数字 gb / 字母 iso_a3）不相交，故先查 name 不会误吞合法 id。
+ * 既非 name 也非有效 id 时返回 null，调用方需判空。
+ */
+export function resolveLocationId(input: string): string | null {
+  return resolveLocationName(input) ?? (resolveLocation(input) ? input : null)
+}
+
+/**
+ * 调试用：返回所有注册名含 query 子串的条目（name + id）。
+ * 便于排查「AI 传短名查不到」类问题（如注册名是「咸阳市」而 AI 传「咸阳」）。
+ */
+export function searchLocationNames(query: string): { name: string; id: string }[] {
+  const q = query.trim()
+  if (!q) return []
+  const out: { name: string; id: string }[] = []
+  for (const [name, id] of nameToId) {
+    if (name.includes(q)) out.push({ name, id })
+  }
+  return out
 }

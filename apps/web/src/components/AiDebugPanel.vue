@@ -16,7 +16,12 @@
       <GameButton size="small" danger @click="resetWorld">
         <component :is="ICONS.reset" :size="14" />重置世界
       </GameButton>
+      <GameButton size="small" @click="debugSearch">
+        <component :is="ICONS.search" :size="14" />搜索咸阳
+      </GameButton>
     </div>
+
+    <pre v-if="searchLog" class="ai-pre ai-raw">{{ searchLog }}</pre>
 
     <div class="ai-field">
       <label class="ai-label">System Prompt（自动生成，可改）</label>
@@ -105,11 +110,13 @@
 import { ref, computed, reactive } from 'vue'
 import { useAiDebug } from '@/composables/useAiDebug'
 import GameButton from '@/components/ui/GameButton.vue'
+import { resolveLocationId, searchLocationNames } from '@/utils/locationResolver'
 import type { Component } from 'vue'
 import IconSend from '~icons/tabler/send'
 import IconPlay from '~icons/tabler/player-play'
 import IconUndo from '~icons/tabler/arrow-back-up'
 import IconReset from '~icons/tabler/reload'
+import IconSearch from '~icons/tabler/search'
 import IconChevronDown from '~icons/tabler/chevron-down'
 import IconChevronUp from '~icons/tabler/chevron-up'
 
@@ -118,6 +125,7 @@ const ICONS: Record<string, Component> = {
   play: IconPlay,
   undo: IconUndo,
   reset: IconReset,
+  search: IconSearch,
   chevronDown: IconChevronDown,
   chevronUp: IconChevronUp,
 }
@@ -141,6 +149,23 @@ const {
 } = useAiDebug()
 
 const cards = reactive({ raw: false })
+
+/** 调试：排查地点解析失败（如 AI 传短名而注册名带行政后缀）。 */
+const searchLog = ref('')
+function debugSearch(): void {
+  const lines: string[] = []
+  for (const t of ['咸阳', '重庆']) {
+    const id = resolveLocationId(t)
+    const matches = searchLocationNames(t)
+    lines.push(`[搜索] "${t}"`)
+    lines.push(`  resolveLocationId => ${id ?? 'null'}`)
+    lines.push(
+      `  注册名含"${t}"的: ${matches.length ? matches.map((m) => `${m.name}(${m.id})`).join('，') : '（无）'}`,
+    )
+  }
+  searchLog.value = lines.join('\n')
+  console.log('[调试] 地点解析排查\n' + searchLog.value)
+}
 
 const rawJson = computed(() => (response.value ? JSON.stringify(response.value, null, 2) : ''))
 </script>

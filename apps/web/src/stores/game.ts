@@ -423,13 +423,16 @@ export const useGameStore = defineStore('game', () => {
   }
 
   function snapshotForUndo(): UndoFrame {
+    // 注意：battles / eventLog 是 ref（深层响应式 Proxy），structuredClone 无法克隆 Vue Proxy，
+    // 故改用 .map 展开为独立纯对象拷贝。BattleInfo / GameEvent 均为扁平结构，浅拷贝即等价于深拷贝。
+    // cities 是 shallowRef（.value 为普通对象），可直接 structuredClone。
     return {
       cities: structuredClone(cities.value),
       currentDate: currentDate.value,
       currentFaction: currentFaction.value,
       activeFactions: [...activeFactions.value],
-      battles: structuredClone(battles.value),
-      eventLog: structuredClone(eventLog.value),
+      battles: battles.value.map((b) => ({ ...b })),
+      eventLog: eventLog.value.map((e) => ({ ...e })),
     }
   }
 

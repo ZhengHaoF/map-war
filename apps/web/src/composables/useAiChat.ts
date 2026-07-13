@@ -5,6 +5,11 @@ export interface AiChatRequest {
   tools?: unknown[]
   model?: string
   temperature?: number
+  /**
+   * 可选：强制模型输出格式。后端默认注入 `{ type: 'json_object' }`（结构化指令）。
+   * 如需纯文本回复，可显式传 `{ type: 'text' }` 覆盖默认。
+   */
+  response_format?: { type: 'text' | 'json_object' | 'json_schema'; [key: string]: unknown }
   [key: string]: unknown
 }
 

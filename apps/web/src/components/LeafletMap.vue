@@ -214,7 +214,7 @@ import { OWNER_COLORS, OWNER_LABELS, Owner } from '@/data/owners'
 import type { CityData } from '@/data/chinaCities'
 import type { CountryData } from '@/data/worldCountries'
 import { worldCountries, GEO_TO_GAME_ISO } from '@/data/worldCountries'
-import { init as initGameOrders, executeOrder, stopBattle, capture, restoreActiveAnimations } from '@/utils/gameOrders'
+import { init as initGameOrders, executeOrder, restoreActiveAnimations } from '@/utils/gameOrders'
 import type { GameOrder } from '@/utils/gameOrders'
 import { useGameStore } from '@/stores/game'
 import {
@@ -735,7 +735,7 @@ async function playCloudTest(): Promise<void> {
 
 /** 调试：占领测试——把宝鸡（gb=156610300）划给川军（SCC） */
 async function captureTest(): Promise<void> {
-  await capture('156610300', Owner.SCC)
+  await executeOrder({ order: 'capture', gb: '156610300', owner: Owner.SCC })
 }
 
 /** 调试：存档测试——当前世界态序列化到 test 槽 */
@@ -763,7 +763,7 @@ async function loadTest(): Promise<void> {
 }
 
 function endBattle(id: string): void {
-  stopBattle(id)
+  executeOrder({ order: 'stopBattle', id })
 }
 
 function onGlobalMouseDown(e: MouseEvent): void {

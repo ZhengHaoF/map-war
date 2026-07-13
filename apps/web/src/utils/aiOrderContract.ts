@@ -13,7 +13,7 @@
 
 import type { GameOrder } from './gameOrders'
 import { Owner } from '@/data/owners'
-import { resolveLocation } from './locationResolver'
+import { resolveLocationId } from './locationResolver'
 
 /** 全部合法指令（与 gameOrders.OrderType 对齐，单点定义避免漂移）。 */
 export const ORDER_TYPES = [
@@ -62,16 +62,16 @@ export function validateGameOrder(json: unknown): ValidationResult {
   }
 
   const needsFromTo: KnownOrder[] = ['attack', 'declareWar', 'battle']
-  if (needsFromTo.includes(order as KnownOrder) && !resolveLocation(String(o.from ?? ''))) {
-    errors.push(`from 城市码无效或不存在: ${String(o.from)}`)
+  if (needsFromTo.includes(order as KnownOrder) && !resolveLocationId(String(o.from ?? ''))) {
+    errors.push(`from 城市不存在或拼写有误: ${String(o.from)}（可填城市名或 gb 编码）`)
   }
-  if (needsFromTo.includes(order as KnownOrder) && !resolveLocation(String(o.to ?? ''))) {
-    errors.push(`to 城市码无效或不存在: ${String(o.to)}`)
+  if (needsFromTo.includes(order as KnownOrder) && !resolveLocationId(String(o.to ?? ''))) {
+    errors.push(`to 城市不存在或拼写有误: ${String(o.to)}（可填城市名或 gb 编码）`)
   }
 
   if (order === 'capture') {
-    if (!resolveLocation(String(o.gb ?? ''))) {
-      errors.push(`gb 城市码无效或不存在: ${String(o.gb)}`)
+    if (!resolveLocationId(String(o.gb ?? ''))) {
+      errors.push(`gb 城市不存在或拼写有误: ${String(o.gb)}（可填城市名或 gb 编码）`)
     }
     if (!OWNER_VALUES.includes(o.owner as Owner)) {
       errors.push(`owner 非法: ${String(o.owner)}（可选：${OWNER_VALUES.join(' / ')}）`)
@@ -138,24 +138,75 @@ export function validateOrders(input: unknown): BatchValidation {
  */
 export const CONTRACT_SCHEMA_TEXT = `你是民国军阀推演游戏的最高权限调试 AI（game master），拥有越过一切战略与外交限制、对任意势力直接下发指令的权限。
 
-你必须只返回一个 JSON 对象，或一个 JSON 对象数组（批量指令，按顺序执行）。不要输出多余解释文字。
+你必须只返回一个 JSON 对象，或一个 JSON 对象数组（批量指令，按顺序执行）。不要输出多余解释文字。所有地点都用城市中文名填写即可，无需任何编码。
 
-字段说明：
-- order（必填）：指令类型，可选值：
-  attack / scout / declareWar / battle / stopBattle / stopBattles / listBattles / cloud
-  capture / setFactionAlive / setCurrentDate / setCurrentFaction
-- from / to：城市 gb 编码（如 "156500000"），attack / declareWar / battle 必填
-- id：战斗 id，stopBattle 必填
-- text：演出弹字（可选）
-- gb：目标城市 gb 编码，capture 必填
-- owner：占领方势力枚举（KMT / CCP / JPN / NEA / SHX / GXC / SCC / MA / XJ / TIB / NEUTRAL），capture 必填
-- faction：目标势力枚举（同上），setFactionAlive / setCurrentFaction 必填
-- alive：布尔，setFactionAlive 必填（true=存活，false=灭亡）
-- date：ISO 日期字符串，setCurrentDate 必填（如 "1931-10-01"）
-- resultTroops：数字（单位 k），capture 可选（占领后新驻军）
+【地点参数说明】所有城市地点参数（attack / scout / declareWar / battle 的 from / to，以及 capture 的 gb）请直接填城市中文名（如 "北京"、"上海"、"日本"），系统会自动转换为内部编码。支持简称/简写（如 "重庆"、"咸阳"），也兼容直接填 gb 编码，但优先用中文名。
 
-示例（单条）：
-{"order":"capture","gb":"156450200","owner":"KMT","resultTroops":20}
+═══════════════════════════════════════
+  指令一览（共 12 条）
+═══════════════════════════════════════
 
-示例（批量）：
-[{"order":"setCurrentDate","date":"1937-07-07"},{"order":"setFactionAlive","faction":"JPN","alive":true}]`
+1. attack — 派兵进攻（演出：箭头行军动画）
+   - from（必填）：出发城市中文名，如 "北京"
+   - to  （必填）：目标城市中文名，如 "上海"
+   - text（可选）：行军弹字，如 "猛攻！"
+
+2. scout — 侦察/探察（演出：圆环扩散动画）
+   - from（必填）：出发城市中文名，如 "北京"
+   - text（可选）：弹字，如 "侦察！"
+
+3. declareWar — 宣战（演出：光球爆炸动画）
+   - from（必填）：宣战国城市中文名
+   - to  （必填）：目标国城市中文名
+   - text（可选）：弹字，如 "宣战！"
+
+4. battle — 开启持续战斗（演出：双向交火持续动画，直到 stopBattle）
+   - from（必填）：A 方城市中文名
+   - to  （必填）：B 方城市中文名
+
+5. stopBattle — 停止指定战斗
+   - id（必填）：战斗 id（listBattles 返回的 id，如 "battle_1"）
+
+6. stopBattles — 停止所有进行中的战斗（无参数）
+
+7. listBattles — 查询进行中战斗列表（无参数，返回 battles 数组）
+
+8. cloud — 云雾蒙太奇（演出：时间流逝过渡，可用于隐藏日期推进等状态切换）
+   （无参数）
+
+9. capture — 占领/接收城市（演出：城池点亮 + 冲击波；动画播完后变更归属）
+   - gb     （必填）：目标城市中文名，如 "上海"
+   - owner  （必填）：新控制势力，填枚举码 KMT / CCP / JPN / NEA / SHX / GXC / SCC / MA / XJ / TIB / NEUTRAL
+   - resultTroops（可选）：占领后新驻军数量，单位 k；不传则仅易主、驻军保持不变
+
+10. setFactionAlive — 设置势力存活状态
+    - faction（必填）：目标势力枚举码（同上）
+    - alive   （必填）：true = 加入存活列表；false = 移除（灭亡）
+
+11. setCurrentDate — 推进全局日期
+    - date（必填）：ISO 日期字符串，如 "1937-07-07"
+
+12. setCurrentFaction — 切换玩家操控势力
+    - faction（必填）：势力枚举码（同上）
+
+═══════════════════════════════════════
+  势力枚举值（faction / owner 请填这些码，勿用中文）
+═══════════════════════════════════════
+KMT  国民政府    CCP  中共苏区      JPN  日本关东军
+NEA  东北军      SHX  晋系          GXC  桂系
+SCC  川军        MA   马家军        XJ   新疆
+TIB  西藏        NEUTRAL 中立
+
+═══════════════════════════════════════
+  示例
+═══════════════════════════════════════
+
+单条指令：
+{"order":"capture","gb":"上海","owner":"KMT","resultTroops":20}
+
+批量指令（按顺序执行）：
+[
+  {"order":"setCurrentDate","date":"1937-07-07"},
+  {"order":"setFactionAlive","faction":"JPN","alive":true},
+  {"order":"attack","from":"北京","to":"上海","text":"猛攻！"}
+]`

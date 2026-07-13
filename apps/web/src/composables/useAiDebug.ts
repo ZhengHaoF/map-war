@@ -79,14 +79,16 @@ export function useAiDebug() {
 
   const systemPrompt = ref(buildSystemPrompt())
   const userMessage = ref('')
-  const injectContext = ref(true)
-  const cinematic = ref(false)
+  // 默认不注入世界态快照（aiPromptBuilder.ts 中已注释原因）；调试时可在面板手动勾选开启。
+  const injectContext = ref(false)
+  const cinematic = ref(true)
   const parsed = ref<BatchValidation | null>(null)
   const parseError = ref<string | null>(null)
   const execResults = ref<ExecResult[]>([])
   const undoStack = ref<UndoFrame[]>([])
 
-  // 调试默认关动画，提速；用户可手动开
+  // 默认开启演出动画：AI 执行的指令（attack / scout / declareWar / capture / cloud）都会播放；
+  // 调试面板「播放动画」复选框取消勾选可提速（此时 attack 等仍播基础行军动画，capture/cloud 会跳过）。
   setCinematicEnabled(cinematic.value)
   watch(cinematic, (v) => setCinematicEnabled(v))
 
@@ -105,7 +107,7 @@ export function useAiDebug() {
       messages[0] = { role: 'system', content: systemPrompt.value }
     }
 
-    await send({ messages })
+    await send({ messages, response_format: { type: 'json_object' } })
 
     const raw = response.value
     const payloads = extractPayloads(raw)

@@ -56,7 +56,7 @@ export function buildWorldSnapshot(): string {
 
 export interface BuildMessagesOpts {
   userText: string
-  /** 是否把当前全局世界态注入为一条 system 消息（默认开） */
+  /** 是否把当前全局世界态注入为一条 system 消息。默认关：当前快照以 gb 码列城市，与契约「用中文名指令」不一致，且全量快照会显著拉长上下文、增加 token 成本；需全局态势感知时手动开启。 */
   injectContext?: boolean
 }
 
@@ -66,6 +66,8 @@ export function buildMessages(opts: BuildMessagesOpts): { role: string; content:
     { role: 'system', content: buildSystemPrompt() },
   ]
 
+  // 暂不注入世界态快照（默认关）：快照以 gb 码列城市，与契约「用中文名指令」不一致，
+  // 且全量城市快照会显著拉长上下文、增加 token 成本。需要时由 injectContext 手动开启。
   if (opts.injectContext) {
     messages.push({ role: 'system', content: '当前世界态：\n' + buildWorldSnapshot() })
   }
