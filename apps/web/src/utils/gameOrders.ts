@@ -245,9 +245,10 @@ async function attack(from: string, to: string, text?: string): Promise<OrderRes
 }
 
 /**
- * 探察动画：以 from 为圆心的扩散侦察环（绿色三环）。
- * 该指令为「扩散式」语义，无明确目的地，故不接收 to 参数。
- * 自带重入锁（locks.scout），演出期间再次调用会被拒绝。
+ * 探察动画：以 from 为圆心的「雷达扫描」演出（旋转扫描扇区 + 扩散波环 +
+ * 接触点闪现 + 中心信标脉冲）。单点扩散语义，无明确目的地，故不接收 to 参数。
+ * 有相机且处于演出模式时，先聚焦 from、播完雷达扫描、再归位；
+ * 否则直接播放基础雷达动画（无镜头聚焦）。自带重入锁（locks.scout）。
  * @param from 侦察中心城 id（gb 编码）
  * @param text 弹字文本，默认「侦察！」
  */
@@ -255,16 +256,33 @@ async function scout(from: string, text?: string): Promise<OrderResult> {
   if (locks.scout) return { ok: false, reason: '探察动画进行中' }
   if (!_container) return { ok: false, reason: 'gameOrders 未初始化' }
 
+  const duration = 1800
   locks.scout = true
   try {
-    await playScoutAnimation({
-      fromId: from,
-      container: _container,
-      color: 0x22c55e,
-      rings: 3,
-      duration: 1500,
-      text: text || '侦察！',
-    })
+    if (_camera && cinematicEnabled) {
+      const before = _camera.snapshot()
+      _camera.setLocked(true)
+      await _camera.focusOn(from, 600)
+      await playScoutAnimation({
+        fromId: from,
+        container: _container,
+        color: 0x22c55e,
+        rings: 3,
+        duration,
+        text: text || '侦察！',
+      })
+      await _camera.reset(before)
+      _camera.setLocked(false)
+    } else {
+      await playScoutAnimation({
+        fromId: from,
+        container: _container,
+        color: 0x22c55e,
+        rings: 3,
+        duration,
+        text: text || '侦察！',
+      })
+    }
     return { ok: true }
   } finally {
     locks.scout = false

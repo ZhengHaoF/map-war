@@ -374,14 +374,16 @@ export async function playArcAnimation({
 }
 
 /**
- * 播放探察动画 - 从起点向外扩散圆环
+ * 播放探察动画 - 雷达扫描式扩散
+ * 以 from 为圆心的「侦察雷达」：旋转扫描扇区（拖尾余晖）+ 向外扩散的同心波环 +
+ * 扫描线掠过时随机闪现的「接触点」光斑 + 中心信标脉冲。比纯同心环更有探察语义。
  */
 export async function playScoutAnimation({
   fromId,
   container,
   color = 0x22c55e,
   rings = 3,
-  duration = 1500,
+  duration = 1800,
   text,
 }: ScoutAnimationOptions): Promise<void> {
   const from = resolveLocationXY(fromId)
@@ -389,14 +391,25 @@ export async function playScoutAnimation({
     console.warn('[playScoutAnimation] 缺少有效的 fromId，无法解析坐标')
     return
   }
-  const fx = from!.x
-  const fy = from!.y
+  const fx = from.x
+  const fy = from.y
 
   const animGfx = new Graphics()
   container.addChild(animGfx)
 
+  const TWO_PI = Math.PI * 2
+  const maxRadius = 90
+  const sweepTurns = 1.5 // 扫描线整段旋转圈数
+  const trail = Math.PI / 3 // 扫描扇区拖尾宽度（60°）
+
+  // 随机接触点：扫描线掠过其角度时点亮并淡出，营造"发现目标"的雷达感
+  const blips = Array.from({ length: 5 }, () => ({
+    angle: Math.random() * TWO_PI,
+    dist: (0.3 + Math.random() * 0.6) * maxRadius,
+    life: 0, // 0=未点亮，>0=剩余寿命(1→0)
+  }))
+
   const startTime = performance.now()
-  const maxRadius = 80
 
   await new Promise<void>((resolve) => {
     function animate(now: number): void {
@@ -405,16 +418,51 @@ export async function playScoutAnimation({
 
       animGfx.clear()
 
+      const lead = TWO_PI * sweepTurns * progress // 扫描前缘当前角度
+
+      // 1) 扩散同心波环
       for (let i = 0; i < rings; i++) {
         const ringProgress = Math.max(0, progress - i * 0.15)
         if (ringProgress <= 0) continue
-
         const radius = maxRadius * ringProgress
-        const alpha = (1 - ringProgress) * 0.6
-
+        const alpha = (1 - ringProgress) * 0.5
         animGfx.circle(fx, fy, radius)
         animGfx.stroke({ width: 2, color, alpha })
       }
+
+      // 2) 扫描扇区拖尾余晖（lead-trail → lead 的扇形填充）
+      animGfx.moveTo(fx, fy)
+      animGfx.arc(fx, fy, maxRadius, lead - trail, lead)
+      animGfx.lineTo(fx, fy)
+      animGfx.fill({ color, alpha: 0.12 })
+
+      // 3) 扫描前缘亮线
+      animGfx.moveTo(fx, fy)
+      animGfx.lineTo(fx + Math.cos(lead) * maxRadius, fy + Math.sin(lead) * maxRadius)
+      animGfx.stroke({ width: 2.5, color, alpha: 0.9 })
+
+      // 4) 接触点：扫描线刚掠过其角度时点亮，随后淡出
+      for (const b of blips) {
+        let diff = (lead - b.angle) % TWO_PI
+        if (diff < 0) diff += TWO_PI
+        if (b.life <= 0 && diff < 0.15) b.life = 1 // 被扫到
+        if (b.life > 0) {
+          const bx = fx + Math.cos(b.angle) * b.dist
+          const by = fy + Math.sin(b.angle) * b.dist
+          animGfx.circle(bx, by, 3 + 3 * b.life)
+          animGfx.fill({ color: 0xffffff, alpha: 0.9 * b.life })
+          animGfx.circle(bx, by, 7 * b.life)
+          animGfx.stroke({ width: 1.5, color, alpha: 0.6 * b.life })
+          b.life -= 0.04
+          if (b.life < 0) b.life = 0
+        }
+      }
+
+      // 5) 中心信标（随进度脉冲一次）
+      animGfx.circle(fx, fy, 4)
+      animGfx.fill({ color, alpha: 0.9 })
+      animGfx.circle(fx, fy, 9 * (0.6 + 0.4 * Math.sin(progress * Math.PI)))
+      animGfx.stroke({ width: 1.5, color, alpha: 0.5 })
 
       if (progress < 1) {
         requestAnimationFrame(animate)
