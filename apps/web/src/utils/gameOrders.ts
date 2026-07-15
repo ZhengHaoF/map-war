@@ -10,13 +10,12 @@
  *
  * 对外公开 API（仅以下符号）：
  *   init                  注入 PixiJS 容器 / 相机 / app（setup 用）
- *   setCinematicEnabled   切换演出模式（快进时跳过逐事件动画）
  *   resetBattleRuntime    清空战斗注册表（调试 / 重置用）
  *   restoreActiveAnimations  读档后重建战斗动画（load 用）
  *   executeOrder          ★ 唯一指令入口（AI 与 UI 都应走这里）
  *
  * 使用方式：
- *   import { init, setCinematicEnabled, resetBattleRuntime, restoreActiveAnimations, executeOrder } from '@/utils/gameOrders'
+ *   import { init, resetBattleRuntime, restoreActiveAnimations, executeOrder } from '@/utils/gameOrders'
  *   init(worldContainer, cameraController, app)   // 第三个参数注入 PixiJS app（云雾蒙太奇需要）
  *   await executeOrder({ order: 'attack', from: '156500000', to: '156450200', text: '猛攻！' })
  *   await executeOrder({ order: 'capture', gb: '156450200', owner: Owner.KMT, resultTroops: 20 })  // 先播占领动画，再变更归属
@@ -114,7 +113,7 @@ export interface CameraController {
   followTo(id: string, duration: number): Promise<void>
   /** 还原到指定相机状态 */
   reset(target: CameraTarget, duration?: number): Promise<void>
-  /** 取消进行中的镜头补间并解锁（ESC / 快进跳过） */
+  /** 取消进行中的镜头补间并解锁（ESC 中断演出） */
   cancel(): void
 }
 
@@ -123,18 +122,6 @@ export interface CameraController {
 let _container: Container | null = null
 let _camera: CameraController | null = null
 let _app: Application | null = null
-/** 镜头演出总开关：快进循环里应设为 false，避免每个事件都播 2-4s */
-let cinematicEnabled = true
-
-/**
- * 切换镜头演出总开关。
- * 关闭后（如快进循环）：attack/scout/declareWar 仍播基础动画但无镜头聚焦，
- * capture/cloud 会被整段跳过，避免每个事件都阻塞 2-4s。
- * @param v true=开启演出模式，false=快进/静默模式
- */
-export function setCinematicEnabled(v: boolean): void {
-  cinematicEnabled = v
-}
 
 const locks: Record<string, boolean> = {
   attack: false,
@@ -207,7 +194,7 @@ async function attack(from: string, to: string, text?: string): Promise<OrderRes
   const duration = 2000
   locks.attack = true
   try {
-    if (_camera && cinematicEnabled) {
+    if (_camera) {
       // 镜头演出：放大 A → 跟随行军平移到 B → 演出后归位
       const before = _camera.snapshot()
       _camera.setLocked(true)
@@ -259,7 +246,7 @@ async function scout(from: string, text?: string): Promise<OrderResult> {
   const duration = 1800
   locks.scout = true
   try {
-    if (_camera && cinematicEnabled) {
+    if (_camera) {
       const before = _camera.snapshot()
       _camera.setLocked(true)
       await _camera.focusOn(from, 600)
@@ -305,7 +292,7 @@ async function declareWar(from: string, to: string, text?: string): Promise<Orde
   const duration = 2000
   locks.war = true
   try {
-    if (_camera && cinematicEnabled) {
+    if (_camera) {
       const before = _camera.snapshot()
       _camera.setLocked(true)
       await _camera.focusOn(from, 600)
@@ -349,11 +336,9 @@ async function declareWar(from: string, to: string, text?: string): Promise<Orde
  * 云雾蒙太奇（时间流逝演出）。
  * AI 可用它把「回合推进 / 政权重洗」等状态切换藏进雾里：
  *   await cloudTransition({ onMidpoint: () => setCurrentDate('1931-11-01') })
- * 快进模式下（cinematicEnabled=false）直接跳过，不阻塞事件流。
  */
 async function cloudTransition(opts?: CloudOptions): Promise<OrderResult> {
   if (!_app) return { ok: false, reason: 'gameOrders 未注入 PixiJS app' }
-  if (!cinematicEnabled) return { ok: true }
   _camera?.setLocked(true)
   try {
     await playCloudTransition(_app, opts)
@@ -502,11 +487,10 @@ export function restoreActiveAnimations(): void {
  * 占领功能（组合入口）：先播放占领动画，再提交状态变更。
  *
  * 1. 播放占领动画：在目标城高亮轮廓（新城主配色）+ 向外扩散圆环 + 弹字；
- *    有相机且处于普通演出模式（`cinematicEnabled`）时，先聚焦目标城、演完归位。
+ *    有相机时先聚焦目标城、演完归位。
  * 2. 动画播完后再调 `captureCity`（→ applyEvent `capture`）变更城市归属（可选写入新驻军）。
  *
- * 语义：先动画、后 applyEvent（用户拍板）。快进（长跳蒙太奇）模式下跳过逐事件动画，
- * 由蒙太奇统一演出，但状态变更仍照常提交——"快进 ≠ 跳过动画"。
+ * 语义：先动画、后 applyEvent（用户拍板）。
  *
  * @param gb          城市 gb 编码
  * @param owner       占领方政权（Owner 枚举，类型安全）
@@ -519,23 +503,21 @@ async function capture(gb: string, owner: Owner, resultTroops?: number): Promise
   const duration = 1500
 
   // 1) 先播放占领动画
-  if (cinematicEnabled) {
-    if (_camera) {
-      const before = _camera.snapshot()
-      _camera.setLocked(true)
-      try {
-        await _camera.focusOn(gb, 500)
-        await playCaptureAnimation({ targetId: gb, container: _container, color, text: '占领！', duration })
-        await _camera.reset(before)
-      } finally {
-        _camera.setLocked(false)
-      }
-    } else {
+  if (_camera) {
+    const before = _camera.snapshot()
+    _camera.setLocked(true)
+    try {
+      await _camera.focusOn(gb, 500)
       await playCaptureAnimation({ targetId: gb, container: _container, color, text: '占领！', duration })
+      await _camera.reset(before)
+    } finally {
+      _camera.setLocked(false)
     }
+  } else {
+    await playCaptureAnimation({ targetId: gb, container: _container, color, text: '占领！', duration })
   }
 
-  // 2) 动画播完（或快进省略动画）后再提交状态
+  // 2) 动画播完后再提交状态
   captureCity(gb, owner, resultTroops)
   return { ok: true }
 }

@@ -7,13 +7,13 @@
  * 关键语义（来自 grill 结论）：
  * - 调试 AI = god-mode，校验只查结构、不查战略合法性。
  * - 每条指令执行前对世界态打快照，支持单步撤销。
- * - 实时改图 + store；动画受 cinematic 开关控制（调试默认关闭以提速）。
+ * - 实时改图 + store；指令执行均带 PixiJS 演出动画。
  */
 
-import { ref, watch } from 'vue'
+import { ref } from 'vue'
 import { useAiChat } from './useAiChat'
 import { useGameStore } from '@/stores/game'
-import { executeOrder, setCinematicEnabled, resetBattleRuntime } from '@/utils/gameOrders'
+import { executeOrder, resetBattleRuntime } from '@/utils/gameOrders'
 import { buildMessages, buildSystemPrompt } from '@/utils/aiPromptBuilder'
 import { validateOrders, type BatchValidation } from '@/utils/aiOrderContract'
 import type { GameOrder } from '@/utils/gameOrders'
@@ -81,16 +81,10 @@ export function useAiDebug() {
   const userMessage = ref('')
   // 默认不注入世界态快照（aiPromptBuilder.ts 中已注释原因）；调试时可在面板手动勾选开启。
   const injectContext = ref(false)
-  const cinematic = ref(true)
   const parsed = ref<BatchValidation | null>(null)
   const parseError = ref<string | null>(null)
   const execResults = ref<ExecResult[]>([])
   const undoStack = ref<UndoFrame[]>([])
-
-  // 默认开启演出动画：AI 执行的指令（attack / scout / declareWar / capture / cloud）都会播放；
-  // 调试面板「播放动画」复选框取消勾选可提速（此时 attack 等仍播基础行军动画，capture/cloud 会跳过）。
-  setCinematicEnabled(cinematic.value)
-  watch(cinematic, (v) => setCinematicEnabled(v))
 
   async function runSend() {
     if (!userMessage.value.trim()) return
@@ -184,7 +178,6 @@ export function useAiDebug() {
     systemPrompt,
     userMessage,
     injectContext,
-    cinematic,
     loading,
     error,
     response,

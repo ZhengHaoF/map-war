@@ -1,14 +1,10 @@
 <template>
   <div class="ai-debug">
-    <!-- 工具栏：上下文注入 / 动画 / 撤销 / 重置 -->
+    <!-- 工具栏：上下文注入 / 撤销 / 重置 -->
     <div class="ai-toolbar">
       <label class="ai-toggle">
         <input type="checkbox" v-model="injectContext" />
         注入世界态
-      </label>
-      <label class="ai-toggle">
-        <input type="checkbox" v-model="cinematic" />
-        播放动画
       </label>
       <GameButton size="small" :disabled="!undoStack.length" @click="undo">
         <component :is="ICONS.undo" :size="14" />撤销
@@ -134,7 +130,6 @@ const {
   systemPrompt,
   userMessage,
   injectContext,
-  cinematic,
   loading,
   error,
   response,

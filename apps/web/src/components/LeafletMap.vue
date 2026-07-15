@@ -1029,7 +1029,7 @@ const cameraController = {
   reset(target: CameraTarget, duration = 500): Promise<void> {
     return animateCameraTo(target, duration)
   },
-  /** 取消进行中的镜头补间并解锁（ESC / 快进跳过） */
+  /** 取消进行中的镜头补间并解锁（ESC 中断演出） */
   cancel(): void {
     cameraInterrupt = true
     if (cameraRaf) {
