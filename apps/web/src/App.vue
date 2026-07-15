@@ -144,5 +144,43 @@ body.cloud-active .map-ui {
   opacity: 0;
   pointer-events: none;
 }
+
+/* ── 自定义滚动条：羊皮纸凹槽 + 朱砂铜制滑块 ── */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+/* 轨道：嵌进羊皮纸的一道浅凹槽 */
+::-webkit-scrollbar-track {
+  background: rgba(138, 109, 75, 0.10);
+  border-radius: 8px;
+  box-shadow: inset 0 0 4px rgba(60, 40, 15, 0.14);
+}
+/* 滑块：铜褐渐变 + 浅顶高光，像刻出的铜件 */
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #a8885a 0%, #6b4e2e 100%);
+  border-radius: 8px;
+  border: 1px solid rgba(44, 26, 10, 0.35);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 240, 210, 0.30),
+    0 1px 2px rgba(60, 40, 15, 0.20);
+}
+/* 悬停：转朱砂红，呼应印章/封蜡主题 */
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, var(--cinnabar-bright) 0%, var(--cinnabar-deep) 100%);
+  border-color: var(--cinnabar-edge);
+}
+::-webkit-scrollbar-thumb:active {
+  background: linear-gradient(180deg, var(--cinnabar-deep2) 0%, var(--cinnabar-edge) 100%);
+}
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Firefox 兼容 */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #6b4e2e rgba(138, 109, 75, 0.10);
+}
 </style>
 
