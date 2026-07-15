@@ -172,6 +172,10 @@ export interface BattleAnimationOptions {
   spacing?: number
   /** 每帧移动速度 */
   speed?: number
+  /** 战斗弹字文案（可选；默认由调用方计算“XX 与 XX 交战”，AI 可覆盖） */
+  text?: string
+  /** 弹字颜色（默认朱红 0xff4444） */
+  textColor?: number
 }
 
 export interface CaptureAnimationOptions {
@@ -499,6 +503,8 @@ export function startBattleAnimation({
   dotsB = 3,
   spacing = 0.15,
   speed = 0.004,
+  text,
+  textColor,
 }: BattleAnimationOptions): BattleHandle {
   const from = resolveLocationXY(fromId)
   const to = resolveLocationXY(toId)
@@ -520,6 +526,9 @@ export function startBattleAnimation({
     x: (p0.x + p2.x) / 2,
     y: Math.min(p0.y, p2.y) - Math.abs(p2.x - p0.x) * 0.3,
   }
+
+  // 战斗弹字：在光束中点浮出（AI 可覆盖文案），与镜头平行 —— 方案 A：光束亮起即弹
+  showPopupText(container, bezier(0.5, p0, p1, p2), text, textColor ?? 0xff4444)
 
   const animGfx = new Graphics()
   container.addChild(animGfx)

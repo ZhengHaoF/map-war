@@ -375,7 +375,7 @@ export async function playTimeJump(date: string): Promise<OrderResult> {
  * @param to   交战方 B 城 id
  * @returns 带战斗 id 的结果；坐标解析失败或重复时 ok=false
  */
-async function battle(from: string, to: string): Promise<BattleOrderResult> {
+async function battle(from: string, to: string, text?: string): Promise<BattleOrderResult> {
   if (!_container) return { ok: false, reason: 'gameOrders 未初始化' }
   if (locks.battle) return { ok: false, reason: '战斗动画进行中' }
 
@@ -392,6 +392,7 @@ async function battle(from: string, to: string): Promise<BattleOrderResult> {
       container: _container,
       colorA: 0x3b82f6,
       colorB: 0xef4444,
+      text: text ?? `${getLocationName(from)} 与 ${getLocationName(to)} 交战`,
     })
 
     if (!b.graphics) {
@@ -638,7 +639,7 @@ export async function executeOrder(
       const toId = resolveLocationId(json.to!)
       if (!fromId) return { ok: false, reason: `A 方城市不存在: ${json.from}` }
       if (!toId) return { ok: false, reason: `B 方城市不存在: ${json.to}` }
-      return battle(fromId, toId)
+      return battle(fromId, toId, json.text)
     }
 
     case 'stopBattle':
