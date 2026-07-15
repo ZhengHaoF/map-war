@@ -13,6 +13,7 @@
  *   resetBattleRuntime    清空战斗注册表（调试 / 重置用）
  *   restoreActiveAnimations  读档后重建战斗动画（load 用）
  *   executeOrder          ★ 唯一指令入口（AI 与 UI 都应走这里）
+ *   playTimeJump          时间跳跃演出（云雾蒙太奇 + 推进日期，onMidpoint 改钟）
  *
  * 使用方式：
  *   import { init, resetBattleRuntime, restoreActiveAnimations, executeOrder } from '@/utils/gameOrders'
@@ -93,6 +94,8 @@ export interface GameOrder {
   faction?: Owner // setFactionAlive / setCurrentFaction 目标势力
   alive?: boolean // setFactionAlive：true=存活，false=灭亡
   date?: string // setCurrentDate：ISO 日期
+  // 调度层可选字段（Agent-Kernel）：执行到此项后是否把控制权交还玩家
+  needsPlayerDecision?: boolean
 }
 
 // ─── 相机控制接口（由 LeafletMap 依赖注入）───
@@ -127,6 +130,7 @@ const locks: Record<string, boolean> = {
   attack: false,
   scout: false,
   war: false,
+  battle: false,
 }
 
 const battleRegistry = new Map<string, BattleEntry>()
@@ -349,54 +353,86 @@ async function cloudTransition(opts?: CloudOptions): Promise<OrderResult> {
 }
 
 /**
+ * 时间跳跃演出（云雾蒙太奇）。
+ * 把「日期推进」藏进云雾：云盖满屏幕的那一刻（onMidpoint）才改日期，
+ * 揭开后玩家看到的是新日期的世界。无 PixiJS app 时降级为直接推进日期。
+ * @param date ISO 格式日期字符串，如 '1931-10-01'
+ */
+export async function playTimeJump(date: string): Promise<OrderResult> {
+  if (!_app) {
+    setCurrentDate(date) // 降级：无 app 时直接推进（如测试环境）
+    return { ok: true }
+  }
+  return cloudTransition({ onMidpoint: () => setCurrentDate(date) })
+}
+
+/**
  * 注册一场持续战斗动画（from ↔ to 双向拉锯光束），并写回响应式战斗列表。
- * 非 await —— 战斗为常驻动画，直到 stopBattle/stopBattles 才停止；
+ * 交战光束先亮起（常驻动画），随后镜头演出参考 declareWar：聚焦出发城 →
+ * 跟随行军到目标城 → 演完归位，带你“看一眼前线”；光束不依赖镜头、归位后仍常驻。
  * 同一方向已存在战斗时拒绝重复注册。
  * @param from 交战方 A 城 id
  * @param to   交战方 B 城 id
  * @returns 带战斗 id 的结果；坐标解析失败或重复时 ok=false
  */
-function battle(from: string, to: string): BattleOrderResult {
+async function battle(from: string, to: string): Promise<BattleOrderResult> {
   if (!_container) return { ok: false, reason: 'gameOrders 未初始化' }
+  if (locks.battle) return { ok: false, reason: '战斗动画进行中' }
 
   if (hasActiveBattle(from, to)) {
     return { ok: false, reason: `已存在 ${from} → ${to} 的战斗` }
   }
 
-  const b = startBattleAnimation({
-    fromId: from,
-    toId: to,
-    container: _container,
-    colorA: 0x3b82f6,
-    colorB: 0xef4444,
-  })
+  locks.battle = true
+  try {
+    // ① 先起交战动画（常驻光束，独立于镜头）
+    const b = startBattleAnimation({
+      fromId: from,
+      toId: to,
+      container: _container,
+      colorA: 0x3b82f6,
+      colorB: 0xef4444,
+    })
 
-  if (!b.graphics) {
-    return { ok: false, reason: '战斗动画创建失败（无法解析坐标）' }
+    if (!b.graphics) {
+      return { ok: false, reason: '战斗动画创建失败（无法解析坐标）' }
+    }
+
+    const id = `battle_${++battleIdCounter}`
+
+    battleRegistry.set(id, {
+      from,
+      to,
+      fromName: getLocationName(from),
+      toName: getLocationName(to),
+    })
+
+    activeBattles.set(id, { battle: b })
+
+    // 桥接：同步元数据进响应式 store，战斗面板自动刷新（经 applyEvent 进事件日志）
+    useGameStore().applyEvent({
+      type: 'battleStart',
+      battleId: id,
+      fromGb: from,
+      targetGb: to,
+      fromName: getLocationName(from),
+      toName: getLocationName(to),
+    })
+
+    // ② 镜头演出与交战并行：聚焦出发城 → 跟随行军到目标城 → 演完归位（参考 declareWar）
+    if (_camera) {
+      const before = _camera.snapshot()
+      _camera.setLocked(true)
+      await _camera.focusOn(from, 600)
+      await _camera.followTo(to, 2000)
+      await _camera.reset(before)
+      _camera.setLocked(false)
+    }
+
+    return { ok: true, id }
+  } finally {
+    locks.battle = false
   }
-
-  const id = `battle_${++battleIdCounter}`
-
-  battleRegistry.set(id, {
-    from,
-    to,
-    fromName: getLocationName(from),
-    toName: getLocationName(to),
-  })
-
-  activeBattles.set(id, { battle: b })
-
-  // 桥接：同步元数据进响应式 store，战斗面板自动刷新（经 applyEvent 进事件日志）
-  useGameStore().applyEvent({
-    type: 'battleStart',
-    battleId: id,
-    fromGb: from,
-    targetGb: to,
-    fromName: getLocationName(from),
-    toName: getLocationName(to),
-  })
-
-  return { ok: true, id }
 }
 
 /**

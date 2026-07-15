@@ -13,5 +13,5 @@ export interface CityData {
   morale?: number // 城市士气 0-100；势力士气 = 按兵力加权的各城 morale 均值（派生）
 }
 
-// 初始局势种子（1931-09-18），裸数据见 ./chinaCities.seed.json
+// 初始局势种子（1931-04-01），裸数据见 ./chinaCities.seed.json
 export const chinaCities = raw as CityData[]

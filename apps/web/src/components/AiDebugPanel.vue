@@ -39,9 +39,17 @@
         <component :is="ICONS.send" :size="16" />
         {{ loading ? '请求中...' : '发送' }}
       </GameButton>
-      <GameButton :disabled="!parsed || loading" @click="runExecute">
-        <component :is="ICONS.play" :size="16" />执行校验通过的指令
+      <GameButton
+        :disabled="!parsed || loading || status === 'running'"
+        @click="runAdvanceQueue"
+        :active="status === 'running'"
+      >
+        <component :is="ICONS.play" :size="16" />{{ advanceLabel }}
       </GameButton>
+      <span class="ai-sched-status">队列 {{ queue.length }} · {{ statusText }}</span>
+    </div>
+    <div v-if="status === 'stopped'" class="ai-stopped">
+      ⏸ 已在指令 <b>{{ stoppedAt?.order }}</b> 处停下，等待玩家决策。再次点击「推进」继续播放。
     </div>
 
     <div v-if="error" class="ai-error">{{ error }}</div>
@@ -105,6 +113,7 @@
 <script setup lang="ts">
 import { ref, computed, reactive } from 'vue'
 import { useAiDebug } from '@/composables/useAiDebug'
+import { useGameScheduler } from '@/composables/useGameScheduler'
 import GameButton from '@/components/ui/GameButton.vue'
 import { resolveLocationId, searchLocationNames } from '@/utils/locationResolver'
 import type { Component } from 'vue'
@@ -138,10 +147,49 @@ const {
   execResults,
   undoStack,
   runSend,
-  runExecute,
   undo,
   resetWorld,
 } = useAiDebug()
+
+// Agent-Kernel 调度器（P0）：唯一执行路径 —— 队列 + 推进循环 + 停/续
+const { queue, status, stoppedAt, submit, advance } = useGameScheduler()
+
+const statusText = computed(() => {
+  switch (status.value) {
+    case 'running':
+      return '推进中…'
+    case 'done':
+      return '已跑完'
+    case 'stopped':
+      return '已停下（等决策）'
+    default:
+      return '空闲'
+  }
+})
+
+/** 按钮文案随状态切换：「推进」→「推进中…」→「继续推进」 */
+const advanceLabel = computed(() => {
+  if (status.value === 'running') return '推进中…'
+  if (status.value === 'stopped') return '继续推进'
+  return '推进'
+})
+
+/**
+ * 唯一执行入口：把当前解析结果里通过校验的指令入队并串行播放。
+ * - 首次点击：入队全部校验通过的指令 → advance() 逐条消费。
+ * - 停下后再次点击：不重复入队，直接把剩余队列续播完（停/续语义）。
+ * - setCurrentDate 自动走 playTimeJump（云雾蒙太奇）。
+ */
+async function runAdvanceQueue(): Promise<void> {
+  if (!parsed.value) return
+  // 非停下状态 → 首次或重新发送后：入队校验通过的全部指令
+  if (status.value !== 'stopped') {
+    const valid = parsed.value.orders.filter((_, i) => !parsed.value!.errors[i].length)
+    if (!valid.length) return
+    submit(valid)
+  }
+  await advance()
+}
 
 const cards = reactive({ raw: false })
 
@@ -234,6 +282,29 @@ const rawJson = computed(() => (response.value ? JSON.stringify(response.value, 
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+  align-items: center;
+}
+
+.ai-sched-status {
+  font-size: 12px;
+  color: var(--ink-muted);
+  padding: 2px 8px;
+  border: 1px solid var(--brown-line-faint);
+  border-radius: 4px;
+  background: var(--paper-faint);
+}
+
+.ai-stopped {
+  font-size: 12px;
+  color: var(--danger-ink);
+  background: var(--danger-bg);
+  border: 1px solid var(--danger-ink);
+  border-radius: 6px;
+  padding: 8px 12px;
+}
+
+.ai-stopped b {
+  color: var(--cinnabar);
 }
 
 .ai-error {
@@ -354,7 +425,8 @@ const rawJson = computed(() => (response.value ? JSON.stringify(response.value, 
   background: var(--paper-dark);
   border-radius: 6px;
   padding: 12px;
-  max-height: 240px;
+  min-height: 160px;
+  max-height: 400px;
   overflow: auto;
 }
 </style>

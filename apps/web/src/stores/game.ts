@@ -240,7 +240,7 @@ export const useGameStore = defineStore('game', () => {
       }
     }
     cities.value = seed // 一次替换，一次触发
-    currentDate.value = '1931-09-18'
+    currentDate.value = '1931-04-01'
     playerName.value = ''
     currentFaction.value = null
     eventLog.value = [] // 重置事件日志
