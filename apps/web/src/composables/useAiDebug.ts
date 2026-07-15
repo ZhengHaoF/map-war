@@ -73,6 +73,19 @@ function extractPayloads(raw: unknown): unknown[] {
   return payloads
 }
 
+/** 判断是否 {"data": [...]} 包裹形式（json_object 模式要求对象根，AI 不能裸返回数组）。 */
+function isWrapped(obj: unknown): boolean {
+  return !!obj && typeof obj === 'object' && !Array.isArray(obj) && Array.isArray((obj as any).data)
+}
+
+/** 拆掉 {data:[...]} 外层，返回纯指令数组（兼容单条包裹 / 多条包裹 / 裸数组）。 */
+function unwrapData(obj: unknown): unknown {
+  if (Array.isArray(obj)) {
+    return obj.flatMap((p) => (isWrapped(p) ? (p as any).data : [p]))
+  }
+  return isWrapped(obj) ? (obj as any).data : obj
+}
+
 export function useAiDebug() {
   const store = useGameStore()
   const { loading, error, response, send } = useAiChat()
@@ -111,7 +124,8 @@ export function useAiDebug() {
     }
     // 多条 payload（如 content 一条 + tool_calls 若干）合并校验
     const merged = payloads.length === 1 ? payloads[0] : payloads
-    parsed.value = validateOrders(merged)
+    // 拆掉 {data:[...]} 外层（json_object 模式下 AI 只能回对象根）
+    parsed.value = validateOrders(unwrapData(merged))
   }
 
   async function runExecute() {

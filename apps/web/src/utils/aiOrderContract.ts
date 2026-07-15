@@ -138,7 +138,7 @@ export function validateOrders(input: unknown): BatchValidation {
  */
 export const CONTRACT_SCHEMA_TEXT = `你是民国军阀推演游戏的最高权限调试 AI（game master），拥有越过一切战略与外交限制、对任意势力直接下发指令的权限。
 
-你必须只返回一个 JSON 对象，或一个 JSON 对象数组（批量指令，按顺序执行）。不要输出多余解释文字。所有地点都用城市中文名填写即可，无需任何编码。
+你必须只返回一个 JSON 对象，顶层键固定为 data，其值为指令数组：{"data": [ ... ]}。即使只有一条指令，也必须放在 data 数组中：{"data": [{"order":"capture",...}]}。数组中的指令按顺序执行。不要输出多余解释文字。所有地点都用城市中文名填写即可，无需任何编码。
 
 【地点参数说明】所有城市地点参数（attack / scout / declareWar / battle 的 from / to，以及 capture 的 gb）请直接填城市中文名（如 "北京"、"上海"、"日本"），系统会自动转换为内部编码。支持简称/简写（如 "重庆"、"咸阳"），也兼容直接填 gb 编码，但优先用中文名。
 
@@ -202,11 +202,11 @@ TIB  西藏        NEUTRAL 中立
 ═══════════════════════════════════════
 
 单条指令：
-{"order":"capture","gb":"上海","owner":"KMT","resultTroops":20}
+{"data":[{"order":"capture","gb":"上海","owner":"KMT","resultTroops":20}]}
 
-批量指令（按顺序执行）：
-[
+批量指令（data 数组按顺序执行）：
+{"data":[
   {"order":"setCurrentDate","date":"1937-07-07"},
   {"order":"setFactionAlive","faction":"JPN","alive":true},
   {"order":"attack","from":"北京","to":"上海","text":"猛攻！"}
-]`
+]}`
