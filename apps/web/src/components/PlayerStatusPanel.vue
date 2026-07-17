@@ -464,7 +464,7 @@ function focusBattle(id: string): void {
 
 .rail-color {
   width: 10px;
-  height: 46px;
+  height: 20px;
   border-radius: 3px;
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.15) inset;
 }

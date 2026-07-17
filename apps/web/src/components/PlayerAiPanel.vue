@@ -272,8 +272,10 @@ async function onSend(): Promise<void> {
 
 .dock-btns {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: auto;
 }
 
 .dock-status {
