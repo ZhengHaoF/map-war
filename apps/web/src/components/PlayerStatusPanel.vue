@@ -125,7 +125,7 @@ const ICONS: Record<string, Component> = {
 
 const gameStore = useGameStore()
 
-const collapsed = ref(false)
+const collapsed = ref(true)
 const showCities = ref(false)
 
 const faction = computed(() => gameStore.currentFaction)
