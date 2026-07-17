@@ -235,12 +235,19 @@ watch(
   border: 1px solid rgba(138, 109, 75, 0.28);
   border-radius: 2px;
   box-shadow: 0 1px 3px rgba(90, 60, 20, 0.05);
-  transition: all 0.15s ease;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    border-color 0.15s ease;
 }
 
 .save-card:hover {
   border-color: rgba(138, 109, 75, 0.5);
   box-shadow: 0 3px 8px rgba(90, 60, 20, 0.1);
+}
+
+.save-card:active {
+  transform: scale(0.99);
 }
 
 .card-main {
@@ -320,7 +327,12 @@ watch(
   cursor: pointer;
   letter-spacing: 2px;
   font-family: 'KaiTi', 'KaiTi_GB2312', 'SimSun', serif;
-  transition: all 0.15s ease;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
   border: 1px solid rgba(138, 109, 75, 0.4);
   background: var(--paper-hi);
   color: var(--ink-mid);
@@ -329,6 +341,12 @@ watch(
 
 .act-btn:hover {
   transform: translateY(-1px);
+}
+
+/* 按下即时反馈（Apple §1）：从悬停抬升回到下沉，明确"按下" */
+.act-btn:active {
+  transform: translateY(1px) scale(0.97);
+  transition: transform 80ms ease-out;
 }
 
 .act-btn.load {
@@ -394,7 +412,9 @@ watch(
   border-radius: 3px;
   cursor: pointer;
   font-family: 'KaiTi', 'KaiTi_GB2312', 'SimSun', serif;
-  transition: all 0.15s ease;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
   box-shadow:
     0 0 0 2px var(--paper),
     0 0 0 3px var(--cinnabar-deep),
@@ -402,6 +422,11 @@ watch(
   margin-top: 6px;
   position: relative;
   overflow: hidden;
+}
+
+.new-btn:active {
+  transform: translateY(1px) scale(0.97);
+  transition: transform 80ms ease-out;
 }
 
 .new-btn::before {

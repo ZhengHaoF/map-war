@@ -1,26 +1,28 @@
 <template>
   <Teleport defer to="body">
-    <div
-      v-if="visible"
-      class="modal-overlay"
-      :class="{ transparent: overlay === false }"
-      :style="{ zIndex: zIndex ?? 3000 }"
-      @click.self="closable ? $emit('close') : undefined"
-    >
+    <Transition name="modal">
       <div
-        class="modal"
-        :class="{ draggable, parchment: variant === 'parchment' }"
-        :style="modalStyle"
+        v-if="visible"
+        class="modal-overlay"
+        :class="{ transparent: overlay === false }"
+        :style="{ zIndex: zIndex ?? 3000 }"
+        @click.self="closable ? $emit('close') : undefined"
       >
-        <div class="modal-header" :class="{ draggable }" @mousedown.prevent="onDragStart">
-          <span class="modal-title">{{ title }}</span>
-          <span v-if="closable" class="modal-close" @click="onCloseClick">&times;</span>
-        </div>
-        <div class="modal-body">
-          <slot />
+        <div
+          class="modal"
+          :class="{ draggable, parchment: variant === 'parchment' }"
+          :style="modalStyle"
+        >
+          <div class="modal-header" :class="{ draggable }" @mousedown.prevent="onDragStart">
+            <span class="modal-title">{{ title }}</span>
+            <span v-if="closable" class="modal-close" @click="onCloseClick">&times;</span>
+          </div>
+          <div class="modal-body">
+            <slot />
+          </div>
         </div>
       </div>
-    </div>
+    </Transition>
   </Teleport>
 </template>
 
@@ -223,5 +225,48 @@ function onCloseClick(): void {
 
 .modal-body {
   padding: 12px 20px 20px;
+}
+
+/* ── 物质化入场（Apple §7 / §12）：遮罩淡入 + 弹窗缩放+模糊，原路退场 ──
+   用独立 `scale` 属性而非 transform，避免与 draggable Modal 的内联 transform:none 冲突。 */
+.modal-enter-active,
+.modal-leave-active {
+  transition: opacity 0.22s ease;
+}
+.modal-enter-active .modal,
+.modal-leave-active .modal {
+  transition:
+    scale 0.24s cubic-bezier(0.34, 1.32, 0.64, 1),
+    filter 0.22s ease,
+    opacity 0.22s ease;
+}
+.modal-enter-from,
+.modal-leave-to {
+  opacity: 0;
+}
+.modal-enter-from .modal,
+.modal-leave-to .modal {
+  scale: 0.96;
+  filter: blur(8px);
+  opacity: 0;
+}
+.modal-enter-to .modal,
+.modal-leave-from .modal {
+  scale: 1;
+  filter: blur(0);
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modal-enter-active,
+  .modal-leave-active {
+    transition: opacity 0.2s ease !important;
+  }
+  .modal-enter-from .modal,
+  .modal-leave-to .modal {
+    scale: 1 !important;
+    filter: none !important;
+    opacity: 0 !important;
+  }
 }
 </style>

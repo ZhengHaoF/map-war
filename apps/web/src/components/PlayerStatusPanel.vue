@@ -202,12 +202,23 @@ function focusBattle(id: string): void {
   cursor: pointer;
   z-index: 2;
   box-shadow: 0 1px 3px rgba(60, 40, 15, 0.25);
+  transition:
+    transform 0.12s ease,
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
 }
 
 .psp-toggle:hover {
   background: linear-gradient(to bottom, var(--paper-hi), var(--paper-hi2));
   border-color: var(--cinnabar);
   color: var(--cinnabar-ink);
+}
+
+/* 按下即时缩放反馈（Apple §1） */
+.psp-toggle:active {
+  transform: scale(0.9);
+  transition: transform 80ms ease-out;
 }
 
 .psp-header {
@@ -336,11 +347,16 @@ function focusBattle(id: string): void {
   align-items: center;
   justify-content: space-between;
   letter-spacing: 1px;
+  transition: transform 0.12s ease, background-color 0.15s ease, border-color 0.15s ease;
 }
 
 .city-list-toggle:hover {
   background: var(--paper-hi);
   border-color: var(--cinnabar);
+}
+
+.city-list-toggle:active {
+  transform: scale(0.98);
 }
 
 .city-list {
@@ -359,12 +375,16 @@ function focusBattle(id: string): void {
   padding: 6px 8px;
   border-radius: 5px;
   cursor: pointer;
-  transition: background 0.12s;
+  transition: transform 0.1s ease, background 0.12s;
 }
 
 .city-list li:hover {
   background: var(--paper-hi);
   box-shadow: 0 0 0 1px var(--cinnabar-ring) inset;
+}
+
+.city-list li:active {
+  transform: scale(0.98);
 }
 
 .city-name {
@@ -407,11 +427,16 @@ function focusBattle(id: string): void {
   border: 1px solid rgba(138, 109, 75, 0.25);
   margin-bottom: 6px;
   font-size: 13px;
+  transition: transform 0.1s ease, background 0.12s;
 }
 
 .battle-list li:hover {
   background: var(--paper-hi);
   box-shadow: 0 0 0 1px var(--cinnabar-ring) inset;
+}
+
+.battle-list li:active {
+  transform: scale(0.98);
 }
 
 .b-arrow {
@@ -460,6 +485,11 @@ function focusBattle(id: string): void {
   padding: 14px 0;
   height: 100%;
   cursor: pointer;
+  transition: transform 0.12s ease;
+}
+
+.psp-rail:active {
+  transform: scale(0.95);
 }
 
 .rail-color {

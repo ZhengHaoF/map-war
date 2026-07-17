@@ -35,8 +35,9 @@ const { toasts, dismiss } = useToast()
   pointer-events: none;
 }
 
-/* 入场：自顶部下滑 + 淡入；出场：向右淡出 */
-.toast-enter-from {
+/* 入场/出场同路径（Apple §7）：统一自顶部下滑 + 淡入，退场原路滑回上方淡出 */
+.toast-enter-from,
+.toast-leave-to {
   opacity: 0;
   transform: translateY(-14px);
 }
@@ -44,12 +45,19 @@ const { toasts, dismiss } = useToast()
 .toast-leave-active {
   transition: opacity 0.28s ease, transform 0.28s ease;
 }
-.toast-leave-to {
-  opacity: 0;
-  transform: translateX(28px);
-}
 /* 列表重排时的平滑位移 */
 .toast-move {
   transition: transform 0.28s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast-enter-active,
+  .toast-leave-active {
+    transition: opacity 0.2s ease !important;
+  }
+  .toast-enter-from,
+  .toast-leave-to {
+    transform: none !important;
+  }
 }
 </style>

@@ -30,7 +30,13 @@ defineEmits<{
   color: #fff;
   font-size: 14px;
   cursor: pointer;
-  transition: all 0.2s;
+  /* 只过渡可被合成器加速的属性，避免渐变背景重绘掉帧（Apple §11） */
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
   backdrop-filter: blur(4px);
 }
 
@@ -44,9 +50,18 @@ defineEmits<{
   border-color: rgba(255, 255, 255, 0.5);
 }
 
+/* 按下即时反馈（Apple §1）：pointerdown 即缩放，不等 click 抬起 */
+.game-btn:active {
+  transform: scale(0.96);
+  transition: transform 80ms ease-out;
+}
+
+/* 重染孤儿蓝（原 rgba(59,130,246)，与全站朱砂语义冲突）→ 改用游戏统一朱砂强调色，
+   让所有激活态讲同一种语言；parchment 变体的 .active 仍走下方更深的纸面朱砂态 */
 .game-btn.active {
-  background: rgba(59, 130, 246, 0.8);
-  border-color: rgba(59, 130, 246, 1);
+  background: rgba(178, 58, 46, 0.85);
+  border-color: rgba(178, 58, 46, 1);
+  color: #fff;
 }
 
 .game-btn.danger:hover {
@@ -69,6 +84,13 @@ defineEmits<{
   background: linear-gradient(to bottom, var(--paper-hi), var(--paper-hi2));
   border-color: rgba(138, 109, 75, 0.55);
   color: var(--ink-strong);
+}
+
+/* 羊皮纸变体按压：轻微下沉 + 收一点阴影，呼应纸面被按下的触感 */
+.game-btn.parchment:active {
+  transform: scale(0.97);
+  box-shadow: 0 1px 1px rgba(90, 60, 20, 0.1);
+  transition: transform 80ms ease-out;
 }
 
 .game-btn.parchment.active {

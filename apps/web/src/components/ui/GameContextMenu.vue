@@ -1,20 +1,22 @@
 <template>
-  <div
-    v-if="visible"
-    class="context-menu"
-    :style="{ left: (position?.x ?? 0) + 'px', top: (position?.y ?? 0) + 'px' }"
-  >
+  <Transition name="context-menu">
     <div
-      v-for="item in items"
-      :key="item.action"
-      class="context-menu-item"
-      :class="{ danger: item.danger }"
-      @click.stop="$emit('select', item.action)"
+      v-if="visible"
+      class="context-menu"
+      :style="{ left: (position?.x ?? 0) + 'px', top: (position?.y ?? 0) + 'px' }"
     >
-      <component :is="ICONS[item.icon]" v-if="item.icon" :size="16" class="menu-icon" />
-      <span>{{ item.label }}</span>
+      <div
+        v-for="item in items"
+        :key="item.action"
+        class="context-menu-item"
+        :class="{ danger: item.danger }"
+        @click.stop="$emit('select', item.action)"
+      >
+        <component :is="ICONS[item.icon]" v-if="item.icon" :size="16" class="menu-icon" />
+        <span>{{ item.label }}</span>
+      </div>
     </div>
-  </div>
+  </Transition>
 </template>
 
 <script setup lang="ts">
@@ -65,6 +67,33 @@ defineEmits<{
     0 6px 18px rgba(60, 40, 15, 0.25);
   font-family: var(--font-kai);
   letter-spacing: 1px;
+  /* 从触发点（菜单左上角即点击坐标）生长而出（Apple §7 / §12） */
+  transform-origin: top left;
+}
+
+/* 缩放入场：自触发点 scale(0.9) + 淡入，原路退场 */
+.context-menu-enter-active,
+.context-menu-leave-active {
+  transition:
+    opacity 0.16s ease,
+    scale 0.16s cubic-bezier(0.34, 1.32, 0.64, 1);
+}
+.context-menu-enter-from,
+.context-menu-leave-to {
+  opacity: 0;
+  scale: 0.9;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .context-menu-enter-active,
+  .context-menu-leave-active {
+    transition: opacity 0.2s ease !important;
+  }
+  .context-menu-enter-from,
+  .context-menu-leave-to {
+    scale: 1 !important;
+    opacity: 0 !important;
+  }
 }
 
 .context-menu-item {

@@ -419,6 +419,48 @@ let isDragging = false
 let lastPointer: Point = { x: 0, y: 0 }
 let pointerDownPos: Point = { x: 0, y: 0 }
 
+// ─── 缩放软边界（橡皮筋，Apple §9）──
+const ZOOM_MIN = 0.5
+const ZOOM_MAX = 8
+/** 越界后渐进阻力：越超越多增量越小，绝不硬冻住，但仍可轻微越界表示"还活着" */
+function rubberbandClamp(v: number, min: number, max: number): number {
+  if (v >= min && v <= max) return v
+  if (v > max) {
+    const over = v - max
+    return max + over / (1 + over * 2)
+  }
+  const under = min - v
+  return min - under / (1 + under * 2)
+}
+
+let zoomRestRaf: number | null = null
+/** 停在软边界外时，逐帧轻微回弹归位；被镜头补间或下次滚轮接管即放弃 */
+function scheduleZoomRest(): void {
+  if (zoomRestRaf !== null) return
+  const step = (): void => {
+    if (cameraRaf !== null) {
+      zoomRestRaf = null
+      return
+    }
+    if (mapScale > ZOOM_MAX) mapScale = ZOOM_MAX + (mapScale - ZOOM_MAX) * 0.25
+    else if (mapScale < ZOOM_MIN) mapScale = ZOOM_MIN - (ZOOM_MIN - mapScale) * 0.25
+    applyCamera()
+    if (Math.abs(mapScale - ZOOM_MAX) < 0.004 || Math.abs(mapScale - ZOOM_MIN) < 0.004) {
+      mapScale = mapScale > ZOOM_MAX ? ZOOM_MAX : ZOOM_MIN
+      applyCamera()
+      zoomRestRaf = null
+    } else {
+      zoomRestRaf = requestAnimationFrame(step)
+    }
+  }
+  zoomRestRaf = requestAnimationFrame(step)
+}
+
+/** 无障碍：用户偏好减少动态时，程序化镜头直接归位、不做补间（Apple §14） */
+function prefersReducedMotion(): boolean {
+  return typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true
+}
+
 // ─── 计算属性 ───
 
 const legendItems = computed(() =>
@@ -976,6 +1018,15 @@ function applyCamera(): void {
 /** 将相机平滑补间到目标 {scale, x, y} */
 function animateCameraTo(target: CameraTarget, duration: number): Promise<void> {
   return new Promise((resolve) => {
+    // 减少动态偏好：跳过补间，直接归位
+    if (prefersReducedMotion()) {
+      mapScale = target.scale
+      mapX = target.x
+      mapY = target.y
+      applyCamera()
+      resolve()
+      return
+    }
     if (cameraRaf) cancelAnimationFrame(cameraRaf)
     cameraInterrupt = false
     cameraResolve = resolve
@@ -1071,7 +1122,7 @@ function onWheel(e: WheelEvent): void {
   if (cameraLocked) return
 
   const delta = e.deltaY > 0 ? 0.9 : 1.1
-  const newScale = Math.max(0.5, Math.min(8, mapScale * delta))
+  const newScale = rubberbandClamp(mapScale * delta, ZOOM_MIN, ZOOM_MAX)
 
   const scaleRatio = newScale / mapScale
   mapX = mouseX - (mouseX - mapX) * scaleRatio
@@ -1079,6 +1130,8 @@ function onWheel(e: WheelEvent): void {
   mapScale = newScale
 
   applyCamera()
+  // 停在软边界外时轻微回弹归位（可被下一次滚轮 / 镜头补间打断）
+  if (mapScale < ZOOM_MIN || mapScale > ZOOM_MAX) scheduleZoomRest()
 }
 
 function onPointerDown(e: PointerEvent): void {
@@ -1306,7 +1359,12 @@ onUnmounted(() => {
   letter-spacing: 1px;
   font-size: 14px;
   cursor: pointer;
-  transition: all 0.2s;
+  /* 只过渡可加速属性，渐变背景不进过渡（Apple §11） */
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
   box-shadow: 0 1px 2px rgba(90, 60, 20, 0.06);
 }
 
@@ -1314,6 +1372,12 @@ onUnmounted(() => {
   background: linear-gradient(to bottom, var(--paper-hi), var(--paper-hi2));
   border-color: rgba(138, 109, 75, 0.55);
   color: var(--ink-strong);
+}
+
+/* 按下即时缩放反馈（Apple §1） */
+.layer-switcher button:active {
+  transform: scale(0.96);
+  transition: transform 80ms ease-out;
 }
 
 .layer-switcher button.active {

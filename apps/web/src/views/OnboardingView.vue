@@ -672,7 +672,10 @@ function handleEnter() {
   font-size: 14px;
   font-family: 'KaiTi', 'KaiTi_GB2312', 'SimSun', serif;
   letter-spacing: 1px;
-  transition: all 0.15s ease;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    border-color 0.15s ease;
   position: relative;
   box-shadow: 0 1px 2px rgba(90, 60, 20, 0.04);
 }
@@ -691,6 +694,12 @@ function handleEnter() {
   border-color: rgba(138, 109, 75, 0.45);
   transform: translateY(-1px);
   box-shadow: 0 3px 6px rgba(90, 60, 20, 0.08);
+}
+
+/* 按下即时反馈（Apple §1）：从悬停抬升回到下沉，明确"按下" */
+.faction-card:active {
+  transform: translateY(1px) scale(0.98);
+  transition: transform 80ms ease-out;
 }
 
 .faction-card.selected {
@@ -734,7 +743,9 @@ function handleEnter() {
   border-radius: 3px;
   cursor: pointer;
   font-family: 'KaiTi', 'KaiTi_GB2312', 'SimSun', serif;
-  transition: all 0.15s ease;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
   box-shadow:
     0 0 0 2px var(--paper),
     0 0 0 3px var(--cinnabar-deep),
@@ -742,6 +753,11 @@ function handleEnter() {
   margin-top: 6px;
   position: relative;
   overflow: hidden;
+}
+
+.enter-btn:active:not(:disabled) {
+  transform: translateY(1px) scale(0.97);
+  transition: transform 80ms ease-out;
 }
 
 .enter-btn::before {

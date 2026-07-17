@@ -25,10 +25,10 @@
                 @keydown.enter.exact.prevent="onSend"
               ></textarea>
               <div class="dock-btns">
-                <GameButton :disabled="loading" @click="onSend">
+                <GameButton parchment :disabled="loading" @click="onSend">
                   <IconSend :size="16" />{{ loading ? '请求中' : '发送' }}
                 </GameButton>
-                <GameButton size="small" :disabled="!undoStack.length" @click="undo">
+                <GameButton parchment size="small" :disabled="!undoStack.length" @click="undo">
                   <IconUndo :size="14" />撤销
                 </GameButton>
               </div>
@@ -211,6 +211,17 @@ async function onSend(): Promise<void> {
 .dock-collapse-leave-to {
   opacity: 0;
   transform: translateY(-8px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dock-collapse-enter-active,
+  .dock-collapse-leave-active {
+    transition: opacity 0.2s ease !important;
+  }
+  .dock-collapse-enter-from,
+  .dock-collapse-leave-to {
+    transform: none !important;
+  }
 }
 
 /* ===== body ===== */

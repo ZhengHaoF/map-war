@@ -186,5 +186,26 @@ body.cloud-active .map-ui {
   scrollbar-width: thin;
   scrollbar-color: #6b4e2e rgba(138, 109, 75, 0.10);
 }
+
+/* ── 无障碍：前庭敏感用户降级（Apple §14）──
+   保留短促淡入淡出，关闭一切位移 / 缩放 / 模糊等会引发眩晕的运动。
+   各组件内部的 Transition 也各自带 reduced-motion 覆盖，这里兜底所有按钮按压。 */
+@media (prefers-reduced-motion: reduce) {
+  .game-btn:active,
+  .game-btn.parchment:active,
+  .act-btn:active,
+  .new-btn:active,
+  .psp-toggle:active,
+  .city-list-toggle:active,
+  .psp-rail:active,
+  .layer-switcher button:active,
+  .faction-card:active,
+  .enter-btn:active,
+  .context-menu-item:active,
+  .psp-body li:active {
+    transform: none !important;
+    scale: 1 !important;
+  }
+}
 </style>
 
