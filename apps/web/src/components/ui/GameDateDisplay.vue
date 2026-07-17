@@ -136,7 +136,7 @@ const rocYear = computed(() => {
   font-weight: 600;
   letter-spacing: 4px;
   line-height: 1.3;
-  font-family: var(--font-xing);
+  font-family: var(--font-kai);
 }
 
 .date-sub {

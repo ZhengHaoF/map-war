@@ -54,6 +54,7 @@
 
     <div v-if="error" class="ai-error">{{ error }}</div>
     <div v-if="parseError" class="ai-error">{{ parseError }}</div>
+    <div v-if="aiMessage" class="ai-msg">{{ aiMessage }}</div>
 
     <!-- 解析 + 校验结果 -->
     <div v-if="parsed" class="ai-section">
@@ -144,6 +145,7 @@ const {
   response,
   parsed,
   parseError,
+  aiMessage,
   execResults,
   undoStack,
   runSend,
@@ -314,6 +316,17 @@ const rawJson = computed(() => (response.value ? JSON.stringify(response.value, 
   padding: 10px 14px;
   color: var(--danger-ink);
   font-size: 13px;
+}
+
+.ai-msg {
+  background: var(--paper-faint);
+  border: 1px solid var(--brown-line-faint);
+  border-left: 3px solid var(--cinnabar);
+  border-radius: 6px;
+  padding: 10px 14px;
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.6;
 }
 
 .ai-section {

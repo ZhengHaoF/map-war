@@ -1,5 +1,6 @@
 <template>
-  <div ref="mapContainer" class="map-container" @click.self="closeContextMenu">
+  <div class="map-shell">
+    <div ref="mapContainer" class="map-container" @click.self="closeContextMenu">
     <div class="layer-switcher map-ui">
       <GameButton
         v-for="(layer, index) in LAYERS"
@@ -98,7 +99,7 @@
           ><component :is="ICONS['circle-x']" :size="16" />结束战斗</GameButton
         >
         <GameButton v-if="isDev" @click="aiPanelVisible = true"
-          ><component :is="ICONS.brain" :size="16" />AI 调试</GameButton
+          ><component :is="ICONS.brain" :size="16" />世界AI调试</GameButton
         >
         <GameButton @click="playCloudTest"
           ><component :is="ICONS.cloud" :size="16" />云雾切换测试</GameButton
@@ -119,7 +120,7 @@
     </GameModal>
     <GameModal v-if="isDev" class="map-ui"
       :visible="aiPanelVisible"
-      title="AI 调试"
+      title="世界AI调试"
       :z-index="4100"
       variant="parchment"
       width="600px"
@@ -199,6 +200,13 @@
       </div>
     </GameModal>
     <LegendPanel v-if="ownerColorEnabled" class="map-ui" :items="legendItems" />
+    </div>
+    <div class="ai-dock-wrap">
+      <PlayerAiPanel
+        :collapsed="aiDockCollapsed"
+        @toggle="aiDockCollapsed = !aiDockCollapsed"
+      />
+    </div>
     <div class="disclaimer-bar map-ui" @click="disclaimerVisible = true">
       ⚠
       免责声明：本地图数据来源于网络公开数据源，仅供娱乐参考。游戏中的政权划分、边界线等均为虚构设定，不代表任何个人或组织的政治立场，亦不代表对现实世界领土归属的任何主张，不对应、不代表当下世界各国法定领土国界。本人始终坚持遵循以中华人民共和国自然资源部（原国家测绘地理信息局）发布的标准地图。
@@ -229,6 +237,7 @@ import type { Point } from '@/utils/locationResolver'
 import GameButton from '@/components/ui/GameButton.vue'
 import GameContextMenu from '@/components/ui/GameContextMenu.vue'
 import GameModal from '@/components/ui/GameModal.vue'
+import PlayerAiPanel from '@/components/PlayerAiPanel.vue'
 import InfoTable from '@/components/ui/InfoTable.vue'
 import LegendPanel from '@/components/ui/LegendPanel.vue'
 import type { Component } from 'vue'
@@ -370,6 +379,11 @@ const infoCityData = ref<CityData | null>(null)
 const infoCountryData = ref<CountryData | Record<string, unknown> | null>(null)
 const testPanelVisible = ref(false)
 const aiPanelVisible = ref(false)
+/** 底部玩家 AI 操作台是否折叠（折叠时地图区高度回归，触发 onResize 重算相机）。 */
+const aiDockCollapsed = ref(false)
+watch(aiDockCollapsed, () => {
+  nextTick(() => onResize())
+})
 const battleListVisible = ref(false)
 const eventLogPanelVisible = ref(false)
 const battleList = computed(() => useGameStore().battles)
@@ -1249,9 +1263,17 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.map-container {
+.map-shell {
+  position: relative;
   width: 100vw;
   height: 100vh;
+  overflow: hidden;
+}
+
+.map-container {
+  width: 100%;
+  height: 100%;
+  position: relative;
   overflow: hidden;
 }
 
@@ -1311,6 +1333,18 @@ onUnmounted(() => {
   height: 1px;
   background: rgba(138, 109, 75, 0.3);
   margin: 4px 0;
+}
+
+.ai-dock-wrap {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 38px;
+  z-index: 400;
+  display: flex;
+  justify-content: center;
+  padding: 0 16px;
+  pointer-events: none;
 }
 
 .disclaimer-bar {

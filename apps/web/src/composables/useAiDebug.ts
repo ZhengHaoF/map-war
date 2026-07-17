@@ -73,29 +73,55 @@ function extractPayloads(raw: unknown): unknown[] {
   return payloads
 }
 
-/** 判断是否 {"data": [...]} 包裹形式（json_object 模式要求对象根，AI 不能裸返回数组）。 */
-function isWrapped(obj: unknown): boolean {
-  return !!obj && typeof obj === 'object' && !Array.isArray(obj) && Array.isArray((obj as any).data)
+/**
+ * 指令数组的顶层键（过渡期同时兼容旧 data 与新 orders）。
+ * json_object 模式下 AI 只能返回对象根，指令须包在数组里。
+ */
+const ORDER_KEYS = ['orders', 'data'] as const
+
+/** 从顶层对象取出指令数组（按 ORDER_KEYS 顺序命中第一个存在的）。 */
+function pickOrderArray(obj: unknown): unknown[] | null {
+  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return null
+  for (const k of ORDER_KEYS) {
+    const v = (obj as Record<string, unknown>)[k]
+    if (Array.isArray(v)) return v
+  }
+  return null
 }
 
-/** 拆掉 {data:[...]} 外层，返回纯指令数组（兼容单条包裹 / 多条包裹 / 裸数组）。 */
+function isWrapped(obj: unknown): boolean {
+  return pickOrderArray(obj) !== null
+}
+
+/** 拆掉 {orders:[...] | data:[...]} 外层，返回纯指令数组（兼容单条包裹 / 多条包裹 / 裸数组）。 */
 function unwrapData(obj: unknown): unknown {
   if (Array.isArray(obj)) {
-    return obj.flatMap((p) => (isWrapped(p) ? (p as any).data : [p]))
+    return obj.flatMap((p) => (isWrapped(p) ? pickOrderArray(p)! : [p]))
   }
-  return isWrapped(obj) ? (obj as any).data : obj
+  return isWrapped(obj) ? pickOrderArray(obj)! : obj
 }
 
-export function useAiDebug() {
+/** 从顶层对象抽取 AI 的叙事回复（msg 字段，可选）。 */
+function extractAiMessage(obj: unknown): string | null {
+  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return null
+  const m = (obj as Record<string, unknown>).msg
+  return typeof m === 'string' && m.trim() ? m.trim() : null
+}
+
+export type AiMode = 'world' | 'user'
+
+export function useAiDebug(mode: AiMode = 'world') {
   const store = useGameStore()
   const { loading, error, response, send } = useAiChat()
 
-  const systemPrompt = ref(buildSystemPrompt())
+  // 用户模式（玩家势力代理）默认注入按需世界态（玩家城 + 对话城），
+  // 以便 AI 在「进攻杭州」缺省 from 时挑最近己方城市；god-mode 仍默认关、可手动开。
+  const systemPrompt = ref(buildSystemPrompt(mode))
   const userMessage = ref('')
-  // 默认不注入世界态快照（aiPromptBuilder.ts 中已注释原因）；调试时可在面板手动勾选开启。
-  const injectContext = ref(false)
+  const injectContext = ref(mode === 'user')
   const parsed = ref<BatchValidation | null>(null)
   const parseError = ref<string | null>(null)
+  const aiMessage = ref<string | null>(null)
   const execResults = ref<ExecResult[]>([])
   const undoStack = ref<UndoFrame[]>([])
 
@@ -103,6 +129,7 @@ export function useAiDebug() {
     if (!userMessage.value.trim()) return
     parsed.value = null
     parseError.value = null
+    aiMessage.value = null
     execResults.value = []
 
     const messages = buildMessages({
@@ -124,8 +151,9 @@ export function useAiDebug() {
     }
     // 多条 payload（如 content 一条 + tool_calls 若干）合并校验
     const merged = payloads.length === 1 ? payloads[0] : payloads
-    // 拆掉 {data:[...]} 外层（json_object 模式下 AI 只能回对象根）
+    // 拆掉 {orders:[...] | data:[...]} 外层（json_object 模式下 AI 只能回对象根）
     parsed.value = validateOrders(unwrapData(merged))
+    aiMessage.value = extractAiMessage(merged)
   }
 
   async function runExecute() {
@@ -185,6 +213,7 @@ export function useAiDebug() {
     execResults.value = []
     parsed.value = null
     parseError.value = null
+    aiMessage.value = null
   }
 
   return {
@@ -197,6 +226,7 @@ export function useAiDebug() {
     response,
     parsed,
     parseError,
+    aiMessage,
     execResults,
     undoStack,
     // 动作
