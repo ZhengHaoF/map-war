@@ -17,6 +17,7 @@
 import { ref } from 'vue'
 import { executeOrder, playTimeJump } from '@/utils/gameOrders'
 import type { GameOrder } from '@/utils/gameOrders'
+import { useToast } from '@/composables/useToast'
 
 export type AdvanceStatus = 'idle' | 'running' | 'done' | 'stopped'
 
@@ -24,6 +25,7 @@ export type AdvanceStatus = 'idle' | 'running' | 'done' | 'stopped'
 const queue = ref<GameOrder[]>([])
 const status = ref<AdvanceStatus>('idle')
 const stoppedAt = ref<GameOrder | null>(null)
+const { push: pushToast } = useToast()
 
 /**
  * 把一批指令入队（不立即执行）。
@@ -60,12 +62,14 @@ async function advance(): Promise<'done' | 'stopped' | 'running'> {
         // 单条失败不打断整批：告警后继续下一条
         // eslint-disable-next-line no-console
         console.warn('[scheduler] 指令执行失败，跳过：', order, e)
+        pushToast({ icon: 'alert-triangle', tone: 'error', title: '指令出错', text: '推演中一条指令失败，已跳过' })
       }
 
       // 世界 AI 标注「需玩家决策」→ 在此停下交还
       if (order.needsPlayerDecision) {
         stoppedAt.value = order
         status.value = 'stopped'
+        pushToast({ icon: 'alert-triangle', tone: 'cinnabar', title: '请主公定夺', text: '局势有变，控制权已交还' })
         return 'stopped'
       }
     }

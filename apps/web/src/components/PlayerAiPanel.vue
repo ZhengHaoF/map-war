@@ -219,7 +219,7 @@ async function onSend(): Promise<void> {
   flex-direction: column;
   gap: 8px;
   padding: 8px 14px 12px;
-  height: 250px;
+  height: 150px;
   overflow: hidden;
 }
 

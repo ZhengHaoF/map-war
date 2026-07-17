@@ -29,7 +29,8 @@ import type { BattleHandle } from './troopAnimation'
 import { playCloudTransition, type CloudOptions } from './cloudTransition'
 import { resolveLocation, resolveLocationId } from './locationResolver'
 import { useGameStore } from '@/stores/game'
-import { Owner, OWNER_COLORS } from '@/data/owners'
+import { Owner, OWNER_COLORS, OWNER_LABELS } from '@/data/owners'
+import { useToast } from '@/composables/useToast'
 
 // ─── 类型定义 ───
 
@@ -359,11 +360,16 @@ async function cloudTransition(opts?: CloudOptions): Promise<OrderResult> {
  * @param date ISO 格式日期字符串，如 '1931-10-01'
  */
 export async function playTimeJump(date: string): Promise<OrderResult> {
+  let res: OrderResult
   if (!_app) {
     setCurrentDate(date) // 降级：无 app 时直接推进（如测试环境）
-    return { ok: true }
+    res = { ok: true }
+  } else {
+    res = await cloudTransition({ onMidpoint: () => setCurrentDate(date) })
   }
-  return cloudTransition({ onMidpoint: () => setCurrentDate(date) })
+  // 时间推进提示（顶部居中小条；与 executeOrder 的 setCurrentDate 走不同入口，不会重复）
+  useToast().push({ icon: 'clock', tone: 'neutral', title: '时间推进', text: date })
+  return res
 }
 
 /**
@@ -611,71 +617,173 @@ export async function executeOrder(
     return { ok: false, reason: '缺少 order 字段' }
   }
 
+  // 统一收集结果，switch 结束后单点弹窗（失败也弹，便于 PlayerAiPanel 看到原因）
+  let result: OrderResult | BattleOrderResult | BattleListResult = { ok: false, reason: '未执行' }
+
   switch (json.order) {
     case 'attack': {
       const fromId = resolveLocationId(json.from!)
       const toId = resolveLocationId(json.to!)
-      if (!fromId) return { ok: false, reason: `出发城市不存在: ${json.from}` }
-      if (!toId) return { ok: false, reason: `目标城市不存在: ${json.to}` }
-      return attack(fromId, toId, json.text)
+      if (!fromId) { result = { ok: false, reason: `出发城市不存在: ${json.from}` }; break }
+      if (!toId) { result = { ok: false, reason: `目标城市不存在: ${json.to}` }; break }
+      result = await attack(fromId, toId, json.text)
+      break
     }
 
     case 'scout': {
       const fromId = resolveLocationId(json.from!)
-      if (!fromId) return { ok: false, reason: `出发城市不存在: ${json.from}` }
-      return scout(fromId, json.text)
+      if (!fromId) { result = { ok: false, reason: `出发城市不存在: ${json.from}` }; break }
+      result = await scout(fromId, json.text)
+      break
     }
 
     case 'declareWar': {
       const fromId = resolveLocationId(json.from!)
       const toId = resolveLocationId(json.to!)
-      if (!fromId) return { ok: false, reason: `宣战国城市不存在: ${json.from}` }
-      if (!toId) return { ok: false, reason: `目标国城市不存在: ${json.to}` }
-      return declareWar(fromId, toId, json.text)
+      if (!fromId) { result = { ok: false, reason: `宣战国城市不存在: ${json.from}` }; break }
+      if (!toId) { result = { ok: false, reason: `目标国城市不存在: ${json.to}` }; break }
+      result = await declareWar(fromId, toId, json.text)
+      break
     }
 
     case 'battle': {
       const fromId = resolveLocationId(json.from!)
       const toId = resolveLocationId(json.to!)
-      if (!fromId) return { ok: false, reason: `A 方城市不存在: ${json.from}` }
-      if (!toId) return { ok: false, reason: `B 方城市不存在: ${json.to}` }
-      return battle(fromId, toId, json.text)
+      if (!fromId) { result = { ok: false, reason: `A 方城市不存在: ${json.from}` }; break }
+      if (!toId) { result = { ok: false, reason: `B 方城市不存在: ${json.to}` }; break }
+      result = await battle(fromId, toId, json.text)
+      break
     }
 
     case 'stopBattle':
-      return stopBattle(json.id!)
+      result = stopBattle(json.id!)
+      break
 
     case 'stopBattles':
-      return stopBattles()
+      result = stopBattles()
+      break
 
     case 'listBattles':
-      return { ok: true, battles: listBattles() }
+      result = { ok: true, battles: listBattles() }
+      break
 
     case 'cloud':
       // 云雾蒙太奇：盖住 → 停顿 → 揭开；可在暂停段藏状态切换（由 playCloudTransition 的 onMidpoint 处理）
-      return cloudTransition()
+      result = await cloudTransition()
+      break
 
     // ── 世界态写回（无动画，直接经 Kernel applyEvent 落地）──
     case 'capture': {
       const gbId = resolveLocationId(json.gb!)
-      if (!gbId) return { ok: false, reason: `目标城市不存在: ${json.gb}` }
+      if (!gbId) { result = { ok: false, reason: `目标城市不存在: ${json.gb}` }; break }
       // 占领（含动画）：gb/owner 必填，resultTroops 可选
-      return capture(gbId, json.owner!, json.resultTroops)
+      result = await capture(gbId, json.owner!, json.resultTroops)
+      break
     }
 
     case 'setFactionAlive':
       setFactionAlive(json.faction!, json.alive!)
-      return { ok: true }
+      result = { ok: true }
+      break
 
     case 'setCurrentDate':
       setCurrentDate(json.date!)
-      return { ok: true }
+      result = { ok: true }
+      break
 
     case 'setCurrentFaction':
       setCurrentFaction(json.faction!)
-      return { ok: true }
+      result = { ok: true }
+      break
 
     default:
-      return { ok: false, reason: `未知指令: ${json.order}` }
+      result = { ok: false, reason: `未知指令: ${json.order}` }
+      break
+  }
+
+  // 单点触发提示（replay 安全：executeOrder 只在活指令里被调用）
+  popToast(json, result)
+  return result
+}
+
+/**
+ * 提示分发：根据指令类型与执行结果，向 ToastStack 推送一条提示。
+ * 仅在 executeOrder 尾端调用一次（单点触发）。
+ * @param json   原始指令（含 AI 给的 text / 城市 / 势力等上下文，文案最丰富）
+ * @param result 执行结果（ok=false 时统一走错误提示）
+ */
+function popToast(
+  json: GameOrder,
+  result: OrderResult | BattleOrderResult | BattleListResult,
+): void {
+  const { push } = useToast()
+
+  // 失败类：统一错误提示（参数校验失败 / 重入锁 / 未知指令 / 动画创建失败）
+  if (!result.ok) {
+    push({
+      icon: 'alert-triangle',
+      tone: 'error',
+      title: '指令失败',
+      text: result.reason ?? '未知错误',
+    })
+    return
+  }
+
+  const fname = (o?: Owner): string =>
+    o != null ? ((OWNER_LABELS as Record<string, string>)[o] ?? o) : ''
+
+  switch (json.order) {
+    case 'attack': {
+      const t = `${getLocationName(json.from!)} ⇢ ${getLocationName(json.to!)}`
+      push({ icon: 'sword', tone: 'amber', title: '出兵', text: json.text ? `${json.text} · ${t}` : t })
+      break
+    }
+    case 'scout': {
+      const t = `${getLocationName(json.from!)} 派出斥候`
+      push({ icon: 'eye', tone: 'blue', title: '侦察', text: json.text ? `${json.text} · ${t}` : t })
+      break
+    }
+    case 'declareWar': {
+      const t = `${getLocationName(json.from!)} 对 ${getLocationName(json.to!)} 宣战`
+      push({ icon: 'flag', tone: 'cinnabar', title: '宣战', text: json.text ? `${json.text} · ${t}` : t })
+      break
+    }
+    case 'battle': {
+      const t = `${getLocationName(json.from!)} 与 ${getLocationName(json.to!)} 交战`
+      push({ icon: 'crosshair', tone: 'cinnabar', title: '开战', text: json.text ? `${json.text} · ${t}` : t })
+      break
+    }
+    case 'stopBattle':
+      push({ icon: 'player-stop', tone: 'neutral', title: '停战', text: '战斗结束' })
+      break
+    case 'stopBattles':
+      push({ icon: 'player-stop', tone: 'neutral', title: '停战', text: '全线停战' })
+      break
+    case 'capture': {
+      const ownerName = fname(json.owner)
+      const troop = json.resultTroops != null ? `（驻军 ${json.resultTroops}k）` : ''
+      push({
+        icon: 'flag',
+        tone: 'cinnabar',
+        title: '占领',
+        text: `${getLocationName(json.gb!)} → ${ownerName}${troop}`,
+      })
+      break
+    }
+    case 'setFactionAlive': {
+      const fName = fname(json.faction)
+      if (json.alive) {
+        push({ icon: 'crown', tone: 'purple', title: '参战', text: `${fName} 加入战局` })
+      } else {
+        push({ icon: 'skull', tone: 'error', title: '覆灭', text: `${fName} 势力覆灭` })
+      }
+      break
+    }
+    case 'setCurrentDate':
+      push({ icon: 'clock', tone: 'neutral', title: '时间推进', text: json.date ?? '' })
+      break
+    // cloud / setCurrentFaction / listBattles：不在此弹（云雾是视觉本身；setCurrentFaction 经 store.selectFaction 弹择势）
+    default:
+      break
   }
 }

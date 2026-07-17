@@ -6,6 +6,7 @@ import GameModal from '@/components/ui/GameModal.vue'
 import OnboardingView from '@/views/OnboardingView.vue'
 import SaveSelectorModal from '@/components/SaveSelectorModal.vue'
 import PlayerStatusPanel from '@/components/PlayerStatusPanel.vue'
+import ToastStack from '@/components/ui/ToastStack.vue'
 
 const gameStore = useGameStore()
 const { loadGame } = useSaveGame()
@@ -57,6 +58,9 @@ function onBackToSelector(): void {
   >
     <OnboardingView :show-back="hasSaves && dismissed" @back="onBackToSelector" />
   </GameModal>
+
+  <!-- 轻量提示层：Teleport 到 body，独立渲染，不受地图演出/模态遮挡影响 -->
+  <ToastStack />
 </template>
 
 <style>

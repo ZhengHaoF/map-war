@@ -1,8 +1,9 @@
 import { defineStore } from 'pinia'
 import { ref, shallowRef, computed, triggerRef } from 'vue'
 import { chinaCities } from '@/data/chinaCities'
-import { Owner } from '@/data/owners'
+import { Owner, OWNER_LABELS } from '@/data/owners'
 import { resetBattleRuntime } from '@/utils/gameOrders'
+import { useToast } from '@/composables/useToast'
 
 // 战斗元数据（PixiJS 句柄不进 store，由 gameOrders 模块本地持有）
 export interface BattleInfo {
@@ -249,6 +250,11 @@ export const useGameStore = defineStore('game', () => {
 
   function selectFaction(f: Owner): void {
     applyEvent({ type: 'selectFaction', faction: f, playerName: playerName.value })
+    // 择势提示（开局 / god-mode 两条路径都经此；读档重放不触发）
+    if (!isReplaying.value) {
+      const label = (OWNER_LABELS as Record<string, string>)[f] ?? f
+      useToast().push({ icon: 'crown', tone: 'cinnabar', title: '择势', text: `主公择 ${label}` })
+    }
   }
 
   function setPlayer(name: string, faction: Owner): void {
