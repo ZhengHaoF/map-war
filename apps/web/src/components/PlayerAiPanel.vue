@@ -16,47 +16,47 @@
         <div class="dock-main">
           <!-- 左栏：输入 -->
           <div class="dock-left">
-            <textarea
-              v-model="userMessage"
-              class="dock-textarea"
-              rows="3"
-              placeholder="例如：派兵进攻杭州"
-              @keydown.enter.exact.prevent="onSend"
-            />
-            <div class="dock-btns">
-              <GameButton :disabled="loading" @click="onSend">
-                <IconSend :size="16" />{{ loading ? '请求中' : '发送' }}
-              </GameButton>
-              <GameButton size="small" :disabled="!undoStack.length" @click="undo">
-                <IconUndo :size="14" />撤销
-              </GameButton>
+            <div class="dock-input-wrap">
+              <textarea
+                v-model="userMessage"
+                class="dock-textarea"
+                rows="3"
+                placeholder="例如：派兵进攻杭州"
+                @keydown.enter.exact.prevent="onSend"
+              ></textarea>
+              <div class="dock-btns">
+                <GameButton :disabled="loading" @click="onSend">
+                  <IconSend :size="16" />{{ loading ? '请求中' : '发送' }}
+                </GameButton>
+                <GameButton size="small" :disabled="!undoStack.length" @click="undo">
+                  <IconUndo :size="14" />撤销
+                </GameButton>
+              </div>
+            </div>
+          </div>
+
+          <!-- 右栏：操作日志 + 状态 -->
+          <div class="dock-right-col">
+            <div ref="logRef" class="dock-right">
+              <div v-if="chatHistory.length === 0" class="dock-empty">暂无操作记录</div>
+              <div v-for="(entry, i) in chatHistory" :key="i" class="log-entry">
+                <div class="log-user">▶ {{ entry.user }}</div>
+                <div v-if="entry.msg" class="log-msg">{{ entry.msg }}</div>
+                <div v-if="entry.orders.length" class="log-orders">
+                  <span
+                    v-for="(o, j) in entry.orders"
+                    :key="j"
+                    class="log-dot"
+                    :class="{ bad: o.endsWith('✗') }"
+                  >● {{ o }}</span>
+                </div>
+              </div>
             </div>
             <div class="dock-status">
               <span class="dock-queue">队列 {{ queue.length }} · {{ statusText }}</span>
               <span v-if="status === 'stopped'" class="dock-stopped">
                 ⏸ 已在 {{ stoppedAt?.order }} 处停下
               </span>
-            </div>
-          </div>
-
-          <!-- 右栏：操作日志 -->
-          <div ref="logRef" class="dock-right">
-            <div v-if="chatHistory.length === 0" class="dock-empty">暂无操作记录</div>
-            <div
-              v-for="(entry, i) in chatHistory"
-              :key="i"
-              class="log-entry"
-            >
-              <div class="log-user">▶ {{ entry.user }}</div>
-              <div v-if="entry.msg" class="log-msg">{{ entry.msg }}</div>
-              <div v-if="entry.orders.length" class="log-orders">
-                <span
-                  v-for="(o, j) in entry.orders"
-                  :key="j"
-                  class="log-dot"
-                  :class="{ bad: o.endsWith('✗') }"
-                >● {{ o }}</span>
-              </div>
             </div>
           </div>
         </div>
@@ -219,7 +219,7 @@ async function onSend(): Promise<void> {
   flex-direction: column;
   gap: 8px;
   padding: 8px 14px 12px;
-  max-height: 300px;
+  height: 250px;
   overflow: hidden;
 }
 
@@ -251,6 +251,12 @@ async function onSend(): Promise<void> {
   gap: 8px;
 }
 
+.dock-input-wrap {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
 .dock-textarea {
   background: var(--paper-input, #fbf6ea);
   border: 1px solid var(--brown-line, #8a6d4b);
@@ -258,11 +264,14 @@ async function onSend(): Promise<void> {
   color: var(--ink, #3b2f1d);
   font-size: 13px;
   font-family: 'Consolas', 'Courier New', monospace;
-  padding: 8px 10px;
+  padding: 8px 110px 8px 10px;
   resize: none;
   outline: none;
   line-height: 1.5;
   box-sizing: border-box;
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
 .dock-textarea:focus {
@@ -273,15 +282,18 @@ async function onSend(): Promise<void> {
 .dock-btns {
   display: flex;
   flex-direction: row;
-  gap: 8px;
-  justify-content: flex-end;
-  margin-top: auto;
+  gap: 6px;
+  position: absolute;
+  bottom: 6px;
+  right: 6px;
 }
 
 .dock-status {
   display: flex;
   flex-direction: column;
   gap: 3px;
+  margin-top: 8px;
+  flex-shrink: 0;
   font-size: 12px;
   color: var(--ink-muted, #9c8a6a);
   margin-top: auto;
@@ -299,10 +311,19 @@ async function onSend(): Promise<void> {
   color: var(--danger-ink, #b23a2e);
 }
 
-/* ===== 右栏：操作日志 ===== */
-.dock-right {
+/* ===== 右栏：操作日志 + 状态 ===== */
+.dock-right-col {
   flex: 4;
   min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dock-right {
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
