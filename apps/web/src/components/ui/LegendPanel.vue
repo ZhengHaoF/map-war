@@ -30,7 +30,7 @@ defineProps<{
   padding: 12px 16px;
   background: var(--paper-panel);
   border: 1px solid rgba(138, 109, 75, 0.4);
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   box-shadow:
     0 0 0 1px var(--paper-panel) inset,
     0 0 0 2px rgba(138, 109, 75, 0.4) inset,
@@ -51,7 +51,7 @@ defineProps<{
 .legend-color {
   width: 12px;
   height: 12px;
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   display: inline-block;
   box-shadow: 0 0 0 1px rgba(60, 40, 15, 0.18);
 }

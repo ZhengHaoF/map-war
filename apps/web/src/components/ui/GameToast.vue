@@ -70,7 +70,7 @@ function onClose(): void {
   background: var(--paper-deep);
   border: 1px solid var(--brown-line);
   border-left-width: 4px;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   box-shadow:
     0 0 0 1px var(--brown-deep) inset,
     0 6px 18px rgba(40, 25, 10, 0.35);
@@ -130,7 +130,7 @@ function onClose(): void {
   cursor: pointer;
   padding: 2px;
   line-height: 0;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   transition: color 0.15s, background 0.15s;
 }
 .toast-close:hover {

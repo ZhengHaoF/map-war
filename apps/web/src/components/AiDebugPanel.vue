@@ -264,7 +264,7 @@ const rawJson = computed(() => (response.value ? JSON.stringify(response.value, 
   width: 100%;
   background: var(--paper-input);
   border: 1px solid var(--brown-line);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   color: var(--ink);
   font-size: 13px;
   font-family: 'Consolas', 'Courier New', monospace;
@@ -292,7 +292,7 @@ const rawJson = computed(() => (response.value ? JSON.stringify(response.value, 
   color: var(--ink-muted);
   padding: 2px 8px;
   border: 1px solid var(--brown-line-faint);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: var(--paper-faint);
 }
 
@@ -301,7 +301,7 @@ const rawJson = computed(() => (response.value ? JSON.stringify(response.value, 
   color: var(--danger-ink);
   background: var(--danger-bg);
   border: 1px solid var(--danger-ink);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   padding: 8px 12px;
 }
 
@@ -312,7 +312,7 @@ const rawJson = computed(() => (response.value ? JSON.stringify(response.value, 
 .ai-error {
   background: var(--danger-bg);
   border: 1px solid var(--danger-ink);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   padding: 10px 14px;
   color: var(--danger-ink);
   font-size: 13px;
@@ -322,7 +322,7 @@ const rawJson = computed(() => (response.value ? JSON.stringify(response.value, 
   background: var(--paper-faint);
   border: 1px solid var(--brown-line-faint);
   border-left: 3px solid var(--cinnabar);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   padding: 10px 14px;
   color: var(--ink);
   font-size: 13px;
@@ -347,7 +347,7 @@ const rawJson = computed(() => (response.value ? JSON.stringify(response.value, 
 .ai-exec {
   background: var(--paper-faint);
   border: 1px solid var(--brown-line-faint);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   padding: 10px;
 }
 
@@ -398,7 +398,7 @@ const rawJson = computed(() => (response.value ? JSON.stringify(response.value, 
   font-weight: 600;
   color: var(--cinnabar);
   background: var(--paper-input);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   padding: 2px 8px;
 }
 
@@ -415,7 +415,7 @@ const rawJson = computed(() => (response.value ? JSON.stringify(response.value, 
   padding: 10px 14px;
   background: var(--paper-faint);
   border: 1px solid var(--brown-line-faint);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   cursor: pointer;
   user-select: none;
 }
@@ -436,7 +436,7 @@ const rawJson = computed(() => (response.value ? JSON.stringify(response.value, 
 
 .ai-raw {
   background: var(--paper-dark);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   padding: 12px;
   min-height: 160px;
   max-height: 400px;

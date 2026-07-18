@@ -1352,7 +1352,7 @@ onUnmounted(() => {
   gap: 6px;
   padding: 8px 16px;
   border: 1px solid rgba(138, 109, 75, 0.35);
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   background: linear-gradient(to bottom, var(--paper-input), var(--paper-darker));
   color: var(--ink);
   font-family: var(--font-kai);
@@ -1473,7 +1473,7 @@ onUnmounted(() => {
   margin-bottom: 8px;
   background: var(--paper-panel);
   border: 1px solid rgba(138, 109, 75, 0.35);
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   color: var(--ink);
   font-size: 14px;
   font-family: var(--font-kai);

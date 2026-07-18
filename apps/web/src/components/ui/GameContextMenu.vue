@@ -58,7 +58,7 @@ defineEmits<{
   z-index: 2000;
   background: var(--paper-panel);
   border: 1px solid rgba(138, 109, 75, 0.4);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   padding: 4px;
   min-width: 128px;
   box-shadow:
@@ -104,7 +104,7 @@ defineEmits<{
   color: var(--ink-mid);
   font-size: 14px;
   cursor: pointer;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   user-select: none;
   transition:
     background 0.15s,

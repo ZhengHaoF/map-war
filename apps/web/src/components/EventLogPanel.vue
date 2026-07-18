@@ -146,7 +146,7 @@ function describe(e: GameEvent): string {
   align-items: baseline;
   gap: 8px;
   padding: 4px 6px;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   font-size: 13px;
   line-height: 1.5;
   transition: background 0.12s;
@@ -168,7 +168,7 @@ function describe(e: GameEvent): string {
   flex-shrink: 0;
   display: inline-block;
   padding: 1px 7px;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   font-size: 11px;
   font-weight: 600;
   line-height: 1.6;

@@ -173,7 +173,7 @@ function focusBattle(id: string): void {
   flex-direction: column;
   background: var(--paper-panel);
   border: 1px solid rgba(138, 109, 75, 0.45);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   box-shadow:
     0 6px 22px rgba(60, 40, 15, 0.28),
     0 0 0 1px rgba(138, 109, 75, 0.25) inset;
@@ -233,7 +233,7 @@ function focusBattle(id: string): void {
 .faction-swatch {
   width: 14px;
   height: 28px;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.15) inset;
   flex-shrink: 0;
 }
@@ -291,7 +291,7 @@ function focusBattle(id: string): void {
   text-align: center;
   background: var(--paper-faint);
   border: 1px solid rgba(138, 109, 75, 0.3);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   padding: 6px 4px;
 }
 
@@ -323,7 +323,7 @@ function focusBattle(id: string): void {
   color: var(--ink-soft);
   background: var(--paper-faint);
   border: 1px solid rgba(138, 109, 75, 0.25);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   padding: 2px 7px;
 }
 
@@ -337,7 +337,7 @@ function focusBattle(id: string): void {
   text-align: left;
   background: transparent;
   border: 1px solid rgba(138, 109, 75, 0.3);
-  border-radius: 5px;
+  border-radius: var(--radius-md);
   padding: 6px 10px;
   color: var(--ink);
   font-family: var(--font-kai);
@@ -373,7 +373,7 @@ function focusBattle(id: string): void {
   justify-content: space-between;
   gap: 6px;
   padding: 6px 8px;
-  border-radius: 5px;
+  border-radius: var(--radius-md);
   cursor: pointer;
   transition: transform 0.1s ease, background 0.12s;
 }
@@ -400,7 +400,7 @@ function focusBattle(id: string): void {
 .badge {
   font-size: 10px;
   padding: 1px 5px;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   background: var(--paper-darker);
   border: 1px solid rgba(138, 109, 75, 0.3);
   color: var(--ink-soft);
@@ -421,7 +421,7 @@ function focusBattle(id: string): void {
   align-items: center;
   gap: 6px;
   padding: 7px 8px;
-  border-radius: 5px;
+  border-radius: var(--radius-md);
   cursor: pointer;
   background: var(--paper-faint);
   border: 1px solid rgba(138, 109, 75, 0.25);
@@ -472,7 +472,7 @@ function focusBattle(id: string): void {
     rgba(138, 109, 75, 0.07) 12px
   );
   border: 1px dashed rgba(138, 109, 75, 0.4);
-  border-radius: 5px;
+  border-radius: var(--radius-md);
   padding: 8px 10px;
 }
 
@@ -495,7 +495,7 @@ function focusBattle(id: string): void {
 .rail-color {
   width: 10px;
   height: 20px;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.15) inset;
 }
 
@@ -530,6 +530,6 @@ function focusBattle(id: string): void {
 .psp-body::-webkit-scrollbar-thumb,
 .city-list::-webkit-scrollbar-thumb {
   background: rgba(138, 109, 75, 0.4);
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
 }
 </style>

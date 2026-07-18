@@ -400,7 +400,7 @@ function handleEnter() {
 
 .title-year {
   font-size: 28px;
-  letter-spacing: 6px;
+  letter-spacing: 2px;
   font-weight: 600;
 }
 
@@ -440,7 +440,7 @@ function handleEnter() {
   width: 4px;
   height: 14px;
   background: linear-gradient(to bottom, var(--cinnabar), var(--cinnabar-edge));
-  border-radius: 1px;
+  border-radius: var(--radius-xs);
 }
 
 .onboard-body {
@@ -466,7 +466,7 @@ function handleEnter() {
   position: relative;
   padding: 3px;
   background: linear-gradient(to right, var(--brown), var(--brown-paler), var(--brown));
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
 }
 
 .input-frame::before,
@@ -491,7 +491,7 @@ function handleEnter() {
   width: 100%;
   background: var(--paper-input);
   border: none;
-  border-radius: 1px;
+  border-radius: var(--radius-xs);
   color: var(--ink);
   font-size: 15px;
   padding: 10px 14px;
@@ -568,7 +568,7 @@ function handleEnter() {
   color: #fff;
   font-size: 13px;
   font-family: 'KaiTi', 'KaiTi_GB2312', 'SimSun', serif;
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   box-shadow: 0 0 0 1px rgba(90, 60, 20, 0.15);
   text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
 }
@@ -634,7 +634,7 @@ function handleEnter() {
   font-size: 28px;
   font-family: 'KaiTi', 'KaiTi_GB2312', 'SimSun', serif;
   border: 2px solid var(--cinnabar);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   opacity: 0.5;
   transform: rotate(-6deg);
 }
@@ -666,7 +666,7 @@ function handleEnter() {
   padding: 9px 12px;
   background: linear-gradient(to bottom, var(--paper-input), var(--paper-darker));
   border: 1px solid rgba(138, 109, 75, 0.25);
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   cursor: pointer;
   color: var(--ink-mid);
   font-size: 14px;
@@ -717,7 +717,7 @@ function handleEnter() {
   color: #fff;
   font-size: 11px;
   font-family: 'KaiTi', 'KaiTi_GB2312', 'SimSun', serif;
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   flex-shrink: 0;
   box-shadow: 0 0 0 1px rgba(90, 60, 20, 0.1);
   text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
@@ -740,7 +740,7 @@ function handleEnter() {
   color: #fff;
   background: linear-gradient(135deg, var(--cinnabar-bright) 0%, var(--cinnabar-deep) 100%);
   border: none;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   font-family: 'KaiTi', 'KaiTi_GB2312', 'SimSun', serif;
   transition:

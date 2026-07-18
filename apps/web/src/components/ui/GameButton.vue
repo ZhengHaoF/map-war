@@ -25,7 +25,7 @@ defineEmits<{
   white-space: nowrap;
   padding: 8px 16px;
   border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   background: rgba(0, 0, 0, 0.6);
   color: #fff;
   font-size: 14px;

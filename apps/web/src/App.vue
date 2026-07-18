@@ -124,6 +124,14 @@ function onBackToSelector(): void {
   --font-kai: 'KaiTi', 'KaiTi_GB2312', 'SimSun', serif;
   --font-xing: 'STXingkai', 'Xingkai SC', 'KaiTi', 'KaiTi_GB2312', 'SimSun', serif;
   --font-song: Georgia, 'Songti SC', 'SimSun', serif;
+
+  /* 圆角量表（§16-7 Craft）：紧致阶梯，全站吸附到最近一档，避免随手填数。
+     方角四档 + 圆形一档；50% 圆形 toggle 走 --radius-pill，不进方角阶梯。 */
+  --radius-xs: 2px;   /* 微件：输入框、图例色块、细芯片 */
+  --radius-sm: 4px;   /* 小件：按钮、菜单、Toast、小列表 */
+  --radius-md: 6px;   /* 中件：卡片、面板、区块 */
+  --radius-lg: 12px;  /* 大容器：Modal、Dock、主框架 */
+  --radius-pill: 999px;
 }
 
 * {
@@ -157,13 +165,13 @@ body.cloud-active .map-ui {
 /* 轨道：嵌进羊皮纸的一道浅凹槽 */
 ::-webkit-scrollbar-track {
   background: rgba(138, 109, 75, 0.10);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   box-shadow: inset 0 0 4px rgba(60, 40, 15, 0.14);
 }
 /* 滑块：铜褐渐变 + 浅顶高光，像刻出的铜件 */
 ::-webkit-scrollbar-thumb {
   background: linear-gradient(180deg, #a8885a 0%, #6b4e2e 100%);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   border: 1px solid rgba(44, 26, 10, 0.35);
   box-shadow:
     inset 0 1px 1px rgba(255, 240, 210, 0.30),
@@ -205,6 +213,18 @@ body.cloud-active .map-ui {
   .psp-body li:active {
     transform: none !important;
     scale: 1 !important;
+  }
+}
+
+/* ── 无障碍：高对比需求（Apple §15 可达性）──
+   用户在系统开启「更高对比度」后，把低对比的次要文字令牌加深到可读阈值。
+   原 --ink-muted/--ink-soft/--ink-faint 在羊皮纸底上对比偏低（约 2.5:1），
+   加深后约 5:1，避免把文字信息推到可读线以下。正常用户不受任何影响。 */
+@media (prefers-contrast: more) {
+  :root {
+    --ink-soft: #5a4326;
+    --ink-muted: #6b4e2e;
+    --ink-faint: #5a4326;
   }
 }
 </style>

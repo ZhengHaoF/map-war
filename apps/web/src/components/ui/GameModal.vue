@@ -136,7 +136,7 @@ function onCloseClick(): void {
 .modal {
   background: rgba(20, 20, 40, 0.97);
   border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   backdrop-filter: blur(16px);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
   pointer-events: auto;
@@ -167,7 +167,7 @@ function onCloseClick(): void {
 .modal.parchment {
   background: var(--paper-deep);
   border: 1px solid var(--brown-line);
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   box-shadow:
     0 0 0 1px var(--brown-deep) inset,
     0 0 0 4px var(--paper-deep) inset,

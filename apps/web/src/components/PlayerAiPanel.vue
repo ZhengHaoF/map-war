@@ -162,7 +162,7 @@ async function onSend(): Promise<void> {
   flex-direction: column;
   background: var(--paper-panel, #f3ead7);
   border: 1px solid var(--brown-line, #8a6d4b);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   box-shadow: 0 2px 10px rgba(90, 60, 20, 0.15);
   font-family: var(--font-kai, serif);
   overflow: hidden;
@@ -194,7 +194,7 @@ async function onSend(): Promise<void> {
   cursor: pointer;
   display: inline-flex;
   padding: 2px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 
 .dock-collapse:hover {
@@ -238,7 +238,7 @@ async function onSend(): Promise<void> {
 .dock-error {
   background: var(--danger-bg, #f7dede);
   border: 1px solid var(--danger-ink, #b23a2e);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   padding: 6px 12px;
   color: var(--danger-ink, #b23a2e);
   font-size: 13px;
@@ -271,7 +271,7 @@ async function onSend(): Promise<void> {
 .dock-textarea {
   background: var(--paper-input, #fbf6ea);
   border: 1px solid var(--brown-line, #8a6d4b);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   color: var(--ink, #3b2f1d);
   font-size: 13px;
   font-family: 'Consolas', 'Courier New', monospace;
@@ -313,7 +313,7 @@ async function onSend(): Promise<void> {
 .dock-queue {
   padding: 2px 8px;
   border: 1px solid var(--brown-line-faint, rgba(138, 109, 75, 0.3));
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: var(--paper-faint, #e8dcc0);
   align-self: flex-start;
 }
@@ -368,7 +368,7 @@ async function onSend(): Promise<void> {
 .log-msg {
   background: var(--paper-faint, #e8dcc0);
   border-left: 3px solid var(--cinnabar, #b23a2e);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   padding: 6px 10px;
   color: var(--ink, #3b2f1d);
   font-size: 13px;
@@ -398,6 +398,6 @@ async function onSend(): Promise<void> {
 }
 .dock-right::-webkit-scrollbar-thumb {
   background: rgba(138, 109, 75, 0.4);
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
 }
 </style>

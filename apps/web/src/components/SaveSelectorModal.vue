@@ -202,7 +202,7 @@ watch(
 .sel-title {
   font-family: 'STXingkai', 'Xingkai SC', 'KaiTi', 'KaiTi_GB2312', 'SimSun', serif;
   font-size: 24px;
-  letter-spacing: 6px;
+  letter-spacing: 2px;
   color: var(--ink-mid);
   font-weight: 600;
 }
@@ -233,7 +233,7 @@ watch(
   padding: 12px 16px;
   background: linear-gradient(to bottom, var(--paper-input), var(--paper-darker));
   border: 1px solid rgba(138, 109, 75, 0.28);
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   box-shadow: 0 1px 3px rgba(90, 60, 20, 0.05);
   transition:
     transform 0.15s ease,
@@ -280,7 +280,7 @@ watch(
   font-size: 11px;
   color: var(--cinnabar);
   border: 1px solid var(--cinnabar);
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   padding: 1px 6px;
   letter-spacing: 1px;
   font-family: 'KaiTi', 'KaiTi_GB2312', 'SimSun', serif;
@@ -323,7 +323,7 @@ watch(
 .act-btn {
   padding: 6px 14px;
   font-size: 13px;
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   cursor: pointer;
   letter-spacing: 2px;
   font-family: 'KaiTi', 'KaiTi_GB2312', 'SimSun', serif;
@@ -386,7 +386,7 @@ watch(
   font-size: 28px;
   font-family: 'KaiTi', 'KaiTi_GB2312', 'SimSun', serif;
   border: 2px solid var(--cinnabar);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   opacity: 0.5;
   transform: rotate(-6deg);
 }
@@ -409,7 +409,7 @@ watch(
   color: #fff;
   background: linear-gradient(135deg, var(--cinnabar-bright) 0%, var(--cinnabar-deep) 100%);
   border: none;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   font-family: 'KaiTi', 'KaiTi_GB2312', 'SimSun', serif;
   transition:
