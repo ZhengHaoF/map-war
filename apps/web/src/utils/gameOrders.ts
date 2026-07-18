@@ -181,7 +181,7 @@ export function init(container: Container, camera?: CameraController, app?: Appl
   _app = app ?? null
 }
 
-// ─── 五个游戏指令 ───
+// ─── 动画 / 演出函数（纯视觉，不改世界态）───
 
 /**
  * 派兵动画：从 from 向 to 行军（黄色点阵弧线）。
@@ -340,7 +340,7 @@ async function declareWar(from: string, to: string, text?: string): Promise<Orde
 /**
  * 云雾蒙太奇（时间流逝演出）。
  * AI 可用它把「回合推进 / 政权重洗」等状态切换藏进雾里：
- *   await cloudTransition({ onMidpoint: () => setCurrentDate('1931-11-01') })
+ *   await cloudTransition({ onMidpoint: () => useGameStore().applyEvent({ type: 'dateAdvance', date: '1931-11-01' }) })
  */
 async function cloudTransition(opts?: CloudOptions): Promise<OrderResult> {
   if (!_app) return { ok: false, reason: 'gameOrders 未注入 PixiJS app' }
@@ -362,18 +362,19 @@ async function cloudTransition(opts?: CloudOptions): Promise<OrderResult> {
 export async function playTimeJump(date: string): Promise<OrderResult> {
   let res: OrderResult
   if (!_app) {
-    setCurrentDate(date) // 降级：无 app 时直接推进（如测试环境）
+    // 降级：无 app 时直接推进（如测试环境）
+    useGameStore().applyEvent({ type: 'dateAdvance', date })
     res = { ok: true }
   } else {
-    res = await cloudTransition({ onMidpoint: () => setCurrentDate(date) })
+    res = await cloudTransition({ onMidpoint: () => useGameStore().applyEvent({ type: 'dateAdvance', date }) })
   }
-  // 时间推进提示（顶部居中小条；与 executeOrder 的 setCurrentDate 走不同入口，不会重复）
+  // 时间推进提示（顶部居中小条）
   useToast().push({ icon: 'clock', tone: 'neutral', title: '时间推进', text: date })
   return res
 }
 
 /**
- * 注册一场持续战斗动画（from ↔ to 双向拉锯光束），并写回响应式战斗列表。
+ * 注册一场持续战斗动画（from ↔ to 双向拉锯光束），动画运行时登记在本地注册表；
  * 交战光束先亮起（常驻动画），随后镜头演出参考 declareWar：聚焦出发城 →
  * 跟随行军到目标城 → 演完归位，带你“看一眼前线”；光束不依赖镜头、归位后仍常驻。
  * 同一方向已存在战斗时拒绝重复注册。
@@ -381,6 +382,7 @@ export async function playTimeJump(date: string): Promise<OrderResult> {
  * @param to   交战方 B 城 id
  * @returns 带战斗 id 的结果；坐标解析失败或重复时 ok=false
  */
+// ─── 战斗动画（纯视觉，世界态由 executeOrder 落）───
 async function battle(from: string, to: string, text?: string): Promise<BattleOrderResult> {
   if (!_container) return { ok: false, reason: 'gameOrders 未初始化' }
   if (locks.battle) return { ok: false, reason: '战斗动画进行中' }
@@ -391,7 +393,7 @@ async function battle(from: string, to: string, text?: string): Promise<BattleOr
 
   locks.battle = true
   try {
-    // ① 先起交战动画（常驻光束，独立于镜头）
+    // ① 起交战动画（常驻光束，独立于镜头）
     const b = startBattleAnimation({
       fromId: from,
       toId: to,
@@ -416,17 +418,8 @@ async function battle(from: string, to: string, text?: string): Promise<BattleOr
 
     activeBattles.set(id, { battle: b })
 
-    // 桥接：同步元数据进响应式 store，战斗面板自动刷新（经 applyEvent 进事件日志）
-    useGameStore().applyEvent({
-      type: 'battleStart',
-      battleId: id,
-      fromGb: from,
-      targetGb: to,
-      fromName: getLocationName(from),
-      toName: getLocationName(to),
-    })
-
-    // ② 镜头演出与交战并行：聚焦出发城 → 跟随行军到目标城 → 演完归位（参考 declareWar）
+    // ② 镜头演出：聚焦出发城 → 跟随行军到目标城 → 演完归位（参考 declareWar）。
+    // 注意：世界态登记（battleStart）由 executeOrder 在动画后统一 applyEvent，本函数只负责画面。
     if (_camera) {
       const before = _camera.snapshot()
       _camera.setLocked(true)
@@ -443,7 +436,8 @@ async function battle(from: string, to: string, text?: string): Promise<BattleOr
 }
 
 /**
- * 停止指定战斗并清理运行时状态，同时广播 battleEnd 事件刷新战斗面板。
+ * 停止指定战斗的动画并清理运行时状态（灭光束）。
+ * 世界态（battleEnd 事件）由 executeOrder 在调用本函数后统一 applyEvent。
  * @param id 战斗 id（由 battle() 返回）
  * @returns 成功/失败原因
  */
@@ -454,21 +448,22 @@ function stopBattle(id: string): OrderResult {
   entry.battle.stop()
   activeBattles.delete(id)
   battleRegistry.delete(id)
-  useGameStore().applyEvent({ type: 'battleEnd', battleId: id })
+  // 世界态（battleEnd）由 executeOrder 在灭光束后统一 applyEvent，本函数只负责画面
   return { ok: true }
 }
 
 /**
- * 停止全部进行中的战斗并清空战斗注册表。
+ * 停止全部进行中的战斗动画并清空战斗注册表（灭全部光束）。
+ * 世界态（battleEnd 事件）由 executeOrder 在调用本函数后统一 applyEvent。
  * @returns 始终成功
  */
 function stopBattles(): OrderResult {
-  for (const [id, entry] of activeBattles) {
+  for (const [, entry] of activeBattles) {
     entry.battle.stop()
-    useGameStore().applyEvent({ type: 'battleEnd', battleId: id })
   }
   activeBattles.clear()
   battleRegistry.clear()
+  // 世界态（battleEnd 事件）由 executeOrder 在灭光束后统一 applyEvent
   return { ok: true }
 }
 
@@ -522,30 +517,13 @@ export function restoreActiveAnimations(): void {
   }
 }
 
-// ─── AI 世界状态写回接口（最小参数）───
-// 这些 setter 是 AI 指令「落地」时回写 store 的入口：
-// 只接收最少必要参数，不直接碰 PixiJS，也不处理动画。
-
-/**
- * 占领功能（组合入口）：先播放占领动画，再提交状态变更。
- *
- * 1. 播放占领动画：在目标城高亮轮廓（新城主配色）+ 向外扩散圆环 + 弹字；
- *    有相机时先聚焦目标城、演完归位。
- * 2. 动画播完后再调 `captureCity`（→ applyEvent `capture`）变更城市归属（可选写入新驻军）。
- *
- * 语义：先动画、后 applyEvent（用户拍板）。
- *
- * @param gb          城市 gb 编码
- * @param owner       占领方政权（Owner 枚举，类型安全）
- * @param resultTroops 新驻军（可选，单位 k）；占领后由新城主入驻，不传则仅易主
- */
-async function capture(gb: string, owner: Owner, resultTroops?: number): Promise<OrderResult> {
+// ─── 占领动画（纯视觉，世界态由 executeOrder 落）───
+async function capture(gb: string, owner: Owner): Promise<OrderResult> {
   if (!_container) return { ok: false, reason: 'gameOrders 未初始化' }
 
   const color = OWNER_COLORS[owner]
   const duration = 1500
 
-  // 1) 先播放占领动画
   if (_camera) {
     const before = _camera.snapshot()
     _camera.setLocked(true)
@@ -560,50 +538,12 @@ async function capture(gb: string, owner: Owner, resultTroops?: number): Promise
     await playCaptureAnimation({ targetId: gb, container: _container, color, text: '占领！', duration })
   }
 
-  // 2) 动画播完后再提交状态
-  captureCity(gb, owner, resultTroops)
   return { ok: true }
 }
 
-/**
- * 占领/接收某城市（武力攻取或割让易主），经 Kernel（applyEvent）落地。
- * store.cities 是唯一写者，禁止直接赋值 ownership。
- * 割让时原势力撤军、新城主带入自己的兵——用 resultTroops 写入新驻军；
- * 不传 resultTroops 则仅易主、驻军保持不变。
- * @param gb          城市 gb 编码
- * @param owner       新的控制政权
- * @param resultTroops 新驻军（可选，单位 k）；割让/占领后由新城主入驻
- */
-function captureCity(gb: string, owner: Owner, resultTroops?: number): void {
-  useGameStore().applyEvent({ type: 'capture', targetGb: gb, actor: owner, resultTroops })
-}
-
-/**
- * 设置某势力的存活状态。
- * 经 Kernel（applyEvent）落地——世界态唯一写者。
- * @param f     势力
- * @param alive true=加入存活列表，false=从存活列表移除（灭亡）
- */
-function setFactionAlive(f: Owner, alive: boolean): void {
-  useGameStore().applyEvent({ type: 'setFactionAlive', faction: f, alive })
-}
-
-/**
- * 推进全局日期时钟。
- * 经 Kernel（applyEvent）落地——世界态唯一写者。
- * @param date ISO 格式日期字符串，如 '1931-10-01'
- */
-function setCurrentDate(date: string): void {
-  useGameStore().applyEvent({ type: 'dateAdvance', date })
-}
-
-/**
- * 设置玩家所选势力（委托给 store 内置的 selectFaction，避免逻辑分叉）。
- * @param f 玩家势力
- */
-function setCurrentFaction(f: Owner): void {
-  useGameStore().selectFaction(f)
-}
+// ─── 指令编排层：executeOrder（世界态唯一落地点）───
+// 内部动画函数只负责画面，所有世界态（capture / battleStart / battleEnd / setFactionAlive /
+// dateAdvance / selectFaction）统一由 executeOrder 在动画播完后 applyEvent 落地。
 
 // ─── AI JSON 协议解析器 ───
 
@@ -651,17 +591,38 @@ export async function executeOrder(
       const toId = resolveLocationId(json.to!)
       if (!fromId) { result = { ok: false, reason: `A 方城市不存在: ${json.from}` }; break }
       if (!toId) { result = { ok: false, reason: `B 方城市不存在: ${json.to}` }; break }
-      result = await battle(fromId, toId, json.text)
+      const r = await battle(fromId, toId, json.text)
+      if (!r.ok) { result = r; break }
+      // 动画播完后，由唯一写者登记战斗（battleStart）
+      useGameStore().applyEvent({
+        type: 'battleStart',
+        battleId: r.id!,
+        fromGb: fromId,
+        targetGb: toId,
+        fromName: getLocationName(fromId),
+        toName: getLocationName(toId),
+      })
+      result = r
       break
     }
 
-    case 'stopBattle':
-      result = stopBattle(json.id!)
+    case 'stopBattle': {
+      const r = stopBattle(json.id!)
+      if (!r.ok) { result = r; break }
+      // 灭光束后，由唯一写者结束战斗（battleEnd）
+      useGameStore().applyEvent({ type: 'battleEnd', battleId: json.id! })
+      result = r
       break
+    }
 
-    case 'stopBattles':
-      result = stopBattles()
+    case 'stopBattles': {
+      const ids = [...battleRegistry.keys()]
+      const r = stopBattles()
+      // 灭全部光束后，为每个被清的战斗补 battleEnd 事件
+      for (const id of ids) useGameStore().applyEvent({ type: 'battleEnd', battleId: id })
+      result = r
       break
+    }
 
     case 'listBattles':
       result = { ok: true, battles: listBattles() }
@@ -672,27 +633,34 @@ export async function executeOrder(
       result = await cloudTransition()
       break
 
-    // ── 世界态写回（无动画，直接经 Kernel applyEvent 落地）──
+    // ── 世界态写回（动画已在上面各 case 播完，这里统一经 Kernel applyEvent 落地）──
     case 'capture': {
       const gbId = resolveLocationId(json.gb!)
       if (!gbId) { result = { ok: false, reason: `目标城市不存在: ${json.gb}` }; break }
-      // 占领（含动画）：gb/owner 必填，resultTroops 可选
-      result = await capture(gbId, json.owner!, json.resultTroops)
+      // 先播占领动画，播完再由唯一写者易主（gb/owner 必填，resultTroops 可选）
+      await capture(gbId, json.owner!)
+      useGameStore().applyEvent({
+        type: 'capture',
+        targetGb: gbId,
+        actor: json.owner!,
+        resultTroops: json.resultTroops,
+      })
+      result = { ok: true }
       break
     }
 
     case 'setFactionAlive':
-      setFactionAlive(json.faction!, json.alive!)
+      useGameStore().applyEvent({ type: 'setFactionAlive', faction: json.faction!, alive: json.alive! })
       result = { ok: true }
       break
 
     case 'setCurrentDate':
-      setCurrentDate(json.date!)
+      useGameStore().applyEvent({ type: 'dateAdvance', date: json.date! })
       result = { ok: true }
       break
 
     case 'setCurrentFaction':
-      setCurrentFaction(json.faction!)
+      useGameStore().selectFaction(json.faction!)
       result = { ok: true }
       break
 
