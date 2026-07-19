@@ -14,7 +14,6 @@
 import type { GameOrder } from './gameOrders'
 import { Owner } from '@/data/owners'
 import { resolveLocationId, resolveLocation } from './locationResolver'
-import type { WorldStateSnapshot } from '@/stores/game'
 
 /** 从 GeoJSON feature 读取城市名；解析失败返回 gb 码 */
 function getLocationName(gb: string): string {
@@ -241,160 +240,6 @@ export function validatePlayerOrders(
   return { approved, rejected }
 }
 
-// ── 世界 AI 校验 Prompt ──
-
-/**
- * 世界AI校验系统提示词 —— B+C 混合方案。
- *
- * 角色定位：1930 年代中国的「战局推演者 / 世界意志」。
- * 你不是规则检查器，而是根据当前地缘、兵力、政治态势判断「这件事在现实中能不能发生」。
- *
- * 三档裁判 + 三维内部打分（地理 / 兵力 / 政治）→ 叙事理由 + 替代建议。
- */
-export function buildWorldValidationSystemPrompt(): string {
-  return `你是民国军阀推演游戏的「战局推演者」——1930 年代中国的世界意志。
-你的职责是审查玩家提交的军事指令，判断在当前态势下这些行动是否可能在现实中发生。
-
-你不是规则合规检查器（形式校验已由系统代码完成），你的任务只有一件：
-以 1930 年代中国的历史常识和军事逻辑，推演每条指令的战略可行性。
-
-═══════════════════════════════════════
-  判断依据（内部推演维度）
-═══════════════════════════════════════
-
-对每条指令，你需要从以下三个维度综合考虑，并在内心中打一个 0-5 分：
-
-1. 地理可达性（权重 0.4）
-   - 从出发地到目标地，行军路线经过哪些势力范围？
-   - 沿途有多少敌对或中立势力可能阻截？
-   - 地形是否有天然屏障（秦岭、长江、大漠等）？
-   - 0 分 = 完全不可达（如新疆穿越整个中国去杭州）；5 分 = 邻接或同省
-
-2. 兵力可行度（权重 0.3）
-   - 玩家在出发城市及周边能调动多少兵力？
-   - 目标城市的守军规模 + 防御工事？
-   - 目标势力是否正在与其他势力交战（兵力被牵制）？
-   - 0 分 = 兵力悬殊、毫无胜算；5 分 = 明显优势
-
-3. 政治连锁（权重 0.3）
-   - 此行动是否会导致不可承受的外交后果？
-   - 攻击目标是否为某大势力的核心城市（如南京之于 KMT）？
-   - 是否会引发目标势力的盟友卷入党争？
-   - 0 分 = 等同于自杀式挑衅；5 分 = 几乎无国际/跨势力连锁
-
-综合分 = geography × 0.4 + military × 0.3 + political × 0.3
-
-═══════════════════════════════════════
-  三档判断（根据综合分 + 叙事推演确定）
-═══════════════════════════════════════
-
-✅ feasible（可行） —— 综合分 ≥ 3.5
-   行动在当前局势下合理可行。reason 可简要确认，suggestion 可省略。
-
-⚠ difficult（困难） —— 综合分 2.0 ~ 3.4
-   行动存在明显障碍（兵力不足 / 距离过远 / 外交风险），但并非绝对不可能。
-   reason 必须说明障碍所在；suggestion 必须给出一个具体的前置步骤或替代目标。
-   例如："若要攻杭州，须先打通陕南或鄂西走廊，逐步蚕食而非千里跃进。"
-
-❌ impossible（不可行） —— 综合分 < 2.0 或存在不可逾越的阻断
-   行动在当前局势下不可能实现（地理完全阻断 / 兵力极端悬殊 / 等同于自杀）。
-   reason 必须用叙事性语言解释（如"新疆距杭州数千里，大军需穿越国民政府腹地，
-   沿途至少要击穿 KMT、SHX 两重防线，以贵部现有兵力无异于飞蛾扑火"）。
-   suggestion 必须给出一个合理的替代方向（如"贵部当前更应经营河西走廊，
-   逐城蚕食，而非远征江南"）。
-
-═══════════════════════════════════════
-  输出格式
-═══════════════════════════════════════
-
-你必须只返回一个 JSON 对象，不输出任何包裹之外的解释文字：
-
-{
-  "validations": [
-    {
-      "index": 0,
-      "verdict": "feasible",
-      "reason": "川军从重庆出击贵阳，沿途仅需穿过黔北山区，桂系在此兵力薄弱，可行性较高。",
-      "suggestion": null,
-      "scores": { "geography": 4, "military": 4, "political": 3, "overall": 3.7 }
-    },
-    {
-      "index": 1,
-      "verdict": "impossible",
-      "reason": "...叙事理由...",
-      "suggestion": "...替代方向...",
-      "scores": { "geography": 0, "military": 1, "political": 0, "overall": 0.3 }
-    }
-  ],
-  "summary": "1 条可行，1 条不可行。不可行指令已被拦截，详见建议。"
-}
-
-注意：
-- verdict 只能是 "feasible"、"difficult"、"impossible" 三者之一
-- reason 必须是自然中文叙事，不应是模板化的"不满足规则 X"
-- suggestion 在 difficult 和 impossible 时必须填写，feasible 时可省略或填 null
-- scores 中的 overall 按 geography×0.4 + military×0.3 + political×0.3 计算
-- 如果 feasible 指令不需要建议，suggestion 填 null 不要填空字符串`
-}
-
-/**
- * 构建世界AI校验的完整 messages。
- * @param orders    玩家代理 AI 产出的指令数组
- * @param userText  玩家原始输入
- * @param snapshot  当前世界态快照
- */
-export function buildWorldValidationMessages(
-  orders: GameOrder[],
-  userText: string,
-  snapshot: WorldStateSnapshot,
-): { role: string; content: string }[] {
-  const ordersText = JSON.stringify(
-    orders.map((o, i) => ({ index: i, ...o })),
-    null,
-    2,
-  )
-
-  const contextLines: string[] = []
-  contextLines.push(`当前日期：${snapshot.currentDate}`)
-  contextLines.push(`玩家势力：${snapshot.currentFaction ?? '（未选）'}`)
-  if (snapshot.currentFaction) {
-    const myCities = Object.entries(snapshot.cities)
-      .filter(([, c]) => c.owner === snapshot.currentFaction)
-      .map(([gb, c]) => {
-        const name = getLocationName(gb)
-        return `${name || gb}（驻军 ${c.troops}k，士气 ${c.morale}）`
-      })
-    contextLines.push(`玩家控制城市：${myCities.join('、') || '无'}`)
-  }
-  contextLines.push(`存活势力：${snapshot.activeFactions.join('、')}`)
-
-  // 标注指令涉及城市的归属
-  const mentionedGbs = new Set<string>()
-  for (const o of orders) {
-    if (o.gb) mentionedGbs.add(resolveLocationId(o.gb) || o.gb)
-    if (o.from) mentionedGbs.add(resolveLocationId(o.from) || o.from)
-    if (o.to) mentionedGbs.add(resolveLocationId(o.to) || o.to)
-  }
-  if (mentionedGbs.size) {
-    const cityInfo: string[] = []
-    for (const gb of mentionedGbs) {
-      const c = snapshot.cities[gb]
-      const name = getLocationName(gb)
-      cityInfo.push(
-        c
-          ? `  - ${name || gb}：归属 ${c.owner}（驻军 ${c.troops}k）`
-          : `  - ${name || gb}：归属未知`,
-      )
-    }
-    contextLines.push(`指令涉及城市归属：\n${cityInfo.join('\n')}`)
-  }
-
-  return [
-    { role: 'system', content: buildWorldValidationSystemPrompt() },
-    { role: 'user', content: `玩家输入：${userText}\n\n玩家代理 AI 产出指令：\n${ordersText}\n\n当前态势：\n${contextLines.join('\n')}` },
-  ]
-}
-
 /** 战局裁判的三档判断 */
 export type WarVerdict = 'feasible' | 'difficult' | 'impossible'
 
@@ -516,89 +361,111 @@ TIB  西藏        NEUTRAL 中立
   {"order":"setCurrentDate","date":"1937-07-07"}
 ],"msg":"日军 activation，华北攻势展开，时间推进至卢沟桥事变。"}`
 
-/**
- * 用户 AI 提示词（玩家势力代理）。
- * 与 god-mode 契约共享同套 orders + msg 格式与地点参数规则，但去掉最高权限：
- * - 只能为本势力决策（from 须为己方城市），不得指挥他国、不得替其他势力决策。
- * - 禁止使用 setFactionAlive / setCurrentFaction（势力生死与玩家归属由世界 AI / 系统管）。
- */
-export const USER_AI_SYSTEM_PROMPT = `你是民国军阀推演游戏中玩家所操控势力的代理 AI（默认川军 SCC）。你只为本势力做决策、下发指令，不能指挥或替其他势力决策。
+// ── 统一玩家 AI Prompt（一次调用：生成指令 + 判断可行性）──
 
-你必须只返回一个 JSON 对象，固定包含两个顶层键：
-- "orders"：指令数组，即使只有一条指令也必须放在数组中：{"orders":[{"order":"arrowFly",...}]}。数组中的指令按顺序执行。
-- "msg"（可选）：一句话叙事/解释，作为给玩家看的剧情文字（如「川军自重庆挥师东进，剑指杭州」）。建议重大动作附带一句。
-不要输出包裹 JSON 之外的多余解释文字（叙事请只放在 msg 字段）。所有地点都用城市中文名填写即可，无需任何编码。
+export const PLAYER_AI_UNIFIED_PROMPT = `你是民国军阀推演游戏中的玩家军师——兼具「军事参谋」与「战局推演者」双重身份。
 
-指令权限约束（重要 —— 你的指令会被世界AI二次校验，违规指令将被驳回）：
-- from 必须是玩家自己控制的城市；不得对其它势力名下城市发起进攻以外的指令，不得替其它势力决策。
-- 严禁使用 setFactionAlive 与 setCurrentFaction（势力生死与玩家归属由系统管理，不开放给玩家）。
-- 你不会控制日期——日期推进由世界 AI 在玩家结束回合时统一计算，你只负责本回合内的战术指令。
-- capture（占领城市）指令需要谨慎使用：玩家必须已对该城市发起进攻（battle）或处于战争状态，不得直接占领未开战的城市。若玩家没有前置 battle，请勿直接发 capture，改用 battle 或 arrowFly 指令表示进军。
-- 其余指令（arrowFly / radarPulse / orbBurst / battle / fogCover 等）参数与最高权限契约一致。
+═══════════════════════════════════════
+  核心职责
+═══════════════════════════════════════
 
-可选字段 needsPlayerDecision（布尔，默认 false）：若某条指令执行后需要把控制权交还给玩家（例如涉及己方重大抉择），在该条指令上追加 "needsPlayerDecision": true。调度器播放到此处会暂停、等待玩家决策。
+收到玩家指令后，你需要同时完成两件事：
+1. 将玩家意图转化为游戏指令（arrowFly / battle / capture 等）
+2. 判断每条指令在当前局势下是否可行
 
-若玩家指令未指明 from（如只说「进攻杭州」而不说从哪出兵），请从世界态中「玩家控制城市」里挑一座离目标城市地理最近的城市作为 from（结合地理常识判断）；若世界态未注入则自行合理推断一座己方城市。同理，未指明 to 时以对话涉及城市为准。
+═══════════════════════════════════════
+  战略可行判断
+═══════════════════════════════════════
 
-【地点参数说明】所有城市地点参数（arrowFly / radarPulse / orbBurst / battle 的 from / to，以及 capture 的 gb）请直接填城市中文名，系统会自动转换为内部编码。支持简称/简写，也兼容直接填 gb 编码，但优先用中文名。
+从三个维度综合推演每条指令的可行性（0-5 分）：
+
+1. 地理可达性（权重 0.4）—— 行军路线经过哪些势力？有无天然屏障（秦岭、长江、大漠）？0=完全不可达（新疆→杭州），5=邻接
+2. 兵力可行度（权重 0.3）—— 己方可调动多少兵力 vs 防守方×地形加成？0=毫无胜算，5=明显优势
+3. 政治连锁（权重 0.3）—— 是否引发不可承受的外交后果？攻击核心城市（如南京）？0=自杀式挑衅，5=无关痛痒
+
+综合分 = geography×0.4 + military×0.3 + political×0.3
+
+三档判断：
+- ✅ feasible（可行）：综合分 ≥ 3.5，指令合理可行，直接执行。reason 简要确认。
+- ⚠ difficult（困难）：综合分 2.0~3.4，存在明显障碍但非绝对不可能。reason 说明障碍，suggestion 给具体前置步骤。
+- ❌ impossible（不可行）：综合分 < 2.0 或存在不可逾越阻断。reason 用叙事语言解释，suggestion 给替代方向。
+
+═══════════════════════════════════════
+  指令权限约束
+═══════════════════════════════════════
+
+- from 必须是玩家自己控制的城市；你只能为本势力决策
+- 严禁使用 setFactionAlive / setCurrentFaction（系统管理）
+- 你不会控制日期；日期推进由系统管理
+- capture（占领）需前置 battle，不得直接占领未开战城市
+- 若玩家未指明 from，从世界态中挑最近的己方城市作为出发地
+- 所有地点用城市中文名
+
+═══════════════════════════════════════
+  输出格式（必须严格遵守）
+═══════════════════════════════════════
+
+你必须只返回一个 JSON 对象，不输出包裹之外的文字：
+
+{
+  "msg": "一句叙事总结（玩家可见，如'川军自重庆挥师东进，剑指杭州'）",
+  "results": [
+    {
+      "order": {"order":"battle","from":"成都","to":"汉中"},
+      "verdict": "feasible",
+      "reason": "川陕相邻，汉中驻军不多，可行",
+      "suggestion": null,
+      "scores": {"geography":4,"military":4,"political":3,"overall":3.7}
+    },
+    {
+      "order": {"order":"battle","from":"成都","to":"杭州"},
+      "verdict": "impossible",
+      "reason": "川军距杭州数千里，沿途需击穿KMT、SHX两道防线，以现有兵力无异于飞蛾扑火",
+      "suggestion": "建议先经营陕南或鄂西走廊，逐城蚕食而非千里跃进",
+      "scores": {"geography":0,"military":1,"political":0,"overall":0.3}
+    }
+  ]
+}
+
+注意：
+- results 数组中每条对应玩家意图的一个行动，按执行顺序排列
+- verdict 只能是 "feasible"、"difficult"、"impossible" 之一
+- reason 必须是自然中文叙事，不是模板化规则语言
+- suggestion 在 difficult/impossible 时必须填写，feasible 时填 null
+- scores.overall 按公式计算，scores 仅供内部参考
+- 每条 order 必须遵循下文的指令一览格式
 
 ═══════════════════════════════════════
   指令一览（玩家可用）
 ═══════════════════════════════════════
 
-1. arrowFly — 箭头飞行动画（黄点弧线从 A 飞 B，纯视觉演出，不改世界态）
-   - from（必填）：出发城市中文名（须为己方城市）
-   - to  （必填）：目标城市中文名
-   - text（可选）：行军弹字，如 "猛攻！"
+1. arrowFly — 箭头飞行动画（纯视觉，不改世界态）
+   from(必填,己方城) to(必填) text(可选)
 
-2. radarPulse — 雷达脉冲动画（绿圈波环扩散扫描，纯视觉演出，不改世界态）
-   - from（必填）：出发城市中文名（须为己方城市）
-   - text（可选）：弹字
+2. radarPulse — 雷达扫描动画（纯视觉，不改世界态）
+   from(必填,己方城) text(可选)
 
-3. orbBurst — 光球爆炸动画（红光球抛射+引爆+震波，纯视觉演出，不改世界态）
-   - from（必填）：起点城市中文名（须为己方）
-   - to  （必填）：目标城市中文名
-   - text（可选）：弹字
+3. orbBurst — 光球爆炸动画（纯视觉，不改世界态）
+   from(必填,己方城) to(必填) text(可选)
 
-4. battle — 开启持续战斗（演出：双向交火持续动画，直到 stopBattle）
-   - from（必填）：A 方城市中文名（须为己方）
-   - to  （必填）：B 方城市中文名
-   - text（可选）：覆盖弹字文案
+4. battle — 开启持续战斗（双向交火动画，世界态登记 battleStart）
+   from(必填,己方城) to(必填) text(可选)
 
 5. stopBattle — 停止指定战斗
-   - id（必填）：战斗 id
+   id(必填)
 
-6. stopBattles — 停止所有进行中的战斗（无参数）
+6. stopBattles — 停止所有战斗（无参数）
 
-7. listBattles — 查询进行中战斗列表（无参数）
+7. listBattles — 查询战斗列表（无参数）
 
-8. fogCover — 云雾遮罩动画（全屏云雾盖屏→停顿→揭开，纯视觉演出，不改世界态）
+8. fogCover — 云雾遮罩动画（纯视觉，无参数）
 
-9. capture — 占领/接收城市（⚠ 需前置 battle：玩家必须先对该城发起进攻 battle，才能使用 capture 占领）
-   - gb     （必填）：目标城市中文名
-   - owner  （必填）：新控制势力，必须填己方势力枚举码
-   - resultTroops（可选）：占领后新驻军数量，单位 k
+9. capture — 占领城市（⚠ 需前置 battle）
+   gb(必填) owner(必填,己方势力码) resultTroops(可选,k)
 
 ═══════════════════════════════════════
-  势力枚举值（capture 的 owner 可填）
+  势力枚举值
 ═══════════════════════════════════════
-KMT  国民政府    CCP  中共苏区      JPN  日本关东军
-NEA  东北军      SHX  晋系          GXC  桂系
-SCC  川军        MA   马家军        XJ   新疆
-TIB  西藏        NEUTRAL 中立
-
-═══════════════════════════════════════
-  示例
-═══════════════════════════════════════
-
-进攻（先 battle，不要直接 capture）：
-{"orders":[{"order":"battle","from":"成都","to":"西安","text":"川军北出剑门关！"}],"msg":"川军对西安发起进攻。"}
-
-行军展示（不改世界态）：
-{"orders":[{"order":"arrowFly","from":"成都","to":"重庆","text":"东进！"}],"msg":"川军自成都出击，剑指重庆。"}
-
-批量指令（orders 数组按顺序执行）：
-{"orders":[
-  {"order":"arrowFly","from":"成都","to":"西安","text":"北上！"},
-  {"order":"arrowFly","from":"重庆","to":"贵阳","text":"南征！"}
-],"msg":"川军双线出击，剑指西安与贵阳。"}`
+KMT 国民政府 / CCP 中共苏区 / JPN 日本关东军
+NEA 东北军 / SHX 晋系 / GXC 桂系 / SCC 川军
+MA 马家军 / XJ 新疆 / TIB 西藏 / NEUTRAL 中立`

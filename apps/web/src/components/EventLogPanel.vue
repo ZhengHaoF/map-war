@@ -58,6 +58,7 @@ function badge(e: GameEvent): string {
     battleStart: '开战',
     battleEnd: '停战',
     selectFaction: '择势',
+    narrative: '叙事',
   }
   return map[e.type]
 }
@@ -93,7 +94,10 @@ function describe(e: GameEvent): string {
       return '战斗结束'
     case 'selectFaction':
       return `${e.playerName || '主公'} 择 ${fname(e.faction)}`
+    case 'narrative':
+      return `${e.playerInput} ← ${e.aiMessage}`
   }
+  return ''
 }
 </script>
 
@@ -186,16 +190,16 @@ function describe(e: GameEvent): string {
 .row--battleStart .row-badge   { background: #c0392b; color: #fff; }
 .row--battleEnd .row-badge     { background: #b0a08a; color: #4a3520; }
 .row--selectFaction .row-badge { background: var(--cinnabar); color: #fff; }
+.row--narrative .row-badge    { background: #5a7a6a; color: #e8f0ea; }
 
 /* 特殊行标记 */
 .row--setFactionAlive .row-text { font-style: italic; }
 .row--dateAdvance .row-text { opacity: 0.7; }
+.row--narrative .row-text { font-style: italic; opacity: 0.8; }
 
 .row-text {
   flex: 1;
   color: var(--ink);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  word-break: break-all;
 }
 </style>

@@ -11,7 +11,7 @@
     <Transition name="dock-collapse">
       <div v-if="!collapsed" class="dock-body">
         <!-- 错误提示（独立于左右布局，横贯顶部） -->
-        <div v-if="error || parseError || worldValidationError" class="dock-error">{{ error || parseError || worldValidationError }}</div>
+        <div v-if="error || parseError" class="dock-error">{{ error || parseError }}</div>
 
         <div class="dock-main">
           <!-- 左栏：输入 -->
@@ -78,10 +78,6 @@
                   </div>
                 </div>
               </div>
-              <!-- 世界AI校验进行中 -->
-              <div v-if="worldValidationLoading" class="log-validating">
-                <span class="log-validating-spin">⟳</span> 世界AI校验中…
-              </div>
             </div>
             <div class="dock-status">
               <span class="dock-queue">队列 {{ queue.length }} · {{ statusText }}</span>
@@ -100,6 +96,7 @@
 import { ref, computed, nextTick } from 'vue'
 import { useAiDebug } from '@/composables/useAiDebug'
 import { useGameScheduler } from '@/composables/useGameScheduler'
+import { useGameStore } from '@/stores/game'
 import GameButton from '@/components/ui/GameButton.vue'
 import IconBrain from '~icons/tabler/brain'
 import IconSend from '~icons/tabler/send'
@@ -134,18 +131,16 @@ const {
   undoStack,
   strategicRejected,
   worldValidation,
-  worldValidationLoading,
-  worldValidationError,
   worldDifficult,
   worldImpossible,
   runSend,
   applyStrategicRules,
-  validateWithWorldAi,
   getFinalApprovedOrders,
   undo,
 } = useAiDebug('user')
 
 const { queue, status, stoppedAt, submit, advance } = useGameScheduler()
+const store = useGameStore()
 
 const statusText = computed(() => {
   switch (status.value) {
@@ -178,11 +173,6 @@ async function onSend(): Promise<void> {
   // ── Phase 2：硬编码战略规则（同步，零延迟）──
   applyStrategicRules()
 
-  // ── Phase 3：世界AI 校验（异步，额外 LLM 调用）──
-  if (parsed.value && !parseError.value) {
-    await validateWithWorldAi(userText)
-  }
-
   // ── 汇总拒绝 / 困难 / 不可能 ──
   const rejectedItems: { label: string; reason: string }[] = []
   for (const r of strategicRejected.value) {
@@ -201,7 +191,12 @@ async function onSend(): Promise<void> {
     impossibleItems.push({ label: `❌ ${orderName}`, reason: r.reason, suggestion: r.suggestion })
   }
 
-  // ── 追加到日志 ──
+  // ── 写入叙事事件到世界日志（存档/回放可见）──
+  if (aiMessage.value) {
+    store.applyEvent({ type: 'narrative', playerInput: userText, aiMessage: aiMessage.value })
+  }
+
+  // ── 追加到操作日志（本地 UI）──
   chatHistory.value.push({
     user: userText,
     msg: aiMessage.value,
@@ -307,7 +302,7 @@ async function onSend(): Promise<void> {
   flex-direction: column;
   gap: 8px;
   padding: 8px 14px 12px;
-  height: 150px;
+  height: 220px;
   overflow: hidden;
 }
 
@@ -448,7 +443,7 @@ async function onSend(): Promise<void> {
   border-radius: var(--radius-md);
   padding: 6px 10px;
   color: var(--ink, #3b2f1d);
-  font-size: 13px;
+  font-size: 16px;
   line-height: 1.5;
 }
 
@@ -457,7 +452,7 @@ async function onSend(): Promise<void> {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  font-size: 11px;
+  font-size: 14px;
   padding-left: 4px;
 }
 
@@ -471,7 +466,7 @@ async function onSend(): Promise<void> {
 
 /* ── 世界AI校验状态 ── */
 .log-validation-summary {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--ink-muted, #9c8a6a);
   padding-left: 4px;
   font-style: italic;
@@ -508,8 +503,8 @@ async function onSend(): Promise<void> {
   background: var(--danger-bg, #f7dede);
   border: 1px solid var(--danger-ink-faint, rgba(178, 58, 46, 0.3));
   border-radius: var(--radius-sm);
-  padding: 4px 8px;
-  font-size: 11px;
+  padding: 5px 10px;
+  font-size: 13px;
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -536,8 +531,8 @@ async function onSend(): Promise<void> {
   background: #f0e4c8;
   border: 1px solid rgba(160, 120, 40, 0.4);
   border-radius: var(--radius-sm);
-  padding: 4px 8px;
-  font-size: 11px;
+  padding: 5px 10px;
+  font-size: 13px;
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -571,8 +566,8 @@ async function onSend(): Promise<void> {
   background: var(--danger-bg, #f7dede);
   border: 1px solid var(--danger-ink-faint, rgba(178, 58, 46, 0.3));
   border-radius: var(--radius-sm);
-  padding: 4px 8px;
-  font-size: 11px;
+  padding: 5px 10px;
+  font-size: 13px;
   display: flex;
   flex-direction: column;
   gap: 2px;

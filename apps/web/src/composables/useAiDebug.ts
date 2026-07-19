@@ -18,10 +18,11 @@ import { buildMessages, buildSystemPrompt } from '@/utils/aiPromptBuilder'
 import {
   validateOrders,
   validatePlayerOrders,
-  buildWorldValidationMessages,
   type BatchValidation,
   type WorldValidationResult,
   type WorldValidationItem,
+  type WarVerdict,
+  type WarScores,
 } from '@/utils/aiOrderContract'
 import type { GameOrder } from '@/utils/gameOrders'
 
@@ -34,6 +35,28 @@ export interface ExecResult {
 }
 
 type UndoFrame = ReturnType<ReturnType<typeof useGameStore>['snapshotForUndo']>
+
+/** 统一 AI 响应的 results 条目 */
+interface UnifiedResultItem {
+  order: Record<string, unknown>
+  verdict: WarVerdict
+  reason: string
+  suggestion?: string | null
+  scores?: WarScores
+}
+
+/** 统一 AI 响应格式（user 模式） */
+interface UnifiedAiResponse {
+  msg?: string | null
+  results: UnifiedResultItem[]
+}
+
+/** 判断是否为统一 results 格式（有 results 数组且无 orders 键） */
+function isUnifiedResult(obj: unknown): obj is UnifiedAiResponse {
+  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return false
+  const o = obj as Record<string, unknown>
+  return Array.isArray(o.results) && o.orders === undefined
+}
 
 function extractJson(text: string): unknown {
   let t = (text ?? '').trim()
@@ -135,13 +158,8 @@ export function useAiDebug(mode: AiMode = 'world') {
   // ── 玩家模式专属：战略校验状态 ──
   /** 硬编码规则拒绝的指令（同步，runSend 后立即可用） */
   const strategicRejected = ref<{ order: GameOrder; reason: string }[]>([])
-  /** 世界AI校验结果（异步，需额外 LLM 调用） */
+  /** AI 一次调用产出的可行性判断（从 results 中提取） */
   const worldValidation = ref<WorldValidationResult | null>(null)
-  const worldValidationLoading = ref(false)
-  const worldValidationError = ref<string | null>(null)
-
-  /** 世界AI校验独立 useAiChat 实例（避免污染主对话） */
-  const worldValidator = useAiChat()
 
   /**
    * 硬编码战略规则拦截（同步，零 LLM 成本）。
@@ -161,45 +179,6 @@ export function useAiDebug(mode: AiMode = 'world') {
       (gb) => store.ownership[gb],
     )
     strategicRejected.value = result.rejected
-  }
-
-  /**
-   * 世界AI校验（异步，额外 LLM 调用）。
-   * 把玩家代理 AI 产出的指令发给世界AI审查，返回 approve/reject + 理由。
-   * 仅在 user 模式下有意义。
-   */
-  async function validateWithWorldAi(userText: string): Promise<void> {
-    worldValidation.value = null
-    worldValidationError.value = null
-    if (mode !== 'user' || !parsed.value) return
-
-    // 只校验结构通过 + 硬编码规则通过的指令
-    const pending = getPendingOrders()
-    if (!pending.length) return
-
-    worldValidationLoading.value = true
-    try {
-      const store = useGameStore()
-      const snapshot = store.getSnapshot()
-      const messages = buildWorldValidationMessages(pending, userText, snapshot)
-
-      await worldValidator.send({
-        messages,
-        response_format: { type: 'json_object' },
-      })
-
-      const raw = worldValidator.response.value
-      const payloads = extractPayloads(raw)
-      if (payloads.length) {
-        worldValidation.value = payloads[0] as WorldValidationResult
-      } else {
-        worldValidationError.value = '世界AI校验返回格式异常'
-      }
-    } catch (e) {
-      worldValidationError.value = (e as Error).message || '世界AI校验通信失败'
-    } finally {
-      worldValidationLoading.value = false
-    }
   }
 
   /**
@@ -262,6 +241,7 @@ export function useAiDebug(mode: AiMode = 'world') {
     parsed.value = null
     parseError.value = null
     aiMessage.value = null
+    worldValidation.value = null
     execResults.value = []
 
     const messages = buildMessages({
@@ -281,9 +261,33 @@ export function useAiDebug(mode: AiMode = 'world') {
       parseError.value = 'AI 回复中未找到可解析的 JSON（content 或 tool_calls 均无）。'
       return
     }
-    // 多条 payload（如 content 一条 + tool_calls 若干）合并校验
     const merged = payloads.length === 1 ? payloads[0] : payloads
-    // 拆掉 {orders:[...] | data:[...]} 外层（json_object 模式下 AI 只能回对象根）
+
+    // ── user 模式：统一格式 {msg, results: [{order, verdict, reason, suggestion}]} ──
+    if (mode === 'user' && isUnifiedResult(merged)) {
+      const unified = merged as UnifiedAiResponse
+      aiMessage.value = unified.msg ?? null
+
+      // 从 results 提取 orders 做结构校验
+      const orders = unified.results.map((r) => r.order)
+      parsed.value = validateOrders(orders)
+
+      // 构建 WorldValidationResult（index = 数组位置，summary 自动生成）
+      const validations: WorldValidationItem[] = unified.results.map((r, i) => ({
+        index: i,
+        verdict: r.verdict,
+        reason: r.reason || '',
+        suggestion: r.suggestion ?? undefined,
+        scores: r.scores,
+      }))
+      const counts = { feasible: 0, difficult: 0, impossible: 0 }
+      for (const v of validations) counts[v.verdict]++
+      const summary = `${counts.feasible} 条可行，${counts.difficult} 条困难，${counts.impossible} 条不可行`
+      worldValidation.value = { validations, summary }
+      return
+    }
+
+    // ── world 模式兼容旧格式 {orders:[...], msg} ──
     parsed.value = validateOrders(unwrapData(merged))
     aiMessage.value = extractAiMessage(merged)
   }
@@ -348,8 +352,6 @@ export function useAiDebug(mode: AiMode = 'world') {
     aiMessage.value = null
     strategicRejected.value = []
     worldValidation.value = null
-    worldValidationLoading.value = false
-    worldValidationError.value = null
   }
 
   return {
@@ -368,15 +370,12 @@ export function useAiDebug(mode: AiMode = 'world') {
     // 玩家模式校验
     strategicRejected,
     worldValidation,
-    worldValidationLoading,
-    worldValidationError,
     worldDifficult,
     worldImpossible,
     // 动作
     runSend,
     runExecute,
     applyStrategicRules,
-    validateWithWorldAi,
     getFinalApprovedOrders,
     undo,
     resetWorld,

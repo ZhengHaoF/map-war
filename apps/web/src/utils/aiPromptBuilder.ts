@@ -11,7 +11,7 @@
  */
 
 import { useGameStore } from '@/stores/game'
-import { CONTRACT_SCHEMA_TEXT, USER_AI_SYSTEM_PROMPT } from './aiOrderContract'
+import { CONTRACT_SCHEMA_TEXT, PLAYER_AI_UNIFIED_PROMPT } from './aiOrderContract'
 
 /** AI 角色类型：world = god-mode 调试（最高权限）；user = 玩家势力代理（受限）。 */
 export type AiKind = 'world' | 'user'
@@ -22,7 +22,7 @@ export type AiKind = 'world' | 'user'
  * - user  → USER_AI_SYSTEM_PROMPT（玩家势力代理，受限）
  */
 export function buildSystemPrompt(kind: AiKind = 'world'): string {
-  return kind === 'user' ? USER_AI_SYSTEM_PROMPT : CONTRACT_SCHEMA_TEXT
+  return kind === 'user' ? PLAYER_AI_UNIFIED_PROMPT : CONTRACT_SCHEMA_TEXT
 }
 
 /**

@@ -49,6 +49,7 @@ export type GameEvent =
   | { type: 'battleStart'; battleId: string; fromGb: string; targetGb: string; fromName: string; toName: string }
   | { type: 'battleEnd'; battleId: string }
   | { type: 'selectFaction'; faction: Owner; playerName: string }
+  | { type: 'narrative'; playerInput: string; aiMessage: string }
 
 // ── 存档 / 持久化 ──
 
@@ -326,6 +327,8 @@ export const useGameStore = defineStore('game', () => {
       currentFaction.value = e.faction
       return
     }
+    // 叙事事件：玩家输入 + AI 总结，仅记录不改变世界态
+    if (e.type === 'narrative') return
     // 以下均为城市态事件，需 targetGb
     const t = cities.value[e.targetGb]
     if (!t) return
