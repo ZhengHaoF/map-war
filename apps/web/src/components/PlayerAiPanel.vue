@@ -1,106 +1,109 @@
 <template>
-  <div class="ai-chat">
-    <div class="chat-head">
-      <span class="chat-title"><IconBrain :size="16" />玩家 AI 操作台</span>
-      <button class="chat-collapse" :title="collapsed ? '展开' : '收起'" @click="$emit('toggle')">
-        <IconChevronUp v-if="collapsed" :size="16" />
-        <IconChevronDown v-else :size="16" />
-      </button>
+  <GameModal
+    :visible="visible"
+    title="玩家 AI 操作台"
+    width="380px"
+    variant="parchment"
+    :z-index="2000"
+    draggable
+    :overlay="false"
+    @close="$emit('close')"
+  >
+    <div class="ai-chat-body">
+      <Transition name="chat-collapse">
+        <div class="chat-body">
+          <!-- 错误提示 -->
+          <div v-if="error || parseError" class="chat-error">{{ error || parseError }}</div>
+
+          <!-- 消息区 -->
+          <div ref="logRef" class="chat-messages">
+            <div v-if="chatHistory.length === 0" class="chat-empty">输入指令开始推演…</div>
+
+            <div v-for="(entry, i) in chatHistory" :key="i" class="chat-turn">
+              <!-- 玩家消息（右对齐） -->
+              <div class="chat-bubble chat-bubble--player">
+                {{ entry.user }}
+              </div>
+
+              <!-- AI 回应组（左对齐） -->
+              <div class="chat-ai-group">
+                <!-- AI 叙事 -->
+                <div v-if="entry.msg" class="chat-bubble chat-bubble--ai">
+                  {{ entry.msg }}
+                </div>
+
+                <!-- 指令摘要 -->
+                <div v-if="entry.orders.length" class="chat-orders">
+                  <span
+                    v-for="(o, j) in entry.orders"
+                    :key="j"
+                    class="chat-dot"
+                    :class="{ bad: o.endsWith('✗') }"
+                  >{{ o }}</span>
+                </div>
+
+                <!-- 校验摘要 -->
+                <div v-if="entry.validationSummary" class="chat-verdict">
+                  {{ entry.validationSummary }}
+                </div>
+
+                <!-- 硬编码规则拒绝 -->
+                <div v-if="entry.rejected?.length" class="chat-rejected">
+                  <div v-for="(r, k) in entry.rejected" :key="k" class="chat-rejected-item">
+                    <span class="chat-rejected-label">✕ {{ r.label }}</span>
+                    <span class="chat-rejected-reason">{{ r.reason }}</span>
+                  </div>
+                </div>
+
+                <!-- 困难指令 -->
+                <div v-if="entry.difficult?.length" class="chat-difficult">
+                  <div v-for="(r, k) in entry.difficult" :key="k" class="chat-difficult-item">
+                    <div class="chat-difficult-head">{{ r.label }}</div>
+                    <div class="chat-difficult-reason">{{ r.reason }}</div>
+                    <div v-if="r.suggestion" class="chat-difficult-suggestion">💡 {{ r.suggestion }}</div>
+                  </div>
+                </div>
+
+                <!-- 不可能指令 -->
+                <div v-if="entry.impossible?.length" class="chat-impossible">
+                  <div v-for="(r, k) in entry.impossible" :key="k" class="chat-impossible-item">
+                    <div class="chat-impossible-head">{{ r.label }}</div>
+                    <div class="chat-impossible-reason">{{ r.reason }}</div>
+                    <div v-if="r.suggestion" class="chat-impossible-suggestion">⇢ {{ r.suggestion }}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 队列状态 -->
+          <div class="chat-status">
+            <span class="chat-queue">队列 {{ queue.length }} · {{ statusText }}</span>
+            <span v-if="status === 'stopped'" class="chat-stopped">⏸ 已在 {{ stoppedAt?.order }} 处停下</span>
+          </div>
+
+          <!-- 输入区 -->
+          <div class="chat-input-area">
+            <textarea
+              v-model="userMessage"
+              class="chat-textarea"
+              rows="2"
+              placeholder="例如：派兵进攻杭州"
+              @keydown.enter.exact.prevent="onSend"
+            ></textarea>
+            <div class="chat-input-btns">
+              <GameButton parchment size="small" :disabled="!undoStack.length" @click="undo">
+                <IconUndo :size="14" />撤销
+              </GameButton>
+              <GameButton parchment :disabled="loading" @click="onSend">
+                <IconSend :size="16" />{{ loading ? '请求中' : '发送' }}
+              </GameButton>
+            </div>
+          </div>
+        </div>
+      </Transition>
     </div>
-
-    <Transition name="chat-collapse">
-      <div v-if="!collapsed" class="chat-body">
-        <!-- 错误提示 -->
-        <div v-if="error || parseError" class="chat-error">{{ error || parseError }}</div>
-
-        <!-- 消息区 -->
-        <div ref="logRef" class="chat-messages">
-          <div v-if="chatHistory.length === 0" class="chat-empty">输入指令开始推演…</div>
-
-          <div v-for="(entry, i) in chatHistory" :key="i" class="chat-turn">
-            <!-- 玩家消息（右对齐） -->
-            <div class="chat-bubble chat-bubble--player">
-              {{ entry.user }}
-            </div>
-
-            <!-- AI 回应组（左对齐） -->
-            <div class="chat-ai-group">
-              <!-- AI 叙事 -->
-              <div v-if="entry.msg" class="chat-bubble chat-bubble--ai">
-                {{ entry.msg }}
-              </div>
-
-              <!-- 指令摘要 -->
-              <div v-if="entry.orders.length" class="chat-orders">
-                <span
-                  v-for="(o, j) in entry.orders"
-                  :key="j"
-                  class="chat-dot"
-                  :class="{ bad: o.endsWith('✗') }"
-                >{{ o }}</span>
-              </div>
-
-              <!-- 校验摘要 -->
-              <div v-if="entry.validationSummary" class="chat-verdict">
-                {{ entry.validationSummary }}
-              </div>
-
-              <!-- 硬编码规则拒绝 -->
-              <div v-if="entry.rejected?.length" class="chat-rejected">
-                <div v-for="(r, k) in entry.rejected" :key="k" class="chat-rejected-item">
-                  <span class="chat-rejected-label">✕ {{ r.label }}</span>
-                  <span class="chat-rejected-reason">{{ r.reason }}</span>
-                </div>
-              </div>
-
-              <!-- 困难指令 -->
-              <div v-if="entry.difficult?.length" class="chat-difficult">
-                <div v-for="(r, k) in entry.difficult" :key="k" class="chat-difficult-item">
-                  <div class="chat-difficult-head">{{ r.label }}</div>
-                  <div class="chat-difficult-reason">{{ r.reason }}</div>
-                  <div v-if="r.suggestion" class="chat-difficult-suggestion">💡 {{ r.suggestion }}</div>
-                </div>
-              </div>
-
-              <!-- 不可能指令 -->
-              <div v-if="entry.impossible?.length" class="chat-impossible">
-                <div v-for="(r, k) in entry.impossible" :key="k" class="chat-impossible-item">
-                  <div class="chat-impossible-head">{{ r.label }}</div>
-                  <div class="chat-impossible-reason">{{ r.reason }}</div>
-                  <div v-if="r.suggestion" class="chat-impossible-suggestion">⇢ {{ r.suggestion }}</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 队列状态 -->
-        <div class="chat-status">
-          <span class="chat-queue">队列 {{ queue.length }} · {{ statusText }}</span>
-          <span v-if="status === 'stopped'" class="chat-stopped">⏸ 已在 {{ stoppedAt?.order }} 处停下</span>
-        </div>
-
-        <!-- 输入区 -->
-        <div class="chat-input-area">
-          <textarea
-            v-model="userMessage"
-            class="chat-textarea"
-            rows="2"
-            placeholder="例如：派兵进攻杭州"
-            @keydown.enter.exact.prevent="onSend"
-          ></textarea>
-          <div class="chat-input-btns">
-            <GameButton parchment size="small" :disabled="!undoStack.length" @click="undo">
-              <IconUndo :size="14" />撤销
-            </GameButton>
-            <GameButton parchment :disabled="loading" @click="onSend">
-              <IconSend :size="16" />{{ loading ? '请求中' : '发送' }}
-            </GameButton>
-          </div>
-        </div>
-      </div>
-    </Transition>
-  </div>
+  </GameModal>
 </template>
 
 <script setup lang="ts">
@@ -109,24 +112,9 @@ import { useAiDebug } from '@/composables/useAiDebug'
 import { useGameScheduler } from '@/composables/useGameScheduler'
 import { useGameStore } from '@/stores/game'
 import GameButton from '@/components/ui/GameButton.vue'
-import IconBrain from '~icons/tabler/brain'
+import GameModal from '@/components/ui/GameModal.vue'
 import IconSend from '~icons/tabler/send'
 import IconUndo from '~icons/tabler/arrow-back-up'
-import IconChevronUp from '~icons/tabler/chevron-up'
-import IconChevronDown from '~icons/tabler/chevron-down'
-
-defineProps<{ collapsed?: boolean }>()
-defineEmits<{ (e: 'toggle'): void }>()
-
-interface ChatEntry {
-  user: string
-  msg: string | null
-  orders: string[]
-  rejected?: { label: string; reason: string }[]
-  difficult?: { label: string; reason: string; suggestion?: string }[]
-  impossible?: { label: string; reason: string; suggestion?: string }[]
-  validationSummary?: string
-}
 
 const {
   userMessage,
@@ -149,6 +137,22 @@ const {
 const { queue, status, stoppedAt, submit, advance } = useGameScheduler()
 const store = useGameStore()
 
+defineProps<{ visible: boolean }>()
+defineEmits<{ close: [] }>()
+
+const chatHistory = ref<ChatEntry[]>([])
+const logRef = ref<HTMLElement | null>(null)
+
+interface ChatEntry {
+  user: string
+  msg: string | null
+  orders: string[]
+  rejected?: { label: string; reason: string }[]
+  difficult?: { label: string; reason: string; suggestion?: string }[]
+  impossible?: { label: string; reason: string; suggestion?: string }[]
+  validationSummary?: string
+}
+
 const statusText = computed(() => {
   switch (status.value) {
     case 'running': return '推进中…'
@@ -157,9 +161,6 @@ const statusText = computed(() => {
     default: return '空闲'
   }
 })
-
-const chatHistory = ref<ChatEntry[]>([])
-const logRef = ref<HTMLElement | null>(null)
 
 async function onSend(): Promise<void> {
   const userText = userMessage.value.trim()
@@ -224,54 +225,13 @@ async function onSend(): Promise<void> {
 </script>
 
 <style scoped>
-/* ===== 面板容器 ===== */
-.ai-chat {
-  width: 100%;
-  height: 100%;
-  pointer-events: auto;
+/* ===== 弹窗内容容器 ===== */
+.ai-chat-body {
   display: flex;
   flex-direction: column;
-  background: var(--paper-panel, #e9dcc4);
-  border: 1px solid var(--brown-line, #8a6d4b);
-  border-radius: var(--radius-lg);
-  box-shadow: 0 2px 10px rgba(90, 60, 20, 0.15);
-  font-family: var(--font-kai, serif);
+  max-height: 72vh;
+  min-height: 0;
   overflow: hidden;
-}
-
-/* ===== 标题栏 ===== */
-.chat-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 14px;
-  border-bottom: 1px dashed var(--brown-line-faint, rgba(138, 109, 75, 0.3));
-  flex-shrink: 0;
-}
-
-.chat-title {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 14px;
-  font-weight: 600;
-  letter-spacing: 1px;
-  color: var(--ink-strong, #4a3a22);
-}
-
-.chat-collapse {
-  border: none;
-  background: transparent;
-  color: var(--ink-muted, #9c8a6a);
-  cursor: pointer;
-  display: inline-flex;
-  padding: 2px;
-  border-radius: var(--radius-sm);
-}
-
-.chat-collapse:hover {
-  background: var(--paper-faint, #e8dcc0);
-  color: var(--cinnabar, #b23a2e);
 }
 
 /* ===== 折叠过渡 ===== */
@@ -410,7 +370,7 @@ async function onSend(): Promise<void> {
 
 .chat-rejected-item {
   background: var(--danger-bg, #f7dede);
-  border: 1px solid var(--danger-ink-faint, rgba(178, 58, 46, 0.3));
+  border: 1px solid rgba(178, 58, 46, 0.3);
   border-radius: var(--radius-sm);
   padding: 5px 10px;
   font-size: 13px;
@@ -473,7 +433,7 @@ async function onSend(): Promise<void> {
 
 .chat-impossible-item {
   background: var(--danger-bg, #f7dede);
-  border: 1px solid var(--danger-ink-faint, rgba(178, 58, 46, 0.3));
+  border: 1px solid rgba(178, 58, 46, 0.3);
   border-radius: var(--radius-sm);
   padding: 5px 10px;
   font-size: 13px;
@@ -495,7 +455,7 @@ async function onSend(): Promise<void> {
 .chat-impossible-suggestion {
   color: var(--cinnabar, #b23a2e);
   padding-left: 4px;
-  border-left: 2px solid var(--danger-ink-faint, rgba(178, 58, 46, 0.3));
+  border-left: 2px solid rgba(178, 58, 46, 0.3);
 }
 
 /* ===== 队列状态 ===== */
@@ -510,7 +470,7 @@ async function onSend(): Promise<void> {
 
 .chat-queue {
   padding: 2px 8px;
-  border: 1px solid var(--brown-line-faint, rgba(138, 109, 75, 0.3));
+  border: 1px solid rgba(138, 109, 75, 0.3);
   border-radius: var(--radius-sm);
   background: var(--paper-faint, #e8dcc0);
   align-self: flex-start;

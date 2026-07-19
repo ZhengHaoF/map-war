@@ -1,26 +1,15 @@
 <template>
-  <div class="psp" :class="{ collapsed }">
-    <!-- 折叠/展开开关 -->
-    <button class="psp-toggle" :title="collapsed ? '展开面板' : '收起面板'" @click="collapsed = !collapsed">
-      <component :is="collapsed ? ICONS['chevron-left'] : ICONS['chevron-right']" :size="16" />
-    </button>
-
-    <!-- 收起态：极简竖条 -->
-    <div v-if="collapsed" class="psp-rail" @click="collapsed = false">
-      <div class="rail-color" :style="{ background: factionColor }" />
-      <div class="rail-metric" title="我方城市数">
-        <component :is="ICONS.building" :size="16" />
-        {{ myStats.cityCount }}
-      </div>
-      <div class="rail-metric" title="进行中战斗">
-        <component :is="ICONS.crosshair" :size="16" />
-        {{ myBattles.length }}
-      </div>
-      <div class="rail-date">{{ shortDate }}</div>
-    </div>
-
-    <!-- 展开态 -->
-    <template v-else>
+  <GameModal
+    :visible="visible"
+    title="领土总览"
+    width="360px"
+    variant="parchment"
+    :z-index="2000"
+    draggable
+    :overlay="false"
+    @close="$emit('close')"
+  >
+    <div class="psp-inner">
       <header class="psp-header">
         <span class="faction-swatch" :style="{ background: factionColor }" />
         <div class="faction-meta">
@@ -90,8 +79,8 @@
           <div class="pending-note">待建 · 数据系统接入中</div>
         </section>
       </div>
-    </template>
-  </div>
+    </div>
+  </GameModal>
 </template>
 
 <script setup lang="ts">
@@ -99,8 +88,7 @@ import { ref, computed } from 'vue'
 import { useGameStore } from '@/stores/game'
 import { OWNER_LABELS, OWNER_COLORS, OWNER_DETAILS } from '@/data/owners'
 import type { Component } from 'vue'
-import IconChevronLeft from '~icons/tabler/chevron-left'
-import IconChevronRight from '~icons/tabler/chevron-right'
+import GameModal from '@/components/ui/GameModal.vue'
 import IconChevronUp from '~icons/tabler/chevron-up'
 import IconChevronDown from '~icons/tabler/chevron-down'
 import IconBuilding from '~icons/tabler/building'
@@ -110,9 +98,10 @@ import IconAffiliate from '~icons/tabler/affiliate'
 import IconAlertTriangle from '~icons/tabler/alert-triangle'
 import IconHistory from '~icons/tabler/history'
 
+defineProps<{ visible: boolean }>()
+defineEmits<{ close: [] }>()
+
 const ICONS: Record<string, Component> = {
-  'chevron-left': IconChevronLeft,
-  'chevron-right': IconChevronRight,
   'chevron-up': IconChevronUp,
   'chevron-down': IconChevronDown,
   building: IconBuilding,
@@ -125,7 +114,6 @@ const ICONS: Record<string, Component> = {
 
 const gameStore = useGameStore()
 
-const collapsed = ref(true)
 const showCities = ref(false)
 
 const faction = computed(() => gameStore.currentFaction)
@@ -137,14 +125,6 @@ const capital = computed(() => (faction.value ? OWNER_DETAILS[faction.value]?.ca
 const playerName = computed(() => gameStore.playerName)
 const myStats = computed(() => gameStore.myStats)
 const myBattles = computed(() => gameStore.myBattles)
-
-const shortDate = computed(() => {
-  const d = gameStore.currentDate
-  if (!d) return ''
-  const p = d.split('-')
-  if (p.length !== 3) return d
-  return `${parseInt(p[1])}.${parseInt(p[2])}`
-})
 
 const placeholders = [
   { title: '军事力量', icon: ICONS.sword },
@@ -162,63 +142,11 @@ function focusBattle(id: string): void {
 </script>
 
 <style scoped>
-.psp {
-  position: fixed;
-  top: 16px;
-  right: 16px;
-  bottom: 44px;
-  width: 320px;
-  z-index: 1000;
+.psp-inner {
   display: flex;
   flex-direction: column;
-  background: var(--paper-panel);
-  border: 1px solid rgba(138, 109, 75, 0.45);
-  border-radius: var(--radius-lg);
-  box-shadow:
-    0 6px 22px rgba(60, 40, 15, 0.28),
-    0 0 0 1px rgba(138, 109, 75, 0.25) inset;
-  color: var(--ink);
-  font-family: var(--font-kai);
+  max-height: 70vh;
   overflow: hidden;
-}
-
-.psp.collapsed {
-  width: 54px;
-}
-
-.psp-toggle {
-  position: absolute;
-  left: -13px;
-  top: 10px;
-  width: 26px;
-  height: 26px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(to bottom, var(--paper-input), var(--paper-darker));
-  border: 1px solid rgba(138, 109, 75, 0.5);
-  border-radius: 50%;
-  color: var(--ink);
-  cursor: pointer;
-  z-index: 2;
-  box-shadow: 0 1px 3px rgba(60, 40, 15, 0.25);
-  transition:
-    transform 0.12s ease,
-    background-color 0.15s ease,
-    border-color 0.15s ease,
-    color 0.15s ease;
-}
-
-.psp-toggle:hover {
-  background: linear-gradient(to bottom, var(--paper-hi), var(--paper-hi2));
-  border-color: var(--cinnabar);
-  color: var(--cinnabar-ink);
-}
-
-/* 按下即时缩放反馈（Apple §1） */
-.psp-toggle:active {
-  transform: scale(0.9);
-  transition: transform 80ms ease-out;
 }
 
 .psp-header {
@@ -228,6 +156,7 @@ function focusBattle(id: string): void {
   padding: 12px 14px;
   background: linear-gradient(to bottom, var(--paper-head), var(--paper-head2));
   border-bottom: 1px solid rgba(138, 109, 75, 0.4);
+  flex-shrink: 0;
 }
 
 .faction-swatch {
@@ -257,6 +186,7 @@ function focusBattle(id: string): void {
   flex: 1;
   overflow-y: auto;
   padding: 4px 0 12px;
+  min-height: 0;
 }
 
 .psp-section {
@@ -474,51 +404,6 @@ function focusBattle(id: string): void {
   border: 1px dashed rgba(138, 109, 75, 0.4);
   border-radius: var(--radius-md);
   padding: 8px 10px;
-}
-
-/* 折叠竖条 */
-.psp-rail {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 14px;
-  padding: 14px 0;
-  height: 100%;
-  cursor: pointer;
-  transition: transform 0.12s ease;
-}
-
-.psp-rail:active {
-  transform: scale(0.95);
-}
-
-.rail-color {
-  width: 10px;
-  height: 20px;
-  border-radius: var(--radius-sm);
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.15) inset;
-}
-
-.rail-metric {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  color: var(--ink);
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.rail-metric :deep(svg) {
-  color: var(--ink-soft);
-}
-
-.rail-date {
-  writing-mode: vertical-rl;
-  font-size: 11px;
-  color: var(--ink-muted);
-  letter-spacing: 2px;
-  margin-top: auto;
 }
 
 /* 滚动条 */

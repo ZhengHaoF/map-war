@@ -146,9 +146,6 @@ export interface StrategicRuleResult {
   reason?: string
 }
 
-/** 需要 from 字段的指令类型 */
-const FROM_REQUIRED_ORDERS: KnownOrder[] = ['arrowFly', 'radarPulse', 'orbBurst', 'battle']
-
 /** 用户模式下完全禁用的指令（系统管） */
 const FORBIDDEN_FOR_PLAYER: KnownOrder[] = ['setFactionAlive', 'setCurrentFaction']
 

@@ -1,6 +1,7 @@
 <template>
   <button class="game-btn" :class="{ active, danger, parchment }" @click="$emit('click', $event)">
     <slot />
+    <span v-if="tooltip" class="game-btn__tip">{{ tooltip }}</span>
   </button>
 </template>
 
@@ -9,6 +10,7 @@ defineProps<{
   active?: boolean
   danger?: boolean
   parchment?: boolean
+  tooltip?: string
 }>()
 
 defineEmits<{
@@ -18,6 +20,7 @@ defineEmits<{
 
 <style scoped>
 .game-btn {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -38,6 +41,31 @@ defineEmits<{
     border-color 0.15s ease,
     color 0.15s ease;
   backdrop-filter: blur(4px);
+}
+
+.game-btn__tip {
+  position: absolute;
+  left: calc(100% + 8px);
+  top: 50%;
+  transform: translateY(-50%);
+  white-space: nowrap;
+  background: var(--paper-deep, #2a1f10);
+  color: var(--ink, #e8dcc0);
+  border: 1px solid rgba(138, 109, 75, 0.4);
+  border-radius: var(--radius-sm);
+  padding: 4px 10px;
+  font-size: 12px;
+  font-family: var(--font-kai);
+  letter-spacing: 1px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+  z-index: 9999;
+  box-shadow: 0 2px 8px rgba(60, 40, 15, 0.3);
+}
+
+.game-btn:hover .game-btn__tip {
+  opacity: 1;
 }
 
 .game-btn :deep(svg) {

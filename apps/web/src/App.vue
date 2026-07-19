@@ -5,7 +5,6 @@ import { useSaveGame } from '@/composables/useSaveGame'
 import GameModal from '@/components/ui/GameModal.vue'
 import OnboardingView from '@/views/OnboardingView.vue'
 import SaveSelectorModal from '@/components/SaveSelectorModal.vue'
-import PlayerStatusPanel from '@/components/PlayerStatusPanel.vue'
 import ToastStack from '@/components/ui/ToastStack.vue'
 
 const gameStore = useGameStore()
@@ -43,7 +42,6 @@ function onBackToSelector(): void {
 
 <template>
   <RouterView />
-  <PlayerStatusPanel v-if="inGame" class="map-ui" />
 
   <SaveSelectorModal :visible="showSelector" @load="onLoad" @new-game="onNewGame" />
 
@@ -203,14 +201,11 @@ body.cloud-active .map-ui {
   .game-btn.parchment:active,
   .act-btn:active,
   .new-btn:active,
-  .psp-toggle:active,
   .city-list-toggle:active,
-  .psp-rail:active,
   .layer-switcher button:active,
   .faction-card:active,
   .enter-btn:active,
-  .context-menu-item:active,
-  .psp-body li:active {
+  .context-menu-item:active {
     transform: none !important;
     scale: 1 !important;
   }

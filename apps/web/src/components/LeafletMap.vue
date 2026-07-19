@@ -24,6 +24,14 @@
         <component :is="ICONS['world']" :size="16" />
         世界背景
       </GameButton>
+      <GameButton tooltip="领土 · 城市 · 战斗一览" @click="overviewVisible = true">
+        <component :is="ICONS['map']" :size="16" />
+        总览
+      </GameButton>
+      <GameButton tooltip="调出玩家 AI 操作台" @click="commandVisible = true">
+        <component :is="ICONS['brain']" :size="16" />
+        指挥
+      </GameButton>
       <div class="switcher-divider"></div>
       <GameButton @click="testPanelVisible = !testPanelVisible">
         <component :is="ICONS['bug']" :size="16" />
@@ -201,12 +209,8 @@
     </GameModal>
     <LegendPanel v-if="ownerColorEnabled" class="map-ui" :items="legendItems" />
     </div>
-    <div class="ai-dock-wrap">
-      <PlayerAiPanel
-        :collapsed="aiDockCollapsed"
-        @toggle="aiDockCollapsed = !aiDockCollapsed"
-      />
-    </div>
+    <PlayerAiPanel :visible="commandVisible" @close="commandVisible = false" />
+    <PlayerStatusPanel :visible="overviewVisible" @close="overviewVisible = false" />
     <div class="disclaimer-bar map-ui" @click="disclaimerVisible = true">
       ⚠
       免责声明：本地图数据来源于网络公开数据源，仅供娱乐参考。游戏中的政权划分、边界线等均为虚构设定，不代表任何个人或组织的政治立场，亦不代表对现实世界领土归属的任何主张，不对应、不代表当下世界各国法定领土国界。本人始终坚持遵循以中华人民共和国自然资源部（原国家测绘地理信息局）发布的标准地图。
@@ -238,6 +242,7 @@ import GameButton from '@/components/ui/GameButton.vue'
 import GameContextMenu from '@/components/ui/GameContextMenu.vue'
 import GameModal from '@/components/ui/GameModal.vue'
 import PlayerAiPanel from '@/components/PlayerAiPanel.vue'
+import PlayerStatusPanel from '@/components/PlayerStatusPanel.vue'
 import InfoTable from '@/components/ui/InfoTable.vue'
 import LegendPanel from '@/components/ui/LegendPanel.vue'
 import type { Component } from 'vue'
@@ -245,6 +250,7 @@ import IconStack2 from '~icons/tabler/stack-2'
 import IconFlag from '~icons/tabler/flag'
 import IconTag from '~icons/tabler/tag'
 import IconWorld from '~icons/tabler/world'
+import IconMap from '~icons/tabler/map'
 import IconBug from '~icons/tabler/bug'
 import IconSword from '~icons/tabler/sword'
 import IconEye from '~icons/tabler/eye'
@@ -269,6 +275,7 @@ const ICONS: Record<string, Component> = {
   flag: IconFlag,
   tag: IconTag,
   world: IconWorld,
+  map: IconMap,
   bug: IconBug,
   sword: IconSword,
   eye: IconEye,
@@ -379,11 +386,10 @@ const infoCityData = ref<CityData | null>(null)
 const infoCountryData = ref<CountryData | Record<string, unknown> | null>(null)
 const testPanelVisible = ref(false)
 const aiPanelVisible = ref(false)
-/** 底部玩家 AI 操作台是否折叠（折叠时地图区高度回归，触发 onResize 重算相机）。 */
-const aiDockCollapsed = ref(false)
-watch(aiDockCollapsed, () => {
-  nextTick(() => onResize())
-})
+/** 领土总览弹窗是否打开 */
+const overviewVisible = ref(false)
+/** 玩家 AI 操作台弹窗是否打开 */
+const commandVisible = ref(false)
 const battleListVisible = ref(false)
 const eventLogPanelVisible = ref(false)
 const battleList = computed(() => useGameStore().battles)
@@ -1397,20 +1403,6 @@ onUnmounted(() => {
   height: 1px;
   background: rgba(138, 109, 75, 0.3);
   margin: 4px 0;
-}
-
-.ai-dock-wrap {
-  position: absolute;
-  right: 0;
-  top: 48px;
-  bottom: 38px;
-  width: 360px;
-  z-index: 400;
-  display: flex;
-  flex-direction: column;
-  padding: 8px 12px 8px 0;
-  pointer-events: none;
-  box-sizing: border-box;
 }
 
 .disclaimer-bar {
