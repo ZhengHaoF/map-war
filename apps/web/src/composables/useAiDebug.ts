@@ -21,6 +21,7 @@ import {
   buildWorldValidationMessages,
   type BatchValidation,
   type WorldValidationResult,
+  type WorldValidationItem,
 } from '@/utils/aiOrderContract'
 import type { GameOrder } from '@/utils/gameOrders'
 
@@ -221,22 +222,38 @@ export function useAiDebug(mode: AiMode = 'world') {
     const pending = getPendingOrders()
     if (mode !== 'user' || !worldValidation.value) return pending
 
-    // 世界AI校验：只保留 approved=true 的指令
-    const approvedIndices = new Set(
-      worldValidation.value.validations.filter((v) => v.approved).map((v) => v.index),
+    // 世界AI校验：仅 feasible 通过（difficult 和 impossible 均拦截，交还玩家决策）
+    const feasibleIndices = new Set(
+      worldValidation.value.validations
+        .filter((v) => v.verdict === 'feasible')
+        .map((v) => v.index),
     )
-    return pending.filter((_, i) => approvedIndices.has(i))
+    return pending.filter((_, i) => feasibleIndices.has(i))
   }
 
-  /** 世界AI拒绝的指令 + 理由（供 UI 展示） */
-  const worldRejected = computed(() => {
+  /** 世界AI认为困难但未完全拒绝的指令 + 理由 + 建议（供 UI 琥珀色警告） */
+  const worldDifficult = computed(() => {
     if (!worldValidation.value) return []
     const pending = getPendingOrders()
     return worldValidation.value.validations
-      .filter((v) => !v.approved)
+      .filter((v) => v.verdict === 'difficult')
       .map((v) => ({
         order: pending[v.index] ?? parsed.value?.orders[v.index],
         reason: v.reason || '世界AI未说明原因',
+        suggestion: v.suggestion || undefined,
+      }))
+  })
+
+  /** 世界AI断定为不可能的指令 + 理由 + 建议（供 UI 红色拒绝） */
+  const worldImpossible = computed(() => {
+    if (!worldValidation.value) return []
+    const pending = getPendingOrders()
+    return worldValidation.value.validations
+      .filter((v) => v.verdict === 'impossible')
+      .map((v) => ({
+        order: pending[v.index] ?? parsed.value?.orders[v.index],
+        reason: v.reason || '世界AI未说明原因',
+        suggestion: v.suggestion || undefined,
       }))
   })
 
@@ -353,7 +370,8 @@ export function useAiDebug(mode: AiMode = 'world') {
     worldValidation,
     worldValidationLoading,
     worldValidationError,
-    worldRejected,
+    worldDifficult,
+    worldImpossible,
     // 动作
     runSend,
     runExecute,

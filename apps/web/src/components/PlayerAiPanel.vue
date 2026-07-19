@@ -54,11 +54,27 @@
                 <div v-if="entry.validationSummary" class="log-validation-summary">
                   {{ entry.validationSummary }}
                 </div>
-                <!-- 被拒指令 + 理由 -->
+                <!-- 被拒指令 + 理由（硬编码规则） -->
                 <div v-if="entry.rejected?.length" class="log-rejected">
                   <div v-for="(r, k) in entry.rejected" :key="k" class="log-rejected-item">
                     <span class="log-rejected-label">✕ {{ r.label }}</span>
                     <span class="log-rejected-reason">{{ r.reason }}</span>
+                  </div>
+                </div>
+                <!-- 世界AI：困难指令 -->
+                <div v-if="entry.difficult?.length" class="log-difficult">
+                  <div v-for="(r, k) in entry.difficult" :key="k" class="log-difficult-item">
+                    <span class="log-difficult-label">{{ r.label }}</span>
+                    <span class="log-difficult-reason">{{ r.reason }}</span>
+                    <span v-if="r.suggestion" class="log-difficult-suggestion">💡 {{ r.suggestion }}</span>
+                  </div>
+                </div>
+                <!-- 世界AI：不可能指令 -->
+                <div v-if="entry.impossible?.length" class="log-impossible">
+                  <div v-for="(r, k) in entry.impossible" :key="k" class="log-impossible-item">
+                    <span class="log-impossible-label">{{ r.label }}</span>
+                    <span class="log-impossible-reason">{{ r.reason }}</span>
+                    <span v-if="r.suggestion" class="log-impossible-suggestion">⇢ {{ r.suggestion }}</span>
                   </div>
                 </div>
               </div>
@@ -98,8 +114,12 @@ interface ChatEntry {
   user: string
   msg: string | null
   orders: string[]
-  /** 被拒绝的指令 + 理由（硬编码规则 + 世界AI 合并） */
+  /** 硬编码规则拒绝的指令 */
   rejected?: { label: string; reason: string }[]
+  /** 世界AI认为困难（⚠ amber）的指令 + 建议 */
+  difficult?: { label: string; reason: string; suggestion?: string }[]
+  /** 世界AI认为不可能（❌ red）的指令 + 建议 */
+  impossible?: { label: string; reason: string; suggestion?: string }[]
   /** 世界AI校验摘要 */
   validationSummary?: string
 }
@@ -116,7 +136,8 @@ const {
   worldValidation,
   worldValidationLoading,
   worldValidationError,
-  worldRejected,
+  worldDifficult,
+  worldImpossible,
   runSend,
   applyStrategicRules,
   validateWithWorldAi,
@@ -162,14 +183,22 @@ async function onSend(): Promise<void> {
     await validateWithWorldAi(userText)
   }
 
-  // ── 汇总拒绝信息 ──
+  // ── 汇总拒绝 / 困难 / 不可能 ──
   const rejectedItems: { label: string; reason: string }[] = []
   for (const r of strategicRejected.value) {
     rejectedItems.push({ label: r.order.order, reason: r.reason })
   }
-  for (const r of worldRejected.value) {
+
+  const difficultItems: { label: string; reason: string; suggestion?: string }[] = []
+  for (const r of worldDifficult.value) {
     const orderName = (r.order as any)?.order || '未知'
-    rejectedItems.push({ label: `世界AI驳回: ${orderName}`, reason: r.reason })
+    difficultItems.push({ label: `⚠ ${orderName}`, reason: r.reason, suggestion: r.suggestion })
+  }
+
+  const impossibleItems: { label: string; reason: string; suggestion?: string }[] = []
+  for (const r of worldImpossible.value) {
+    const orderName = (r.order as any)?.order || '未知'
+    impossibleItems.push({ label: `❌ ${orderName}`, reason: r.reason, suggestion: r.suggestion })
   }
 
   // ── 追加到日志 ──
@@ -178,6 +207,8 @@ async function onSend(): Promise<void> {
     msg: aiMessage.value,
     orders: orderItems,
     rejected: rejectedItems.length ? rejectedItems : undefined,
+    difficult: difficultItems.length ? difficultItems : undefined,
+    impossible: impossibleItems.length ? impossibleItems : undefined,
     validationSummary: worldValidation.value?.summary || undefined,
   })
 
@@ -491,6 +522,75 @@ async function onSend(): Promise<void> {
 
 .log-rejected-reason {
   color: var(--ink-muted, #9c8a6a);
+}
+
+/* ── 世界AI：困难指令（amber 警告） ── */
+.log-difficult {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.log-difficult-item {
+  background: #f0e4c8;
+  border: 1px solid rgba(160, 120, 40, 0.4);
+  border-radius: var(--radius-sm);
+  padding: 4px 8px;
+  font-size: 11px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.log-difficult-label {
+  color: #8a6020;
+  font-weight: 600;
+}
+
+.log-difficult-reason {
+  color: var(--ink-muted, #9c8a6a);
+}
+
+.log-difficult-suggestion {
+  color: #8a6020;
+  font-style: italic;
+  padding-left: 4px;
+  border-left: 2px solid rgba(160, 120, 40, 0.4);
+}
+
+/* ── 世界AI：不可能指令（朱砂拒绝） ── */
+.log-impossible {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.log-impossible-item {
+  background: var(--danger-bg, #f7dede);
+  border: 1px solid var(--danger-ink-faint, rgba(178, 58, 46, 0.3));
+  border-radius: var(--radius-sm);
+  padding: 4px 8px;
+  font-size: 11px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.log-impossible-label {
+  color: var(--danger-ink, #b23a2e);
+  font-weight: 600;
+}
+
+.log-impossible-reason {
+  color: var(--ink-muted, #9c8a6a);
+}
+
+.log-impossible-suggestion {
+  color: var(--cinnabar, #b23a2e);
+  padding-left: 4px;
+  border-left: 2px solid var(--danger-ink-faint, rgba(178, 58, 46, 0.3));
 }
 
 /* ===== 滚动条 ===== */

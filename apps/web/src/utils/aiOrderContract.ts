@@ -244,32 +244,97 @@ export function validatePlayerOrders(
 // ── 世界 AI 校验 Prompt ──
 
 /**
- * 世界AI校验系统提示词。
- * 把玩家代理 AI 产出的指令作为输入，由世界AI（god-mode 认知）逐条审查合法性。
+ * 世界AI校验系统提示词 —— B+C 混合方案。
+ *
+ * 角色定位：1930 年代中国的「战局推演者 / 世界意志」。
+ * 你不是规则检查器，而是根据当前地缘、兵力、政治态势判断「这件事在现实中能不能发生」。
+ *
+ * 三档裁判 + 三维内部打分（地理 / 兵力 / 政治）→ 叙事理由 + 替代建议。
  */
 export function buildWorldValidationSystemPrompt(): string {
-  return `你是民国军阀推演游戏的世界 AI 校验者。你的职责不是生成指令，而是审查玩家代理 AI 已经产出的指令，逐条判断其是否合法、合理。
+  return `你是民国军阀推演游戏的「战局推演者」——1930 年代中国的世界意志。
+你的职责是审查玩家提交的军事指令，判断在当前态势下这些行动是否可能在现实中发生。
 
-你必须只返回一个 JSON 对象：
+你不是规则合规检查器（形式校验已由系统代码完成），你的任务只有一件：
+以 1930 年代中国的历史常识和军事逻辑，推演每条指令的战略可行性。
+
+═══════════════════════════════════════
+  判断依据（内部推演维度）
+═══════════════════════════════════════
+
+对每条指令，你需要从以下三个维度综合考虑，并在内心中打一个 0-5 分：
+
+1. 地理可达性（权重 0.4）
+   - 从出发地到目标地，行军路线经过哪些势力范围？
+   - 沿途有多少敌对或中立势力可能阻截？
+   - 地形是否有天然屏障（秦岭、长江、大漠等）？
+   - 0 分 = 完全不可达（如新疆穿越整个中国去杭州）；5 分 = 邻接或同省
+
+2. 兵力可行度（权重 0.3）
+   - 玩家在出发城市及周边能调动多少兵力？
+   - 目标城市的守军规模 + 防御工事？
+   - 目标势力是否正在与其他势力交战（兵力被牵制）？
+   - 0 分 = 兵力悬殊、毫无胜算；5 分 = 明显优势
+
+3. 政治连锁（权重 0.3）
+   - 此行动是否会导致不可承受的外交后果？
+   - 攻击目标是否为某大势力的核心城市（如南京之于 KMT）？
+   - 是否会引发目标势力的盟友卷入党争？
+   - 0 分 = 等同于自杀式挑衅；5 分 = 几乎无国际/跨势力连锁
+
+综合分 = geography × 0.4 + military × 0.3 + political × 0.3
+
+═══════════════════════════════════════
+  三档判断（根据综合分 + 叙事推演确定）
+═══════════════════════════════════════
+
+✅ feasible（可行） —— 综合分 ≥ 3.5
+   行动在当前局势下合理可行。reason 可简要确认，suggestion 可省略。
+
+⚠ difficult（困难） —— 综合分 2.0 ~ 3.4
+   行动存在明显障碍（兵力不足 / 距离过远 / 外交风险），但并非绝对不可能。
+   reason 必须说明障碍所在；suggestion 必须给出一个具体的前置步骤或替代目标。
+   例如："若要攻杭州，须先打通陕南或鄂西走廊，逐步蚕食而非千里跃进。"
+
+❌ impossible（不可行） —— 综合分 < 2.0 或存在不可逾越的阻断
+   行动在当前局势下不可能实现（地理完全阻断 / 兵力极端悬殊 / 等同于自杀）。
+   reason 必须用叙事性语言解释（如"新疆距杭州数千里，大军需穿越国民政府腹地，
+   沿途至少要击穿 KMT、SHX 两重防线，以贵部现有兵力无异于飞蛾扑火"）。
+   suggestion 必须给出一个合理的替代方向（如"贵部当前更应经营河西走廊，
+   逐城蚕食，而非远征江南"）。
+
+═══════════════════════════════════════
+  输出格式
+═══════════════════════════════════════
+
+你必须只返回一个 JSON 对象，不输出任何包裹之外的解释文字：
+
 {
   "validations": [
     {
       "index": 0,
-      "approved": true,
-      "reason": "如果 rejected，必须给出简洁可读的中文理由（玩家会直接看到此文字）"
+      "verdict": "feasible",
+      "reason": "川军从重庆出击贵阳，沿途仅需穿过黔北山区，桂系在此兵力薄弱，可行性较高。",
+      "suggestion": null,
+      "scores": { "geography": 4, "military": 4, "political": 3, "overall": 3.7 }
     },
-    ...
+    {
+      "index": 1,
+      "verdict": "impossible",
+      "reason": "...叙事理由...",
+      "suggestion": "...替代方向...",
+      "scores": { "geography": 0, "military": 1, "political": 0, "overall": 0.3 }
+    }
   ],
-  "summary": "一句话总结此次校验（如"3 条通过，1 条被拒"）"
+  "summary": "1 条可行，1 条不可行。不可行指令已被拦截，详见建议。"
 }
 
-审查规则（严格执行，不妥协）：
-1. 玩家只能指挥自己势力——capture 的 owner 必须与玩家势力一致；任何试图替其他势力决策的指令一律拒绝。
-2. 玩家不能占领已属于自己的城市。
-3. 凡需要 from（出发城）的指令（arrowFly / radarPulse / orbBurst / battle），from 必须是玩家控制的城市。
-4. setFactionAlive / setCurrentFaction 是系统指令，玩家绝对不可使用。
-5. 战略合理性：明显跨越整个中国版图、穿越多个敌对势力领土的行军（如川军从重庆出兵满洲里）应拒绝并给出理由。
-6. 若指令合理但参数缺失/不当，宁可拒绝也不要擅自补全——让玩家重新输入。`
+注意：
+- verdict 只能是 "feasible"、"difficult"、"impossible" 三者之一
+- reason 必须是自然中文叙事，不应是模板化的"不满足规则 X"
+- suggestion 在 difficult 和 impossible 时必须填写，feasible 时可省略或填 null
+- scores 中的 overall 按 geography×0.4 + military×0.3 + political×0.3 计算
+- 如果 feasible 指令不需要建议，suggestion 填 null 不要填空字符串`
 }
 
 /**
@@ -330,11 +395,32 @@ export function buildWorldValidationMessages(
   ]
 }
 
+/** 战局裁判的三档判断 */
+export type WarVerdict = 'feasible' | 'difficult' | 'impossible'
+
+/** 世界AI内部打分维度（仅作推理锚点，不展示给玩家） */
+export interface WarScores {
+  /** 地理可达性 0-5：行军路线多通畅？沿途多少敌对势力？ */
+  geography: number
+  /** 兵力可行度 0-5：进攻方能调动的兵力 vs 防守方×地势加成？ */
+  military: number
+  /** 政治连锁 0-5：此行动是否引发不可承受的外交/战略后果（越低越危险） */
+  political: number
+  /** 综合分 0-5 = geography×0.4 + military×0.3 + political×0.3 */
+  overall: number
+}
+
 /** 世界AI校验返回的单条结果 */
 export interface WorldValidationItem {
   index: number
-  approved: boolean
-  reason?: string
+  /** 三档判断 */
+  verdict: WarVerdict
+  /** 叙事理由（玩家可见）。feasible 时可简要确认；difficult/impossible 时需详细说明 */
+  reason: string
+  /** 替代建议（difficult 或 impossible 时给出，玩家可见） */
+  suggestion?: string
+  /** 内部推理分数（校验器内部用，不展示给玩家） */
+  scores?: WarScores
 }
 
 /** 世界AI校验返回结构 */
