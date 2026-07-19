@@ -10,12 +10,18 @@
  * - 实时改图 + store；指令执行均带 PixiJS 演出动画。
  */
 
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useAiChat } from './useAiChat'
 import { useGameStore } from '@/stores/game'
 import { executeOrder, resetBattleRuntime } from '@/utils/gameOrders'
 import { buildMessages, buildSystemPrompt } from '@/utils/aiPromptBuilder'
-import { validateOrders, type BatchValidation } from '@/utils/aiOrderContract'
+import {
+  validateOrders,
+  validatePlayerOrders,
+  buildWorldValidationMessages,
+  type BatchValidation,
+  type WorldValidationResult,
+} from '@/utils/aiOrderContract'
 import type { GameOrder } from '@/utils/gameOrders'
 
 export interface ExecResult {
@@ -125,6 +131,115 @@ export function useAiDebug(mode: AiMode = 'world') {
   const execResults = ref<ExecResult[]>([])
   const undoStack = ref<UndoFrame[]>([])
 
+  // ── 玩家模式专属：战略校验状态 ──
+  /** 硬编码规则拒绝的指令（同步，runSend 后立即可用） */
+  const strategicRejected = ref<{ order: GameOrder; reason: string }[]>([])
+  /** 世界AI校验结果（异步，需额外 LLM 调用） */
+  const worldValidation = ref<WorldValidationResult | null>(null)
+  const worldValidationLoading = ref(false)
+  const worldValidationError = ref<string | null>(null)
+
+  /** 世界AI校验独立 useAiChat 实例（避免污染主对话） */
+  const worldValidator = useAiChat()
+
+  /**
+   * 硬编码战略规则拦截（同步，零 LLM 成本）。
+   * 在结构校验通过后调用；对 user 模式自动生效，world 模式跳过。
+   */
+  function applyStrategicRules(): void {
+    strategicRejected.value = []
+    const p = parsed.value
+    if (mode !== 'user' || !p) return
+
+    const store = useGameStore()
+    // 只对结构校验通过的指令做战略校验
+    const structureOk = p.orders.filter((_, i) => !p.errors[i].length)
+    const result = validatePlayerOrders(
+      structureOk,
+      store.currentFaction,
+      (gb) => store.ownership[gb],
+    )
+    strategicRejected.value = result.rejected
+  }
+
+  /**
+   * 世界AI校验（异步，额外 LLM 调用）。
+   * 把玩家代理 AI 产出的指令发给世界AI审查，返回 approve/reject + 理由。
+   * 仅在 user 模式下有意义。
+   */
+  async function validateWithWorldAi(userText: string): Promise<void> {
+    worldValidation.value = null
+    worldValidationError.value = null
+    if (mode !== 'user' || !parsed.value) return
+
+    // 只校验结构通过 + 硬编码规则通过的指令
+    const pending = getPendingOrders()
+    if (!pending.length) return
+
+    worldValidationLoading.value = true
+    try {
+      const store = useGameStore()
+      const snapshot = store.getSnapshot()
+      const messages = buildWorldValidationMessages(pending, userText, snapshot)
+
+      await worldValidator.send({
+        messages,
+        response_format: { type: 'json_object' },
+      })
+
+      const raw = worldValidator.response.value
+      const payloads = extractPayloads(raw)
+      if (payloads.length) {
+        worldValidation.value = payloads[0] as WorldValidationResult
+      } else {
+        worldValidationError.value = '世界AI校验返回格式异常'
+      }
+    } catch (e) {
+      worldValidationError.value = (e as Error).message || '世界AI校验通信失败'
+    } finally {
+      worldValidationLoading.value = false
+    }
+  }
+
+  /**
+   * 获取「待世界AI校验」的指令列表（结构通过 + 硬编码规则通过）。
+   */
+  function getPendingOrders(): GameOrder[] {
+    const p = parsed.value
+    if (!p) return []
+    const structureOk = p.orders.filter((_, i) => !p.errors[i].length)
+    if (mode !== 'user') return structureOk
+    const rejectedGbs = new Set(strategicRejected.value.map((r) => r.order))
+    return structureOk.filter((o) => !rejectedGbs.has(o))
+  }
+
+  /**
+   * 获取最终可执行的指令列表（结构校验 → 硬编码规则 → 世界AI校验 三道关全部通过）。
+   * PlayerAiPanel 应使用此函数而非手动过滤。
+   */
+  function getFinalApprovedOrders(): GameOrder[] {
+    const pending = getPendingOrders()
+    if (mode !== 'user' || !worldValidation.value) return pending
+
+    // 世界AI校验：只保留 approved=true 的指令
+    const approvedIndices = new Set(
+      worldValidation.value.validations.filter((v) => v.approved).map((v) => v.index),
+    )
+    return pending.filter((_, i) => approvedIndices.has(i))
+  }
+
+  /** 世界AI拒绝的指令 + 理由（供 UI 展示） */
+  const worldRejected = computed(() => {
+    if (!worldValidation.value) return []
+    const pending = getPendingOrders()
+    return worldValidation.value.validations
+      .filter((v) => !v.approved)
+      .map((v) => ({
+        order: pending[v.index] ?? parsed.value?.orders[v.index],
+        reason: v.reason || '世界AI未说明原因',
+      }))
+  })
+
   async function runSend() {
     if (!userMessage.value.trim()) return
     parsed.value = null
@@ -214,6 +329,10 @@ export function useAiDebug(mode: AiMode = 'world') {
     parsed.value = null
     parseError.value = null
     aiMessage.value = null
+    strategicRejected.value = []
+    worldValidation.value = null
+    worldValidationLoading.value = false
+    worldValidationError.value = null
   }
 
   return {
@@ -229,9 +348,18 @@ export function useAiDebug(mode: AiMode = 'world') {
     aiMessage,
     execResults,
     undoStack,
+    // 玩家模式校验
+    strategicRejected,
+    worldValidation,
+    worldValidationLoading,
+    worldValidationError,
+    worldRejected,
     // 动作
     runSend,
     runExecute,
+    applyStrategicRules,
+    validateWithWorldAi,
+    getFinalApprovedOrders,
     undo,
     resetWorld,
   }

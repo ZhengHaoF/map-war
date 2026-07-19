@@ -64,19 +64,19 @@
         <GameButton
           @click="
             () =>
-              executeOrder({ order: 'attack', from: '156500000', to: '156450200', text: '出兵！' })
+              executeOrder({ order: 'arrowFly', from: '156500000', to: '156450200', text: '出兵！' })
           "
           ><component :is="ICONS['sword']" :size="16" />派兵测试</GameButton
         >
         <GameButton
-          @click="() => executeOrder({ order: 'scout', from: '156500000', text: '侦察！' })"
+          @click="() => executeOrder({ order: 'radarPulse', from: '156500000', text: '侦察！' })"
           ><component :is="ICONS['eye']" :size="16" />探察测试</GameButton
         >
         <GameButton
           @click="
             () =>
               executeOrder({
-                order: 'declareWar',
+                order: 'orbBurst',
                 from: '156500000',
                 to: '156450200',
                 text: '宣战！',

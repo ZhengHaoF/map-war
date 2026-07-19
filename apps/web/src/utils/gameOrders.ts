@@ -18,9 +18,9 @@
  * 使用方式：
  *   import { init, resetBattleRuntime, restoreActiveAnimations, executeOrder } from '@/utils/gameOrders'
  *   init(worldContainer, cameraController, app)   // 第三个参数注入 PixiJS app（云雾蒙太奇需要）
- *   await executeOrder({ order: 'attack', from: '156500000', to: '156450200', text: '猛攻！' })
+ *   await executeOrder({ order: 'arrowFly', from: '156500000', to: '156450200', text: '猛攻！' })
  *   await executeOrder({ order: 'capture', gb: '156450200', owner: Owner.KMT, resultTroops: 20 })  // 先播占领动画，再变更归属
- *   await executeOrder({ order: 'cloud' })         // 云雾蒙太奇（时间流逝演出）
+ *   await executeOrder({ order: 'fogCover' })       // 云雾蒙太奇（时间流逝演出）
  */
 
 import type { Container, Application } from 'pixi.js'
@@ -68,14 +68,14 @@ export interface BattleInfo {
 }
 
 export type OrderType =
-  | 'attack'
-  | 'scout'
-  | 'declareWar'
+  | 'arrowFly'
+  | 'radarPulse'
+  | 'orbBurst'
   | 'battle'
   | 'stopBattle'
   | 'stopBattles'
   | 'listBattles'
-  | 'cloud'
+  | 'fogCover'
   // 世界态写回（god-mode 调试 / 真实 agent 共用统一契约）
   | 'capture'
   | 'setFactionAlive'
@@ -128,9 +128,9 @@ let _camera: CameraController | null = null
 let _app: Application | null = null
 
 const locks: Record<string, boolean> = {
-  attack: false,
-  scout: false,
-  war: false,
+  arrow: false,
+  radar: false,
+  orb: false,
   battle: false,
 }
 
@@ -184,20 +184,20 @@ export function init(container: Container, camera?: CameraController, app?: Appl
 // ─── 动画 / 演出函数（纯视觉，不改世界态）───
 
 /**
- * 派兵动画：从 from 向 to 行军（黄色点阵弧线）。
+ * 箭头飞行动画：从 from 向 to（黄色点阵弧线）。
  * 有相机且处于演出模式时，先放大 from、再跟随行军平移到 to、演完归位；
  * 否则直接播放点阵弧线动画（无镜头聚焦）。
- * 自带重入锁（locks.attack），演出期间再次调用会被拒绝。
+ * 自带重入锁（locks.arrow），演出期间再次调用会被拒绝。
  * @param from 出发城市 id（gb 编码）
  * @param to   目标城市 id
  * @param text 弹字文本，默认「出兵！」
  */
-async function attack(from: string, to: string, text?: string): Promise<OrderResult> {
-  if (locks.attack) return { ok: false, reason: '派兵动画进行中' }
+async function arrowFly(from: string, to: string, text?: string): Promise<OrderResult> {
+  if (locks.arrow) return { ok: false, reason: '箭头动画进行中' }
   if (!_container) return { ok: false, reason: 'gameOrders 未初始化' }
 
   const duration = 2000
-  locks.attack = true
+  locks.arrow = true
   try {
     if (_camera) {
       // 镜头演出：放大 A → 跟随行军平移到 B → 演出后归位
@@ -232,24 +232,24 @@ async function attack(from: string, to: string, text?: string): Promise<OrderRes
     }
     return { ok: true }
   } finally {
-    locks.attack = false
+    locks.arrow = false
   }
 }
 
 /**
- * 探察动画：以 from 为圆心的「雷达扫描」演出（旋转扫描扇区 + 扩散波环 +
+ * 雷达脉冲动画：以 from 为圆心的「雷达扫描」演出（旋转扫描扇区 + 扩散波环 +
  * 接触点闪现 + 中心信标脉冲）。单点扩散语义，无明确目的地，故不接收 to 参数。
  * 有相机且处于演出模式时，先聚焦 from、播完雷达扫描、再归位；
- * 否则直接播放基础雷达动画（无镜头聚焦）。自带重入锁（locks.scout）。
- * @param from 侦察中心城 id（gb 编码）
+ * 否则直接播放基础雷达动画（无镜头聚焦）。自带重入锁（locks.radar）。
+ * @param from 扫描中心城 id（gb 编码）
  * @param text 弹字文本，默认「侦察！」
  */
-async function scout(from: string, text?: string): Promise<OrderResult> {
-  if (locks.scout) return { ok: false, reason: '探察动画进行中' }
+async function radarPulse(from: string, text?: string): Promise<OrderResult> {
+  if (locks.radar) return { ok: false, reason: '雷达脉冲动画进行中' }
   if (!_container) return { ok: false, reason: 'gameOrders 未初始化' }
 
   const duration = 1800
-  locks.scout = true
+  locks.radar = true
   try {
     if (_camera) {
       const before = _camera.snapshot()
@@ -277,25 +277,25 @@ async function scout(from: string, text?: string): Promise<OrderResult> {
     }
     return { ok: true }
   } finally {
-    locks.scout = false
+    locks.radar = false
   }
 }
 
 /**
- * 宣战动画：从 from 向 to 抛射红色光球并在落地处引爆（震波 ×3）。
+ * 光球爆炸动画：从 from 向 to 抛射红色光球并在落地处引爆（震波 ×3）。
  * 有相机且处于演出模式时，先聚焦 from、跟随光球到 to、演完归位；
  * 否则直接播放抛射+引爆动画（无镜头聚焦）。
- * 自带重入锁（locks.war），演出期间再次调用会被拒绝。
- * @param from 宣战国城 id（gb 编码）
- * @param to   目标国城 id
+ * 自带重入锁（locks.orb），演出期间再次调用会被拒绝。
+ * @param from 抛射起点城 id（gb 编码）
+ * @param to   目标城 id
  * @param text 弹字文本，默认「宣战！」
  */
-async function declareWar(from: string, to: string, text?: string): Promise<OrderResult> {
-  if (locks.war) return { ok: false, reason: '宣战动画进行中' }
+async function orbBurst(from: string, to: string, text?: string): Promise<OrderResult> {
+  if (locks.orb) return { ok: false, reason: '光球爆炸动画进行中' }
   if (!_container) return { ok: false, reason: 'gameOrders 未初始化' }
 
   const duration = 2000
-  locks.war = true
+  locks.orb = true
   try {
     if (_camera) {
       const before = _camera.snapshot()
@@ -333,16 +333,16 @@ async function declareWar(from: string, to: string, text?: string): Promise<Orde
     }
     return { ok: true }
   } finally {
-    locks.war = false
+    locks.orb = false
   }
 }
 
 /**
- * 云雾蒙太奇（时间流逝演出）。
- * AI 可用它把「回合推进 / 政权重洗」等状态切换藏进雾里：
- *   await cloudTransition({ onMidpoint: () => useGameStore().applyEvent({ type: 'dateAdvance', date: '1931-11-01' }) })
+ * 云雾遮罩蒙太奇（时间流逝演出）。
+ * 把状态切换藏进雾里：
+ *   await fogCover({ onMidpoint: () => useGameStore().applyEvent({ type: 'dateAdvance', date: '1931-11-01' }) })
  */
-async function cloudTransition(opts?: CloudOptions): Promise<OrderResult> {
+async function fogCover(opts?: CloudOptions): Promise<OrderResult> {
   if (!_app) return { ok: false, reason: 'gameOrders 未注入 PixiJS app' }
   _camera?.setLocked(true)
   try {
@@ -366,7 +366,7 @@ export async function playTimeJump(date: string): Promise<OrderResult> {
     useGameStore().applyEvent({ type: 'dateAdvance', date })
     res = { ok: true }
   } else {
-    res = await cloudTransition({ onMidpoint: () => useGameStore().applyEvent({ type: 'dateAdvance', date }) })
+    res = await fogCover({ onMidpoint: () => useGameStore().applyEvent({ type: 'dateAdvance', date }) })
   }
   // 时间推进提示（顶部居中小条）
   useToast().push({ icon: 'clock', tone: 'neutral', title: '时间推进', text: date })
@@ -561,28 +561,28 @@ export async function executeOrder(
   let result: OrderResult | BattleOrderResult | BattleListResult = { ok: false, reason: '未执行' }
 
   switch (json.order) {
-    case 'attack': {
+    case 'arrowFly': {
       const fromId = resolveLocationId(json.from!)
       const toId = resolveLocationId(json.to!)
       if (!fromId) { result = { ok: false, reason: `出发城市不存在: ${json.from}` }; break }
       if (!toId) { result = { ok: false, reason: `目标城市不存在: ${json.to}` }; break }
-      result = await attack(fromId, toId, json.text)
+      result = await arrowFly(fromId, toId, json.text)
       break
     }
 
-    case 'scout': {
+    case 'radarPulse': {
       const fromId = resolveLocationId(json.from!)
       if (!fromId) { result = { ok: false, reason: `出发城市不存在: ${json.from}` }; break }
-      result = await scout(fromId, json.text)
+      result = await radarPulse(fromId, json.text)
       break
     }
 
-    case 'declareWar': {
+    case 'orbBurst': {
       const fromId = resolveLocationId(json.from!)
       const toId = resolveLocationId(json.to!)
-      if (!fromId) { result = { ok: false, reason: `宣战国城市不存在: ${json.from}` }; break }
-      if (!toId) { result = { ok: false, reason: `目标国城市不存在: ${json.to}` }; break }
-      result = await declareWar(fromId, toId, json.text)
+      if (!fromId) { result = { ok: false, reason: `起点城市不存在: ${json.from}` }; break }
+      if (!toId) { result = { ok: false, reason: `目标城市不存在: ${json.to}` }; break }
+      result = await orbBurst(fromId, toId, json.text)
       break
     }
 
@@ -628,9 +628,9 @@ export async function executeOrder(
       result = { ok: true, battles: listBattles() }
       break
 
-    case 'cloud':
-      // 云雾蒙太奇：盖住 → 停顿 → 揭开；可在暂停段藏状态切换（由 playCloudTransition 的 onMidpoint 处理）
-      result = await cloudTransition()
+    case 'fogCover':
+      // 云雾遮罩：盖住 → 停顿 → 揭开；可在暂停段藏状态切换（由 playCloudTransition 的 onMidpoint 处理）
+      result = await fogCover()
       break
 
     // ── 世界态写回（动画已在上面各 case 播完，这里统一经 Kernel applyEvent 落地）──
@@ -701,17 +701,17 @@ function popToast(
     o != null ? ((OWNER_LABELS as Record<string, string>)[o] ?? o) : ''
 
   switch (json.order) {
-    case 'attack': {
+    case 'arrowFly': {
       const t = `${getLocationName(json.from!)} ⇢ ${getLocationName(json.to!)}`
       push({ icon: 'sword', tone: 'amber', title: '出兵', text: json.text ? `${json.text} · ${t}` : t })
       break
     }
-    case 'scout': {
+    case 'radarPulse': {
       const t = `${getLocationName(json.from!)} 派出斥候`
       push({ icon: 'eye', tone: 'blue', title: '侦察', text: json.text ? `${json.text} · ${t}` : t })
       break
     }
-    case 'declareWar': {
+    case 'orbBurst': {
       const t = `${getLocationName(json.from!)} 对 ${getLocationName(json.to!)} 宣战`
       push({ icon: 'flag', tone: 'cinnabar', title: '宣战', text: json.text ? `${json.text} · ${t}` : t })
       break

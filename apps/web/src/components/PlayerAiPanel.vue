@@ -11,7 +11,7 @@
     <Transition name="dock-collapse">
       <div v-if="!collapsed" class="dock-body">
         <!-- 错误提示（独立于左右布局，横贯顶部） -->
-        <div v-if="error || parseError" class="dock-error">{{ error || parseError }}</div>
+        <div v-if="error || parseError || worldValidationError" class="dock-error">{{ error || parseError || worldValidationError }}</div>
 
         <div class="dock-main">
           <!-- 左栏：输入 -->
@@ -50,6 +50,21 @@
                     :class="{ bad: o.endsWith('✗') }"
                   >● {{ o }}</span>
                 </div>
+                <!-- 世界AI校验状态 -->
+                <div v-if="entry.validationSummary" class="log-validation-summary">
+                  {{ entry.validationSummary }}
+                </div>
+                <!-- 被拒指令 + 理由 -->
+                <div v-if="entry.rejected?.length" class="log-rejected">
+                  <div v-for="(r, k) in entry.rejected" :key="k" class="log-rejected-item">
+                    <span class="log-rejected-label">✕ {{ r.label }}</span>
+                    <span class="log-rejected-reason">{{ r.reason }}</span>
+                  </div>
+                </div>
+              </div>
+              <!-- 世界AI校验进行中 -->
+              <div v-if="worldValidationLoading" class="log-validating">
+                <span class="log-validating-spin">⟳</span> 世界AI校验中…
               </div>
             </div>
             <div class="dock-status">
@@ -83,6 +98,10 @@ interface ChatEntry {
   user: string
   msg: string | null
   orders: string[]
+  /** 被拒绝的指令 + 理由（硬编码规则 + 世界AI 合并） */
+  rejected?: { label: string; reason: string }[]
+  /** 世界AI校验摘要 */
+  validationSummary?: string
 }
 
 const {
@@ -93,7 +112,15 @@ const {
   parseError,
   aiMessage,
   undoStack,
+  strategicRejected,
+  worldValidation,
+  worldValidationLoading,
+  worldValidationError,
+  worldRejected,
   runSend,
+  applyStrategicRules,
+  validateWithWorldAi,
+  getFinalApprovedOrders,
   undo,
 } = useAiDebug('user')
 
@@ -115,9 +142,10 @@ async function onSend(): Promise<void> {
   const userText = userMessage.value.trim()
   if (!userText) return
 
+  // ── Phase 1：玩家代理 AI 产出指令 ──
   await runSend()
 
-  // 收集指令摘要（含校验结果）
+  // 收集指令摘要（含结构校验结果）
   const orderItems: string[] = []
   if (parsed.value) {
     for (let i = 0; i < parsed.value.orders.length; i++) {
@@ -126,23 +154,41 @@ async function onSend(): Promise<void> {
     }
   }
 
-  // 追加到日志
+  // ── Phase 2：硬编码战略规则（同步，零延迟）──
+  applyStrategicRules()
+
+  // ── Phase 3：世界AI 校验（异步，额外 LLM 调用）──
+  if (parsed.value && !parseError.value) {
+    await validateWithWorldAi(userText)
+  }
+
+  // ── 汇总拒绝信息 ──
+  const rejectedItems: { label: string; reason: string }[] = []
+  for (const r of strategicRejected.value) {
+    rejectedItems.push({ label: r.order.order, reason: r.reason })
+  }
+  for (const r of worldRejected.value) {
+    const orderName = (r.order as any)?.order || '未知'
+    rejectedItems.push({ label: `世界AI驳回: ${orderName}`, reason: r.reason })
+  }
+
+  // ── 追加到日志 ──
   chatHistory.value.push({
     user: userText,
     msg: aiMessage.value,
     orders: orderItems,
+    rejected: rejectedItems.length ? rejectedItems : undefined,
+    validationSummary: worldValidation.value?.summary || undefined,
   })
 
   // 清空输入
   userMessage.value = ''
 
-  // 执行有效指令
-  if (parsed.value) {
-    const valid = parsed.value.orders.filter((_, i) => !parsed.value!.errors[i].length)
-    if (valid.length) {
-      submit(valid)
-      await advance()
-    }
+  // ── Phase 4：提交最终通过的指令 ──
+  const finalOrders = getFinalApprovedOrders()
+  if (finalOrders.length) {
+    submit(finalOrders)
+    await advance()
   }
 
   // 日志自动滚到底
@@ -390,6 +436,61 @@ async function onSend(): Promise<void> {
 
 .log-dot.bad {
   color: var(--danger-ink, #b23a2e);
+}
+
+/* ── 世界AI校验状态 ── */
+.log-validation-summary {
+  font-size: 11px;
+  color: var(--ink-muted, #9c8a6a);
+  padding-left: 4px;
+  font-style: italic;
+}
+
+.log-validating {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--ink-muted, #9c8a6a);
+  padding: 4px 8px;
+}
+
+.log-validating-spin {
+  display: inline-block;
+  animation: log-spin 1.5s linear infinite;
+}
+
+@keyframes log-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ── 被拒指令 ── */
+.log-rejected {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.log-rejected-item {
+  background: var(--danger-bg, #f7dede);
+  border: 1px solid var(--danger-ink-faint, rgba(178, 58, 46, 0.3));
+  border-radius: var(--radius-sm);
+  padding: 4px 8px;
+  font-size: 11px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.log-rejected-label {
+  color: var(--danger-ink, #b23a2e);
+  font-weight: 600;
+}
+
+.log-rejected-reason {
+  color: var(--ink-muted, #9c8a6a);
 }
 
 /* ===== 滚动条 ===== */
