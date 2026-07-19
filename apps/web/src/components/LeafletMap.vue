@@ -1401,14 +1401,16 @@ onUnmounted(() => {
 
 .ai-dock-wrap {
   position: absolute;
-  left: 0;
   right: 0;
+  top: 48px;
   bottom: 38px;
+  width: 360px;
   z-index: 400;
   display: flex;
-  justify-content: center;
-  padding: 0 16px;
+  flex-direction: column;
+  padding: 8px 12px 8px 0;
   pointer-events: none;
+  box-sizing: border-box;
 }
 
 .disclaimer-bar {

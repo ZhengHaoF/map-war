@@ -1,90 +1,101 @@
 <template>
-  <div class="ai-dock">
-    <div class="dock-head">
-      <span class="dock-title"><IconBrain :size="16" />玩家 AI 操作台</span>
-      <button class="dock-collapse" :title="collapsed ? '展开' : '收起'" @click="$emit('toggle')">
+  <div class="ai-chat">
+    <div class="chat-head">
+      <span class="chat-title"><IconBrain :size="16" />玩家 AI 操作台</span>
+      <button class="chat-collapse" :title="collapsed ? '展开' : '收起'" @click="$emit('toggle')">
         <IconChevronUp v-if="collapsed" :size="16" />
         <IconChevronDown v-else :size="16" />
       </button>
     </div>
 
-    <Transition name="dock-collapse">
-      <div v-if="!collapsed" class="dock-body">
-        <!-- 错误提示（独立于左右布局，横贯顶部） -->
-        <div v-if="error || parseError" class="dock-error">{{ error || parseError }}</div>
+    <Transition name="chat-collapse">
+      <div v-if="!collapsed" class="chat-body">
+        <!-- 错误提示 -->
+        <div v-if="error || parseError" class="chat-error">{{ error || parseError }}</div>
 
-        <div class="dock-main">
-          <!-- 左栏：输入 -->
-          <div class="dock-left">
-            <div class="dock-input-wrap">
-              <textarea
-                v-model="userMessage"
-                class="dock-textarea"
-                rows="3"
-                placeholder="例如：派兵进攻杭州"
-                @keydown.enter.exact.prevent="onSend"
-              ></textarea>
-              <div class="dock-btns">
-                <GameButton parchment :disabled="loading" @click="onSend">
-                  <IconSend :size="16" />{{ loading ? '请求中' : '发送' }}
-                </GameButton>
-                <GameButton parchment size="small" :disabled="!undoStack.length" @click="undo">
-                  <IconUndo :size="14" />撤销
-                </GameButton>
+        <!-- 消息区 -->
+        <div ref="logRef" class="chat-messages">
+          <div v-if="chatHistory.length === 0" class="chat-empty">输入指令开始推演…</div>
+
+          <div v-for="(entry, i) in chatHistory" :key="i" class="chat-turn">
+            <!-- 玩家消息（右对齐） -->
+            <div class="chat-bubble chat-bubble--player">
+              {{ entry.user }}
+            </div>
+
+            <!-- AI 回应组（左对齐） -->
+            <div class="chat-ai-group">
+              <!-- AI 叙事 -->
+              <div v-if="entry.msg" class="chat-bubble chat-bubble--ai">
+                {{ entry.msg }}
+              </div>
+
+              <!-- 指令摘要 -->
+              <div v-if="entry.orders.length" class="chat-orders">
+                <span
+                  v-for="(o, j) in entry.orders"
+                  :key="j"
+                  class="chat-dot"
+                  :class="{ bad: o.endsWith('✗') }"
+                >{{ o }}</span>
+              </div>
+
+              <!-- 校验摘要 -->
+              <div v-if="entry.validationSummary" class="chat-verdict">
+                {{ entry.validationSummary }}
+              </div>
+
+              <!-- 硬编码规则拒绝 -->
+              <div v-if="entry.rejected?.length" class="chat-rejected">
+                <div v-for="(r, k) in entry.rejected" :key="k" class="chat-rejected-item">
+                  <span class="chat-rejected-label">✕ {{ r.label }}</span>
+                  <span class="chat-rejected-reason">{{ r.reason }}</span>
+                </div>
+              </div>
+
+              <!-- 困难指令 -->
+              <div v-if="entry.difficult?.length" class="chat-difficult">
+                <div v-for="(r, k) in entry.difficult" :key="k" class="chat-difficult-item">
+                  <div class="chat-difficult-head">{{ r.label }}</div>
+                  <div class="chat-difficult-reason">{{ r.reason }}</div>
+                  <div v-if="r.suggestion" class="chat-difficult-suggestion">💡 {{ r.suggestion }}</div>
+                </div>
+              </div>
+
+              <!-- 不可能指令 -->
+              <div v-if="entry.impossible?.length" class="chat-impossible">
+                <div v-for="(r, k) in entry.impossible" :key="k" class="chat-impossible-item">
+                  <div class="chat-impossible-head">{{ r.label }}</div>
+                  <div class="chat-impossible-reason">{{ r.reason }}</div>
+                  <div v-if="r.suggestion" class="chat-impossible-suggestion">⇢ {{ r.suggestion }}</div>
+                </div>
               </div>
             </div>
           </div>
+        </div>
 
-          <!-- 右栏：操作日志 + 状态 -->
-          <div class="dock-right-col">
-            <div ref="logRef" class="dock-right">
-              <div v-if="chatHistory.length === 0" class="dock-empty">暂无操作记录</div>
-              <div v-for="(entry, i) in chatHistory" :key="i" class="log-entry">
-                <div class="log-user">▶ {{ entry.user }}</div>
-                <div v-if="entry.msg" class="log-msg">{{ entry.msg }}</div>
-                <div v-if="entry.orders.length" class="log-orders">
-                  <span
-                    v-for="(o, j) in entry.orders"
-                    :key="j"
-                    class="log-dot"
-                    :class="{ bad: o.endsWith('✗') }"
-                  >● {{ o }}</span>
-                </div>
-                <!-- 世界AI校验状态 -->
-                <div v-if="entry.validationSummary" class="log-validation-summary">
-                  {{ entry.validationSummary }}
-                </div>
-                <!-- 被拒指令 + 理由（硬编码规则） -->
-                <div v-if="entry.rejected?.length" class="log-rejected">
-                  <div v-for="(r, k) in entry.rejected" :key="k" class="log-rejected-item">
-                    <span class="log-rejected-label">✕ {{ r.label }}</span>
-                    <span class="log-rejected-reason">{{ r.reason }}</span>
-                  </div>
-                </div>
-                <!-- 世界AI：困难指令 -->
-                <div v-if="entry.difficult?.length" class="log-difficult">
-                  <div v-for="(r, k) in entry.difficult" :key="k" class="log-difficult-item">
-                    <span class="log-difficult-label">{{ r.label }}</span>
-                    <span class="log-difficult-reason">{{ r.reason }}</span>
-                    <span v-if="r.suggestion" class="log-difficult-suggestion">💡 {{ r.suggestion }}</span>
-                  </div>
-                </div>
-                <!-- 世界AI：不可能指令 -->
-                <div v-if="entry.impossible?.length" class="log-impossible">
-                  <div v-for="(r, k) in entry.impossible" :key="k" class="log-impossible-item">
-                    <span class="log-impossible-label">{{ r.label }}</span>
-                    <span class="log-impossible-reason">{{ r.reason }}</span>
-                    <span v-if="r.suggestion" class="log-impossible-suggestion">⇢ {{ r.suggestion }}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div class="dock-status">
-              <span class="dock-queue">队列 {{ queue.length }} · {{ statusText }}</span>
-              <span v-if="status === 'stopped'" class="dock-stopped">
-                ⏸ 已在 {{ stoppedAt?.order }} 处停下
-              </span>
-            </div>
+        <!-- 队列状态 -->
+        <div class="chat-status">
+          <span class="chat-queue">队列 {{ queue.length }} · {{ statusText }}</span>
+          <span v-if="status === 'stopped'" class="chat-stopped">⏸ 已在 {{ stoppedAt?.order }} 处停下</span>
+        </div>
+
+        <!-- 输入区 -->
+        <div class="chat-input-area">
+          <textarea
+            v-model="userMessage"
+            class="chat-textarea"
+            rows="2"
+            placeholder="例如：派兵进攻杭州"
+            @keydown.enter.exact.prevent="onSend"
+          ></textarea>
+          <div class="chat-input-btns">
+            <GameButton parchment size="small" :disabled="!undoStack.length" @click="undo">
+              <IconUndo :size="14" />撤销
+            </GameButton>
+            <GameButton parchment :disabled="loading" @click="onSend">
+              <IconSend :size="16" />{{ loading ? '请求中' : '发送' }}
+            </GameButton>
           </div>
         </div>
       </div>
@@ -111,13 +122,9 @@ interface ChatEntry {
   user: string
   msg: string | null
   orders: string[]
-  /** 硬编码规则拒绝的指令 */
   rejected?: { label: string; reason: string }[]
-  /** 世界AI认为困难（⚠ amber）的指令 + 建议 */
   difficult?: { label: string; reason: string; suggestion?: string }[]
-  /** 世界AI认为不可能（❌ red）的指令 + 建议 */
   impossible?: { label: string; reason: string; suggestion?: string }[]
-  /** 世界AI校验摘要 */
   validationSummary?: string
 }
 
@@ -158,10 +165,8 @@ async function onSend(): Promise<void> {
   const userText = userMessage.value.trim()
   if (!userText) return
 
-  // ── Phase 1：玩家代理 AI 产出指令 ──
   await runSend()
 
-  // 收集指令摘要（含结构校验结果）
   const orderItems: string[] = []
   if (parsed.value) {
     for (let i = 0; i < parsed.value.orders.length; i++) {
@@ -170,10 +175,8 @@ async function onSend(): Promise<void> {
     }
   }
 
-  // ── Phase 2：硬编码战略规则（同步，零延迟）──
   applyStrategicRules()
 
-  // ── 汇总拒绝 / 困难 / 不可能 ──
   const rejectedItems: { label: string; reason: string }[] = []
   for (const r of strategicRejected.value) {
     rejectedItems.push({ label: r.order.order, reason: r.reason })
@@ -191,12 +194,10 @@ async function onSend(): Promise<void> {
     impossibleItems.push({ label: `❌ ${orderName}`, reason: r.reason, suggestion: r.suggestion })
   }
 
-  // ── 写入叙事事件到世界日志（存档/回放可见）──
   if (aiMessage.value) {
     store.applyEvent({ type: 'narrative', playerInput: userText, aiMessage: aiMessage.value })
   }
 
-  // ── 追加到操作日志（本地 UI）──
   chatHistory.value.push({
     user: userText,
     msg: aiMessage.value,
@@ -207,17 +208,14 @@ async function onSend(): Promise<void> {
     validationSummary: worldValidation.value?.summary || undefined,
   })
 
-  // 清空输入
   userMessage.value = ''
 
-  // ── Phase 4：提交最终通过的指令 ──
   const finalOrders = getFinalApprovedOrders()
   if (finalOrders.length) {
     submit(finalOrders)
     await advance()
   }
 
-  // 日志自动滚到底
   await nextTick()
   if (logRef.value) {
     logRef.value.scrollTop = logRef.value.scrollHeight
@@ -226,13 +224,14 @@ async function onSend(): Promise<void> {
 </script>
 
 <style scoped>
-.ai-dock {
+/* ===== 面板容器 ===== */
+.ai-chat {
   width: 100%;
-  max-width: 860px;
+  height: 100%;
   pointer-events: auto;
   display: flex;
   flex-direction: column;
-  background: var(--paper-panel, #f3ead7);
+  background: var(--paper-panel, #e9dcc4);
   border: 1px solid var(--brown-line, #8a6d4b);
   border-radius: var(--radius-lg);
   box-shadow: 0 2px 10px rgba(90, 60, 20, 0.15);
@@ -240,16 +239,17 @@ async function onSend(): Promise<void> {
   overflow: hidden;
 }
 
-.dock-head {
+/* ===== 标题栏 ===== */
+.chat-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 6px 14px;
+  padding: 8px 14px;
   border-bottom: 1px dashed var(--brown-line-faint, rgba(138, 109, 75, 0.3));
   flex-shrink: 0;
 }
 
-.dock-title {
+.chat-title {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -259,7 +259,7 @@ async function onSend(): Promise<void> {
   color: var(--ink-strong, #4a3a22);
 }
 
-.dock-collapse {
+.chat-collapse {
   border: none;
   background: transparent;
   color: var(--ink-muted, #9c8a6a);
@@ -269,45 +269,45 @@ async function onSend(): Promise<void> {
   border-radius: var(--radius-sm);
 }
 
-.dock-collapse:hover {
+.chat-collapse:hover {
   background: var(--paper-faint, #e8dcc0);
   color: var(--cinnabar, #b23a2e);
 }
 
 /* ===== 折叠过渡 ===== */
-.dock-collapse-enter-active,
-.dock-collapse-leave-active {
+.chat-collapse-enter-active,
+.chat-collapse-leave-active {
   transition: opacity 0.22s ease, transform 0.22s ease;
 }
-.dock-collapse-enter-from,
-.dock-collapse-leave-to {
+.chat-collapse-enter-from,
+.chat-collapse-leave-to {
   opacity: 0;
   transform: translateY(-8px);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .dock-collapse-enter-active,
-  .dock-collapse-leave-active {
+  .chat-collapse-enter-active,
+  .chat-collapse-leave-active {
     transition: opacity 0.2s ease !important;
   }
-  .dock-collapse-enter-from,
-  .dock-collapse-leave-to {
+  .chat-collapse-enter-from,
+  .chat-collapse-leave-to {
     transform: none !important;
   }
 }
 
 /* ===== body ===== */
-.dock-body {
+.chat-body {
   display: flex;
   flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  padding: 8px 12px;
   gap: 8px;
-  padding: 8px 14px 12px;
-  height: 220px;
-  overflow: hidden;
 }
 
 /* ===== 错误 ===== */
-.dock-error {
+.chat-error {
   background: var(--danger-bg, #f7dede);
   border: 1px solid var(--danger-ink, #b23a2e);
   border-radius: var(--radius-md);
@@ -317,94 +317,8 @@ async function onSend(): Promise<void> {
   flex-shrink: 0;
 }
 
-/* ===== 左右主区域 ===== */
-.dock-main {
-  display: flex;
-  gap: 14px;
-  flex: 1;
-  min-height: 0;
-}
-
-/* ===== 左栏：输入 ===== */
-.dock-left {
-  flex: 6;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.dock-input-wrap {
-  position: relative;
-  flex: 1;
-  min-height: 0;
-}
-
-.dock-textarea {
-  background: var(--paper-input, #fbf6ea);
-  border: 1px solid var(--brown-line, #8a6d4b);
-  border-radius: var(--radius-md);
-  color: var(--ink, #3b2f1d);
-  font-size: 13px;
-  font-family: 'Consolas', 'Courier New', monospace;
-  padding: 8px 110px 8px 10px;
-  resize: none;
-  outline: none;
-  line-height: 1.5;
-  box-sizing: border-box;
-  display: block;
-  width: 100%;
-  height: 100%;
-}
-
-.dock-textarea:focus {
-  border-color: var(--cinnabar, #b23a2e);
-  background: var(--paper-hi, #fff);
-}
-
-.dock-btns {
-  display: flex;
-  flex-direction: row;
-  gap: 6px;
-  position: absolute;
-  bottom: 6px;
-  right: 6px;
-}
-
-.dock-status {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  margin-top: 8px;
-  flex-shrink: 0;
-  font-size: 12px;
-  color: var(--ink-muted, #9c8a6a);
-  margin-top: auto;
-}
-
-.dock-queue {
-  padding: 2px 8px;
-  border: 1px solid var(--brown-line-faint, rgba(138, 109, 75, 0.3));
-  border-radius: var(--radius-sm);
-  background: var(--paper-faint, #e8dcc0);
-  align-self: flex-start;
-}
-
-.dock-stopped {
-  color: var(--danger-ink, #b23a2e);
-}
-
-/* ===== 右栏：操作日志 + 状态 ===== */
-.dock-right-col {
-  flex: 4;
-  min-width: 0;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.dock-right {
+/* ===== 消息滚动区 ===== */
+.chat-messages {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
@@ -413,93 +327,88 @@ async function onSend(): Promise<void> {
   gap: 10px;
 }
 
-.dock-empty {
+.chat-empty {
   color: var(--ink-muted, #9c8a6a);
-  font-size: 13px;
+  font-size: 14px;
   text-align: center;
-  padding: 16px 0;
+  padding: 32px 0;
   letter-spacing: 2px;
 }
 
-/* 每条日志 */
-.log-entry {
+/* ===== 对话轮回 ===== */
+.chat-turn {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 6px;
 }
 
-/* 玩家原文 */
-.log-user {
-  font-size: 11px;
-  color: var(--ink-muted, #9c8a6a);
-  padding-left: 4px;
-  letter-spacing: 1px;
-}
-
-/* AI msg 气泡 */
-.log-msg {
-  background: var(--paper-faint, #e8dcc0);
-  border-left: 3px solid var(--cinnabar, #b23a2e);
+/* ===== 聊天气泡 ===== */
+.chat-bubble {
+  max-width: 92%;
+  padding: 8px 12px;
   border-radius: var(--radius-md);
-  padding: 6px 10px;
-  color: var(--ink, #3b2f1d);
   font-size: 16px;
-  line-height: 1.5;
+  line-height: 1.55;
+  word-break: break-word;
 }
 
-/* 指令摘要行 */
-.log-orders {
+.chat-bubble--player {
+  align-self: flex-end;
+  background: var(--paper-dark, #d6c3a0);
+  color: var(--ink-strong, #2c1a0a);
+  border: 1px solid var(--brown-line, #b8a07a);
+  border-bottom-right-radius: 4px;
+}
+
+.chat-bubble--ai {
+  align-self: flex-start;
+  background: var(--paper-faint, #e8dcc0);
+  color: var(--ink, #3b2f1d);
+  border-left: 3px solid var(--cinnabar, #b04a3a);
+  border-top-left-radius: 4px;
+}
+
+/* ===== AI 回应组（左对齐，指令 + 校验在气泡下方） ===== */
+.chat-ai-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding-left: 4px;
+}
+
+/* ===== 指令摘要 ===== */
+.chat-orders {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 10px;
   font-size: 14px;
-  padding-left: 4px;
+  padding: 0 4px;
 }
 
-.log-dot {
+.chat-dot {
   color: #2f9e44;
 }
 
-.log-dot.bad {
+.chat-dot.bad {
   color: var(--danger-ink, #b23a2e);
 }
 
-/* ── 世界AI校验状态 ── */
-.log-validation-summary {
+/* ===== 校验摘要 ===== */
+.chat-verdict {
   font-size: 13px;
   color: var(--ink-muted, #9c8a6a);
-  padding-left: 4px;
   font-style: italic;
+  padding: 0 4px;
 }
 
-.log-validating {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: var(--ink-muted, #9c8a6a);
-  padding: 4px 8px;
-}
-
-.log-validating-spin {
-  display: inline-block;
-  animation: log-spin 1.5s linear infinite;
-}
-
-@keyframes log-spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-/* ── 被拒指令 ── */
-.log-rejected {
+/* ===== 硬编码拒绝 ===== */
+.chat-rejected {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  margin-top: 2px;
 }
 
-.log-rejected-item {
+.chat-rejected-item {
   background: var(--danger-bg, #f7dede);
   border: 1px solid var(--danger-ink-faint, rgba(178, 58, 46, 0.3));
   border-radius: var(--radius-sm);
@@ -508,26 +417,26 @@ async function onSend(): Promise<void> {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  max-width: 96%;
 }
 
-.log-rejected-label {
+.chat-rejected-label {
   color: var(--danger-ink, #b23a2e);
   font-weight: 600;
 }
 
-.log-rejected-reason {
+.chat-rejected-reason {
   color: var(--ink-muted, #9c8a6a);
 }
 
-/* ── 世界AI：困难指令（amber 警告） ── */
-.log-difficult {
+/* ===== 困难指令 ===== */
+.chat-difficult {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  margin-top: 2px;
 }
 
-.log-difficult-item {
+.chat-difficult-item {
   background: #f0e4c8;
   border: 1px solid rgba(160, 120, 40, 0.4);
   border-radius: var(--radius-sm);
@@ -535,34 +444,34 @@ async function onSend(): Promise<void> {
   font-size: 13px;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
+  max-width: 96%;
 }
 
-.log-difficult-label {
+.chat-difficult-head {
   color: #8a6020;
   font-weight: 600;
 }
 
-.log-difficult-reason {
+.chat-difficult-reason {
   color: var(--ink-muted, #9c8a6a);
 }
 
-.log-difficult-suggestion {
+.chat-difficult-suggestion {
   color: #8a6020;
   font-style: italic;
   padding-left: 4px;
   border-left: 2px solid rgba(160, 120, 40, 0.4);
 }
 
-/* ── 世界AI：不可能指令（朱砂拒绝） ── */
-.log-impossible {
+/* ===== 不可能指令 ===== */
+.chat-impossible {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  margin-top: 2px;
 }
 
-.log-impossible-item {
+.chat-impossible-item {
   background: var(--danger-bg, #f7dede);
   border: 1px solid var(--danger-ink-faint, rgba(178, 58, 46, 0.3));
   border-radius: var(--radius-sm);
@@ -570,29 +479,86 @@ async function onSend(): Promise<void> {
   font-size: 13px;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
+  max-width: 96%;
 }
 
-.log-impossible-label {
+.chat-impossible-head {
   color: var(--danger-ink, #b23a2e);
   font-weight: 600;
 }
 
-.log-impossible-reason {
+.chat-impossible-reason {
   color: var(--ink-muted, #9c8a6a);
 }
 
-.log-impossible-suggestion {
+.chat-impossible-suggestion {
   color: var(--cinnabar, #b23a2e);
   padding-left: 4px;
   border-left: 2px solid var(--danger-ink-faint, rgba(178, 58, 46, 0.3));
 }
 
+/* ===== 队列状态 ===== */
+.chat-status {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--ink-muted, #9c8a6a);
+}
+
+.chat-queue {
+  padding: 2px 8px;
+  border: 1px solid var(--brown-line-faint, rgba(138, 109, 75, 0.3));
+  border-radius: var(--radius-sm);
+  background: var(--paper-faint, #e8dcc0);
+  align-self: flex-start;
+}
+
+.chat-stopped {
+  color: var(--danger-ink, #b23a2e);
+}
+
+/* ===== 输入区 ===== */
+.chat-input-area {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.chat-textarea {
+  background: var(--paper-input, #fbf6ea);
+  border: 1px solid var(--brown-line, #8a6d4b);
+  border-radius: var(--radius-md);
+  color: var(--ink, #3b2f1d);
+  font-size: 15px;
+  font-family: inherit;
+  padding: 8px 10px;
+  resize: none;
+  outline: none;
+  line-height: 1.5;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.chat-textarea:focus {
+  border-color: var(--cinnabar, #b23a2e);
+  background: var(--paper-hi, #fff);
+}
+
+.chat-input-btns {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
 /* ===== 滚动条 ===== */
-.dock-right::-webkit-scrollbar {
+.chat-messages::-webkit-scrollbar {
   width: 6px;
 }
-.dock-right::-webkit-scrollbar-thumb {
+.chat-messages::-webkit-scrollbar-thumb {
   background: rgba(138, 109, 75, 0.4);
   border-radius: var(--radius-sm);
 }
