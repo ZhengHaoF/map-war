@@ -23,8 +23,14 @@ import {
   type WorldValidationResult,
   type WorldValidationItem,
   type WarVerdict,
-  type WarScores,
 } from '@/utils/aiOrderContract'
+import {
+  extractJson,
+  extractPayloads,
+  extractAiMessage,
+  isUnifiedResult,
+  unwrapData,
+} from '@/utils/aiParse'
 import type { GameOrder } from '@/utils/gameOrders'
 
 export interface ExecResult {
@@ -43,100 +49,12 @@ interface UnifiedResultItem {
   verdict: WarVerdict
   reason: string
   suggestion?: string | null
-  scores?: WarScores
 }
 
-/** 统一 AI 响应格式（user 模式） */
+/** user 模式的 AI 回复格式 */
 interface UnifiedAiResponse {
   msg?: string | null
   results: UnifiedResultItem[]
-}
-
-/** 判断是否为统一 results 格式（有 results 数组且无 orders 键） */
-function isUnifiedResult(obj: unknown): obj is UnifiedAiResponse {
-  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return false
-  const o = obj as Record<string, unknown>
-  return Array.isArray(o.results) && o.orders === undefined
-}
-
-function extractJson(text: string): unknown {
-  let t = (text ?? '').trim()
-  const fence = t.match(/```(?:json)?\s*([\s\S]*?)```/i)
-  if (fence) t = fence[1].trim()
-  try {
-    return JSON.parse(t)
-  } catch {
-    /* fallthrough */
-  }
-  const start = t.search(/[[{]/)
-  const end = Math.max(t.lastIndexOf('}'), t.lastIndexOf(']'))
-  if (start >= 0 && end > start) {
-    try {
-      return JSON.parse(t.slice(start, end + 1))
-    } catch {
-      /* fallthrough */
-    }
-  }
-  throw new Error('无法从 AI 回复中解析出 JSON')
-}
-
-/** 从 LLM 回包抽取待校验的 JSON（兼容 content 文本 与 tool_calls.arguments）。 */
-function extractPayloads(raw: unknown): unknown[] {
-  const choice = ((raw as any)?.choices ?? [])[0]
-  const message = choice?.message
-  const payloads: unknown[] = []
-
-  if (typeof message?.content === 'string' && message.content.trim()) {
-    try {
-      payloads.push(extractJson(message.content))
-    } catch {
-      /* 非 JSON 文本，留给上层报错 */
-    }
-  }
-  const toolCalls = message?.tool_calls ?? []
-  for (const tc of toolCalls) {
-    try {
-      payloads.push(JSON.parse(tc?.function?.arguments ?? '{}'))
-    } catch {
-      /* 忽略坏参数 */
-    }
-  }
-  return payloads
-}
-
-/**
- * 指令数组的顶层键（过渡期同时兼容旧 data 与新 orders）。
- * json_object 模式下 AI 只能返回对象根，指令须包在数组里。
- */
-const ORDER_KEYS = ['orders', 'data'] as const
-
-/** 从顶层对象取出指令数组（按 ORDER_KEYS 顺序命中第一个存在的）。 */
-function pickOrderArray(obj: unknown): unknown[] | null {
-  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return null
-  for (const k of ORDER_KEYS) {
-    const v = (obj as Record<string, unknown>)[k]
-    if (Array.isArray(v)) return v
-  }
-  return null
-}
-
-function isWrapped(obj: unknown): boolean {
-  return pickOrderArray(obj) !== null
-}
-
-/** 拆掉 {orders:[...] | data:[...]} 外层，返回纯指令数组（兼容单条包裹 / 多条包裹 / 裸数组）。 */
-function unwrapData(obj: unknown): unknown {
-  if (Array.isArray(obj)) {
-    return obj.flatMap((p) => (isWrapped(p) ? pickOrderArray(p)! : [p]))
-  }
-  return isWrapped(obj) ? pickOrderArray(obj)! : obj
-}
-
-/** 从顶层对象抽取 AI 的叙事回复（msg 字段，可选）。 */
-function extractAiMessage(obj: unknown): string | null {
-  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return null
-  const m = (obj as Record<string, unknown>).msg
-  return typeof m === 'string' && m.trim() ? m.trim() : null
 }
 
 export type AiMode = 'world' | 'user' | 'advisor'
@@ -207,7 +125,7 @@ export function useAiDebug(mode: AiMode = 'world') {
     const pending = getPendingOrders()
     if (mode !== 'user' || !worldValidation.value) return pending
 
-    // 世界AI校验：仅 feasible 通过（difficult 和 impossible 均拦截，交还玩家决策）
+    // 世界AI校验：仅 feasible 通过（impossible 拦截）
     const feasibleIndices = new Set(
       worldValidation.value.validations
         .filter((v) => v.verdict === 'feasible')
@@ -216,20 +134,7 @@ export function useAiDebug(mode: AiMode = 'world') {
     return pending.filter((_, i) => feasibleIndices.has(i))
   }
 
-  /** 世界AI认为困难但未完全拒绝的指令 + 理由 + 建议（供 UI 琥珀色警告） */
-  const worldDifficult = computed(() => {
-    if (!worldValidation.value) return []
-    const pending = getPendingOrders()
-    return worldValidation.value.validations
-      .filter((v) => v.verdict === 'difficult')
-      .map((v) => ({
-        order: pending[v.index] ?? parsed.value?.orders[v.index],
-        reason: v.reason || '世界AI未说明原因',
-        suggestion: v.suggestion || undefined,
-      }))
-  })
-
-  /** 世界AI断定为不可能的指令 + 理由 + 建议（供 UI 红色拒绝） */
+  /** 世界AI断定为不可能的指令 + 理由 + 建议（供 UI 琥珀色警告） */
   const worldImpossible = computed(() => {
     if (!worldValidation.value) return []
     const pending = getPendingOrders()
@@ -305,11 +210,13 @@ export function useAiDebug(mode: AiMode = 'world') {
         verdict: r.verdict,
         reason: r.reason || '',
         suggestion: r.suggestion ?? undefined,
-        scores: r.scores,
       }))
-      const counts = { feasible: 0, difficult: 0, impossible: 0 }
-      for (const v of validations) counts[v.verdict]++
-      const summary = `${counts.feasible} 条可行，${counts.difficult} 条困难，${counts.impossible} 条不可行`
+      const counts = { feasible: 0, impossible: 0 }
+      for (const v of validations) {
+        if (v.verdict === 'feasible') counts.feasible++
+        else counts.impossible++
+      }
+      const summary = `${counts.feasible} 条可行，${counts.impossible} 条不可行`
       worldValidation.value = { validations, summary }
       return
     }
@@ -402,7 +309,6 @@ export function useAiDebug(mode: AiMode = 'world') {
     // 玩家模式校验
     strategicRejected,
     worldValidation,
-    worldDifficult,
     worldImpossible,
     // 顾问模式
     advisorResponse,

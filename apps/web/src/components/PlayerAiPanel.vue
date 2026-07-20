@@ -55,21 +55,12 @@
                   </div>
                 </div>
 
-                <!-- 困难指令 -->
-                <div v-if="entry.difficult?.length" class="chat-difficult">
-                  <div v-for="(r, k) in entry.difficult" :key="k" class="chat-difficult-item">
-                    <div class="chat-difficult-head">{{ r.label }}</div>
-                    <div class="chat-difficult-reason">{{ r.reason }}</div>
-                    <div v-if="r.suggestion" class="chat-difficult-suggestion">💡 {{ r.suggestion }}</div>
-                  </div>
-                </div>
-
-                <!-- 不可能指令 -->
+                <!-- 不可行指令 -->
                 <div v-if="entry.impossible?.length" class="chat-impossible">
                   <div v-for="(r, k) in entry.impossible" :key="k" class="chat-impossible-item">
                     <div class="chat-impossible-head">{{ r.label }}</div>
                     <div class="chat-impossible-reason">{{ r.reason }}</div>
-                    <div v-if="r.suggestion" class="chat-impossible-suggestion">⇢ {{ r.suggestion }}</div>
+                    <div v-if="r.suggestion" class="chat-impossible-suggestion">💡 {{ r.suggestion }}</div>
                   </div>
                 </div>
               </div>
@@ -95,6 +86,14 @@
               <GameButton parchment size="small" :disabled="!undoStack.length" @click="undo">
                 <IconUndo :size="14" />撤销
               </GameButton>
+              <GameButton
+                parchment
+                :disabled="kernelLoading || loading"
+                title="结束玩家回合，启动世界AI推演"
+                @click="endPlayerTurn"
+              >
+                <IconEndTurn :size="14" />{{ kernelLoading ? kernelPhase : '结束回合' }}
+              </GameButton>
               <GameButton parchment :disabled="loading" @click="onSend">
                 <IconSend :size="16" />{{ loading ? '请求中' : '发送' }}
               </GameButton>
@@ -110,10 +109,12 @@
 import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
 import { useAiDebug } from '@/composables/useAiDebug'
 import { useGameScheduler } from '@/composables/useGameScheduler'
+import { useAgentKernel } from '@/composables/useAgentKernel'
 import GameButton from '@/components/ui/GameButton.vue'
 import GameModal from '@/components/ui/GameModal.vue'
 import IconSend from '~icons/tabler/send'
 import IconUndo from '~icons/tabler/arrow-back-up'
+import IconEndTurn from '~icons/tabler/player-stop'
 
 const {
   userMessage,
@@ -125,7 +126,6 @@ const {
   undoStack,
   strategicRejected,
   worldValidation,
-  worldDifficult,
   worldImpossible,
   runSend,
   applyStrategicRules,
@@ -134,6 +134,8 @@ const {
 } = useAiDebug('user')
 
 const { queue, status, stoppedAt, submit, advance } = useGameScheduler()
+
+const { loading: kernelLoading, phase: kernelPhase, endPlayerTurn } = useAgentKernel()
 
 defineProps<{ visible: boolean }>()
 defineEmits<{ close: [] }>()
@@ -162,7 +164,6 @@ interface ChatEntry {
   msg: string | null
   orders: string[]
   rejected?: { label: string; reason: string }[]
-  difficult?: { label: string; reason: string; suggestion?: string }[]
   impossible?: { label: string; reason: string; suggestion?: string }[]
   validationSummary?: string
 }
@@ -197,16 +198,10 @@ async function onSend(): Promise<void> {
     rejectedItems.push({ label: r.order.order, reason: r.reason })
   }
 
-  const difficultItems: { label: string; reason: string; suggestion?: string }[] = []
-  for (const r of worldDifficult.value) {
-    const orderName = (r.order as any)?.order || '未知'
-    difficultItems.push({ label: `⚠ ${orderName}`, reason: r.reason, suggestion: r.suggestion })
-  }
-
   const impossibleItems: { label: string; reason: string; suggestion?: string }[] = []
   for (const r of worldImpossible.value) {
     const orderName = (r.order as any)?.order || '未知'
-    impossibleItems.push({ label: `❌ ${orderName}`, reason: r.reason, suggestion: r.suggestion })
+    impossibleItems.push({ label: `⚠ ${orderName}`, reason: r.reason, suggestion: r.suggestion })
   }
 
   // narrative 落库已收敛到编排层（useAiDebug.runSend），此处只负责 UI 渲染，不再写 eventLog。
@@ -215,7 +210,6 @@ async function onSend(): Promise<void> {
     msg: aiMessage.value,
     orders: orderItems,
     rejected: rejectedItems.length ? rejectedItems : undefined,
-    difficult: difficultItems.length ? difficultItems : undefined,
     impossible: impossibleItems.length ? impossibleItems : undefined,
     validationSummary: worldValidation.value?.summary || undefined,
   })
@@ -400,14 +394,14 @@ async function onSend(): Promise<void> {
   color: var(--ink-muted, #9c8a6a);
 }
 
-/* ===== 困难指令 ===== */
-.chat-difficult {
+/* ===== 不可行指令（琥珀色 / 原困难样式） ===== */
+.chat-impossible {
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
 
-.chat-difficult-item {
+.chat-impossible-item {
   background: #f0e4c8;
   border: 1px solid rgba(160, 120, 40, 0.4);
   border-radius: var(--radius-sm);
@@ -419,43 +413,8 @@ async function onSend(): Promise<void> {
   max-width: 96%;
 }
 
-.chat-difficult-head {
-  color: #8a6020;
-  font-weight: 600;
-}
-
-.chat-difficult-reason {
-  color: var(--ink-muted, #9c8a6a);
-}
-
-.chat-difficult-suggestion {
-  color: #8a6020;
-  font-style: italic;
-  padding-left: 4px;
-  border-left: 2px solid rgba(160, 120, 40, 0.4);
-}
-
-/* ===== 不可能指令 ===== */
-.chat-impossible {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.chat-impossible-item {
-  background: var(--danger-bg, #f7dede);
-  border: 1px solid rgba(178, 58, 46, 0.3);
-  border-radius: var(--radius-sm);
-  padding: 5px 10px;
-  font-size: 13px;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  max-width: 96%;
-}
-
 .chat-impossible-head {
-  color: var(--danger-ink, #b23a2e);
+  color: #8a6020;
   font-weight: 600;
 }
 
@@ -464,9 +423,10 @@ async function onSend(): Promise<void> {
 }
 
 .chat-impossible-suggestion {
-  color: var(--cinnabar, #b23a2e);
+  color: #8a6020;
+  font-style: italic;
   padding-left: 4px;
-  border-left: 2px solid rgba(178, 58, 46, 0.3);
+  border-left: 2px solid rgba(160, 120, 40, 0.4);
 }
 
 /* ===== 队列状态 ===== */

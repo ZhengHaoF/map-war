@@ -9,10 +9,12 @@ import skipFormatting from 'eslint-config-prettier/flat'
 export default defineConfig([
   {
     name: 'app/files-to-lint',
-    files: ['**/*.{vue,js,mjs,jsx}'],
+    files: ['**/*.{js,mjs,jsx}'],
   },
 
-  globalIgnores(['**/dist/**', '**/dist-ssr/**', '**/coverage/**']),
+  // TS / Vue 文件交由 oxlint 统一 lint（已通过）；本 ESLint 配置只作为纯 JS 补充，
+  // 避免 flat/essential 用 espree 解析 <script lang="ts"> 而误报语法错。
+  globalIgnores(['**/dist/**', '**/dist-ssr/**', '**/coverage/**', '**/*.vue', '**/*.ts', '**/*.tsx']),
 
   {
     languageOptions: {

@@ -5,7 +5,7 @@
         v-if="visible"
         class="modal-overlay"
         :class="{ transparent: overlay === false }"
-        :style="{ zIndex: zIndex ?? 3000 }"
+        :style="{ zIndex: props.draggable ? managedZ : (zIndex ?? 3000) }"
         @click.self="closable ? $emit('close') : undefined"
       >
         <div
@@ -28,6 +28,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onUnmounted } from 'vue'
+import { useZIndex } from '@/composables/useZIndex'
 
 const props = withDefaults(
   defineProps<{
@@ -58,6 +59,9 @@ const emit = defineEmits<{
   close: []
 }>()
 
+// 层级管理：draggable 面板自动获取递增 z-index，支持点击置顶
+const { zIndex: managedZ, bringToFront } = useZIndex(props.zIndex)
+
 const posX = ref(props.initX ?? 160)
 const posY = ref(props.initY ?? 160)
 let dragStartX = 0
@@ -82,6 +86,7 @@ const modalStyle = computed<Record<string, string>>(() => {
 
 function onDragStart(e: MouseEvent): void {
   if (!props.draggable) return
+  bringToFront()
   isDragging = true
   dragStartX = e.clientX
   dragStartY = e.clientY
