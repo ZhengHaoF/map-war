@@ -11,18 +11,26 @@
  */
 
 import { useGameStore } from '@/stores/game'
-import { CONTRACT_SCHEMA_TEXT, PLAYER_AI_UNIFIED_PROMPT } from './aiOrderContract'
+import { CONTRACT_SCHEMA_TEXT, PLAYER_AI_UNIFIED_PROMPT, ADVISOR_SYSTEM_PROMPT } from './aiOrderContract'
 
-/** AI 角色类型：world = god-mode 调试（最高权限）；user = 玩家势力代理（受限）。 */
-export type AiKind = 'world' | 'user'
+/** AI 角色类型：world = god-mode 调试（最高权限）；user = 玩家势力代理（受限）；advisor = 战略顾问（场外援助）。 */
+export type AiKind = 'world' | 'user' | 'advisor'
 
 /**
  * system prompt 选择器：
  * - world → CONTRACT_SCHEMA_TEXT（god-mode，最高权限）
- * - user  → USER_AI_SYSTEM_PROMPT（玩家势力代理，受限）
+ * - user  → PLAYER_AI_UNIFIED_PROMPT（玩家势力代理，受限）
+ * - advisor → ADVISOR_SYSTEM_PROMPT（战略顾问，场外援助）
  */
 export function buildSystemPrompt(kind: AiKind = 'world'): string {
-  return kind === 'user' ? PLAYER_AI_UNIFIED_PROMPT : CONTRACT_SCHEMA_TEXT
+  switch (kind) {
+    case 'user':
+      return PLAYER_AI_UNIFIED_PROMPT
+    case 'advisor':
+      return ADVISOR_SYSTEM_PROMPT
+    default:
+      return CONTRACT_SCHEMA_TEXT
+  }
 }
 
 /**
@@ -69,6 +77,8 @@ export interface BuildMessagesOpts {
   userText: string
   /** 是否把按需世界态（玩家基础信息 + 对话中出现的城市）注入为一条 system 消息。默认关；开启后注入内容已精简且含中文名。 */
   injectContext?: boolean
+  /** 近期世界动态（来自 eventLog 的压缩时间线）。非空则注入为一条独立 system 消息，位于世界态之后、user 之前。 */
+  history?: string
 }
 
 /** 组装最终发给 LLM 的 messages。 */
@@ -81,6 +91,10 @@ export function buildMessages(opts: BuildMessagesOpts): { role: string; content:
   // 且全量城市快照会显著拉长上下文、增加 token 成本。需要时由 injectContext 手动开启。
   if (opts.injectContext) {
     messages.push({ role: 'system', content: '当前世界态：\n' + buildWorldContext(opts.userText) })
+  }
+
+  if (opts.history && opts.history.trim()) {
+    messages.push({ role: 'system', content: '近期世界动态：\n' + opts.history })
   }
 
   messages.push({ role: 'user', content: opts.userText })

@@ -32,6 +32,10 @@
         <component :is="ICONS['brain']" :size="16" />
         指挥
       </GameButton>
+      <GameButton tooltip="咨询战略顾问" @click="advisorVisible = true">
+        <component :is="ICONS['user']" :size="16" />
+        顾问
+      </GameButton>
       <div class="switcher-divider"></div>
       <GameButton @click="testPanelVisible = !testPanelVisible">
         <component :is="ICONS['bug']" :size="16" />
@@ -210,6 +214,7 @@
     <LegendPanel v-if="ownerColorEnabled" class="map-ui" :items="legendItems" />
     </div>
     <PlayerAiPanel :visible="commandVisible" @close="commandVisible = false" />
+    <AdvisorPanel :visible="advisorVisible" @close="advisorVisible = false" />
     <PlayerStatusPanel :visible="overviewVisible" @close="overviewVisible = false" />
     <div class="disclaimer-bar map-ui" @click="disclaimerVisible = true">
       ⚠
@@ -242,6 +247,7 @@ import GameButton from '@/components/ui/GameButton.vue'
 import GameContextMenu from '@/components/ui/GameContextMenu.vue'
 import GameModal from '@/components/ui/GameModal.vue'
 import PlayerAiPanel from '@/components/PlayerAiPanel.vue'
+import AdvisorPanel from '@/components/AdvisorPanel.vue'
 import PlayerStatusPanel from '@/components/PlayerStatusPanel.vue'
 import InfoTable from '@/components/ui/InfoTable.vue'
 import LegendPanel from '@/components/ui/LegendPanel.vue'
@@ -260,6 +266,7 @@ import IconList from '~icons/tabler/list'
 import IconCircleX from '~icons/tabler/circle-x'
 import IconX from '~icons/tabler/x'
 import IconBrain from '~icons/tabler/brain'
+import IconUser from '~icons/tabler/user'
 import IconCloud from '~icons/tabler/cloud'
 import IconClipboardText from '~icons/tabler/clipboard-text'
 import AiDebugPanel from '@/components/AiDebugPanel.vue'
@@ -285,6 +292,7 @@ const ICONS: Record<string, Component> = {
   'circle-x': IconCircleX,
   x: IconX,
   brain: IconBrain,
+  user: IconUser,
   cloud: IconCloud,
   'clipboard-text': IconClipboardText,
 }
@@ -390,6 +398,8 @@ const aiPanelVisible = ref(false)
 const overviewVisible = ref(false)
 /** 玩家 AI 操作台弹窗是否打开 */
 const commandVisible = ref(false)
+/** 战略顾问弹窗是否打开 */
+const advisorVisible = ref(false)
 const battleListVisible = ref(false)
 const eventLogPanelVisible = ref(false)
 const battleList = computed(() => useGameStore().battles)
@@ -1252,6 +1262,10 @@ onMounted(async () => {
   window.addEventListener('pointerup', onPointerUp)
   window.addEventListener('mousedown', onGlobalMouseDown)
   window.addEventListener('keydown', onKeyDown)
+  // 监听顾问面板发送指令事件，自动打开指挥面板
+  window.addEventListener('open-command-panel', () => {
+    commandVisible.value = true
+  })
 
   useGameStore().initWorld()
   console.log('城市态加载完成:', Object.keys(useGameStore().cities).length, '个市')

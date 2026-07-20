@@ -107,10 +107,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick } from 'vue'
+import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
 import { useAiDebug } from '@/composables/useAiDebug'
 import { useGameScheduler } from '@/composables/useGameScheduler'
-import { useGameStore } from '@/stores/game'
 import GameButton from '@/components/ui/GameButton.vue'
 import GameModal from '@/components/ui/GameModal.vue'
 import IconSend from '~icons/tabler/send'
@@ -135,10 +134,25 @@ const {
 } = useAiDebug('user')
 
 const { queue, status, stoppedAt, submit, advance } = useGameScheduler()
-const store = useGameStore()
 
 defineProps<{ visible: boolean }>()
 defineEmits<{ close: [] }>()
+
+// 监听顾问建议事件，填充到输入框
+function handleAdvisorSuggestion(event: CustomEvent): void {
+  const suggestion = event.detail?.suggestion
+  if (suggestion) {
+    userMessage.value = suggestion
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('advisor-suggestion', handleAdvisorSuggestion as EventListener)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('advisor-suggestion', handleAdvisorSuggestion as EventListener)
+})
 
 const chatHistory = ref<ChatEntry[]>([])
 const logRef = ref<HTMLElement | null>(null)
@@ -195,10 +209,7 @@ async function onSend(): Promise<void> {
     impossibleItems.push({ label: `❌ ${orderName}`, reason: r.reason, suggestion: r.suggestion })
   }
 
-  if (aiMessage.value) {
-    store.applyEvent({ type: 'narrative', playerInput: userText, aiMessage: aiMessage.value })
-  }
-
+  // narrative 落库已收敛到编排层（useAiDebug.runSend），此处只负责 UI 渲染，不再写 eventLog。
   chatHistory.value.push({
     user: userText,
     msg: aiMessage.value,

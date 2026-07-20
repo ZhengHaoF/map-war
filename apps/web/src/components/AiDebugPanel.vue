@@ -6,6 +6,10 @@
         <input type="checkbox" v-model="injectContext" />
         注入世界态
       </label>
+      <label class="ai-toggle">
+        <input type="checkbox" v-model="injectHistory" />
+        注入历史
+      </label>
       <GameButton size="small" :disabled="!undoStack.length" @click="undo">
         <component :is="ICONS.undo" :size="14" />撤销
       </GameButton>
@@ -140,6 +144,7 @@ const {
   systemPrompt,
   userMessage,
   injectContext,
+  injectHistory,
   loading,
   error,
   response,

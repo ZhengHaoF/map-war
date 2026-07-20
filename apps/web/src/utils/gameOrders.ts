@@ -81,6 +81,7 @@ export type OrderType =
   | 'setFactionAlive'
   | 'setCurrentDate'
   | 'setCurrentFaction'
+  | 'moveTroops'
 
 export interface GameOrder {
   order: OrderType
@@ -97,6 +98,8 @@ export interface GameOrder {
   date?: string // setCurrentDate：ISO 日期
   // 调度层可选字段（Agent-Kernel）：执行到此项后是否把控制权交还玩家
   needsPlayerDecision?: boolean
+  // 调兵：从 from 搬运到 to 的兵力（单位 k），须为正数
+  amount?: number
 }
 
 // ─── 相机控制接口（由 LeafletMap 依赖注入）───
@@ -649,6 +652,22 @@ export async function executeOrder(
       break
     }
 
+    case 'moveTroops': {
+      const fromId = resolveLocationId(json.from!)
+      const toId = resolveLocationId(json.to!)
+      if (!fromId) { result = { ok: false, reason: `出发城市不存在: ${json.from}` }; break }
+      if (!toId) { result = { ok: false, reason: `目标城市不存在: ${json.to}` }; break }
+      if (typeof json.amount !== 'number' || json.amount <= 0) {
+        result = { ok: false, reason: 'amount 必须是正数（单位 k）' }
+        break
+      }
+      // 复用 arrowFly 行军演出（黄点弧线），演完再落地（与 capture 同构）
+      await arrowFly(fromId, toId, json.text || '调兵！')
+      useGameStore().applyEvent({ type: 'moveTroops', fromGb: fromId, toGb: toId, amount: json.amount })
+      result = { ok: true }
+      break
+    }
+
     case 'setFactionAlive':
       useGameStore().applyEvent({ type: 'setFactionAlive', faction: json.faction!, alive: json.alive! })
       result = { ok: true }
@@ -736,6 +755,11 @@ function popToast(
         title: '占领',
         text: `${getLocationName(json.gb!)} → ${ownerName}${troop}`,
       })
+      break
+    }
+    case 'moveTroops': {
+      const t = `${getLocationName(json.from!)} ⇢ ${getLocationName(json.to!)}（${json.amount ?? 0}k）`
+      push({ icon: 'sword', tone: 'amber', title: '调兵', text: json.text ? `${json.text} · ${t}` : t })
       break
     }
     case 'setFactionAlive': {

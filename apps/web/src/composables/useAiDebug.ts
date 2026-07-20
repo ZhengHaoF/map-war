@@ -15,6 +15,7 @@ import { useAiChat } from './useAiChat'
 import { useGameStore } from '@/stores/game'
 import { executeOrder, resetBattleRuntime } from '@/utils/gameOrders'
 import { buildMessages, buildSystemPrompt } from '@/utils/aiPromptBuilder'
+import { buildEventHistory } from '@/utils/aiHistory'
 import {
   validateOrders,
   validatePlayerOrders,
@@ -138,7 +139,7 @@ function extractAiMessage(obj: unknown): string | null {
   return typeof m === 'string' && m.trim() ? m.trim() : null
 }
 
-export type AiMode = 'world' | 'user'
+export type AiMode = 'world' | 'user' | 'advisor'
 
 export function useAiDebug(mode: AiMode = 'world') {
   const store = useGameStore()
@@ -149,11 +150,15 @@ export function useAiDebug(mode: AiMode = 'world') {
   const systemPrompt = ref(buildSystemPrompt(mode))
   const userMessage = ref('')
   const injectContext = ref(mode === 'user')
+  // 历史注入：玩家模式默认开（AI 操作台始终带记忆），god-mode 默认关（调试时手动开）。
+  const injectHistory = ref(mode === 'user')
   const parsed = ref<BatchValidation | null>(null)
   const parseError = ref<string | null>(null)
   const aiMessage = ref<string | null>(null)
   const execResults = ref<ExecResult[]>([])
   const undoStack = ref<UndoFrame[]>([])
+  // 顾问模式专属：存储完整顾问响应
+  const advisorResponse = ref<{ reply?: string; suggestions?: string[] } | null>(null)
 
   // ── 玩家模式专属：战略校验状态 ──
   /** 硬编码规则拒绝的指令（同步，runSend 后立即可用） */
@@ -177,6 +182,7 @@ export function useAiDebug(mode: AiMode = 'world') {
       structureOk,
       store.currentFaction,
       (gb) => store.ownership[gb],
+      (gb) => store.cities[gb]?.troops,
     )
     strategicRejected.value = result.rejected
   }
@@ -244,9 +250,12 @@ export function useAiDebug(mode: AiMode = 'world') {
     worldValidation.value = null
     execResults.value = []
 
+    // 本轮历史取「此前」的 eventLog（当前回合尚未落 narrative），不含自己。
+    const history = injectHistory.value ? buildEventHistory({ mode: 'recent' }) : ''
     const messages = buildMessages({
       userText: userMessage.value,
       injectContext: injectContext.value,
+      history,
     })
     // 允许开发者覆盖自动生成的 system prompt
     if (systemPrompt.value.trim()) {
@@ -263,10 +272,28 @@ export function useAiDebug(mode: AiMode = 'world') {
     }
     const merged = payloads.length === 1 ? payloads[0] : payloads
 
+    // ── advisor 模式：{reply: string, suggestions: string[]} ──
+    if (mode === 'advisor') {
+      const response = merged as { reply?: string; suggestions?: string[] }
+      if (typeof response?.reply === 'string') {
+        aiMessage.value = response.reply
+        advisorResponse.value = response
+        // 顾问模式不写入 eventLog，只存储在本地
+      } else {
+        parseError.value = '顾问AI回复格式错误：缺少 reply 字段'
+      }
+      return
+    }
+
     // ── user 模式：统一格式 {msg, results: [{order, verdict, reason, suggestion}]} ──
     if (mode === 'user' && isUnifiedResult(merged)) {
       const unified = merged as UnifiedAiResponse
       aiMessage.value = unified.msg ?? null
+      // 落 narrative 到 eventLog（玩家模式），使对话历史经 eventLog 持久化、被后续回合读取。
+      // 唯一落库点：视图层（PlayerAiPanel）不再重复写，避免历史被记两次。
+      if (aiMessage.value) {
+        store.applyEvent({ type: 'narrative', playerInput: userMessage.value.trim(), aiMessage: aiMessage.value })
+      }
 
       // 从 results 提取 orders 做结构校验
       const orders = unified.results.map((r) => r.order)
@@ -290,6 +317,10 @@ export function useAiDebug(mode: AiMode = 'world') {
     // ── world 模式兼容旧格式 {orders:[...], msg} ──
     parsed.value = validateOrders(unwrapData(merged))
     aiMessage.value = extractAiMessage(merged)
+    // 仅玩家模式落 narrative（god-mode 调试不污染事件日志）；唯一落库点，视图层不再重复写。
+    if (mode === 'user' && aiMessage.value) {
+      store.applyEvent({ type: 'narrative', playerInput: userMessage.value.trim(), aiMessage: aiMessage.value })
+    }
   }
 
   async function runExecute() {
@@ -359,6 +390,7 @@ export function useAiDebug(mode: AiMode = 'world') {
     systemPrompt,
     userMessage,
     injectContext,
+    injectHistory,
     loading,
     error,
     response,
@@ -372,6 +404,8 @@ export function useAiDebug(mode: AiMode = 'world') {
     worldValidation,
     worldDifficult,
     worldImpossible,
+    // 顾问模式
+    advisorResponse,
     // 动作
     runSend,
     runExecute,

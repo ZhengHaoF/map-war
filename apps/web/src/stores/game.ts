@@ -41,6 +41,7 @@ export interface CityState {
  */
 export type GameEvent =
   | { type: 'capture'; targetGb: string; actor: Owner; resultTroops?: number }
+  | { type: 'moveTroops'; fromGb: string; toGb: string; amount: number }
   | { type: 'attack'; fromGb: string; targetGb: string; attackerLoss: number; defenderLoss: number }
   | { type: 'moraleChange'; targetGb: string; delta: number }
   | { type: 'produce'; targetGb: string; amount: number }
@@ -329,6 +330,18 @@ export const useGameStore = defineStore('game', () => {
     }
     // 叙事事件：玩家输入 + AI 总结，仅记录不改变世界态
     if (e.type === 'narrative') return
+    // 调兵：己方两城间搬运驻军（from 扣、to 加，钳制 ≥0）
+    // 必须用 fromGb/toGb，不能走下面的 targetGb 分支（本事件无 targetGb，会提前 return 丢失）
+    if (e.type === 'moveTroops') {
+      const from = cities.value[e.fromGb]
+      const to = cities.value[e.toGb]
+      if (from && to) {
+        from.troops = Math.max(0, from.troops - e.amount)
+        to.troops += e.amount
+      }
+      triggerRef(cities) // shallowRef 手动通知：城市态已变更
+      return
+    }
     // 以下均为城市态事件，需 targetGb
     const t = cities.value[e.targetGb]
     if (!t) return

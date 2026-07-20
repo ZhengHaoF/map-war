@@ -53,6 +53,7 @@ function badge(e: GameEvent): string {
     attack: '进攻',
     moraleChange: '士气',
     produce: '征兵',
+    moveTroops: '调兵',
     dateAdvance: '日期',
     setFactionAlive: '存亡',
     battleStart: '开战',
@@ -84,6 +85,8 @@ function describe(e: GameEvent): string {
       return `${cname(e.targetGb)} 士气 ${e.delta > 0 ? '+' : ''}${e.delta}`
     case 'produce':
       return `${cname(e.targetGb)} 征兵 +${e.amount}k`
+    case 'moveTroops':
+      return `${cname(e.fromGb)} ⇢ ${cname(e.toGb)} 调兵 ${e.amount}k`
     case 'dateAdvance':
       return `📅 日期推进至 ${e.date}`
     case 'setFactionAlive':
