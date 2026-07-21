@@ -12,6 +12,7 @@
  */
 
 import type { GameOrder } from './gameOrders'
+import { ORDER_TYPES, type OrderType } from './gameOrders'
 import { Owner, OWNER_LABELS } from '@/data/owners'
 import { resolveLocationId, resolveLocation } from './locationResolver'
 
@@ -21,25 +22,6 @@ function getLocationName(gb: string): string {
   if (!f?.properties) return gb
   return (f.properties.name || f.properties.NAME || gb) as string
 }
-
-/** 全部合法指令（与 gameOrders.OrderType 对齐，单点定义避免漂移）。 */
-export const ORDER_TYPES = [
-  'arrowFly',
-  'radarPulse',
-  'orbBurst',
-  'battle',
-  'stopBattle',
-  'stopBattles',
-  'listBattles',
-  'fogCover',
-  'capture',
-  'setFactionAlive',
-  'setCurrentDate',
-  'setCurrentFaction',
-  'moveTroops',
-] as const
-
-export type KnownOrder = (typeof ORDER_TYPES)[number]
 
 export type ValidationResult =
   | { ok: true; order: GameOrder }
@@ -83,11 +65,11 @@ export function validateGameOrder(json: unknown): ValidationResult {
     }
   }
 
-  const needsFromTo: KnownOrder[] = ['arrowFly', 'orbBurst', 'battle', 'moveTroops']
-  if (needsFromTo.includes(order as KnownOrder) && !resolveLocationId(String(o.from ?? ''))) {
+  const needsFromTo: OrderType[] = ['arrowFly', 'orbBurst', 'battle', 'moveTroops']
+  if (needsFromTo.includes(order as OrderType) && !resolveLocationId(String(o.from ?? ''))) {
     errors.push(`from 城市不存在或拼写有误: ${String(o.from)}（可填城市名或 gb 编码）`)
   }
-  if (needsFromTo.includes(order as KnownOrder) && !resolveLocationId(String(o.to ?? ''))) {
+  if (needsFromTo.includes(order as OrderType) && !resolveLocationId(String(o.to ?? ''))) {
     errors.push(`to 城市不存在或拼写有误: ${String(o.to)}（可填城市名或 gb 编码）`)
   }
 
@@ -168,7 +150,7 @@ export interface StrategicRuleResult {
 }
 
 /** 用户模式下完全禁用的指令（系统管） */
-const FORBIDDEN_FOR_PLAYER: KnownOrder[] = ['setFactionAlive', 'setCurrentFaction']
+const FORBIDDEN_FOR_PLAYER: OrderType[] = ['setFactionAlive', 'setCurrentFaction']
 
 /**
  * 玩家模式下的硬编码战略校验。
@@ -190,7 +172,7 @@ export function validatePlayerOrder(
   }
 
   // 禁止指令
-  if (FORBIDDEN_FOR_PLAYER.includes(order.order as KnownOrder)) {
+  if (FORBIDDEN_FOR_PLAYER.includes(order.order as OrderType)) {
     return {
       ok: false,
       reason: `玩家不能使用「${order.order}」指令（势力存亡与归属由系统管理）`,

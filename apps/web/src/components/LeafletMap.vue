@@ -232,7 +232,7 @@ import type { CityData } from '@/data/chinaCities'
 import type { CountryData } from '@/data/worldCountries'
 import { worldCountries, GEO_TO_GAME_ISO } from '@/data/worldCountries'
 import { init as initGameOrders, executeOrder, restoreActiveAnimations } from '@/utils/gameOrders'
-import type { GameOrder } from '@/utils/gameOrders'
+import type { GameOrder, CameraTarget } from '@/utils/gameOrders'
 import { useGameStore } from '@/stores/game'
 import {
   geoToScreen,
@@ -1015,12 +1015,6 @@ let cameraInterrupt = false
 let cameraResolve: (() => void) | null = null
 const FOCUS_SCALE = 2.8
 const cameraEase = (t: number): number => 1 - Math.pow(1 - t, 3) // easeOutCubic
-
-interface CameraTarget {
-  scale: number
-  x: number
-  y: number
-}
 
 /** 将当前相机状态应用到所有容器（抽出给镜头补间复用，替代各 handler 里的重复 transform） */
 function applyCamera(): void {

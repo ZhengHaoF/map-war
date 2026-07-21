@@ -164,14 +164,7 @@ export const useGameStore = defineStore('game', () => {
   }
 
   // ── 我方聚合（派生，不存）──
-  interface MyCityStat {
-    gb: string
-    name: string
-    cityLevel: number
-    industry: number
-    food: number
-    fort: number
-  }
+  type MyCityStat = Pick<CityState, 'gb' | 'name' | 'cityLevel' | 'industry' | 'food' | 'fort'>
   interface MyStats {
     cityCount: number
     totalIndustry: number

@@ -189,7 +189,7 @@ function onCloseClick(): void {
 
 .modal.parchment .modal-title {
   color: var(--ink-panel);
-  font-family: Georgia, 'Songti SC', 'SimSun', serif;
+  font-family: var(--font-song);
   letter-spacing: 4px;
   font-size: 16px;
 }

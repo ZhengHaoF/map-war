@@ -62,6 +62,8 @@ function onBackToSelector(): void {
 </template>
 
 <style>
+@import '@/assets/fonts/huiwen.css';
+
 :root {
   /* 羊皮纸色阶（由浅到深） */
   --paper: #e2d4b6;
@@ -118,10 +120,10 @@ function onBackToSelector(): void {
   /* 链接（深色调试面板内） */
   --link: #7eb8ff;
 
-  /* 字体 */
-  --font-kai: 'KaiTi', 'KaiTi_GB2312', 'SimSun', serif;
-  --font-xing: 'STXingkai', 'Xingkai SC', 'KaiTi', 'KaiTi_GB2312', 'SimSun', serif;
-  --font-song: Georgia, 'Songti SC', 'SimSun', serif;
+  /* 字体 — 统一汇文明朝体，加载失败回退浏览器默认衬线 */
+  --font-kai: 'HuiWen Ming', serif;
+  --font-xing: 'HuiWen Ming', serif;
+  --font-song: 'HuiWen Ming', serif;
 
   /* 圆角量表（§16-7 Craft）：紧致阶梯，全站吸附到最近一档，避免随手填数。
      方角四档 + 圆形一档；50% 圆形 toggle 走 --radius-pill，不进方角阶梯。 */

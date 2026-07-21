@@ -1,16 +1,7 @@
 import raw from './chinaCities.seed.adjacent.json'
+import type { CityData } from './chinaCities'
 
-export interface CityDataWithAdjacent {
-  name: string
-  gb: string
-  owner?: string
-  terrain?: string
-  cityLevel?: number
-  industry?: number
-  food?: number
-  fort?: number
-  troops?: number
-  morale?: number
+export interface CityDataWithAdjacent extends CityData {
   adjacent: string[]
 }
 

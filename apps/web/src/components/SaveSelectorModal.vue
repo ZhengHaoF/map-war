@@ -200,7 +200,7 @@ watch(
 }
 
 .sel-title {
-  font-family: 'STXingkai', 'Xingkai SC', 'KaiTi', 'KaiTi_GB2312', 'SimSun', serif;
+  font-family: var(--font-kai);
   font-size: 24px;
   letter-spacing: 2px;
   color: var(--ink-mid);
@@ -213,7 +213,7 @@ watch(
   font-size: 13px;
   color: var(--ink-soft);
   letter-spacing: 5px;
-  font-family: 'KaiTi', 'KaiTi_GB2312', 'SimSun', serif;
+  font-family: var(--font-kai);
 }
 
 .save-list {
@@ -267,7 +267,7 @@ watch(
 .card-label {
   font-size: 15px;
   color: var(--ink-strong);
-  font-family: 'KaiTi', 'KaiTi_GB2312', 'SimSun', serif;
+  font-family: var(--font-kai);
   letter-spacing: 1px;
   font-weight: 600;
   overflow: hidden;
@@ -283,7 +283,7 @@ watch(
   border-radius: var(--radius-xs);
   padding: 1px 6px;
   letter-spacing: 1px;
-  font-family: 'KaiTi', 'KaiTi_GB2312', 'SimSun', serif;
+  font-family: var(--font-kai);
   opacity: 0.8;
 }
 
@@ -293,7 +293,7 @@ watch(
   gap: 16px;
   font-size: 13px;
   color: var(--ink-mid);
-  font-family: 'KaiTi', 'KaiTi_GB2312', 'SimSun', serif;
+  font-family: var(--font-kai);
 }
 
 .meta-item {
@@ -326,7 +326,7 @@ watch(
   border-radius: var(--radius-xs);
   cursor: pointer;
   letter-spacing: 2px;
-  font-family: 'KaiTi', 'KaiTi_GB2312', 'SimSun', serif;
+  font-family: var(--font-kai);
   transition:
     transform 0.15s ease,
     box-shadow 0.15s ease,
@@ -384,7 +384,7 @@ watch(
   justify-content: center;
   color: var(--cinnabar);
   font-size: 28px;
-  font-family: 'KaiTi', 'KaiTi_GB2312', 'SimSun', serif;
+  font-family: var(--font-kai);
   border: 2px solid var(--cinnabar);
   border-radius: var(--radius-sm);
   opacity: 0.5;
@@ -394,7 +394,7 @@ watch(
 .empty p {
   font-size: 13px;
   letter-spacing: 2px;
-  font-family: 'KaiTi', 'KaiTi_GB2312', 'SimSun', serif;
+  font-family: var(--font-kai);
   margin: 0;
 }
 
@@ -411,7 +411,7 @@ watch(
   border: none;
   border-radius: var(--radius-sm);
   cursor: pointer;
-  font-family: 'KaiTi', 'KaiTi_GB2312', 'SimSun', serif;
+  font-family: var(--font-kai);
   transition:
     transform 0.15s ease,
     box-shadow 0.15s ease;

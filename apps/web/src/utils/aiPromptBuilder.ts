@@ -12,7 +12,8 @@
 
 import { useGameStore } from '@/stores/game'
 import { Owner, OWNER_DETAILS, OWNER_LABELS } from '@/data/owners'
-import { CONTRACT_SCHEMA_TEXT, PLAYER_AI_UNIFIED_PROMPT, ADVISOR_SYSTEM_PROMPT, ORDER_TYPES } from './aiOrderContract'
+import { CONTRACT_SCHEMA_TEXT, PLAYER_AI_UNIFIED_PROMPT, ADVISOR_SYSTEM_PROMPT } from './aiOrderContract'
+import { ORDER_TYPES } from './gameOrders'
 
 /** AI 角色类型：world = god-mode 调试（最高权限）；user = 玩家势力代理（受限）；advisor = 战略顾问（场外援助）。 */
 export type AiKind = 'world' | 'user' | 'advisor'

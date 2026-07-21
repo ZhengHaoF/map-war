@@ -8,6 +8,7 @@
     "dev:web": "pnpm --filter map-war-web run dev",
     "dev:server": "pnpm --filter map-war-server run start:dev",
     "typecheck": "pnpm --filter map-war-web run typecheck",
-    "lint": "pnpm --filter map-war-web run lint"
+    "lint": "pnpm --filter map-war-web run lint",
+    "subset-font": "python scripts/subset-font.py"
   }
 }

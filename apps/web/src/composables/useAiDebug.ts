@@ -14,7 +14,7 @@ import { ref, computed } from 'vue'
 import { useAiChat } from './useAiChat'
 import { useGameStore } from '@/stores/game'
 import { executeOrder, resetBattleRuntime } from '@/utils/gameOrders'
-import { buildMessages, buildSystemPrompt } from '@/utils/aiPromptBuilder'
+import { buildMessages, buildSystemPrompt, type AiKind } from '@/utils/aiPromptBuilder'
 import { buildEventHistory } from '@/utils/aiHistory'
 import {
   validateOrders,
@@ -57,7 +57,7 @@ interface UnifiedAiResponse {
   results: UnifiedResultItem[]
 }
 
-export type AiMode = 'world' | 'user' | 'advisor'
+export type AiMode = AiKind
 
 export function useAiDebug(mode: AiMode = 'world') {
   const store = useGameStore()

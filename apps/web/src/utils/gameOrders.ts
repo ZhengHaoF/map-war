@@ -29,6 +29,7 @@ import type { BattleHandle } from './troopAnimation'
 import { playCloudTransition, type CloudOptions } from './cloudTransition'
 import { resolveLocation, resolveLocationId } from './locationResolver'
 import { useGameStore } from '@/stores/game'
+import type { BattleInfo } from '@/stores/game'
 import { Owner, OWNER_COLORS, OWNER_LABELS } from '@/data/owners'
 import { useToast } from '@/composables/useToast'
 
@@ -58,30 +59,25 @@ export interface BattleRuntime {
   battle: BattleHandle
 }
 
-export interface BattleInfo {
-  id: string
-  from: string
-  to: string
-  fromName: string
-  toName: string
-  active: boolean
-}
-
-export type OrderType =
-  | 'arrowFly'
-  | 'radarPulse'
-  | 'orbBurst'
-  | 'battle'
-  | 'stopBattle'
-  | 'stopBattles'
-  | 'listBattles'
-  | 'fogCover'
+/** 全部合法指令（唯一真相源，aiOrderContract 等模块从此 import）。 */
+export const ORDER_TYPES = [
+  'arrowFly',
+  'radarPulse',
+  'orbBurst',
+  'battle',
+  'stopBattle',
+  'stopBattles',
+  'listBattles',
+  'fogCover',
   // 世界态写回（god-mode 调试 / 真实 agent 共用统一契约）
-  | 'capture'
-  | 'setFactionAlive'
-  | 'setCurrentDate'
-  | 'setCurrentFaction'
-  | 'moveTroops'
+  'capture',
+  'setFactionAlive',
+  'setCurrentDate',
+  'setCurrentFaction',
+  'moveTroops',
+] as const
+
+export type OrderType = (typeof ORDER_TYPES)[number]
 
 export interface GameOrder {
   order: OrderType

@@ -350,7 +350,7 @@ function handleEnter() {
   color: var(--brown);
   font-size: 13px;
   letter-spacing: 2px;
-  font-family: 'KaiTi', 'KaiTi_GB2312', 'SimSun', serif;
+  font-family: var(--font-kai);
   padding: 4px 6px;
   transition: color 0.15s ease;
 }
@@ -394,7 +394,7 @@ function handleEnter() {
   display: flex;
   align-items: baseline;
   gap: 10px;
-  font-family: 'STXingkai', 'Xingkai SC', 'KaiTi', 'KaiTi_GB2312', 'SimSun', serif;
+  font-family: var(--font-xing);
   color: var(--ink-mid);
 }
 
@@ -422,7 +422,7 @@ function handleEnter() {
   font-size: 13px;
   color: var(--ink-soft);
   letter-spacing: 5px;
-  font-family: 'KaiTi', 'KaiTi_GB2312', 'SimSun', serif;
+  font-family: var(--font-kai);
 }
 
 .section-label {
@@ -433,7 +433,7 @@ function handleEnter() {
   color: var(--ink-mute);
   letter-spacing: 4px;
   margin-bottom: 10px;
-  font-family: 'KaiTi', 'KaiTi_GB2312', 'SimSun', serif;
+  font-family: var(--font-kai);
 }
 
 .label-mark {
@@ -497,7 +497,7 @@ function handleEnter() {
   padding: 10px 14px;
   outline: none;
   letter-spacing: 3px;
-  font-family: 'KaiTi', 'KaiTi_GB2312', 'SimSun', serif;
+  font-family: var(--font-kai);
   box-shadow: inset 0 1px 3px rgba(90, 60, 20, 0.08);
 }
 
@@ -514,7 +514,7 @@ function handleEnter() {
   color: var(--cinnabar);
   font-size: 12px;
   margin: 0;
-  font-family: 'KaiTi', 'KaiTi_GB2312', 'SimSun', serif;
+  font-family: var(--font-kai);
 }
 
 .detail-panel {
@@ -554,7 +554,7 @@ function handleEnter() {
   border-bottom: 2px solid rgba(180, 150, 100, 0.4);
   font-size: 15px;
   color: var(--ink);
-  font-family: 'KaiTi', 'KaiTi_GB2312', 'SimSun', serif;
+  font-family: var(--font-kai);
   letter-spacing: 2px;
   background: linear-gradient(to right, var(--paper), transparent 70%);
 }
@@ -567,7 +567,7 @@ function handleEnter() {
   justify-content: center;
   color: #fff;
   font-size: 13px;
-  font-family: 'KaiTi', 'KaiTi_GB2312', 'SimSun', serif;
+  font-family: var(--font-kai);
   border-radius: var(--radius-xs);
   box-shadow: 0 0 0 1px rgba(90, 60, 20, 0.15);
   text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
@@ -592,12 +592,12 @@ function handleEnter() {
   color: var(--ink-soft);
   min-width: 36px;
   flex-shrink: 0;
-  font-family: 'KaiTi', 'KaiTi_GB2312', 'SimSun', serif;
+  font-family: var(--font-kai);
 }
 
 .panel-val {
   color: var(--ink-mid);
-  font-family: 'KaiTi', 'KaiTi_GB2312', 'SimSun', serif;
+  font-family: var(--font-kai);
 }
 
 .panel-sep {
@@ -611,7 +611,7 @@ function handleEnter() {
   font-size: 13px;
   color: var(--ink-deep);
   line-height: 1.85;
-  font-family: 'KaiTi', 'KaiTi_GB2312', 'SimSun', serif;
+  font-family: var(--font-kai);
   text-align: justify;
 }
 
@@ -632,7 +632,7 @@ function handleEnter() {
   justify-content: center;
   color: var(--cinnabar);
   font-size: 28px;
-  font-family: 'KaiTi', 'KaiTi_GB2312', 'SimSun', serif;
+  font-family: var(--font-kai);
   border: 2px solid var(--cinnabar);
   border-radius: var(--radius-sm);
   opacity: 0.5;
@@ -642,7 +642,7 @@ function handleEnter() {
 .empty-body p {
   font-size: 13px;
   letter-spacing: 2px;
-  font-family: 'KaiTi', 'KaiTi_GB2312', 'SimSun', serif;
+  font-family: var(--font-kai);
   margin: 0;
 }
 
@@ -670,7 +670,7 @@ function handleEnter() {
   cursor: pointer;
   color: var(--ink-mid);
   font-size: 14px;
-  font-family: 'KaiTi', 'KaiTi_GB2312', 'SimSun', serif;
+  font-family: var(--font-kai);
   letter-spacing: 1px;
   transition:
     transform 0.15s ease,
@@ -716,7 +716,7 @@ function handleEnter() {
   justify-content: center;
   color: #fff;
   font-size: 11px;
-  font-family: 'KaiTi', 'KaiTi_GB2312', 'SimSun', serif;
+  font-family: var(--font-kai);
   border-radius: var(--radius-xs);
   flex-shrink: 0;
   box-shadow: 0 0 0 1px rgba(90, 60, 20, 0.1);
@@ -742,7 +742,7 @@ function handleEnter() {
   border: none;
   border-radius: var(--radius-sm);
   cursor: pointer;
-  font-family: 'KaiTi', 'KaiTi_GB2312', 'SimSun', serif;
+  font-family: var(--font-kai);
   transition:
     transform 0.15s ease,
     box-shadow 0.15s ease;
