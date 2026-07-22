@@ -14,10 +14,13 @@
 import type { GameOrder } from './gameOrders'
 import { ORDER_TYPES, type OrderType } from './gameOrders'
 import { Owner, OWNER_LABELS } from '@/data/owners'
+import { getCityDisplayName } from '@/data/cityHistoricalNames'
 import { resolveLocationId, resolveLocation } from './locationResolver'
 
-/** 从 GeoJSON feature 读取城市名；解析失败返回 gb 码 */
+/** 从 GeoJSON feature 读取城市名；优先查 1931 年历史名映射表 */
 function getLocationName(gb: string): string {
+  const histName = getCityDisplayName(gb)
+  if (histName) return histName
   const f = resolveLocation(gb)
   if (!f?.properties) return gb
   return (f.properties.name || f.properties.NAME || gb) as string

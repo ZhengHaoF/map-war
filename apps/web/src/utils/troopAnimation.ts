@@ -27,6 +27,7 @@ function drawArrow(gfx: Graphics, x: number, y: number, angle: number, color = 0
  * 在地图上描出某个 GeoJSON Feature 的轮廓（高亮用）
  * @param fillAlpha 填充透明度（默认 0.4）
  * @param lineWidth 轮廓线宽（默认 0.5）
+ * @param strokeAlpha 描边透明度（默认 1）
  */
 function drawFeatureOutline(
   gfx: Graphics,
@@ -34,6 +35,7 @@ function drawFeatureOutline(
   color: number,
   fillAlpha = 0.4,
   lineWidth = 0.5,
+  strokeAlpha = 1,
 ): void {
   if (!feature?.geometry) return
   const { geometry } = feature
@@ -56,7 +58,7 @@ function drawFeatureOutline(
       gfx.closePath()
     }
     gfx.fill({ color, alpha: fillAlpha })
-    gfx.stroke({ width: lineWidth, color, alpha: 1 })
+    gfx.stroke({ width: lineWidth, color, alpha: strokeAlpha })
   }
 }
 
@@ -513,11 +515,11 @@ export function startBattleAnimation({
     return { stop(): void {}, graphics: null }
   }
 
-  // 内部高亮
+  // 内部高亮（仅描边，不填充，避免大面积高亮刺眼）
   const hlGfx = new Graphics()
   container.addChild(hlGfx)
-  drawFeatureOutline(hlGfx, resolveLocation(fromId), colorA)
-  drawFeatureOutline(hlGfx, resolveLocation(toId), colorB)
+  drawFeatureOutline(hlGfx, resolveLocation(fromId), 0xef4444, 0, 1, 1)
+  drawFeatureOutline(hlGfx, resolveLocation(toId), 0xef4444, 0, 1, 1)
 
   // 贝塞尔控制点
   const p0 = from

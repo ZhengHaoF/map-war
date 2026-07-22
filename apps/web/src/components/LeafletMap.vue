@@ -231,6 +231,7 @@ import { OWNER_COLORS, OWNER_LABELS, Owner } from '@/data/owners'
 import type { CityData } from '@/data/chinaCities'
 import type { CountryData } from '@/data/worldCountries'
 import { worldCountries, GEO_TO_GAME_ISO } from '@/data/worldCountries'
+import { getCityDisplayName } from '@/data/cityHistoricalNames'
 import { init as initGameOrders, executeOrder, restoreActiveAnimations } from '@/utils/gameOrders'
 import type { GameOrder, CameraTarget } from '@/utils/gameOrders'
 import { useGameStore } from '@/stores/game'
@@ -531,7 +532,10 @@ const countryInfoRows = computed(() => {
 })
 
 const infoTitle = computed(() => {
-  if (infoCityData.value) return infoCityData.value.name
+  if (infoCityData.value) {
+    const gb = infoCityData.value.gb
+    return getCityDisplayName(gb) || infoCityData.value.name
+  }
   if (infoCountryData.value) {
     const d = infoCountryData.value as CountryData
     return `${d.name}（${d.iso_a3 || d.id || ''}）`
@@ -921,15 +925,18 @@ function renderLabels(
   const style = getLabelStyle(layerIndex)
 
   for (const feature of data.features) {
-    const name = feature.properties?.name as string | undefined
-    if (!name) continue
+    const geoName = feature.properties?.name as string | undefined
+    if (!geoName) continue
+
+    const gb = feature.properties?.gb as string | undefined
+    const displayName = (gb && getCityDisplayName(gb)) || geoName
 
     const centroid = calculateCentroid(feature.geometry)
     if (!centroid) continue
 
     const screenPos = geoToScreen(centroid.lng, centroid.lat, width, height)
     const text = new Text({
-      text: name,
+      text: displayName,
       style,
     }) as LabelText
     text.anchor.set(0.5)

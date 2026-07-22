@@ -12,6 +12,7 @@
 
 import { useGameStore } from '@/stores/game'
 import { Owner, OWNER_DETAILS, OWNER_LABELS } from '@/data/owners'
+import { getCityDisplayName } from '@/data/cityHistoricalNames'
 import { CONTRACT_SCHEMA_TEXT, PLAYER_AI_UNIFIED_PROMPT, ADVISOR_SYSTEM_PROMPT } from './aiOrderContract'
 import { ORDER_TYPES } from './gameOrders'
 
@@ -47,7 +48,8 @@ export function buildPlayerProfile(): string {
   const mine = Object.values(store.cities).filter((c) => c.owner === store.currentFaction)
   lines.push(`玩家控制城市（${mine.length} 座）：`)
   for (const c of mine) {
-    lines.push(`  - ${c.name}（驻军 ${c.troops}k，士气 ${c.morale}${c.fort ? `，工事等级 ${c.fort}` : ''}）`)
+    const dn = getCityDisplayName(c.gb) || c.name
+    lines.push(`  - ${dn}（驻军 ${c.troops}k，士气 ${c.morale}${c.fort ? `，工事等级 ${c.fort}` : ''}）`)
   }
   return lines.join('\n')
 }
@@ -62,7 +64,8 @@ export function buildMentionedCities(userText: string): string {
   if (!mentioned.length) return ''
   const lines: string[] = ['对话涉及城市：']
   for (const c of mentioned) {
-    lines.push(`  - ${c.name}：归属 ${OWNER_LABELS[c.owner] ?? c.owner}（驻军 ${c.troops}k，士气 ${c.morale}）`)
+    const dn = getCityDisplayName(c.gb) || c.name
+    lines.push(`  - ${dn}：归属 ${OWNER_LABELS[c.owner] ?? c.owner}（驻军 ${c.troops}k，士气 ${c.morale}）`)
   }
   return lines.join('\n')
 }

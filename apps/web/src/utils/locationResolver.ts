@@ -10,6 +10,8 @@
  * 与 LeafletMap 中 getFeatureCentroid 的算法完全一致。
  */
 
+import { getCityDisplayName } from '@/data/cityHistoricalNames'
+
 // ─── 类型定义 ───
 
 export interface Point {
@@ -82,6 +84,13 @@ export function registerLocations(features: GeoJSON.Feature[], idKey: string): v
       const name = f.properties?.name
       if (name && typeof name === 'string' && !nameToId.has(name)) {
         nameToId.set(name, id)
+      }
+      // 城市：同步注册 1931 年历史地名 → id
+      if (idKey === 'gb') {
+        const histName = getCityDisplayName(id)
+        if (histName && !nameToId.has(histName)) {
+          nameToId.set(histName, id)
+        }
       }
     }
   }
