@@ -64,6 +64,12 @@ function eventLine(store: ReturnType<typeof useGameStore>, e: GameEvent): string
     case 'setFactionAlive':
       return e.alive ? null : `${e.faction} 灭亡`
     case 'narrative': {
+      // kind === 'settlement'：系统结算叙事（世界AI P4 产出），不带"玩家："前缀
+      if (e.kind === 'settlement') {
+        const a = (e.aiMessage || '').slice(0, 80)
+        return a ? `📜 ${a}` : null
+      }
+      // 玩家对话记录：保留旧版"玩家：…→ AI：…"
       const p = (e.playerInput || '').slice(0, 40)
       const a = (e.aiMessage || '').slice(0, 60)
       return `玩家：「${p}」→ AI：「${a}」`

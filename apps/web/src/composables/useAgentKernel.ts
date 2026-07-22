@@ -13,9 +13,12 @@
 import { ref, watch } from 'vue'
 import { useGameStore } from '@/stores/game'
 import { useGameScheduler } from '@/composables/useGameScheduler'
+import { callLlm } from '@/composables/useLlmClient'
 import { classifyFactions } from '@/utils/aiClassify'
 import { buildFactionSystemPrompt } from '@/utils/aiPromptBuilder'
-import { validateOrders } from '@/utils/aiOrderContract'
+import { buildFactionContext, buildMinorContext, buildSettleContext } from '@/utils/aiContext'
+import { validateOrders, validateFactionOrders, validateFactionOrder, type StrategicRuleResult } from '@/utils/aiOrderContract'
+import { invokeAgentDecision, type InvokeAgentDecisionResult } from '@/utils/aiInvoke'
 import { extractPayloads, extractAiMessage, unwrapData } from '@/utils/aiParse'
 import type { GameOrder } from '@/utils/gameOrders'
 import { Owner, OWNER_LABELS } from '@/data/owners'
@@ -28,55 +31,42 @@ const progress = ref('')
 const lastError = ref('')
 const { push: pushToast } = useToast()
 
-/** 单次 AI 调用（不经 Vue 响应式，适合并行） */
-async function callAI(messages: { role: string; content: string }[]): Promise<unknown> {
-  const MAX_RETRIES = 3
-  let lastErr: Error | null = null
-
-  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-    try {
-      const res = await fetch('/api/ai/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages,
-          response_format: { type: 'json_object' },
-        }),
-      })
-      if (!res.ok) {
-        const errBody = await res.json().catch(() => ({}))
-        const detail =
-          (errBody as { detail?: string })?.detail ??
-          (errBody as { error?: string })?.error ??
-          `HTTP ${res.status}`
-        throw new Error(detail)
-      }
-      return await res.json()
-    } catch (err) {
-      lastErr = err as Error
-      if (attempt < MAX_RETRIES) {
-        await new Promise((r) => setTimeout(r, 1000 * attempt))
-      }
-    }
-  }
-  throw lastErr ?? new Error('AI 调用失败')
-}
-
-/** 调用专属政权 AI，返回通过结构校验的 GameOrder[]。 */
+/** 调用专属政权 AI，返回通过结构 + 战略校验的 GameOrder[]。 */
 async function invokeFactionAI(faction: Owner, context: string): Promise<GameOrder[]> {
-  const systemPrompt = buildFactionSystemPrompt(faction)
-  const raw = await callAI([
-    { role: 'system', content: systemPrompt },
-    { role: 'user', content: context },
-  ])
-  const payloads = extractPayloads(raw)
-  const orders: GameOrder[] = []
-  for (const p of payloads) {
-    const unwrapped = unwrapData(p)
-    const batch = validateOrders(unwrapped)
-    orders.push(...batch.orders)
+  const store = useGameStore()
+  const result: InvokeAgentDecisionResult = await invokeAgentDecision({
+    systemPrompt: buildFactionSystemPrompt(faction),
+    userContext: context,
+  })
+  if (!result.parseSucceeded) {
+    pushToast({
+      icon: 'alert-triangle',
+      tone: 'error',
+      title: `${OWNER_LABELS[faction] ?? faction} 输出格式错误`,
+      text: 'AI 返回无法解析为 JSON',
+    })
+    return []
   }
-  return orders
+  // 1. 取出结构校验通过的指令
+  const structureOk = result.orders.filter((_, i) => !result.errors[i].length)
+  // 2. 战略校验：actor 必为自身、from/to 必为己方等（零 LLM 成本，#4 改动）
+  const strategic = validateFactionOrders(
+    structureOk,
+    faction,
+    (gb) => store.ownership[gb],
+    (gb) => store.cities[gb]?.troops,
+  )
+  // 3. 被拒指令逐条推 toast（replay 安全：runWorldTurn 内调用）
+  for (const r of strategic.rejected) {
+    const fname = OWNER_LABELS[faction] ?? faction
+    pushToast({
+      icon: 'alert-triangle',
+      tone: 'error',
+      title: `${fname} 越权`,
+      text: r.reason,
+    })
+  }
+  return strategic.approved
 }
 
 /** 调用世界 AI 批量生成 minor 政权事件 */
@@ -86,6 +76,12 @@ async function invokeWorldAIBatch(
 ): Promise<GameOrder[]> {
   const systemPrompt = `你是民国军阀推演游戏的「世界 AI」。你负责为次要势力生成本回合的行动。
 这些势力不单独配 AI 实例，由你一次性批量生成它们的带日期事件。
+
+上下文中的城市信息使用紧凑格式：
+  城名 驻军Xk 士气X 地形 L城级 工事X
+  - 驻军：单位千（k）；士气：0-100
+  - 地形：山地/丘陵/平原/林地；L城级：城市等级 1-5
+  - 工事：工事等级，越高城防越强
 
 返回格式：
 {
@@ -101,23 +97,64 @@ async function invokeWorldAIBatch(
 - 保守为上——次要势力通常按兵不动
 - 所有地点用城市中文名`
 
-  const raw = await callAI([
-    { role: 'system', content: systemPrompt },
-    { role: 'user', content: context },
-  ])
-  const payloads = extractPayloads(raw)
-  const orders: GameOrder[] = []
-  for (const p of payloads) {
-    const unwrapped = unwrapData(p)
-    const batch = validateOrders(unwrapped)
-    orders.push(...batch.orders)
+  const result = await invokeAgentDecision({ systemPrompt, userContext: context })
+  if (!result.parseSucceeded) {
+    pushToast({
+      icon: 'alert-triangle',
+      tone: 'error',
+      title: '世界 AI 输出格式错误',
+      text: 'AI 返回无法解析为 JSON',
+    })
+    return []
   }
-  return orders
+
+  // 反向映射：中文名 → Owner
+  const labelToOwner = new Map<string, Owner>()
+  for (const [owner, label] of Object.entries(OWNER_LABELS)) {
+    labelToOwner.set(label, owner as Owner)
+  }
+
+  // 结构校验 + 战略校验（按每条指令的 actor 独立校验）
+  const store2 = useGameStore()
+  const strategicOk: GameOrder[] = []
+  for (let i = 0; i < result.orders.length; i++) {
+    if (result.errors[i].length) continue // 结构校验不过，跳过
+
+    const order = result.orders[i]
+    const rawActor = (order as unknown as Record<string, unknown>).actor as string | undefined
+    const actorOwner = rawActor ? labelToOwner.get(rawActor) : undefined
+    if (!actorOwner) {
+      pushToast({
+        icon: 'alert-triangle',
+        tone: 'error',
+        title: '未知势力',
+        text: `${rawActor ?? '?'}：不在势力表中`,
+      })
+      continue
+    }
+
+    const r = validateFactionOrder(
+      order,
+      actorOwner,
+      (gb) => store2.ownership[gb],
+      (gb) => store2.cities[gb]?.troops,
+    )
+    if (r.ok) {
+      strategicOk.push(order)
+    } else if (r.reason) {
+      pushToast({
+        icon: 'alert-triangle',
+        tone: 'error',
+        title: `${OWNER_LABELS[actorOwner] ?? actorOwner} 越权`,
+        text: r.reason,
+      })
+    }
+  }
+  return strategicOk
 }
 
 /** 调用世界 AI 做 P4 总结（叙事 + 推进日期） */
 async function invokeWorldAISettle(
-  roundEvents: string,
   currentDate: string,
 ): Promise<{ narrative: string; newDate: string }> {
   const systemPrompt = `你是民国军阀推演游戏的「世界 AI」叙事者。本回合各势力的行动已经执行完毕。
@@ -129,91 +166,20 @@ async function invokeWorldAISettle(
 返回 JSON 格式：
 { "narrative": "全境战报…", "newDate": "1931-04-10" }`
 
-  const raw = await callAI([
-    { role: 'system', content: systemPrompt },
-    { role: 'user', content: `当前日期：${currentDate}\n\n本回合事件：\n${roundEvents}` },
-  ])
+  // P4 总结返回值结构特殊（narrative + newDate），不走 invokeAgentDecision，直接调 callLlm + 自取字段
+  // user 消息走 buildSettleContext：自带当前日期 + sinceDateAdvance 历史 + 引导语（#5.3 改动）
+  const raw = await callLlm({
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: buildSettleContext(currentDate) },
+    ],
+  })
   const payloads = extractPayloads(raw)
   const obj = payloads[0] as Record<string, string> | undefined
   return {
     narrative: obj?.narrative ?? '局势在无声中演变…',
     newDate: obj?.newDate ?? currentDate,
   }
-}
-
-/** 构建势力决策上下文（给 faction AI 的 user message） */
-function buildFactionContext(faction: Owner): string {
-  const store = useGameStore()
-  const snap = store.getSnapshot()
-  const myCities = Object.entries(snap.cities).filter(([, c]) => c.owner === faction)
-
-  let ctx = `当前日期：${snap.currentDate}\n\n`
-  ctx += `你的势力：${OWNER_LABELS[faction] ?? faction}\n`
-  ctx += `你控制 ${myCities.length} 座城市，总兵力 ${snap.factionTroops[faction] ?? 0}k\n\n城市详情：\n`
-  for (const [gb, c] of myCities) {
-    const name = store.cities[gb]?.name ?? gb
-    ctx += `  ${name}（驻军 ${c.troops}k，士气 ${c.morale}）\n`
-  }
-
-  // 加相邻城市信息（MVP: 不加，靠 AI 地理知识）
-  ctx += '（请根据你对民国地理的了解自行判断相邻关系）\n'
-
-  ctx += '\n请决定本回合行动。若无必要，返回空 orders。'
-  return ctx
-}
-
-/** 构建 minor 政权批量上下文 */
-function buildMinorContext(factions: Owner[]): string {
-  const store = useGameStore()
-  const snap = store.getSnapshot()
-
-  let ctx = `当前日期：${snap.currentDate}\n\n`
-  ctx += `以下 ${factions.length} 个次要势力需要你替它们决定本回合行动：\n\n`
-  for (const f of factions) {
-    const troops = snap.factionTroops[f] ?? 0
-    const cityCount = Object.values(snap.cities).filter((c) => c.owner === f).length
-    ctx += `- ${OWNER_LABELS[f] ?? f}：${cityCount} 座城，${troops}k 兵力\n`
-  }
-  ctx += '\n每个势力的行动用 actor 字段标明。保守为上，无大事可按兵不动。'
-  return ctx
-}
-
-/**
- * 构建本回合事件摘要（给世界 AI P4 叙事用）。
- * 从 eventLog 自上次 dateAdvance 截取。
- */
-function buildRoundEventSummary(): string {
-  const store = useGameStore()
-  let lastAdvIdx = -1
-  for (let i = store.eventLog.length - 1; i >= 0; i--) {
-    if (store.eventLog[i].type === 'dateAdvance') { lastAdvIdx = i; break }
-  }
-  const recent = lastAdvIdx >= 0 ? store.eventLog.slice(lastAdvIdx + 1) : store.eventLog
-  if (!recent.length) return '（本回合无事件）'
-
-  const lines: string[] = []
-  for (const e of recent) {
-    switch (e.type) {
-      case 'battleStart':
-        lines.push(`⚔ ${e.fromName ?? e.fromGb} → ${e.toName ?? e.targetGb} 爆发战斗`)
-        break
-      case 'capture':
-        lines.push(`🏴 ${e.actor} 占领 ${e.targetGb}`)
-        break
-      case 'moveTroops':
-        lines.push(`🚚 ${e.fromGb} → ${e.toGb} 调兵 ${e.amount}k`)
-        break
-      case 'narrative':
-        lines.push(`📜 ${e.playerInput}`)
-        break
-      case 'attack':
-        lines.push(`⚔ 攻城：攻方损失 ${e.attackerLoss}k，守方损失 ${e.defenderLoss}k`)
-        break
-      default:
-        lines.push(`${e.type}`)
-    }
-  }
-  return lines.join('\n')
 }
 
 // ─── 公开 API ───
@@ -264,7 +230,6 @@ async function runWorldTurn(): Promise<void> {
     playerFaction: snap.currentFaction,
     activeFactions: snap.activeFactions,
     ownership: snap.ownership,
-    playerCities: Object.keys(snap.cities).filter((gb) => snap.cities[gb].owner === snap.currentFaction),
     eventLog: [...store.eventLog],
   })
 
@@ -311,15 +276,16 @@ async function runWorldTurn(): Promise<void> {
   phase.value = 'settling'
   progress.value = '世界 AI 总结中…'
 
-  const roundSummary = buildRoundEventSummary()
-  const { narrative, newDate } = await invokeWorldAISettle(roundSummary, snap.currentDate)
+  // P4 user 消息由 buildSettleContext 内部生成（#5.3：buildSettleContext 自取 sinceDateAdvance 历史）
+  const { narrative, newDate } = await invokeWorldAISettle(snap.currentDate)
 
-  // 叙事落 eventLog
-  store.applyEvent({ type: 'narrative', playerInput: '【回合结算】', aiMessage: narrative })
+  // 系统结算叙事落 eventLog（kind='settlement' 让 aiHistory 不带"玩家："前缀）
+  store.applyEvent({ type: 'narrative', playerInput: '', aiMessage: narrative, kind: 'settlement' })
 
-  // 推进日期
+  // 推进日期：入调度器走末尾蒙太奇（playTimeJump 含云雾演出 + toast）
   if (newDate !== snap.currentDate) {
-    store.applyEvent({ type: 'dateAdvance', date: newDate })
+    scheduler.submit([{ order: 'setCurrentDate', date: newDate }])
+    await scheduler.advance()
   }
 
   phase.value = 'done'

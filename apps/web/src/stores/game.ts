@@ -50,7 +50,7 @@ export type GameEvent =
   | { type: 'battleStart'; battleId: string; fromGb: string; targetGb: string; fromName: string; toName: string }
   | { type: 'battleEnd'; battleId: string }
   | { type: 'selectFaction'; faction: Owner; playerName: string }
-  | { type: 'narrative'; playerInput: string; aiMessage: string }
+  | { type: 'narrative'; playerInput: string; aiMessage: string; kind?: 'player' | 'settlement' }
 
 // ── 存档 / 持久化 ──
 
@@ -290,62 +290,124 @@ export const useGameStore = defineStore('game', () => {
   function clamp(v: number, lo: number, hi: number): number {
     return Math.max(lo, Math.min(hi, v))
   }
-  function applyEvent(e: GameEvent): void {
-    // replay 时不重复追加日志（load 中会直接赋值完整日志），也不自动存档
+
+  /**
+   * 前置校验：检测事件所需的 world 资源是否齐全（城市态事件 / moveTroops）。
+   * 在 applyEvent 入口处统一拦截，避免静默 return。
+   * 返回 {ok:true} 或 {ok:false, reason:string}。
+   */
+  function preCheck(e: GameEvent): { ok: true } | { ok: false; reason: string } {
+    switch (e.type) {
+      case 'moveTroops': {
+        const from = cities.value[e.fromGb]
+        const to = cities.value[e.toGb]
+        if (!from) return { ok: false, reason: `调兵源城不存在: ${e.fromGb}` }
+        if (!to) return { ok: false, reason: `调兵目标城不存在: ${e.toGb}` }
+        if (e.amount <= 0) return { ok: false, reason: `调兵量必须为正: ${e.amount}` }
+        return { ok: true }
+      }
+      case 'capture':
+      case 'moraleChange':
+      case 'produce': {
+        if (!cities.value[e.targetGb]) {
+          return { ok: false, reason: `城市不存在: ${e.targetGb}` }
+        }
+        return { ok: true }
+      }
+      case 'attack': {
+        if (!cities.value[e.targetGb]) {
+          return { ok: false, reason: `目标城不存在: ${e.targetGb}` }
+        }
+        if (e.fromGb && !cities.value[e.fromGb]) {
+          return { ok: false, reason: `源城不存在: ${e.fromGb}` }
+        }
+        return { ok: true }
+      }
+      // 以下事件不依赖城市态，无需前置校验
+      case 'dateAdvance':
+      case 'setFactionAlive':
+      case 'battleStart':
+      case 'battleEnd':
+      case 'selectFaction':
+      case 'narrative':
+        return { ok: true }
+    }
+  }
+
+  /**
+   * Kernel = 唯一写者。任何世界态变更（城市态 / 日期 / 势力存亡）都必须走这里。
+   *
+   * 返回 {ok, reason?} 让调用方能区分"成功"与"apply 拒绝"，便于 toast 反馈。
+   * 失败也 push eventLog（保持 replay 严格等价：replay 时同一事件再次拒绝，世界态再次未变）。
+   *
+   * 外部（gameOrders / AI）不得直接改世界态，只能 submit 事件。
+   * 例外：initWorld() 开局播种可直接写（仅此一处）。
+   */
+  function applyEvent(e: GameEvent): { ok: boolean; reason?: string } {
+    // 1. 前置校验（拦截 4 个静默 return 点；先校验再 push 让坏事件也能进日志但不影响世界态）
+    const check = preCheck(e)
+    if (!check.ok) {
+      // 仍 push 到日志（replay 严格等价）；世界态未变
+      if (!isReplaying.value) eventLog.value.push(e)
+      return { ok: false, reason: check.reason }
+    }
+
+    // 2. push 日志（replay 期间由 load 直接覆盖，不重复追加）
     if (!isReplaying.value) eventLog.value.push(e)
 
-    // 非城市态事件：无 targetGb，提前处理并 return
+    // 3. 非城市态事件：无 targetGb，提前处理并 return
     if (e.type === 'dateAdvance') {
       currentDate.value = e.date
       if (!isReplaying.value) autoSave()
-      return
+      return { ok: true }
     }
     if (e.type === 'setFactionAlive') {
       const has = activeFactions.value.includes(e.faction)
       if (e.alive && !has) activeFactions.value = [...activeFactions.value, e.faction]
       if (!e.alive && has) activeFactions.value = activeFactions.value.filter((x) => x !== e.faction)
-      return
+      return { ok: true }
     }
     // 战斗生命周期事件（无 targetGb，管理 battles 数组）
     if (e.type === 'battleStart') {
       battles.value.push({ id: e.battleId, from: e.fromGb, to: e.targetGb, fromName: e.fromName, toName: e.toName, active: true })
-      return
+      return { ok: true }
     }
     if (e.type === 'battleEnd') {
       battles.value = battles.value.filter((b) => b.id !== e.battleId)
-      return
+      return { ok: true }
     }
     // 玩家择势事件
     if (e.type === 'selectFaction') {
       playerName.value = e.playerName
       currentFaction.value = e.faction
-      return
+      return { ok: true }
     }
     // 叙事事件：玩家输入 + AI 总结，仅记录不改变世界态
-    if (e.type === 'narrative') return
+    if (e.type === 'narrative') return { ok: true }
     // 调兵：己方两城间搬运驻军（from 扣、to 加，钳制 ≥0）
     // 必须用 fromGb/toGb，不能走下面的 targetGb 分支（本事件无 targetGb，会提前 return 丢失）
     if (e.type === 'moveTroops') {
-      const from = cities.value[e.fromGb]
-      const to = cities.value[e.toGb]
-      if (from && to) {
-        from.troops = Math.max(0, from.troops - e.amount)
-        to.troops += e.amount
-      }
+      // preCheck 已保证 from/to 存在
+      const from = cities.value[e.fromGb]!
+      const to = cities.value[e.toGb]!
+      from.troops = Math.max(0, from.troops - e.amount)
+      to.troops += e.amount
       triggerRef(cities) // shallowRef 手动通知：城市态已变更
-      return
+      return { ok: true }
     }
-    // 以下均为城市态事件，需 targetGb
-    const t = cities.value[e.targetGb]
-    if (!t) return
+    // 以下均为城市态事件；preCheck 已保证 targetGb 存在
+    const t = cities.value[e.targetGb]!
     switch (e.type) {
       case 'capture': // 占领：易主 + 设定新驻军
         t.owner = e.actor
         if (e.resultTroops != null) t.troops = Math.max(0, e.resultTroops)
         break
       case 'attack': { // 进攻未占：双方按裁定损耗扣兵（fromGb 为调兵源城）
-        const from = cities.value[e.fromGb]
-        if (from) from.troops = Math.max(0, from.troops - e.attackerLoss)
+        // preCheck 已保证 fromGb 存在（如果提供了）
+        if (e.fromGb) {
+          const from = cities.value[e.fromGb]!
+          from.troops = Math.max(0, from.troops - e.attackerLoss)
+        }
         t.troops = Math.max(0, t.troops - e.defenderLoss)
         break
       }
@@ -357,6 +419,7 @@ export const useGameStore = defineStore('game', () => {
         break
     }
     triggerRef(cities) // shallowRef 手动通知：城市态已变更
+    return { ok: true }
   }
 
   // ── 存档 / 读档（事件日志持久化到 localStorage）──
@@ -414,7 +477,15 @@ export const useGameStore = defineStore('game', () => {
       isReplaying.value = true
       initWorld()
       resetBattleRuntime()
-      for (const e of data.eventLog) applyEvent(e)
+      for (const e of data.eventLog) {
+        const r = applyEvent(e)
+        // 老存档可能含坏事件（结构合法但 world 资源缺失，如城市被删除）；
+        // 不 throw（避免单条坏事件挂掉整次读档），仅 warn 保留可观测性
+        if (!r.ok) {
+          // eslint-disable-next-line no-console
+          console.warn(`[load] 事件 ${e.type} apply 失败: ${r.reason ?? '未知原因'}`)
+        }
+      }
       eventLog.value = data.eventLog
 
       return true

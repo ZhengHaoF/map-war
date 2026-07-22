@@ -160,6 +160,7 @@ export function useAiDebug(mode: AiMode = 'world') {
     const messages = buildMessages({
       userText: userMessage.value,
       injectContext: injectContext.value,
+      injectWorldOverview: mode === 'user',
       history,
     })
     // 允许开发者覆盖自动生成的 system prompt
@@ -196,8 +197,14 @@ export function useAiDebug(mode: AiMode = 'world') {
       aiMessage.value = unified.msg ?? null
       // 落 narrative 到 eventLog（玩家模式），使对话历史经 eventLog 持久化、被后续回合读取。
       // 唯一落库点：视图层（PlayerAiPanel）不再重复写，避免历史被记两次。
+      // kind='player' 标记为玩家对话记录（旧版默认行为，aiHistory.eventLine 渲染为"玩家：…→ AI：…"）
       if (aiMessage.value) {
-        store.applyEvent({ type: 'narrative', playerInput: userMessage.value.trim(), aiMessage: aiMessage.value })
+        store.applyEvent({
+          type: 'narrative',
+          playerInput: userMessage.value.trim(),
+          aiMessage: aiMessage.value,
+          kind: 'player',
+        })
       }
 
       // 从 results 提取 orders 做结构校验
@@ -226,7 +233,12 @@ export function useAiDebug(mode: AiMode = 'world') {
     aiMessage.value = extractAiMessage(merged)
     // 仅玩家模式落 narrative（god-mode 调试不污染事件日志）；唯一落库点，视图层不再重复写。
     if (mode === 'user' && aiMessage.value) {
-      store.applyEvent({ type: 'narrative', playerInput: userMessage.value.trim(), aiMessage: aiMessage.value })
+      store.applyEvent({
+        type: 'narrative',
+        playerInput: userMessage.value.trim(),
+        aiMessage: aiMessage.value,
+        kind: 'player',
+      })
     }
   }
 

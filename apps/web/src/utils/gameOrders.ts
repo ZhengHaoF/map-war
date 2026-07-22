@@ -364,11 +364,16 @@ async function fogCover(opts?: CloudOptions): Promise<OrderResult> {
 export async function playTimeJump(date: string): Promise<OrderResult> {
   let res: OrderResult
   if (!_app) {
-    // 降级：无 app 时直接推进（如测试环境）
+    // 降级：无 app 时直接推进（如测试环境）；dateAdvance 无前置校验依赖，不需检返回值
     useGameStore().applyEvent({ type: 'dateAdvance', date })
     res = { ok: true }
   } else {
-    res = await fogCover({ onMidpoint: () => useGameStore().applyEvent({ type: 'dateAdvance', date }) })
+    res = await fogCover({
+      onMidpoint: () => {
+        // 闭包：onMidpoint: () => void；忽略返回值（dateAdvance 必成功）
+        useGameStore().applyEvent({ type: 'dateAdvance', date })
+      },
+    })
   }
   // 时间推进提示（顶部居中小条）
   useToast().push({ icon: 'clock', tone: 'neutral', title: '时间推进', text: date })
@@ -641,12 +646,13 @@ export async function executeOrder(
       if (!gbId) { result = { ok: false, reason: `目标城市不存在: ${json.gb}` }; break }
       // 先播占领动画，播完再由唯一写者易主（gb/owner 必填，resultTroops 可选）
       await capture(gbId, json.owner!)
-      useGameStore().applyEvent({
+      const r = useGameStore().applyEvent({
         type: 'capture',
         targetGb: gbId,
         actor: json.owner!,
         resultTroops: json.resultTroops,
       })
+      if (!r.ok) { result = { ok: false, reason: r.reason! }; break }
       result = { ok: true }
       break
     }
@@ -662,7 +668,8 @@ export async function executeOrder(
       }
       // 复用 arrowFly 行军演出（黄点弧线），演完再落地（与 capture 同构）
       await arrowFly(fromId, toId, json.text || '调兵！')
-      useGameStore().applyEvent({ type: 'moveTroops', fromGb: fromId, toGb: toId, amount: json.amount })
+      const r = useGameStore().applyEvent({ type: 'moveTroops', fromGb: fromId, toGb: toId, amount: json.amount })
+      if (!r.ok) { result = { ok: false, reason: r.reason! }; break }
       result = { ok: true }
       break
     }

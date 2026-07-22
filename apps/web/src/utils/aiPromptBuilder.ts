@@ -6,15 +6,16 @@
  *
  * 三个职责：
  * 1. buildSystemPrompt —— god-mode 角色 + 契约说明
- * 2. buildWorldContext —— 按需世界态：玩家基础信息 + 对话中出现的城市（本地匹配），可选注入
+ * 2. buildPlayerProfile —— 玩家身份信息（名称 / 势力）
  * 3. buildMessages —— 组装最终 messages[]
+ * 城市数据由 aiContext.ts 的 buildWorldOverview / buildFactionContext 等提供。
  */
 
 import { useGameStore } from '@/stores/game'
 import { Owner, OWNER_DETAILS, OWNER_LABELS } from '@/data/owners'
-import { getDisplayName } from '@/data/displayNames'
 import { CONTRACT_SCHEMA_TEXT, PLAYER_AI_UNIFIED_PROMPT, ADVISOR_SYSTEM_PROMPT } from './aiOrderContract'
 import { ORDER_TYPES } from './gameOrders'
+import { buildWorldOverview } from './aiContext'
 
 /** AI 角色类型：world = god-mode 调试（最高权限）；user = 玩家势力代理（受限）；advisor = 战略顾问（场外援助）。 */
 export type AiKind = 'world' | 'user' | 'advisor'
@@ -37,52 +38,26 @@ export function buildSystemPrompt(kind: AiKind = 'world'): string {
 }
 
 /**
- * 玩家基础信息（名称 / 势力 / 控制的城市）。
- * 后续其他入口（如玩家统一 UI）也可单独调用。
+ * 玩家基本信息（名称 / 势力）。
+ * 城市数据已由 worldOverview 提供，此处只保留身份信息。
  */
 export function buildPlayerProfile(): string {
   const store = useGameStore()
-  const lines: string[] = []
-  lines.push(`玩家名称：${store.playerName || '（未设置）'}`)
-  lines.push(`玩家势力：${store.currentFaction ?? '（未选）'}`)
-  const mine = Object.values(store.cities).filter((c) => c.owner === store.currentFaction)
-  lines.push(`玩家控制城市（${mine.length} 座）：`)
-  for (const c of mine) {
-    const dn = getDisplayName(c.gb) || c.name
-    lines.push(`  - ${dn}（驻军 ${c.troops}k，士气 ${c.morale}${c.fort ? `，工事等级 ${c.fort}` : ''}）`)
-  }
-  return lines.join('\n')
+  return `玩家名称：${store.playerName || '（未设置）'}\n玩家势力：${store.currentFaction ?? '（未选）'}`
 }
 
-/**
- * 对话中出现的城市（本地匹配中文名，无 AI）。
- * 遍历城市索引，凡城市名出现在 userText 中即纳入，供 AI 知晓目标态势。
- */
-export function buildMentionedCities(userText: string): string {
-  const store = useGameStore()
-  const mentioned = Object.values(store.cities).filter((c) => userText.includes(c.name))
-  if (!mentioned.length) return ''
-  const lines: string[] = ['对话涉及城市：']
-  for (const c of mentioned) {
-    const dn = getDisplayName(c.gb) || c.name
-    lines.push(`  - ${dn}：归属 ${OWNER_LABELS[c.owner] ?? c.owner}（驻军 ${c.troops}k，士气 ${c.morale}）`)
-  }
-  return lines.join('\n')
-}
-
-/**
- * 按需世界态：组合「玩家基础信息」+「对话中出现的城市」。
- * 替代原全量快照，token 大幅缩减，且城市以中文名呈现（与契约一致）。
- */
-export function buildWorldContext(userText: string): string {
-  return [buildPlayerProfile(), buildMentionedCities(userText)].filter(Boolean).join('\n\n')
+/** 玩家基本信息，注入为一条 system 消息。 */
+export function buildWorldContext(): string {
+  return `玩家信息：\n${buildPlayerProfile()}`
 }
 
 export interface BuildMessagesOpts {
   userText: string
-  /** 是否把按需世界态（玩家基础信息 + 对话中出现的城市）注入为一条 system 消息。默认关；开启后注入内容已精简且含中文名。 */
+  /** 是否把按需世界态（玩家基础信息 + 对话中出现的城市）注入为一条 system 消息。默认关。 */
   injectContext?: boolean
-  /** 近期世界动态（来自 eventLog 的压缩时间线）。非空则注入为一条独立 system 消息，位于世界态之后、user 之前。 */
+  /** 是否注入世界全景（所有势力 + 全部城市，紧凑格式）。玩家 AI 操作台默认开。 */
+  injectWorldOverview?: boolean
+  /** 近期世界动态（来自 eventLog 的压缩时间线）。非空则注入为一条独立 system 消息。 */
   history?: string
 }
 
@@ -92,10 +67,12 @@ export function buildMessages(opts: BuildMessagesOpts): { role: string; content:
     { role: 'system', content: buildSystemPrompt() },
   ]
 
-  // 暂不注入世界态快照（默认关）：快照以 gb 码列城市，与契约「用中文名指令」不一致，
-  // 且全量城市快照会显著拉长上下文、增加 token 成本。需要时由 injectContext 手动开启。
+  if (opts.injectWorldOverview) {
+    messages.push({ role: 'system', content: '世界全景：\n' + buildWorldOverview() })
+  }
+
   if (opts.injectContext) {
-    messages.push({ role: 'system', content: '当前世界态：\n' + buildWorldContext(opts.userText) })
+    messages.push({ role: 'system', content: '玩家信息：\n' + buildPlayerProfile() })
   }
 
   if (opts.history && opts.history.trim()) {
@@ -143,6 +120,22 @@ export function buildFactionSystemPrompt(faction: Owner): string {
 - from 必须是你自己的城市；capture 必须是你攻下的城市
 - 所有地点用城市中文名
 - 「无动作」是完全合法的回复——如果局势不需要行动，返回空 orders 即可
+
+═══════════════════════════════════════
+  城市信息格式说明
+═══════════════════════════════════════
+
+上下文中的城市信息使用紧凑格式，每行一个城市：
+  城名 驻军Xk 士气X 地形 L城级 工事X
+
+字段含义：
+- 驻军：单位千（k），如 8k = 8000 人
+- 士气：0-100，越高战斗力越强
+- 地形：山地/丘陵/平原/林地——影响攻防
+- L城级：城市等级 1-5，越高战略价值越大
+- 工事：工事等级，越高城防越强
+
+邻接城市额外带势力标记（如"KMT控"），表示该城当前归属。
 
 ═══════════════════════════════════════
   输出格式（必须严格遵守）

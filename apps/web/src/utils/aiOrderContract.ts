@@ -155,13 +155,130 @@ export interface StrategicRuleResult {
 /** 用户模式下完全禁用的指令（系统管） */
 const FORBIDDEN_FOR_PLAYER: OrderType[] = ['setFactionAlive', 'setCurrentFaction']
 
+/** 政权 AI 模式下额外禁用的指令：日期推进 / 势力存亡 / 玩家切换（系统管） */
+const FORBIDDEN_FOR_FACTION: OrderType[] = [
+  'setCurrentDate',
+  'setFactionAlive',
+  'setCurrentFaction',
+]
+
+/**
+ * 玩家与政权 AI 共享的硬编码战略校验。
+ * 在结构校验（validateGameOrder）通过后调用，拦截明显非法的指挥。
+ *
+ * 差异仅在「禁用指令列表」与「指挥者身份」：
+ * - 玩家：ownerFaction = playerFaction，禁用 [setFactionAlive, setCurrentFaction]
+ * - 政权：ownerFaction = 该势力自身，禁用 [setCurrentDate, setFactionAlive, setCurrentFaction]
+ *
+ * 校验项（共用）：
+ * 1. 禁用指令 → 拒
+ * 2. capture：order.owner 必须 === ownerFaction；不能占己方城市
+ * 3. moveTroops：to 必须己方；amount ≤ 源城驻军（from 由通用 #4 块兜底）
+ * 4. from（其它含 from 的指令）：必须己方城市（NEUTRAL 放行）
+ * 5. battle / orbBurst / arrowFly 的 to：不能是己方（不能打自己人）
+ */
+function validateOwnedOrder(
+  order: GameOrder,
+  ownerFaction: Owner,
+  cityOwnerFn: (gb: string) => Owner | undefined,
+  cityTroopsFn: ((gb: string) => number | undefined) | undefined,
+  forbidden: OrderType[],
+): StrategicRuleResult {
+  // 1. 禁用指令
+  if (forbidden.includes(order.order as OrderType)) {
+    return {
+      ok: false,
+      reason: `不能使用「${order.order}」指令（由系统管理）`,
+    }
+  }
+
+  // 2. capture：owner 必须是 ownerFaction；不能占己方城市
+  if (order.order === 'capture') {
+    if (order.owner !== ownerFaction) {
+      return {
+        ok: false,
+        reason: `占领指令的归属势力「${order.owner}」与指挥者「${ownerFaction}」不匹配——只能为本方占领`,
+      }
+    }
+    const gbId = resolveLocationId(order.gb!)
+    if (gbId) {
+      const currentOwner = cityOwnerFn(gbId)
+      if (currentOwner === ownerFaction) {
+        const cityName = getLocationName(gbId)
+        return { ok: false, reason: `${cityName || order.gb} 已是本方领土，无需占领` }
+      }
+    }
+  }
+
+  // 3. moveTroops：from/to 都必须己方（不给敌方送兵）；amount 不得超过源城驻军
+  if (order.order === 'moveTroops') {
+    const fromId = resolveLocationId(order.from!)
+    if (fromId) {
+      const fromOwner = cityOwnerFn(fromId)
+      if (fromOwner !== undefined && fromOwner !== ownerFaction) {
+        const cityName = getLocationName(fromId)
+        return { ok: false, reason: `调兵源城「${cityName || order.from}」不属于本方（由 ${fromOwner} 控制）` }
+      }
+    }
+    const toId = resolveLocationId(order.to!)
+    if (toId) {
+      const toOwner = cityOwnerFn(toId)
+      if (toOwner !== undefined && toOwner !== ownerFaction) {
+        const cityName = getLocationName(toId)
+        return { ok: false, reason: `目标城市「${cityName || order.to}」不属于本方，调兵只能调往己方城` }
+      }
+    }
+    if (fromId && cityTroopsFn) {
+      const avail = cityTroopsFn(fromId)
+      if (avail != null && typeof order.amount === 'number' && order.amount > avail) {
+        const cityName = getLocationName(fromId)
+        return { ok: false, reason: `调出兵力 ${order.amount}k 超过 ${cityName || order.from} 现存驻军 ${avail}k` }
+      }
+    }
+  }
+
+  // 4. from 通用校验（arrowFly / orbBurst / battle 等；moveTroops 已在 #3 校验 from/to）
+  if (order.from && order.order !== 'moveTroops') {
+    const fromId = resolveLocationId(order.from)
+    if (fromId) {
+      const fromOwner = cityOwnerFn(fromId)
+      if (fromOwner !== undefined && fromOwner !== ownerFaction) {
+        const cityName = getLocationName(fromId)
+        return {
+          ok: false,
+          reason: `出发城市「${cityName || order.from}」不属于本方（由 ${fromOwner} 控制），只能从己方城市出兵`,
+        }
+      }
+    }
+  }
+
+  // 5. battle / orbBurst / arrowFly 的 to：不能是己方（不能打自己人 / 给自己宣战）
+  if (
+    (order.order === 'battle' || order.order === 'orbBurst' || order.order === 'arrowFly') &&
+    order.to
+  ) {
+    const toId = resolveLocationId(order.to)
+    if (toId) {
+      const toOwner = cityOwnerFn(toId)
+      if (toOwner !== undefined && toOwner === ownerFaction) {
+        const cityName = getLocationName(toId)
+        return { ok: false, reason: `目标城市「${cityName || order.to}」属于本方，不能对自己出兵/开战` }
+      }
+    }
+  }
+
+  return { ok: true }
+}
+
 /**
  * 玩家模式下的硬编码战略校验。
  * 在结构校验（validateGameOrder）通过后调用，拦截明显非法的玩家操作。
+ * 内部走 validateOwnedOrder 共享规则，玩家额外做"未选势力"前置检查。
  *
  * @param order         待执行的指令
  * @param playerFaction 当前玩家势力（null = 未选势力）
  * @param cityOwnerFn   查城市归属的函数（从 store 读）
+ * @param cityTroopsFn  查城市驻军的函数（可选，moveTroops 校验使用）
  */
 export function validatePlayerOrder(
   order: GameOrder,
@@ -173,78 +290,29 @@ export function validatePlayerOrder(
   if (!playerFaction) {
     return { ok: false, reason: '尚未选择势力，无法下指令' }
   }
-
-  // 禁止指令
-  if (FORBIDDEN_FOR_PLAYER.includes(order.order as OrderType)) {
-    return {
-      ok: false,
-      reason: `玩家不能使用「${order.order}」指令（势力存亡与归属由系统管理）`,
-    }
-  }
-
-  // capture：owner 必须是玩家势力；不能占己方城市
-  if (order.order === 'capture') {
-    if (order.owner !== playerFaction) {
-      return {
-        ok: false,
-        reason: `占领指令的归属势力「${order.owner}」与你的势力「${playerFaction}」不匹配——你只能为自己占领城市`,
-      }
-    }
-    const gbId = resolveLocationId(order.gb!)
-    if (gbId) {
-      const currentOwner = cityOwnerFn(gbId)
-      if (currentOwner === playerFaction) {
-        const cityName = getLocationName(gbId)
-        return { ok: false, reason: `${cityName || order.gb} 已是你方领土，无需占领` }
-      }
-    }
-  }
-
-  // moveTroops：调兵是后勤，目标城也须己方（不给敌方送兵）；且 amount 不得超过源城驻军
-  if (order.order === 'moveTroops') {
-    const toId = resolveLocationId(order.to!)
-    if (toId) {
-      const toOwner = cityOwnerFn(toId)
-      if (toOwner !== undefined && toOwner !== playerFaction) {
-        const cityName = getLocationName(toId)
-        return { ok: false, reason: `目标城市「${cityName || order.to}」不属于你，调兵只能调往己方城` }
-      }
-    }
-    const fromId = resolveLocationId(order.from!)
-    if (fromId && cityTroopsFn) {
-      const avail = cityTroopsFn(fromId)
-      if (avail != null && typeof order.amount === 'number' && order.amount > avail) {
-        const cityName = getLocationName(fromId)
-        return { ok: false, reason: `调出兵力 ${order.amount}k 超过 ${cityName || order.from} 现存驻军 ${avail}k` }
-      }
-    }
-  }
-
-  // from 必须是己方城市
-  if (order.from) {
-    const fromId = resolveLocationId(order.from)
-    if (fromId) {
-      const fromOwner = cityOwnerFn(fromId)
-      if (fromOwner !== undefined && fromOwner !== playerFaction) {
-        const cityName = getLocationName(fromId)
-        return {
-          ok: false,
-          reason: `出发城市「${cityName || order.from}」不属于你（由 ${fromOwner} 控制），你只能从己方城市出兵`,
-        }
-      }
-    }
-    // from 城市存在但归属未知（如 NEUTRAL）也不让出兵
-    const fromId2 = resolveLocationId(order.from)
-    if (fromId2 && cityOwnerFn(fromId2) === undefined) {
-      // 中立或无主城市 —— 暂时放行（后续世界AI判）
-    }
-  }
-
-  return { ok: true }
+  return validateOwnedOrder(order, playerFaction, cityOwnerFn, cityTroopsFn, FORBIDDEN_FOR_PLAYER)
 }
 
 /**
- * 批量战略校验。返回通过 + 被拒两项列表 + 通用错误摘要。
+ * 政权 AI 模式下的硬编码战略校验（actor 必为自身的硬约束）。
+ * 共享 validateOwnedOrder 全部规则，禁用列表扩展为 [setCurrentDate, setFactionAlive, setCurrentFaction]。
+ *
+ * @param order         待执行的指令
+ * @param faction       政权身份（即 LLM 应当指挥的势力）
+ * @param cityOwnerFn   查城市归属的函数（从 store 读）
+ * @param cityTroopsFn  查城市驻军的函数（可选，moveTroops 校验使用）
+ */
+export function validateFactionOrder(
+  order: GameOrder,
+  faction: Owner,
+  cityOwnerFn: (gb: string) => Owner | undefined,
+  cityTroopsFn?: (gb: string) => number | undefined,
+): StrategicRuleResult {
+  return validateOwnedOrder(order, faction, cityOwnerFn, cityTroopsFn, FORBIDDEN_FOR_FACTION)
+}
+
+/**
+ * 批量战略校验。返回通过 + 被拒两项列表。
  */
 export function validatePlayerOrders(
   orders: GameOrder[],
@@ -256,6 +324,28 @@ export function validatePlayerOrders(
   const rejected: { order: GameOrder; reason: string }[] = []
   for (const o of orders) {
     const r = validatePlayerOrder(o, playerFaction, cityOwnerFn, cityTroopsFn)
+    if (r.ok) {
+      approved.push(o)
+    } else {
+      rejected.push({ order: o, reason: r.reason || '未知原因' })
+    }
+  }
+  return { approved, rejected }
+}
+
+/**
+ * 批量政权 AI 战略校验（同构 validatePlayerOrders，差异在 ownerFaction 与禁用列表）。
+ */
+export function validateFactionOrders(
+  orders: GameOrder[],
+  faction: Owner,
+  cityOwnerFn: (gb: string) => Owner | undefined,
+  cityTroopsFn?: (gb: string) => number | undefined,
+): { approved: GameOrder[]; rejected: { order: GameOrder; reason: string }[] } {
+  const approved: GameOrder[] = []
+  const rejected: { order: GameOrder; reason: string }[] = []
+  for (const o of orders) {
+    const r = validateFactionOrder(o, faction, cityOwnerFn, cityTroopsFn)
     if (r.ok) {
       approved.push(o)
     } else {
@@ -429,6 +519,20 @@ export const PLAYER_AI_UNIFIED_PROMPT = `你是民国军阀推演游戏中的玩
 - 若玩家未指明 from，从世界态中挑最近的己方城市作为出发地
 - 所有地点用城市中文名
 - 势力名一律用中文（国民政府 / 中共苏区 / 日本关东军 / 东北军 / 晋系 / 桂系 / 川军 / 马家军 / 新疆 / 西藏 / 中立）
+
+═══════════════════════════════════════
+  城市信息格式说明
+═══════════════════════════════════════
+
+上下文中的城市信息使用紧凑格式，每行一个城市：
+  城名 驻军Xk 士气X 地形 L城级 工事X
+
+字段含义：
+- 驻军：单位千（k），如 8k = 8000 人
+- 士气：0-100，越高战斗力越强
+- 地形：山地/丘陵/平原/林地——影响攻防
+- L城级：城市等级 1-5，越高战略价值越大
+- 工事：工事等级，越高城防越强
 
 ═══════════════════════════════════════
   输出格式（必须严格遵守）
