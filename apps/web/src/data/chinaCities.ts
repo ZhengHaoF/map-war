@@ -14,4 +14,5 @@ export interface CityData {
 }
 
 // 初始局势种子（1931-04-01），裸数据见 ./chinaCities.seed.json
-export const chinaCities = raw as CityData[]
+// 过滤无 gb 的条目（如"境界线"标记），使其不进入已加载世界态
+export const chinaCities = (raw as CityData[]).filter(c => c.gb)

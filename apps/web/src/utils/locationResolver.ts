@@ -10,7 +10,7 @@
  * 与 LeafletMap 中 getFeatureCentroid 的算法完全一致。
  */
 
-import { getCityDisplayName } from '@/data/cityHistoricalNames'
+import { getDisplayName } from '@/data/displayNames'
 
 // ─── 类型定义 ───
 
@@ -61,6 +61,9 @@ const featureById = new Map<string, GeoJSON.Feature>()
 /** name -> id 的注册表（城市名 / 国名等自然语言地名解析用） */
 const nameToId = new Map<string, string>()
 
+/** id -> 中文名 的反向注册表（调试 / 显示用） */
+const idToName = new Map<string, string>()
+
 // ─── 公共 API ───
 
 export function setScreenSize(width: number, height: number): void {
@@ -70,27 +73,39 @@ export function setScreenSize(width: number, height: number): void {
 export function clearLocations(): void {
   featureById.clear()
   nameToId.clear()
+  idToName.clear()
 }
 
 /**
  * 注册一批 GeoJSON features，以 properties[idKey] 作为查找 id。
- * 同步将 properties.name 注册到 nameToId（自然语言地名 → id）。
+ * 同步将 properties.name 注册到 nameToId（自然语言地名 → id），
+ * 并将 id → name 写入 idToName（反向查找）。
+ * 同时注册 properties.full_name（国家全称）作为输入别名。
  */
 export function registerLocations(features: GeoJSON.Feature[], idKey: string): void {
   for (const f of features) {
     const id = f?.properties?.[idKey] as string | undefined
-    if (id != null) {
-      featureById.set(id, f)
-      const name = f.properties?.name
-      if (name && typeof name === 'string' && !nameToId.has(name)) {
-        nameToId.set(name, id)
-      }
-      // 城市：同步注册 1931 年历史地名 → id
-      if (idKey === 'gb') {
-        const histName = getCityDisplayName(id)
-        if (histName && !nameToId.has(histName)) {
-          nameToId.set(histName, id)
-        }
+    if (id == null) continue
+
+    featureById.set(id, f)
+
+    const name = f.properties?.name
+    if (name && typeof name === 'string') {
+      if (!nameToId.has(name)) nameToId.set(name, id)
+      if (!idToName.has(id)) idToName.set(id, name)
+    }
+
+    // 注册 full_name（国家全称，如"苏维埃社会主义共和国联盟"）
+    const fullName = f.properties?.full_name
+    if (fullName && typeof fullName === 'string' && fullName !== name && !nameToId.has(fullName)) {
+      nameToId.set(fullName, id)
+    }
+
+    // 城市：同步注册 1931 年历史地名 → id
+    if (idKey === 'gb') {
+      const histName = getDisplayName(id)
+      if (histName && !nameToId.has(histName)) {
+        nameToId.set(histName, id)
       }
     }
   }
@@ -102,6 +117,16 @@ export function registerLocations(features: GeoJSON.Feature[], idKey: string): v
 export function registerAlias(fromId: string, toId: string): void {
   const f = featureById.get(toId)
   if (f) featureById.set(fromId, f)
+}
+
+/**
+ * 注册输入别名：将 alias 映射到 targetId，使 resolveLocationId(alias) 可解析。
+ * 不改变 featureById，仅操作 nameToId。
+ */
+export function registerNameAlias(alias: string, targetId: string): void {
+  if (!nameToId.has(alias) && featureById.has(targetId)) {
+    nameToId.set(alias, targetId)
+  }
 }
 
 export function geoToScreen(

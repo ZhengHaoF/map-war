@@ -31,7 +31,7 @@ import { resolveLocation, resolveLocationId } from './locationResolver'
 import { useGameStore } from '@/stores/game'
 import type { BattleInfo } from '@/stores/game'
 import { Owner, OWNER_COLORS, OWNER_LABELS } from '@/data/owners'
-import { getCityDisplayName } from '@/data/cityHistoricalNames'
+import { getDisplayName } from '@/data/displayNames'
 import { useToast } from '@/composables/useToast'
 
 // ─── 类型定义 ───
@@ -148,7 +148,7 @@ let battleIdCounter = 0
  * @returns 展示名称；无法解析时返回原始 id
  */
 function getLocationName(id: string): string {
-  const histName = getCityDisplayName(id)
+  const histName = getDisplayName(id)
   if (histName) return histName
   const f = resolveLocation(id)
   if (!f?.properties) return id

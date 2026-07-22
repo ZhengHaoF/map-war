@@ -231,7 +231,7 @@ import { OWNER_COLORS, OWNER_LABELS, Owner } from '@/data/owners'
 import type { CityData } from '@/data/chinaCities'
 import type { CountryData } from '@/data/worldCountries'
 import { worldCountries, GEO_TO_GAME_ISO } from '@/data/worldCountries'
-import { getCityDisplayName } from '@/data/cityHistoricalNames'
+import { getDisplayName } from '@/data/displayNames'
 import { init as initGameOrders, executeOrder, restoreActiveAnimations } from '@/utils/gameOrders'
 import type { GameOrder, CameraTarget } from '@/utils/gameOrders'
 import { useGameStore } from '@/stores/game'
@@ -534,7 +534,7 @@ const countryInfoRows = computed(() => {
 const infoTitle = computed(() => {
   if (infoCityData.value) {
     const gb = infoCityData.value.gb
-    return getCityDisplayName(gb) || infoCityData.value.name
+    return getDisplayName(gb) || infoCityData.value.name
   }
   if (infoCountryData.value) {
     const d = infoCountryData.value as CountryData
@@ -929,7 +929,7 @@ function renderLabels(
     if (!geoName) continue
 
     const gb = feature.properties?.gb as string | undefined
-    const displayName = (gb && getCityDisplayName(gb)) || geoName
+    const displayName = (gb && getDisplayName(gb)) || geoName
 
     const centroid = calculateCentroid(feature.geometry)
     if (!centroid) continue

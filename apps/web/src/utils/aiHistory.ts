@@ -15,7 +15,7 @@
 import { useGameStore } from '@/stores/game'
 import type { GameEvent } from '@/stores/game'
 import type { Owner } from '@/data/owners'
-import { getCityDisplayName } from '@/data/cityHistoricalNames'
+import { getDisplayName } from '@/data/displayNames'
 
 export type HistoryMode = 'recent' | 'sinceDateAdvance' | 'byActor'
 
@@ -45,7 +45,7 @@ const DEFAULT_MAX_CHARS = 1200
 
 function cityName(store: ReturnType<typeof useGameStore>, gb?: string): string {
   if (!gb) return '?'
-  return getCityDisplayName(gb) || (store.cities[gb]?.name ?? gb)
+  return getDisplayName(gb) || (store.cities[gb]?.name ?? gb)
 }
 
 /** 单条事件 → 一行中文时间线；无法概述的事件返回 null（被跳过）。 */
