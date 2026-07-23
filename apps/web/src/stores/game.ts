@@ -52,6 +52,20 @@ export interface CityState {
   morale: number // 城市士气 0-100
 }
 
+/** 城市态中可通过 cityStatChange 增减的数值字段 */
+export type CityStatField = 'industry' | 'food' | 'fort' | 'cityLevel'
+
+/** 各字段的上限（下限统一为 0），cityLevel 不设上限 */
+export const CITY_STAT_CAPS: Record<CityStatField, number> = {
+  industry: 100,
+  food: 100,
+  fort: 100,
+  cityLevel: 99,
+}
+
+/** develop（建设）指令可调整的字段——仅经济与产出两项；fort 归 fortify，cityLevel 不开放给指令 */
+export const DEVELOP_FIELDS: CityStatField[] = ['industry', 'food']
+
 /**
  * 世界态事件（Kernel 的 reducer 输入）。
  * 所有世界态变更（城市态 owner/troops/morale、日期推进、势力存亡）
@@ -62,6 +76,7 @@ export type GameEvent =
   | { type: 'moveTroops'; fromGb: string; toGb: string; amount: number }
   | { type: 'attack'; fromGb: string; targetGb: string; attackerLoss: number; defenderLoss: number }
   | { type: 'moraleChange'; targetGb: string; delta: number }
+  | { type: 'cityStatChange'; targetGb: string; field: CityStatField; delta: number }
   | { type: 'produce'; targetGb: string; amount: number }
   | { type: 'dateAdvance'; date: string }
   | { type: 'setFactionAlive'; faction: Owner; alive: boolean }
@@ -337,6 +352,7 @@ export const useGameStore = defineStore('game', () => {
       }
       case 'capture':
       case 'moraleChange':
+      case 'cityStatChange':
       case 'produce': {
         if (!cities.value[e.targetGb]) {
           return { ok: false, reason: `城市不存在: ${e.targetGb}` }
@@ -444,6 +460,11 @@ export const useGameStore = defineStore('game', () => {
       case 'moraleChange': // 士气增减（胜升/败降/被孤立）
         t.morale = clamp(t.morale + e.delta, 0, 100)
         break
+      case 'cityStatChange': { // 通用城市数值增减（工业/粮食/工事/规模）
+        const cap = CITY_STAT_CAPS[e.field]
+        t[e.field] = clamp(t[e.field] + e.delta, 0, cap)
+        break
+      }
       case 'produce': // 生产/征兵
         t.troops += e.amount
         break

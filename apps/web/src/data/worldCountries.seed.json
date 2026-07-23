@@ -6,7 +6,7 @@
     "full_name": "日本帝国",
     "countryType": "EMPIRE",
     "military": 9,
-    "industry": 8,
+    "industry": 80,
     "population": 7,
     "threat": 10,
     "diplomacy": "HOSTILE"
@@ -18,7 +18,7 @@
     "full_name": "苏维埃社会主义共和国联盟",
     "countryType": "UNION",
     "military": 8,
-    "industry": 7,
+    "industry": 70,
     "population": 9,
     "threat": 6,
     "diplomacy": "NEUTRAL"
@@ -30,7 +30,7 @@
     "full_name": "美利坚合众国",
     "countryType": "REPUBLIC",
     "military": 7,
-    "industry": 10,
+    "industry": 100,
     "population": 9,
     "threat": 2,
     "diplomacy": "NEUTRAL"
@@ -42,7 +42,7 @@
     "full_name": "大不列颠及北爱尔兰联合王国",
     "countryType": "EMPIRE",
     "military": 7,
-    "industry": 8,
+    "industry": 80,
     "population": 8,
     "threat": 3,
     "diplomacy": "NEUTRAL"
@@ -54,7 +54,7 @@
     "full_name": "法兰西共和国",
     "countryType": "REPUBLIC",
     "military": 6,
-    "industry": 7,
+    "industry": 70,
     "population": 5,
     "threat": 2,
     "diplomacy": "NEUTRAL"
@@ -66,7 +66,7 @@
     "full_name": "德意志国",
     "countryType": "REPUBLIC",
     "military": 5,
-    "industry": 7,
+    "industry": 70,
     "population": 7,
     "threat": 1,
     "diplomacy": "NEUTRAL"
@@ -78,7 +78,7 @@
     "full_name": "意大利王国",
     "countryType": "KINGDOM",
     "military": 5,
-    "industry": 5,
+    "industry": 50,
     "population": 5,
     "threat": 1,
     "diplomacy": "NEUTRAL"
@@ -90,7 +90,7 @@
     "full_name": "暹罗王国",
     "countryType": "KINGDOM",
     "military": 2,
-    "industry": 2,
+    "industry": 20,
     "population": 3,
     "threat": 1,
     "diplomacy": "NEUTRAL"
@@ -102,7 +102,7 @@
     "full_name": "英属印度",
     "countryType": "COLONY",
     "military": 3,
-    "industry": 3,
+    "industry": 30,
     "population": 8,
     "threat": 2,
     "diplomacy": "NEUTRAL"
@@ -114,7 +114,7 @@
     "full_name": "日本殖民地（朝鲜）",
     "countryType": "COLONY",
     "military": 1,
-    "industry": 2,
+    "industry": 20,
     "population": 3,
     "threat": 0,
     "diplomacy": "NEUTRAL"
@@ -126,7 +126,7 @@
     "full_name": "蒙古人民共和国",
     "countryType": "REPUBLIC",
     "military": 1,
-    "industry": 1,
+    "industry": 10,
     "population": 1,
     "threat": 1,
     "diplomacy": "NEUTRAL"
@@ -138,7 +138,7 @@
     "full_name": "法属印度支那（越南）",
     "countryType": "COLONY",
     "military": 1,
-    "industry": 2,
+    "industry": 20,
     "population": 4,
     "threat": 0,
     "diplomacy": "NEUTRAL"
@@ -150,7 +150,7 @@
     "full_name": "美属菲律宾",
     "countryType": "COLONY",
     "military": 1,
-    "industry": 2,
+    "industry": 20,
     "population": 3,
     "threat": 0,
     "diplomacy": "NEUTRAL"
@@ -162,7 +162,7 @@
     "full_name": "荷属东印度群岛",
     "countryType": "COLONY",
     "military": 1,
-    "industry": 2,
+    "industry": 20,
     "population": 5,
     "threat": 0,
     "diplomacy": "NEUTRAL"
@@ -174,7 +174,7 @@
     "full_name": "英属缅甸",
     "countryType": "COLONY",
     "military": 1,
-    "industry": 2,
+    "industry": 20,
     "population": 3,
     "threat": 0,
     "diplomacy": "NEUTRAL"
@@ -186,7 +186,7 @@
     "full_name": "英属马来亚",
     "countryType": "COLONY",
     "military": 1,
-    "industry": 2,
+    "industry": 20,
     "population": 2,
     "threat": 0,
     "diplomacy": "NEUTRAL"
@@ -198,7 +198,7 @@
     "full_name": "澳大利亚联邦",
     "countryType": "REPUBLIC",
     "military": 3,
-    "industry": 4,
+    "industry": 40,
     "population": 3,
     "threat": 1,
     "diplomacy": "NEUTRAL"
@@ -210,7 +210,7 @@
     "full_name": "加拿大自治领",
     "countryType": "REPUBLIC",
     "military": 2,
-    "industry": 4,
+    "industry": 40,
     "population": 3,
     "threat": 0,
     "diplomacy": "NEUTRAL"
@@ -222,7 +222,7 @@
     "full_name": "巴西合众国",
     "countryType": "REPUBLIC",
     "military": 2,
-    "industry": 3,
+    "industry": 30,
     "population": 5,
     "threat": 0,
     "diplomacy": "NEUTRAL"
@@ -234,7 +234,7 @@
     "full_name": "阿富汗王国",
     "countryType": "KINGDOM",
     "military": 2,
-    "industry": 1,
+    "industry": 10,
     "population": 2,
     "threat": 1,
     "diplomacy": "NEUTRAL"
@@ -246,7 +246,7 @@
     "full_name": "尼泊尔王国",
     "countryType": "KINGDOM",
     "military": 2,
-    "industry": 1,
+    "industry": 10,
     "population": 2,
     "threat": 0,
     "diplomacy": "NEUTRAL"
@@ -258,7 +258,7 @@
     "full_name": "不丹王国",
     "countryType": "KINGDOM",
     "military": 1,
-    "industry": 1,
+    "industry": 10,
     "population": 1,
     "threat": 0,
     "diplomacy": "NEUTRAL"
@@ -270,7 +270,7 @@
     "full_name": "英属锡兰",
     "countryType": "COLONY",
     "military": 1,
-    "industry": 2,
+    "industry": 20,
     "population": 2,
     "threat": 0,
     "diplomacy": "NEUTRAL"
@@ -282,7 +282,7 @@
     "full_name": "伊朗王国",
     "countryType": "KINGDOM",
     "military": 3,
-    "industry": 2,
+    "industry": 20,
     "population": 4,
     "threat": 1,
     "diplomacy": "NEUTRAL"
@@ -294,7 +294,7 @@
     "full_name": "伊拉克王国",
     "countryType": "KINGDOM",
     "military": 2,
-    "industry": 2,
+    "industry": 20,
     "population": 2,
     "threat": 0,
     "diplomacy": "NEUTRAL"
@@ -306,7 +306,7 @@
     "full_name": "沙特阿拉伯王国",
     "countryType": "KINGDOM",
     "military": 2,
-    "industry": 1,
+    "industry": 10,
     "population": 2,
     "threat": 0,
     "diplomacy": "NEUTRAL"
@@ -318,7 +318,7 @@
     "full_name": "土耳其共和国",
     "countryType": "REPUBLIC",
     "military": 4,
-    "industry": 3,
+    "industry": 30,
     "population": 4,
     "threat": 1,
     "diplomacy": "NEUTRAL"
@@ -330,7 +330,7 @@
     "full_name": "波兰共和国",
     "countryType": "REPUBLIC",
     "military": 4,
-    "industry": 4,
+    "industry": 40,
     "population": 5,
     "threat": 0,
     "diplomacy": "NEUTRAL"
@@ -342,7 +342,7 @@
     "full_name": "西班牙共和国",
     "countryType": "REPUBLIC",
     "military": 3,
-    "industry": 4,
+    "industry": 40,
     "population": 5,
     "threat": 0,
     "diplomacy": "NEUTRAL"
@@ -354,7 +354,7 @@
     "full_name": "葡萄牙共和国",
     "countryType": "REPUBLIC",
     "military": 2,
-    "industry": 3,
+    "industry": 30,
     "population": 3,
     "threat": 0,
     "diplomacy": "NEUTRAL"
@@ -366,7 +366,7 @@
     "full_name": "荷兰王国",
     "countryType": "KINGDOM",
     "military": 2,
-    "industry": 5,
+    "industry": 50,
     "population": 4,
     "threat": 0,
     "diplomacy": "NEUTRAL"
@@ -378,7 +378,7 @@
     "full_name": "比利时王国",
     "countryType": "KINGDOM",
     "military": 2,
-    "industry": 5,
+    "industry": 50,
     "population": 3,
     "threat": 0,
     "diplomacy": "NEUTRAL"
@@ -390,7 +390,7 @@
     "full_name": "瑞士联邦",
     "countryType": "REPUBLIC",
     "military": 3,
-    "industry": 5,
+    "industry": 50,
     "population": 2,
     "threat": 0,
     "diplomacy": "NEUTRAL"
@@ -402,7 +402,7 @@
     "full_name": "瑞典王国",
     "countryType": "KINGDOM",
     "military": 3,
-    "industry": 5,
+    "industry": 50,
     "population": 3,
     "threat": 0,
     "diplomacy": "NEUTRAL"
@@ -414,7 +414,7 @@
     "full_name": "挪威王国",
     "countryType": "KINGDOM",
     "military": 2,
-    "industry": 4,
+    "industry": 40,
     "population": 2,
     "threat": 0,
     "diplomacy": "NEUTRAL"
@@ -426,7 +426,7 @@
     "full_name": "丹麦王国",
     "countryType": "KINGDOM",
     "military": 2,
-    "industry": 4,
+    "industry": 40,
     "population": 2,
     "threat": 0,
     "diplomacy": "NEUTRAL"
@@ -438,7 +438,7 @@
     "full_name": "芬兰共和国",
     "countryType": "REPUBLIC",
     "military": 3,
-    "industry": 4,
+    "industry": 40,
     "population": 2,
     "threat": 0,
     "diplomacy": "NEUTRAL"
@@ -450,7 +450,7 @@
     "full_name": "捷克斯洛伐克共和国",
     "countryType": "REPUBLIC",
     "military": 4,
-    "industry": 5,
+    "industry": 50,
     "population": 4,
     "threat": 0,
     "diplomacy": "NEUTRAL"
@@ -462,7 +462,7 @@
     "full_name": "奥地利共和国",
     "countryType": "REPUBLIC",
     "military": 3,
-    "industry": 5,
+    "industry": 50,
     "population": 3,
     "threat": 0,
     "diplomacy": "NEUTRAL"
@@ -474,7 +474,7 @@
     "full_name": "匈牙利王国",
     "countryType": "KINGDOM",
     "military": 3,
-    "industry": 4,
+    "industry": 40,
     "population": 4,
     "threat": 0,
     "diplomacy": "NEUTRAL"
@@ -486,7 +486,7 @@
     "full_name": "罗马尼亚王国",
     "countryType": "KINGDOM",
     "military": 3,
-    "industry": 3,
+    "industry": 30,
     "population": 4,
     "threat": 0,
     "diplomacy": "NEUTRAL"
@@ -498,7 +498,7 @@
     "full_name": "保加利亚王国",
     "countryType": "KINGDOM",
     "military": 3,
-    "industry": 3,
+    "industry": 30,
     "population": 3,
     "threat": 0,
     "diplomacy": "NEUTRAL"
@@ -510,7 +510,7 @@
     "full_name": "南斯拉夫王国",
     "countryType": "KINGDOM",
     "military": 3,
-    "industry": 3,
+    "industry": 30,
     "population": 4,
     "threat": 0,
     "diplomacy": "NEUTRAL"
@@ -522,7 +522,7 @@
     "full_name": "希腊王国",
     "countryType": "KINGDOM",
     "military": 3,
-    "industry": 3,
+    "industry": 30,
     "population": 3,
     "threat": 0,
     "diplomacy": "NEUTRAL"
@@ -534,7 +534,7 @@
     "full_name": "埃及王国",
     "countryType": "KINGDOM",
     "military": 2,
-    "industry": 2,
+    "industry": 20,
     "population": 4,
     "threat": 0,
     "diplomacy": "NEUTRAL"
@@ -546,7 +546,7 @@
     "full_name": "埃塞俄比亚帝国",
     "countryType": "EMPIRE",
     "military": 2,
-    "industry": 1,
+    "industry": 10,
     "population": 3,
     "threat": 0,
     "diplomacy": "NEUTRAL"
@@ -558,7 +558,7 @@
     "full_name": "南非联邦",
     "countryType": "REPUBLIC",
     "military": 2,
-    "industry": 4,
+    "industry": 40,
     "population": 3,
     "threat": 0,
     "diplomacy": "NEUTRAL"
@@ -570,7 +570,7 @@
     "full_name": "英属尼日利亚",
     "countryType": "COLONY",
     "military": 1,
-    "industry": 1,
+    "industry": 10,
     "population": 4,
     "threat": 0,
     "diplomacy": "NEUTRAL"
@@ -582,7 +582,7 @@
     "full_name": "比属刚果",
     "countryType": "COLONY",
     "military": 1,
-    "industry": 1,
+    "industry": 10,
     "population": 3,
     "threat": 0,
     "diplomacy": "NEUTRAL"
@@ -594,7 +594,7 @@
     "full_name": "英属肯尼亚",
     "countryType": "COLONY",
     "military": 1,
-    "industry": 1,
+    "industry": 10,
     "population": 2,
     "threat": 0,
     "diplomacy": "NEUTRAL"
@@ -606,7 +606,7 @@
     "full_name": "英属坦噶尼喀",
     "countryType": "COLONY",
     "military": 1,
-    "industry": 1,
+    "industry": 10,
     "population": 2,
     "threat": 0,
     "diplomacy": "NEUTRAL"
@@ -618,7 +618,7 @@
     "full_name": "墨西哥合众国",
     "countryType": "REPUBLIC",
     "military": 2,
-    "industry": 3,
+    "industry": 30,
     "population": 4,
     "threat": 0,
     "diplomacy": "NEUTRAL"
@@ -630,7 +630,7 @@
     "full_name": "阿根廷共和国",
     "countryType": "REPUBLIC",
     "military": 2,
-    "industry": 4,
+    "industry": 40,
     "population": 4,
     "threat": 0,
     "diplomacy": "NEUTRAL"
@@ -642,7 +642,7 @@
     "full_name": "智利共和国",
     "countryType": "REPUBLIC",
     "military": 2,
-    "industry": 3,
+    "industry": 30,
     "population": 3,
     "threat": 0,
     "diplomacy": "NEUTRAL"
@@ -654,7 +654,7 @@
     "full_name": "哥伦比亚共和国",
     "countryType": "REPUBLIC",
     "military": 2,
-    "industry": 2,
+    "industry": 20,
     "population": 3,
     "threat": 0,
     "diplomacy": "NEUTRAL"
@@ -666,7 +666,7 @@
     "full_name": "秘鲁共和国",
     "countryType": "REPUBLIC",
     "military": 2,
-    "industry": 2,
+    "industry": 20,
     "population": 3,
     "threat": 0,
     "diplomacy": "NEUTRAL"
@@ -678,7 +678,7 @@
     "full_name": "委内瑞拉合众国",
     "countryType": "REPUBLIC",
     "military": 1,
-    "industry": 2,
+    "industry": 20,
     "population": 2,
     "threat": 0,
     "diplomacy": "NEUTRAL"
@@ -690,7 +690,7 @@
     "full_name": "古巴共和国",
     "countryType": "REPUBLIC",
     "military": 1,
-    "industry": 2,
+    "industry": 20,
     "population": 2,
     "threat": 0,
     "diplomacy": "NEUTRAL"
@@ -702,7 +702,7 @@
     "full_name": "新西兰自治领",
     "countryType": "REPUBLIC",
     "military": 2,
-    "industry": 3,
+    "industry": 30,
     "population": 2,
     "threat": 0,
     "diplomacy": "NEUTRAL"
@@ -714,7 +714,7 @@
     "full_name": "法属印度支那（老挝）",
     "countryType": "COLONY",
     "military": 1,
-    "industry": 1,
+    "industry": 10,
     "population": 1,
     "threat": 0,
     "diplomacy": "NEUTRAL"
@@ -726,7 +726,7 @@
     "full_name": "法属印度支那（柬埔寨）",
     "countryType": "COLONY",
     "military": 1,
-    "industry": 1,
+    "industry": 10,
     "population": 2,
     "threat": 0,
     "diplomacy": "NEUTRAL"

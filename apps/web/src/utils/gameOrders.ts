@@ -24,12 +24,13 @@
  */
 
 import type { Container, Application } from 'pixi.js'
-import { playArcAnimation, playScoutAnimation, startBattleAnimation, playCaptureAnimation } from './troopAnimation'
+import { playArcAnimation, playScoutAnimation, startBattleAnimation, playCaptureAnimation, playDevelopAnimation } from './troopAnimation'
 import type { BattleHandle } from './troopAnimation'
 import { playCloudTransition, type CloudOptions } from './cloudTransition'
 import { resolveLocation, resolveLocationId } from './locationResolver'
 import { useGameStore } from '@/stores/game'
-import type { BattleInfo } from '@/stores/game'
+import type { BattleInfo, CityStatField } from '@/stores/game'
+import { DEVELOP_FIELDS } from '@/stores/game'
 import { Owner, OWNER_COLORS, OWNER_LABELS } from '@/data/owners'
 import { getDisplayName } from '@/data/displayNames'
 import { useToast } from '@/composables/useToast'
@@ -76,6 +77,11 @@ export const ORDER_TYPES = [
   'setCurrentDate',
   'setCurrentFaction',
   'moveTroops',
+  // 内政 / 建设（生产、筑防、整军——世界态写回）
+  'recruit',
+  'develop',
+  'fortify',
+  'rally',
 ] as const
 
 export type OrderType = (typeof ORDER_TYPES)[number]
@@ -97,6 +103,8 @@ export interface GameOrder {
   needsPlayerDecision?: boolean
   // 调兵：从 from 搬运到 to 的兵力（单位 k），须为正数
   amount?: number
+  // 内政：develop 指定调整字段（industry / food）；recruit 用 amount，fortify 用 amount，rally 用 amount 作士气增量
+  field?: CityStatField
 }
 
 // ─── 相机控制接口（由 LeafletMap 依赖注入）───
@@ -548,6 +556,52 @@ async function capture(gb: string, owner: Owner): Promise<OrderResult> {
   return { ok: true }
 }
 
+// ─── 内政 / 建设动画（纯视觉，世界态由 executeOrder 落）───
+/**
+ * 内政建设演出：镜头聚焦目标城 → 播轻量建设动画（轮廓脉冲+扩散环+飘字）→ 归位。
+ * 四类内政指令（recruit/develop/fortify/rally）共用本函数，仅 color/text 不同。
+ * 世界态写回（produce / cityStatChange / moraleChange）由 executeOrder 在动画后统一 applyEvent。
+ * @param gb     目标城市 id（已解析的 gb 编码）
+ * @param color  飘字与脉冲主色（征兵红 / 建设金 / 筑防灰 / 整军绿）
+ * @param text   飘字文本（如 "+5k 兵" / "+2 工业"）
+ */
+async function developCity(gb: string, color: number, text: string): Promise<OrderResult> {
+  if (!_container) return { ok: false, reason: 'gameOrders 未初始化' }
+  const duration = 1100
+
+  if (_camera) {
+    const before = _camera.snapshot()
+    _camera.setLocked(true)
+    try {
+      await _camera.focusOn(gb, 500)
+      await playDevelopAnimation({ targetId: gb, container: _container, color, text, duration })
+      await _camera.reset(before)
+    } finally {
+      _camera.setLocked(false)
+    }
+  } else {
+    await playDevelopAnimation({ targetId: gb, container: _container, color, text, duration })
+  }
+
+  return { ok: true }
+}
+
+/** 内政飘字配色与文案 */
+const DEVELOP_COLORS = {
+  recruit: 0xe24b4a, // 征兵：红
+  develop: 0xef9f27, // 建设：金
+  fortify: 0x888780, // 筑防：灰
+  rally: 0x639922, // 整军：绿
+} as const
+
+/** develop field → 中文名（飘字用） */
+const FIELD_LABELS: Record<CityStatField, string> = {
+  industry: '工业',
+  food: '粮食',
+  fort: '工事',
+  cityLevel: '规模',
+}
+
 // ─── 指令编排层：executeOrder（世界态唯一落地点）───
 // 内部动画函数只负责画面，所有世界态（capture / battleStart / battleEnd / setFactionAlive /
 // dateAdvance / selectFaction）统一由 executeOrder 在动画播完后 applyEvent 落地。
@@ -674,6 +728,69 @@ export async function executeOrder(
       break
     }
 
+    // ── 内政 / 建设（先播建设动画，再经 Kernel applyEvent 落地）──
+    case 'recruit': {
+      const gbId = resolveLocationId(json.gb!)
+      if (!gbId) { result = { ok: false, reason: `目标城市不存在: ${json.gb}` }; break }
+      if (typeof json.amount !== 'number' || json.amount <= 0) {
+        result = { ok: false, reason: 'amount 必须是正数（单位 k）' }
+        break
+      }
+      await developCity(gbId, DEVELOP_COLORS.recruit, `+${json.amount}k 兵`)
+      const r = useGameStore().applyEvent({ type: 'produce', targetGb: gbId, amount: json.amount })
+      if (!r.ok) { result = { ok: false, reason: r.reason! }; break }
+      result = { ok: true }
+      break
+    }
+
+    case 'develop': {
+      const gbId = resolveLocationId(json.gb!)
+      if (!gbId) { result = { ok: false, reason: `目标城市不存在: ${json.gb}` }; break }
+      const field = json.field
+      if (!field || !DEVELOP_FIELDS.includes(field)) {
+        result = { ok: false, reason: `field 必须是 ${DEVELOP_FIELDS.join(' / ')}（收到: ${String(field)}）` }
+        break
+      }
+      if (typeof json.amount !== 'number' || json.amount <= 0) {
+        result = { ok: false, reason: 'amount 必须是正数' }
+        break
+      }
+      await developCity(gbId, DEVELOP_COLORS.develop, `+${json.amount} ${FIELD_LABELS[field]}`)
+      const r = useGameStore().applyEvent({ type: 'cityStatChange', targetGb: gbId, field, delta: json.amount })
+      if (!r.ok) { result = { ok: false, reason: r.reason! }; break }
+      result = { ok: true }
+      break
+    }
+
+    case 'fortify': {
+      const gbId = resolveLocationId(json.gb!)
+      if (!gbId) { result = { ok: false, reason: `目标城市不存在: ${json.gb}` }; break }
+      if (typeof json.amount !== 'number' || json.amount <= 0) {
+        result = { ok: false, reason: 'amount 必须是正数' }
+        break
+      }
+      await developCity(gbId, DEVELOP_COLORS.fortify, `+${json.amount} 工事`)
+      const r = useGameStore().applyEvent({ type: 'cityStatChange', targetGb: gbId, field: 'fort', delta: json.amount })
+      if (!r.ok) { result = { ok: false, reason: r.reason! }; break }
+      result = { ok: true }
+      break
+    }
+
+    case 'rally': {
+      const gbId = resolveLocationId(json.gb!)
+      if (!gbId) { result = { ok: false, reason: `目标城市不存在: ${json.gb}` }; break }
+      if (typeof json.amount !== 'number' || json.amount === 0) {
+        result = { ok: false, reason: 'amount 必须是非零数字（士气增量，可正可负）' }
+        break
+      }
+      const sign = json.amount > 0 ? '+' : ''
+      await developCity(gbId, DEVELOP_COLORS.rally, `${sign}${json.amount} 士气`)
+      const r = useGameStore().applyEvent({ type: 'moraleChange', targetGb: gbId, delta: json.amount })
+      if (!r.ok) { result = { ok: false, reason: r.reason! }; break }
+      result = { ok: true }
+      break
+    }
+
     case 'setFactionAlive':
       useGameStore().applyEvent({ type: 'setFactionAlive', faction: json.faction!, alive: json.alive! })
       result = { ok: true }
@@ -766,6 +883,28 @@ function popToast(
     case 'moveTroops': {
       const t = `${getLocationName(json.from!)} ⇢ ${getLocationName(json.to!)}（${json.amount ?? 0}k）`
       push({ icon: 'sword', tone: 'amber', title: '调兵', text: json.text ? `${json.text} · ${t}` : t })
+      break
+    }
+    case 'recruit': {
+      const t = `${getLocationName(json.gb!)} 征兵 ${json.amount ?? 0}k`
+      push({ icon: 'sword', tone: 'cinnabar', title: '征兵', text: json.text ? `${json.text} · ${t}` : t })
+      break
+    }
+    case 'develop': {
+      const fieldLabel = json.field ? FIELD_LABELS[json.field] : ''
+      const t = `${getLocationName(json.gb!)} ${fieldLabel} +${json.amount ?? 0}`
+      push({ icon: 'crown', tone: 'amber', title: '建设', text: json.text ? `${json.text} · ${t}` : t })
+      break
+    }
+    case 'fortify': {
+      const t = `${getLocationName(json.gb!)} 修筑工事 +${json.amount ?? 0}`
+      push({ icon: 'flag', tone: 'neutral', title: '筑防', text: json.text ? `${json.text} · ${t}` : t })
+      break
+    }
+    case 'rally': {
+      const sign = (json.amount ?? 0) > 0 ? '+' : ''
+      const t = `${getLocationName(json.gb!)} 士气 ${sign}${json.amount ?? 0}`
+      push({ icon: 'check', tone: 'green', title: '整军', text: json.text ? `${json.text} · ${t}` : t })
       break
     }
     case 'setFactionAlive': {

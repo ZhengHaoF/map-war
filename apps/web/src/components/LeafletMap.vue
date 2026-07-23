@@ -513,9 +513,9 @@ const infoRows = computed(() => {
     { label: '政权', value: ((OWNER_LABELS as Record<string, string>)[d.owner!] || d.owner || '—') as string },
     { label: '地形', value: (TERRAIN_NAMES[d.terrain!] || d.terrain || '—') as string },
     { label: '城市规模', value: `${d.cityLevel ?? '—'}（${LEVEL_NAMES[d.cityLevel!] || '—'}）` },
-    { label: '工业能力', value: `${d.industry ?? '—'} / 10` },
-    { label: '粮食生产', value: `${d.food ?? '—'} / 10` },
-    { label: '工事等级', value: `${d.fort ?? '—'} / 5` },
+    { label: '工业能力', value: `${d.industry ?? '—'} / 100` },
+    { label: '粮食生产', value: `${d.food ?? '—'} / 100` },
+    { label: '工事等级', value: `${d.fort ?? '—'} / 100` },
     { label: '驻军', value: `${d.troops ?? 0} k` },
     { label: '士气', value: `${d.morale ?? 0} / 100` },
   ]
@@ -533,7 +533,7 @@ const countryInfoRows = computed(() => {
       value: COUNTRY_TYPE_NAMES[dc.countryType as CountryTypeKey] || dc.countryType || '—',
     },
     { label: '军事实力', value: `${dc.military ?? '—'} / 10` },
-    { label: '工业能力', value: `${dc.industry ?? '—'} / 10` },
+    { label: '工业能力', value: `${dc.industry ?? '—'} / 100` },
     { label: '人口/资源', value: `${dc.population ?? '—'} / 10` },
     { label: '对华威胁', value: `${dc.threat ?? '—'} / 10` },
     {

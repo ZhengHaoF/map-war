@@ -696,3 +696,85 @@ export async function playCaptureAnimation({
     await new Promise<void>((resolve) => setTimeout(resolve, 500))
   }
 }
+
+/**
+ * 内政/建设动画选项
+ */
+export interface DevelopAnimationOptions {
+  /** 目标城市 id（gb 编码） */
+  targetId: string
+  /** 动画绘制的父容器 */
+  container: Container
+  /** 主色调（征兵红 / 建设金 / 筑防灰 / 整军绿） */
+  color?: number
+  /** 飘字文本（如 "+5 工业"） */
+  text?: string
+  /** 动画时长（ms，默认 1100） */
+  duration?: number
+}
+
+/**
+ * 播放内政/建设动画 —— 城池轮廓柔和点亮（脉冲填充）+ 单层扩散环 + 飘字。
+ * 比占领动画（双层冲击波 + 8 枚粒子）更轻量，语义是"本城内部建设"而非"接管"。
+ */
+export async function playDevelopAnimation({
+  targetId,
+  container,
+  color = 0xef9f27,
+  duration = 1100,
+  text,
+}: DevelopAnimationOptions): Promise<void> {
+  const target = resolveLocationXY(targetId)
+  if (!target) {
+    console.warn('[playDevelopAnimation] 缺少有效的 targetId，无法解析坐标')
+    return
+  }
+  const tx = target.x
+  const ty = target.y
+  const feature = resolveLocation(targetId)
+
+  const gfx = new Graphics()
+  container.addChild(gfx)
+
+  const startTime = performance.now()
+  const easeOut = (t: number): number => 1 - Math.pow(1 - t, 3)
+
+  await new Promise<void>((resolve) => {
+    function animate(now: number): void {
+      const elapsed = now - startTime
+      const t = Math.min(elapsed / duration, 1)
+
+      gfx.clear()
+
+      // 1) 城池轮廓柔和点亮：先升后落，稳态淡填充（比 capture 更柔和）
+      const flash = t < 0.4 ? t / 0.4 : 1 - ((t - 0.4) / 0.6) * 0.5
+      drawFeatureOutline(gfx, feature, color, 0.08 + 0.3 * flash, 1 + 2 * flash)
+
+      // 2) 单层扩散环（easeOut 扩散淡出）
+      const wt = t / 0.75
+      if (wt > 0 && wt < 1) {
+        const radius = 64 * easeOut(wt)
+        const alpha = (1 - wt) * 0.6
+        gfx.circle(tx, ty, radius)
+        gfx.stroke({ width: 0.5 + 2.5 * (1 - wt), color, alpha })
+      }
+
+      if (t < 1) {
+        requestAnimationFrame(animate)
+      } else {
+        setTimeout(() => resolve(), 200)
+      }
+    }
+    requestAnimationFrame(animate)
+  })
+
+  showPopupText(container, target, text, color)
+
+  // 清理
+  container.removeChild(gfx)
+  gfx.destroy()
+
+  if (text) {
+    await new Promise<void>((resolve) => setTimeout(resolve, 500))
+  }
+}

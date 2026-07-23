@@ -52,6 +52,7 @@ function badge(e: GameEvent): string {
     capture: '占领',
     attack: '进攻',
     moraleChange: '士气',
+    cityStatChange: '建设',
     produce: '征兵',
     moveTroops: '调兵',
     dateAdvance: '日期',
