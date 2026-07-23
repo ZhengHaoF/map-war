@@ -126,10 +126,11 @@
           <input
             v-model="inputText"
             class="tg-input"
-            :placeholder="activeChannel === 'world' ? '向天下喊话……' : `回复${factionName(activeChannel)}……`"
+            :placeholder="busy ? '发报中…' : (activeChannel === 'world' ? '向天下喊话……' : `回复${factionName(activeChannel)}……`)"
+            :disabled="busy"
             @keydown.enter.prevent="onSend"
           />
-          <GameButton parchment :disabled="!inputText.trim() || typing" @click="onSend">
+          <GameButton parchment :disabled="!inputText.trim() || busy" @click="onSend">
             <IconSend :size="14" />发报
           </GameButton>
         </div>
@@ -154,6 +155,7 @@ const store = useGameStore()
 const activeChannel = ref<string>('world')
 const inputText = ref('')
 const typing = ref(false)
+const busy = computed(() => typing.value)
 const msgRef = ref<HTMLElement | null>(null)
 
 // ── 未读 ──
@@ -744,6 +746,12 @@ watch(
 .tg-input:focus {
   border-color: var(--cinnabar, #b23a2e);
   background: var(--paper-hi, #fff);
+}
+
+.tg-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: var(--paper-faint, #e8dcc0);
 }
 
 /* ===== 滚动条 ===== */

@@ -89,7 +89,7 @@ export async function invokeAgentDecision(opts: InvokeAgentDecisionOpts): Promis
 
 /** 电报回信条目（统一格式） */
 export interface TelegramReplyItem {
-  /** 领袖名（如"张学良"） */
+  /** 发言者名（如"张学良"，可以是领袖、将领或幕僚） */
   name: string
   /** 势力标签（如"奉系"） */
   faction: string
@@ -98,7 +98,7 @@ export interface TelegramReplyItem {
 }
 
 export interface TelegramReplyOpts {
-  /** 回信势力领袖名（direct 模式必填，world 模式可空） */
+  /** 回信势力代表名（direct 模式必填，可以是领袖、将领或幕僚） */
   factionName: string
   /** 势力标签（如"国民政府"） */
   factionTag: string
@@ -139,10 +139,10 @@ export async function invokeTelegramReply(opts: TelegramReplyOpts): Promise<Tele
   const code = opts.factionCode ?? ''
   const playerIdentity = buildPlayerProfile()
   if (mode === 'direct') {
-    systemPrompt = `你是「${opts.factionTag}」的领袖${opts.factionName}，性格${opts.personality}。
+    systemPrompt = `你是「${opts.factionTag}」的${opts.factionName}，性格${opts.personality}。
 当前局势：${opts.situation}。
 ${playerIdentity}
-你正和该玩家通过电报对话。用你的性格回一句话（50-80字），半文言，可以引典故、放狠话、冷嘲热讽。
+你正和该玩家通过电报对话。以你的身份与性格回一句话（50-80字），半文言，可以引典故、放狠话、冷嘲热讽。
 
 必须返回 JSON 数组（只含一条）：
 [{"name": "${opts.factionName}", "faction": "${code}", "content": "你的回复内容"}]`
@@ -150,7 +150,7 @@ ${playerIdentity}
     systemPrompt = `你是民国军阀推演游戏的电报系统。玩家向天下喊话，1-3个势力听到后各自回应。
 ${opts.situation}
 ${playerIdentity}
-每个势力的回应要符合其领袖性格，20-60字，半文言，性格鲜明。
+每个势力的回应要符合其代表人物的性格，20-60字，半文言，性格鲜明。回应者可以是领袖、将领或幕僚，不一定是最高领导人。
 
 势力代号对照：${FACTION_CODES}
 必须返回 JSON 数组（1-3条），每条是一个包含 name/faction/content 的独立对象：

@@ -78,6 +78,9 @@ export function useAiDebug(mode: AiMode = 'world') {
   // 顾问模式专属：存储完整顾问响应
   const advisorResponse = ref<{ reply?: string; suggestions?: string[] } | null>(null)
 
+  // 多轮对话：最近 N 轮的 user/assistant 对（仅 user 模式，由调用方在 runSend 前设置）
+  const chatTurns = ref<{ userText: string; assistantText: string }[]>([])
+
   // ── 玩家模式专属：战略校验状态 ──
   /** 硬编码规则拒绝的指令（同步，runSend 后立即可用） */
   const strategicRejected = ref<{ order: GameOrder; reason: string }[]>([])
@@ -162,6 +165,7 @@ export function useAiDebug(mode: AiMode = 'world') {
       injectContext: injectContext.value,
       injectWorldOverview: mode === 'user',
       history,
+      chatTurns: chatTurns.value.length > 0 ? chatTurns.value : undefined,
     })
     // 允许开发者覆盖自动生成的 system prompt
     if (systemPrompt.value.trim()) {
@@ -324,6 +328,8 @@ export function useAiDebug(mode: AiMode = 'world') {
     worldImpossible,
     // 顾问模式
     advisorResponse,
+    // 多轮对话
+    chatTurns,
     // 动作
     runSend,
     runExecute,

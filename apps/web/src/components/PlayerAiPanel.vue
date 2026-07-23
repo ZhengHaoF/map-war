@@ -79,23 +79,24 @@
               v-model="userMessage"
               class="chat-textarea"
               rows="2"
-              placeholder="例如：派兵进攻杭州"
+              :placeholder="busy ? '推演中，请稍候…' : '例如：派兵进攻杭州'"
+              :disabled="busy"
               @keydown.enter.exact.prevent="onSend"
             ></textarea>
             <div class="chat-input-btns">
-              <GameButton parchment size="small" :disabled="!undoStack.length" @click="undo">
+              <GameButton parchment size="small" :disabled="busy || !undoStack.length" @click="undo">
                 <IconUndo :size="14" />撤销
               </GameButton>
               <GameButton
                 parchment
-                :disabled="kernelLoading || loading"
+                :disabled="busy"
                 title="结束玩家回合，启动世界AI推演"
                 @click="endPlayerTurn"
               >
                 <IconEndTurn :size="14" />{{ kernelLoading ? kernelPhase : '结束回合' }}
               </GameButton>
-              <GameButton parchment :disabled="loading" @click="onSend">
-                <IconSend :size="16" />{{ loading ? '请求中' : '发送' }}
+              <GameButton parchment :disabled="busy" @click="onSend">
+                <IconSend :size="16" />{{ sendButtonText }}
               </GameButton>
             </div>
           </div>
@@ -127,6 +128,7 @@ const {
   strategicRejected,
   worldValidation,
   worldImpossible,
+  chatTurns,
   runSend,
   applyStrategicRules,
   getFinalApprovedOrders,
@@ -136,6 +138,14 @@ const {
 const { queue, status, stoppedAt, submit, advance } = useGameScheduler()
 
 const { loading: kernelLoading, phase: kernelPhase, endPlayerTurn } = useAgentKernel()
+
+const busy = computed(() => loading.value || status.value === 'running' || kernelLoading.value)
+const sendButtonText = computed(() => {
+  if (loading.value) return '解析中…'
+  if (status.value === 'running') return `推进中 · ${queue.value.length}`
+  if (kernelLoading.value) return kernelPhase.value
+  return '发送'
+})
 
 defineProps<{ visible: boolean }>()
 defineEmits<{ close: [] }>()
@@ -178,10 +188,27 @@ const statusText = computed(() => {
 })
 
 async function onSend(): Promise<void> {
+  if (busy.value) return
   const userText = userMessage.value.trim()
   if (!userText) return
 
+  // 多轮对话上下文：取最近 5 轮，构建 user/assistant 对
+  const MAX_TURNS = 5
+  const recentTurns = chatHistory.value.slice(-MAX_TURNS)
+  chatTurns.value = recentTurns.map((entry) => {
+    const orderSummary = entry.orders.length
+      ? ' [' + entry.orders.map((o) => o.replace(/\s*[✓✗]\s*/g, '')).join(', ') + ']'
+      : ''
+    return {
+      userText: entry.user,
+      assistantText: `${entry.msg || ''}${orderSummary}`,
+    }
+  })
+
   await runSend()
+
+  // 本轮用完后清空，避免跨模式残留
+  chatTurns.value = []
 
   const orderItems: string[] = []
   if (parsed.value) {
@@ -477,6 +504,12 @@ async function onSend(): Promise<void> {
 .chat-textarea:focus {
   border-color: var(--cinnabar, #b23a2e);
   background: var(--paper-hi, #fff);
+}
+
+.chat-textarea:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: var(--paper-faint, #e8dcc0);
 }
 
 .chat-input-btns {

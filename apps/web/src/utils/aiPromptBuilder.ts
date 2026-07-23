@@ -61,6 +61,8 @@ export interface BuildMessagesOpts {
   injectWorldOverview?: boolean
   /** 近期世界动态（来自 eventLog 的压缩时间线）。非空则注入为一条独立 system 消息。 */
   history?: string
+  /** 最近 N 轮的 user/assistant 对话（仅 user 模式）。每条生成一对消息，插在 system 消息后、当前 user 前。 */
+  chatTurns?: { userText: string; assistantText: string }[]
 }
 
 /** 组装最终发给 LLM 的 messages。 */
@@ -79,6 +81,13 @@ export function buildMessages(opts: BuildMessagesOpts): { role: string; content:
 
   if (opts.history && opts.history.trim()) {
     messages.push({ role: 'system', content: '近期世界动态：\n' + opts.history })
+  }
+
+  if (opts.chatTurns?.length) {
+    for (const turn of opts.chatTurns) {
+      messages.push({ role: 'user', content: turn.userText })
+      messages.push({ role: 'assistant', content: turn.assistantText })
+    }
   }
 
   messages.push({ role: 'user', content: opts.userText })

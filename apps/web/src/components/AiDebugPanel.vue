@@ -34,17 +34,18 @@
         v-model="userMessage"
         class="ai-textarea"
         rows="4"
-        placeholder="例如：占领北平给 KMT，并把日期推进到 1937-07-07"
+        :placeholder="busy ? '推演中，请稍候…' : '例如：占领北平给 KMT，并把日期推进到 1937-07-07'"
+        :disabled="busy"
       />
     </div>
 
     <div class="ai-actions">
-      <GameButton :active="loading" :disabled="loading" @click="runSend">
+      <GameButton :active="loading" :disabled="busy" @click="runSend">
         <component :is="ICONS.send" :size="16" />
         {{ loading ? '请求中...' : '发送' }}
       </GameButton>
       <GameButton
-        :disabled="!parsed || loading || status === 'running'"
+        :disabled="!parsed || busy"
         @click="runAdvanceQueue"
         :active="status === 'running'"
       >
@@ -160,6 +161,8 @@ const {
 
 // Agent-Kernel 调度器（P0）：唯一执行路径 —— 队列 + 推进循环 + 停/续
 const { queue, status, stoppedAt, submit, advance } = useGameScheduler()
+
+const busy = computed(() => loading.value || status.value === 'running')
 
 const statusText = computed(() => {
   switch (status.value) {
@@ -283,6 +286,12 @@ const rawJson = computed(() => (response.value ? JSON.stringify(response.value, 
 .ai-textarea:focus {
   border-color: var(--cinnabar);
   background: var(--paper-hi);
+}
+
+.ai-textarea:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: var(--paper-faint);
 }
 
 .ai-actions {

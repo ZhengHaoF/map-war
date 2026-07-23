@@ -55,12 +55,13 @@
               v-model="userMessage"
               class="chat-textarea"
               rows="2"
-              placeholder="例如：攻打杭州可行吗？"
+              :placeholder="busy ? '分析中，请稍候…' : '例如：攻打杭州可行吗？'"
+              :disabled="busy"
               @keydown.enter.exact.prevent="onSend"
             ></textarea>
             <div class="chat-input-btns">
-              <GameButton parchment :disabled="loading" @click="onSend">
-                <IconSend :size="16" />{{ loading ? '分析中' : '咨询' }}
+              <GameButton parchment :disabled="busy" @click="onSend">
+                <IconSend :size="16" />{{ busy ? '分析中' : '咨询' }}
               </GameButton>
             </div>
           </div>
@@ -71,7 +72,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick } from 'vue'
+import { ref, computed, nextTick } from 'vue'
 import { useAiDebug } from '@/composables/useAiDebug'
 import GameButton from '@/components/ui/GameButton.vue'
 import GameModal from '@/components/ui/GameModal.vue'
@@ -87,6 +88,8 @@ const {
   runSend,
 } = useAiDebug('advisor')
 
+const busy = computed(() => loading.value)
+
 defineProps<{ visible: boolean }>()
 defineEmits<{ close: [] }>()
 
@@ -100,6 +103,7 @@ interface ChatEntry {
 }
 
 async function onSend(): Promise<void> {
+  if (busy.value) return
   const userText = userMessage.value.trim()
   if (!userText) return
 
@@ -312,6 +316,12 @@ function sendToCommand(suggestion: string): void {
 .chat-textarea:focus {
   border-color: var(--cinnabar, #b23a2e);
   background: var(--paper-hi, #fff);
+}
+
+.chat-textarea:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: var(--paper-faint, #e8dcc0);
 }
 
 .chat-input-btns {
