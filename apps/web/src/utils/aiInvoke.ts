@@ -13,6 +13,14 @@
 import { callLlm, type LlmCallOpts } from '@/composables/useLlmClient'
 import { extractPayloads, unwrapData } from '@/utils/aiParse'
 import { validateOrders, type BatchValidation } from '@/utils/aiOrderContract'
+import { OWNER_LABELS } from '@/data/owners'
+import { buildPlayerProfile } from '@/utils/aiPromptBuilder'
+
+/** 势力代号对照表（注入 prompt，让 AI 直接返回代号而非中文名） */
+const FACTION_CODES = Object.entries(OWNER_LABELS)
+  .filter(([k]) => k !== 'NEUTRAL')
+  .map(([code, label]) => `${code}=${label}`)
+  .join(', ')
 
 export interface InvokeAgentDecisionOpts {
   systemPrompt: string
@@ -74,5 +82,125 @@ export async function invokeAgentDecision(opts: InvokeAgentDecisionOpts): Promis
     allOk,
     raw,
     parseSucceeded: true,
+  }
+}
+
+// ── 电报即时回信（统一 JSON 数组格式，兼容私信 / 世界公屏多人回应）──
+
+/** 电报回信条目（统一格式） */
+export interface TelegramReplyItem {
+  /** 领袖名（如"张学良"） */
+  name: string
+  /** 势力标签（如"奉系"） */
+  faction: string
+  /** 电报正文 */
+  content: string
+}
+
+export interface TelegramReplyOpts {
+  /** 回信势力领袖名（direct 模式必填，world 模式可空） */
+  factionName: string
+  /** 势力标签（如"国民政府"） */
+  factionTag: string
+  /** 势力代号（如 KMT），从 factionTag 自动查找 */
+  factionCode?: string
+  /** 性格关键词（如"暴烈"） */
+  personality: string
+  /** 当前局势一句话 */
+  situation: string
+  /** 近期对话历史（最近 4-6 条，按时间序） */
+  recentChat: { from: 'player' | 'faction'; text: string; name?: string }[]
+  /** 玩家刚发的消息 */
+  playerMessage: string
+  /** 'direct' = 单势力私信回信（1条）; 'world' = 世界公屏多人回应（1-3条） */
+  mode?: 'direct' | 'world'
+  llmOpts?: Omit<LlmCallOpts, 'messages'>
+}
+
+/**
+ * 调 LLM 生成电报回信。统一返回 JSON 数组 [{name, faction, content}]。
+ * - direct 模式：1 条回信
+ * - world 模式：1-3 个势力各自回应
+ * 失败时返回兜底文本条目。
+ */
+export async function invokeTelegramReply(opts: TelegramReplyOpts): Promise<TelegramReplyItem[]> {
+  const mode = opts.mode ?? 'direct'
+  const fallback: TelegramReplyItem = {
+    name: opts.factionName || '???',
+    faction: opts.factionTag || '???',
+    content: '（线路故障，电报未能送达）',
+  }
+
+  const history = opts.recentChat
+    .map((m) => `${m.from === 'player' ? '玩家' : (m.name || opts.factionName || '对方')}："${m.text}"`)
+    .join('\n')
+
+  let systemPrompt: string
+  const code = opts.factionCode ?? ''
+  const playerIdentity = buildPlayerProfile()
+  if (mode === 'direct') {
+    systemPrompt = `你是「${opts.factionTag}」的领袖${opts.factionName}，性格${opts.personality}。
+当前局势：${opts.situation}。
+${playerIdentity}
+你正和该玩家通过电报对话。用你的性格回一句话（50-80字），半文言，可以引典故、放狠话、冷嘲热讽。
+
+必须返回 JSON 数组（只含一条）：
+[{"name": "${opts.factionName}", "faction": "${code}", "content": "你的回复内容"}]`
+  } else {
+    systemPrompt = `你是民国军阀推演游戏的电报系统。玩家向天下喊话，1-3个势力听到后各自回应。
+${opts.situation}
+${playerIdentity}
+每个势力的回应要符合其领袖性格，20-60字，半文言，性格鲜明。
+
+势力代号对照：${FACTION_CODES}
+必须返回 JSON 数组（1-3条），每条是一个包含 name/faction/content 的独立对象：
+[
+  {"name": "张学良", "faction": "NEA", "content": "电文内容..."},
+  {"name": "蒋中正", "faction": "KMT", "content": "电文内容..."}
+]
+注意：不要用平行数组格式（不要把 name、faction、content 各写成一个数组）。
+挑 1-3 个最有戏的势力即可。`
+  }
+
+  const messages: { role: string; content: string }[] = [
+    { role: 'system', content: systemPrompt },
+  ]
+  if (history) {
+    messages.push({ role: 'user', content: `近期对话：\n${history}` })
+  }
+  messages.push({ role: 'user', content: `玩家最新发言：「${opts.playerMessage}」` })
+
+  try {
+    const raw = await callLlm({
+      messages,
+      ...(opts.llmOpts ?? {}),
+    })
+    // 正确提取 API 响应中的 content → 解析 JSON
+    const payloads = extractPayloads(raw)
+    const obj = payloads[0]
+    let items: TelegramReplyItem[] = []
+    if (Array.isArray(obj)) {
+      items = obj as TelegramReplyItem[]
+    } else if (obj && typeof obj === 'object') {
+      const o = obj as Record<string, unknown>
+      // 优先匹配已知键名
+      if (Array.isArray(o.data)) items = o.data as TelegramReplyItem[]
+      else if (Array.isArray(o.replies)) items = o.replies as TelegramReplyItem[]
+      else if (Array.isArray(o.responses)) items = o.responses as TelegramReplyItem[]
+      else if (typeof o.content === 'string') items = [obj as TelegramReplyItem]
+      // 兜底：对象里随便找个数组
+      if (!items.length) {
+        for (const val of Object.values(o)) {
+          if (Array.isArray(val) && val.length) {
+            items = val as TelegramReplyItem[]
+            break
+          }
+        }
+      }
+    }
+    items = items.filter((it) => it && typeof it.content === 'string' && it.content.trim())
+    return items.length ? items : [{ ...fallback, content: '……' }]
+  } catch {
+    return [fallback]
   }
 }

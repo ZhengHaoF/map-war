@@ -113,6 +113,20 @@ export function buildFactionContext(faction: Owner): string {
     lines.push(history)
   }
 
+  // 电报往来（该势力 vs 玩家，最近 6 条）
+  const telegrams = store.telegrams.filter(
+    (t) => t.channel === 'direct' && (t.from === faction || t.from === 'PLAYER'),
+  )
+  if (telegrams.length) {
+    const recent = telegrams.slice(-6)
+    lines.push('')
+    lines.push('你与玩家的近期电报往来（记住这些对话，它们影响你的态度）：')
+    for (const t of recent) {
+      const speaker = t.from === 'PLAYER' ? '玩家' : '你'
+      lines.push(`  ${speaker}："${t.content}"`)
+    }
+  }
+
   lines.push('')
   lines.push('请决定本回合行动。若无必要，返回空 orders。')
   return lines.join('\n')
@@ -201,11 +215,26 @@ export function buildWorldOverview(): string {
  * 3. 引导"输出 narrative + newDate"
  */
 export function buildSettleContext(currentDate: string): string {
+  const store = useGameStore()
   const lines: string[] = []
   lines.push(`当前日期：${currentDate}`)
   lines.push('')
   lines.push('本回合各势力的行动已经执行完毕。请基于以下事件生成总结：')
   const history = buildEventHistory({ mode: 'recent', maxEvents: 50 })
   lines.push(history || '（本回合无事件）')
+
+  // 世界公屏电报（近期舆论，让叙事者知道各势力说了什么）
+  const worldTelegrams = store.telegrams
+    .filter((t) => t.channel === 'world')
+    .slice(-8)
+  if (worldTelegrams.length) {
+    lines.push('')
+    lines.push('近期各势力公屏发言（参考语气和立场）：')
+    for (const t of worldTelegrams) {
+      const name = t.from === 'PLAYER' ? '玩家' : (OWNER_LABELS[t.from as Owner] ?? t.from)
+      lines.push(`  ${name}："${t.content}"`)
+    }
+  }
+
   return lines.join('\n')
 }

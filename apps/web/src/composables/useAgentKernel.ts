@@ -11,7 +11,7 @@
  */
 
 import { ref, watch } from 'vue'
-import { useGameStore } from '@/stores/game'
+import { useGameStore, type Telegram } from '@/stores/game'
 import { useGameScheduler } from '@/composables/useGameScheduler'
 import { callLlm } from '@/composables/useLlmClient'
 import { classifyFactions } from '@/utils/aiClassify'
@@ -21,7 +21,7 @@ import { validateOrders, validateFactionOrders, validateFactionOrder, type Strat
 import { invokeAgentDecision, type InvokeAgentDecisionResult } from '@/utils/aiInvoke'
 import { extractPayloads, extractAiMessage, unwrapData } from '@/utils/aiParse'
 import type { GameOrder } from '@/utils/gameOrders'
-import { Owner, OWNER_LABELS } from '@/data/owners'
+import { Owner, OWNER_LABELS, OWNER_DETAILS } from '@/data/owners'
 import { useToast } from '@/composables/useToast'
 
 // ─── 模块级单例 ───
@@ -31,8 +31,8 @@ const progress = ref('')
 const lastError = ref('')
 const { push: pushToast } = useToast()
 
-/** 调用专属政权 AI，返回通过结构 + 战略校验的 GameOrder[]。 */
-async function invokeFactionAI(faction: Owner, context: string): Promise<GameOrder[]> {
+/** 调用专属政权 AI，返回通过结构 + 战略校验的 GameOrder[] + 可选电报。 */
+async function invokeFactionAI(faction: Owner, context: string): Promise<{ orders: GameOrder[]; telegram?: string }> {
   const store = useGameStore()
   const result: InvokeAgentDecisionResult = await invokeAgentDecision({
     systemPrompt: buildFactionSystemPrompt(faction),
@@ -45,7 +45,16 @@ async function invokeFactionAI(faction: Owner, context: string): Promise<GameOrd
       title: `${OWNER_LABELS[faction] ?? faction} 输出格式错误`,
       text: 'AI 返回无法解析为 JSON',
     })
-    return []
+    return { orders: [] }
+  }
+  // 提取电报（可选字段）
+  let telegram: string | undefined
+  const payloads = extractPayloads(result.raw)
+  if (payloads.length) {
+    const obj = payloads[0] as Record<string, unknown> | undefined
+    if (obj && typeof obj.telegram === 'string' && obj.telegram.trim()) {
+      telegram = obj.telegram.trim()
+    }
   }
   // 1. 取出结构校验通过的指令
   const structureOk = result.orders.filter((_, i) => !result.errors[i].length)
@@ -66,7 +75,7 @@ async function invokeFactionAI(faction: Owner, context: string): Promise<GameOrd
       text: r.reason,
     })
   }
-  return strategic.approved
+  return { orders: strategic.approved, telegram }
 }
 
 /** 调用世界 AI 批量生成 minor 政权事件 */
@@ -153,18 +162,23 @@ async function invokeWorldAIBatch(
   return strategicOk
 }
 
-/** 调用世界 AI 做 P4 总结（叙事 + 推进日期） */
+/** 调用世界 AI 做 P4 总结（叙事 + 推进日期 + 世界公屏电报） */
 async function invokeWorldAISettle(
   currentDate: string,
-): Promise<{ narrative: string; newDate: string }> {
+): Promise<{ narrative: string; newDate: string; chatter: { name?: string; from: string; content: string }[] }> {
   const systemPrompt = `你是民国军阀推演游戏的「世界 AI」叙事者。本回合各势力的行动已经执行完毕。
 
 请产出：
 1. narrative: 2-4 句中文叙事，总结本回合重大事件
 2. newDate: 推进后的新日期（ISO 格式），通常推进 5-10 天
+3. chatter: 1-3 条势力时局短评（世界公屏电报）。以 1-3 个势力的口吻，对本回合局势各发表一句短评。
+   - 可以是吃瓜、嘲讽、放话、感慨，不一定跟玩家有关
+   - 每条 20-40 字，性格鲜明，半文言
+   - from 用势力代号（KMT/CCP/FENG/JIN/GUI 等），name 用领袖名
+   - 如果本回合没什么大事，chatter 可以为空数组 []
 
 返回 JSON 格式：
-{ "narrative": "全境战报…", "newDate": "1931-04-10" }`
+{ "narrative": "全境战报…", "newDate": "1931-04-10", "chatter": [{ "name": "蒋介石", "from": "KMT", "content": "…" }] }`
 
   // P4 总结返回值结构特殊（narrative + newDate），不走 invokeAgentDecision，直接调 callLlm + 自取字段
   // user 消息走 buildSettleContext：自带当前日期 + sinceDateAdvance 历史 + 引导语（#5.3 改动）
@@ -175,10 +189,14 @@ async function invokeWorldAISettle(
     ],
   })
   const payloads = extractPayloads(raw)
-  const obj = payloads[0] as Record<string, string> | undefined
+  const obj = payloads[0] as Record<string, unknown> | undefined
+  const chatterRaw = obj?.chatter as { name?: string; from: string; content: string }[] | undefined
   return {
-    narrative: obj?.narrative ?? '局势在无声中演变…',
-    newDate: obj?.newDate ?? currentDate,
+    narrative: (obj?.narrative as string) ?? '局势在无声中演变…',
+    newDate: (obj?.newDate as string) ?? currentDate,
+    chatter: Array.isArray(chatterRaw)
+      ? chatterRaw.filter((c) => c && typeof c.from === 'string' && typeof c.content === 'string' && c.content.trim())
+      : [],
   }
 }
 
@@ -242,22 +260,50 @@ async function runWorldTurn(): Promise<void> {
   const allOrders: GameOrder[] = []
 
   // 并行：related 各自独立 + unrelated 批量一次
-  const promises: Promise<GameOrder[]>[] = []
+  // invokeFactionAI 返回 { orders, telegram }；invokeWorldAIBatch 返回 GameOrder[]
+  const factionPromises: { faction: Owner; promise: Promise<{ orders: GameOrder[]; telegram?: string }> }[] = []
+  const batchPromises: Promise<GameOrder[]>[] = []
 
   for (const f of related) {
     const ctx = buildFactionContext(f)
-    promises.push(invokeFactionAI(f, ctx))
+    factionPromises.push({ faction: f, promise: invokeFactionAI(f, ctx) })
   }
 
   if (unrelated.length > 0) {
     const ctx = buildMinorContext(unrelated)
-    promises.push(invokeWorldAIBatch(unrelated, ctx))
+    batchPromises.push(invokeWorldAIBatch(unrelated, ctx))
   }
 
   // 并行等待
-  const results = await Promise.allSettled(promises)
+  const [factionResults, batchResults] = await Promise.all([
+    Promise.allSettled(factionPromises.map((p) => p.promise)),
+    Promise.allSettled(batchPromises),
+  ])
 
-  for (const r of results) {
+  // 收集 related 势力的指令 + 电报
+  let telegramCount = 0
+  const MAX_TELEGRAMS_PER_TURN = 2
+  factionResults.forEach((r, i) => {
+    if (r.status !== 'fulfilled') return
+    const { orders, telegram } = r.value
+    if (orders.length) allOrders.push(...orders)
+    // 电报：软上限每回合 2 封
+    if (telegram && telegramCount < MAX_TELEGRAMS_PER_TURN) {
+      const faction = factionPromises[i].faction
+      store.pushTelegram({
+        gameDate: snap.currentDate,
+        from: faction,
+        content: telegram,
+        channel: 'direct',
+        turn: store.turnCount,
+        leaderName: OWNER_DETAILS[faction]?.leader,
+      })
+      telegramCount++
+    }
+  })
+
+  // 收集 unrelated 批量指令
+  for (const r of batchResults) {
     if (r.status === 'fulfilled' && r.value.length) {
       allOrders.push(...r.value)
     }
@@ -277,10 +323,24 @@ async function runWorldTurn(): Promise<void> {
   progress.value = '世界 AI 总结中…'
 
   // P4 user 消息由 buildSettleContext 内部生成（#5.3：buildSettleContext 自取 sinceDateAdvance 历史）
-  const { narrative, newDate } = await invokeWorldAISettle(snap.currentDate)
+  const { narrative, newDate, chatter } = await invokeWorldAISettle(snap.currentDate)
 
   // 系统结算叙事落 eventLog（kind='settlement' 让 aiHistory 不带"玩家："前缀）
   store.applyEvent({ type: 'narrative', playerInput: '', aiMessage: narrative, kind: 'settlement' })
+
+  // 世界公屏电报：from 已是势力代号（如 KMT），直接使用
+  if (chatter.length) {
+    for (const c of chatter) {
+      store.pushTelegram({
+        gameDate: newDate,
+        from: c.from,
+        content: c.content,
+        channel: 'world',
+        turn: store.turnCount,
+        leaderName: c.name,
+      })
+    }
+  }
 
   // 推进日期：入调度器走末尾蒙太奇（playTimeJump 含云雾演出 + toast）
   if (newDate !== snap.currentDate) {

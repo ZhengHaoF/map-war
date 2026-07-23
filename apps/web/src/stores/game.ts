@@ -15,6 +15,24 @@ export interface BattleInfo {
   active: boolean
 }
 
+/** 电报（AI 自主生成，非世界态事件，不进 eventLog） */
+export interface Telegram {
+  id: string
+  /** 游戏内日期 */
+  gameDate: string
+  /** 发报势力（世界公屏可非 Owner，用 'WORLD' 占位） */
+  from: string
+  /** AI 返回的发报人名称（优先用于显示，不一定是最高领导） */
+  leaderName?: string
+  /** 正文 */
+  content: string
+  /** direct = 往来势力私信；world = 天下公屏 */
+  channel: 'direct' | 'world'
+  /** 回合序号 */
+  turn: number
+  read: boolean
+}
+
 /**
  * 世界态快照 —— 供 AI 读取的「只读、脱离响应式」视图。
  * getSnapshot() 返回的是普通对象拷贝，序列化给 LLM 安全，
@@ -66,6 +84,10 @@ interface SaveData {
   playerName: string
   currentFaction: Owner | null
   eventLog: GameEvent[]
+  /** 电报历史（v1 新增，老存档兼容缺省 []） */
+  telegrams?: Telegram[]
+  /** 回合计数（v1 新增，老存档兼容缺省 0） */
+  turnCount?: number
 }
 
 /** 存档摘要（供选择界面用，不入存档文件） */
@@ -130,6 +152,11 @@ export const useGameStore = defineStore('game', () => {
     Owner.TIB,
   ])
   const battles = ref<BattleInfo[]>([])
+
+  // ── 电报（AI 自主生成，不进 eventLog，单独持久化）──
+  const telegrams = ref<Telegram[]>([])
+  const turnCount = ref(0) // 当前回合序号（dateAdvance 时 +1）
+  let _tgSeq = 0 // 模块内自增 id，无需持久化（id 已含时间戳）
 
   // ── 派生（不存）──
   const myCities = computed(() =>
@@ -241,6 +268,8 @@ export const useGameStore = defineStore('game', () => {
     currentFaction.value = null
     eventLog.value = [] // 重置事件日志
     battles.value = []   // 重置战斗列表（否则重复读档会叠加）
+    telegrams.value = [] // 重置电报
+    turnCount.value = 0
   }
 
   function selectFaction(f: Owner): void {
@@ -358,6 +387,7 @@ export const useGameStore = defineStore('game', () => {
     // 3. 非城市态事件：无 targetGb，提前处理并 return
     if (e.type === 'dateAdvance') {
       currentDate.value = e.date
+      turnCount.value++
       if (!isReplaying.value) autoSave()
       return { ok: true }
     }
@@ -449,6 +479,8 @@ export const useGameStore = defineStore('game', () => {
       playerName: playerName.value,
       currentFaction: currentFaction.value,
       eventLog: eventLog.value,
+      telegrams: telegrams.value,
+      turnCount: turnCount.value,
     }
     try {
       localStorage.setItem(`${SAVE_PREFIX}${slot}`, JSON.stringify(data))
@@ -487,6 +519,8 @@ export const useGameStore = defineStore('game', () => {
         }
       }
       eventLog.value = data.eventLog
+      telegrams.value = data.telegrams ?? []
+      turnCount.value = data.turnCount ?? 0
 
       return true
     } catch {
@@ -559,6 +593,35 @@ export const useGameStore = defineStore('game', () => {
     save(AUTO_SLOT, { label: `自动存档 ${currentDate.value}` })
   }
 
+  // ── 电报（不进 eventLog，非世界态）──
+
+  function pushTelegram(t: Omit<Telegram, 'id' | 'read'>): void {
+    telegrams.value.push({
+      ...t,
+      id: `tg_${Date.now()}_${_tgSeq++}`,
+      read: false,
+    })
+  }
+
+  /** 标记某频道（势力 from 或 'world'）所有电报已读 */
+  function markChannelRead(from: string): void {
+    for (const t of telegrams.value) {
+      if (t.from === from && !t.read) t.read = true
+    }
+  }
+
+  /** 未读电报总数（供按钮角标） */
+  const unreadCount = computed(() => telegrams.value.filter((t) => !t.read).length)
+
+  /** 未读电报按频道分组（供面板列表角标） */
+  const unreadByChannel = computed(() => {
+    const m: Record<string, number> = {}
+    for (const t of telegrams.value) {
+      if (!t.read) m[t.from] = (m[t.from] ?? 0) + 1
+    }
+    return m
+  })
+
   return {
     cities,
     ownership,
@@ -592,5 +655,12 @@ export const useGameStore = defineStore('game', () => {
     deleteSave,
     listSaves,
     requestMapReload,
+    // 电报
+    telegrams,
+    turnCount,
+    pushTelegram,
+    markChannelRead,
+    unreadCount,
+    unreadByChannel,
   }
 })

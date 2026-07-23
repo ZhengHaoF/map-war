@@ -7,6 +7,10 @@ import { ref } from 'vue'
 let counter = 1000
 
 export function useZIndex(initial?: number) {
+  // 若外部传了更高的初始值，对齐 counter，避免 bringToFront 压不过静态高值面板
+  if (initial !== undefined && initial >= counter) {
+    counter = initial + 1
+  }
   const zIndex = ref(initial ?? counter++)
 
   function bringToFront() {

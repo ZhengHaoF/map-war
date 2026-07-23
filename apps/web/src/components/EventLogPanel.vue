@@ -193,6 +193,7 @@ function describe(e: GameEvent): string {
 .row--battleStart .row-badge   { background: #c0392b; color: #fff; }
 .row--battleEnd .row-badge     { background: #b0a08a; color: #4a3520; }
 .row--selectFaction .row-badge { background: var(--cinnabar); color: #fff; }
+.row--moveTroops .row-badge   { background: #4a7d9a; color: #fff; }
 .row--narrative .row-badge    { background: #5a7a6a; color: #e8f0ea; }
 
 /* 特殊行标记 */

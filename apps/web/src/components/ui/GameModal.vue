@@ -12,6 +12,7 @@
           class="modal"
           :class="{ draggable, parchment: variant === 'parchment' }"
           :style="modalStyle"
+          @mousedown="onModalMouseDown"
         >
           <div class="modal-header" :class="{ draggable }" @mousedown.prevent="onDragStart">
             <span class="modal-title">{{ title }}</span>
@@ -83,6 +84,12 @@ const modalStyle = computed<Record<string, string>>(() => {
   }
   return style
 })
+
+function onModalMouseDown(): void {
+  if (props.draggable) {
+    bringToFront()
+  }
+}
 
 function onDragStart(e: MouseEvent): void {
   if (!props.draggable) return

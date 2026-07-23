@@ -36,6 +36,15 @@
         <component :is="ICONS['user']" :size="16" />
         顾问
       </GameButton>
+      <GameButton tooltip="军机电报" :active="telegramVisible" @click="telegramVisible = !telegramVisible">
+        <component :is="ICONS['mail']" :size="16" />
+        电报
+        <span v-if="unreadCount > 0" class="tg-nav-badge">{{ unreadCount > 9 ? '9+' : unreadCount }}</span>
+      </GameButton>
+      <GameButton tooltip="查看世界事件日志" @click="eventLogPanelVisible = true">
+        <component :is="ICONS['clipboard-text']" :size="16" />
+        事件日志
+      </GameButton>
       <div class="switcher-divider"></div>
       <GameButton @click="testPanelVisible = !testPanelVisible">
         <component :is="ICONS['bug']" :size="16" />
@@ -125,9 +134,6 @@
         <GameButton @click="loadTest"
           ><component :is="ICONS['stack-2']" :size="16" />读档测试</GameButton
         >
-        <GameButton @click="eventLogPanelVisible = true"
-          ><component :is="ICONS['clipboard-text']" :size="16" />事件日志</GameButton
-        >
       </div>
     </GameModal>
     <GameModal v-if="isDev" class="map-ui"
@@ -215,6 +221,7 @@
     </div>
     <PlayerAiPanel :visible="commandVisible" @close="commandVisible = false" />
     <AdvisorPanel :visible="advisorVisible" @close="advisorVisible = false" />
+    <TelegramPanel :visible="telegramVisible" @close="telegramVisible = false" />
     <PlayerStatusPanel :visible="overviewVisible" @close="overviewVisible = false" />
     <div class="disclaimer-bar map-ui" @click="disclaimerVisible = true">
       ⚠
@@ -249,6 +256,7 @@ import GameContextMenu from '@/components/ui/GameContextMenu.vue'
 import GameModal from '@/components/ui/GameModal.vue'
 import PlayerAiPanel from '@/components/PlayerAiPanel.vue'
 import AdvisorPanel from '@/components/AdvisorPanel.vue'
+import TelegramPanel from '@/components/TelegramPanel.vue'
 import PlayerStatusPanel from '@/components/PlayerStatusPanel.vue'
 import InfoTable from '@/components/ui/InfoTable.vue'
 import LegendPanel from '@/components/ui/LegendPanel.vue'
@@ -268,6 +276,7 @@ import IconCircleX from '~icons/tabler/circle-x'
 import IconX from '~icons/tabler/x'
 import IconBrain from '~icons/tabler/brain'
 import IconUser from '~icons/tabler/user'
+import IconMail from '~icons/tabler/mail'
 import IconCloud from '~icons/tabler/cloud'
 import IconClipboardText from '~icons/tabler/clipboard-text'
 import AiDebugPanel from '@/components/AiDebugPanel.vue'
@@ -294,6 +303,7 @@ const ICONS: Record<string, Component> = {
   x: IconX,
   brain: IconBrain,
   user: IconUser,
+  mail: IconMail,
   cloud: IconCloud,
   'clipboard-text': IconClipboardText,
 }
@@ -401,9 +411,11 @@ const overviewVisible = ref(false)
 const commandVisible = ref(false)
 /** 战略顾问弹窗是否打开 */
 const advisorVisible = ref(false)
+const telegramVisible = ref(false)
 const battleListVisible = ref(false)
 const eventLogPanelVisible = ref(false)
 const battleList = computed(() => useGameStore().battles)
+const unreadCount = computed(() => useGameStore().unreadCount)
 const disclaimerVisible = ref(false)
 const ownerColorEnabled = ref(true)
 const labelsVisible = ref(false)
@@ -1337,6 +1349,23 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+.tg-nav-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 99px;
+  background: var(--cinnabar, #b04a3a);
+  color: #fff;
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 3px;
+  line-height: 1;
+}
+
 .map-shell {
   position: relative;
   width: 100vw;

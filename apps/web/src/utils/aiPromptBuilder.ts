@@ -43,7 +43,9 @@ export function buildSystemPrompt(kind: AiKind = 'world'): string {
  */
 export function buildPlayerProfile(): string {
   const store = useGameStore()
-  return `玩家名称：${store.playerName || '（未设置）'}\n玩家势力：${store.currentFaction ?? '（未选）'}`
+  const faction = store.currentFaction
+  const factionLabel = faction ? (OWNER_LABELS[faction] ?? faction) : undefined
+  return `玩家名称：${store.playerName || '（未设置）'}\n玩家势力：${factionLabel ? `${factionLabel}（${faction}）` : '（未选）'}`
 }
 
 /** 玩家基本信息，注入为一条 system 消息。 */
@@ -148,12 +150,17 @@ export function buildFactionSystemPrompt(faction: Owner): string {
   "orders": [
     { "order": "battle", "from": "太原", "to": "洛阳" },
     { "order": "moveTroops", "from": "大同", "to": "太原", "amount": 10 }
-  ]
+  ],
+  "telegram": "（可选）给玩家的一封电报"
 }
 
 注意：
 - 如果本回合无行动，orders 为空数组 []
 - msg 必须是一句自然中文叙事
+- telegram 字段是可选的。你可以选择给玩家发一封电报，也可以不发（不写这个字段即为沉默）。
+  发的情境：被冒犯、想威胁、想求和、想嘲讽、想离间、纯粹看玩家不顺眼。
+  不发的情境：局势与己无关、在憋大招不想暴露意图、懒得理。
+  如果发：50-80字，半文言，符合你的性格，可以引典故。只写电报内容本身，不要加"电报："前缀。
 
 ═══════════════════════════════════════
   可用指令
