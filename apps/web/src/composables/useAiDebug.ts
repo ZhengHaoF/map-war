@@ -29,7 +29,10 @@ import {
   extractPayloads,
   extractAiMessage,
   isUnifiedResult,
+  isFreeActionResult,
   unwrapData,
+  type FreeActionResult,
+  type FreeActionPayload,
 } from '@/utils/aiParse'
 import type { GameOrder } from '@/utils/gameOrders'
 
@@ -86,6 +89,8 @@ export function useAiDebug(mode: AiMode = 'world') {
   const strategicRejected = ref<{ order: GameOrder; reason: string }[]>([])
   /** AI 一次调用产出的可行性判断（从 results 中提取） */
   const worldValidation = ref<WorldValidationResult | null>(null)
+  /** 自由行动管道：AI 判定为非指令类行动时，存储叙事 + 事件列表 */
+  const freeActionResult = ref<FreeActionPayload | null>(null)
 
   /**
    * 硬编码战略规则拦截（同步，零 LLM 成本）。
@@ -156,6 +161,7 @@ export function useAiDebug(mode: AiMode = 'world') {
     parseError.value = null
     aiMessage.value = null
     worldValidation.value = null
+    freeActionResult.value = null
     execResults.value = []
 
     // 本轮历史取「此前」的 eventLog（当前回合尚未落 narrative），不含自己。
@@ -191,6 +197,27 @@ export function useAiDebug(mode: AiMode = 'world') {
         // 顾问模式不写入 eventLog，只存储在本地
       } else {
         parseError.value = '顾问AI回复格式错误：缺少 reply 字段'
+      }
+      return
+    }
+
+    // ── user 模式：自由行动 {msg, freeAction: {narrative, success, effects[]}} ──
+    if (mode === 'user' && isFreeActionResult(merged)) {
+      const fa = merged as FreeActionResult
+      aiMessage.value = fa.msg ?? fa.freeAction.narrative
+      freeActionResult.value = fa.freeAction
+      // 落 narrative 到 eventLog
+      if (aiMessage.value) {
+        store.applyEvent({
+          type: 'narrative',
+          playerInput: userMessage.value.trim(),
+          aiMessage: aiMessage.value,
+          kind: 'player',
+        })
+      }
+      // 成功则立即执行事件（失败则只叙事，不改世界态）
+      if (fa.freeAction.success && fa.freeAction.effects.length) {
+        await runExecuteFreeAction(fa.freeAction)
       }
       return
     }
@@ -243,6 +270,45 @@ export function useAiDebug(mode: AiMode = 'world') {
         aiMessage: aiMessage.value,
         kind: 'player',
       })
+    }
+  }
+
+  /** 自由行动管道：遍历 effects 逐个 applyEvent，执行前打快照支持撤销 */
+  async function runExecuteFreeAction(payload: FreeActionPayload): Promise<void> {
+    undoStack.value.push(store.snapshotForUndo())
+    for (const eff of payload.effects) {
+      switch (eff.type) {
+        case 'cityStatChange':
+          if (eff.targetGb && eff.field && eff.delta != null) {
+            store.applyEvent({
+              type: 'cityStatChange',
+              targetGb: eff.targetGb,
+              field: eff.field as 'industry' | 'food' | 'fort' | 'cityLevel',
+              delta: eff.delta,
+            })
+          }
+          break
+        case 'moraleChange':
+          if (eff.targetGb && eff.delta != null) {
+            store.applyEvent({ type: 'moraleChange', targetGb: eff.targetGb, delta: eff.delta })
+          }
+          break
+        case 'produce':
+          if (eff.targetGb && eff.amount != null) {
+            store.applyEvent({ type: 'produce', targetGb: eff.targetGb, amount: eff.amount })
+          }
+          break
+        case 'moveTroops':
+          if (eff.fromGb && eff.toGb && eff.amount != null) {
+            store.applyEvent({
+              type: 'moveTroops',
+              fromGb: eff.fromGb,
+              toGb: eff.toGb,
+              amount: eff.amount,
+            })
+          }
+          break
+      }
     }
   }
 
@@ -306,6 +372,7 @@ export function useAiDebug(mode: AiMode = 'world') {
     aiMessage.value = null
     strategicRejected.value = []
     worldValidation.value = null
+    freeActionResult.value = null
   }
 
   return {
@@ -326,6 +393,8 @@ export function useAiDebug(mode: AiMode = 'world') {
     strategicRejected,
     worldValidation,
     worldImpossible,
+    // 自由行动
+    freeActionResult,
     // 顾问模式
     advisorResponse,
     // 多轮对话

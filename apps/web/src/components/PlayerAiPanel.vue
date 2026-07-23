@@ -32,6 +32,17 @@
                   {{ entry.msg }}
                 </div>
 
+                <!-- 自由行动结果 -->
+                <div v-if="entry.freeAction" class="chat-free-action">
+                  <div class="chat-fa-badge" :class="{ fail: !entry.freeAction.success }">
+                    {{ entry.freeAction.success ? '自由行动' : '行动失败' }}
+                  </div>
+                  <div class="chat-fa-narrative">{{ entry.freeAction.narrative }}</div>
+                  <div v-if="entry.freeAction.success && entry.freeAction.effectCount" class="chat-fa-effects">
+                    已影响 {{ entry.freeAction.effectCount }} 项世界状态
+                  </div>
+                </div>
+
                 <!-- 指令摘要 -->
                 <div v-if="entry.orders.length" class="chat-orders">
                   <span
@@ -128,6 +139,7 @@ const {
   strategicRejected,
   worldValidation,
   worldImpossible,
+  freeActionResult,
   chatTurns,
   runSend,
   applyStrategicRules,
@@ -176,6 +188,8 @@ interface ChatEntry {
   rejected?: { label: string; reason: string }[]
   impossible?: { label: string; reason: string; suggestion?: string }[]
   validationSummary?: string
+  /** 自由行动：叙事已由 useAiDebug 落库，此处只存 effects 摘要供 UI 展示 */
+  freeAction?: { narrative: string; success: boolean; effectCount: number }
 }
 
 const statusText = computed(() => {
@@ -210,6 +224,25 @@ async function onSend(): Promise<void> {
   // 本轮用完后清空，避免跨模式残留
   chatTurns.value = []
 
+  // ── 自由行动路径：叙事 + 事件已由 useAiDebug 立即落地，此处只渲染 ──
+  if (freeActionResult.value) {
+    chatHistory.value.push({
+      user: userText,
+      msg: aiMessage.value,
+      orders: [],
+      freeAction: {
+        narrative: freeActionResult.value.narrative,
+        success: freeActionResult.value.success,
+        effectCount: freeActionResult.value.effects.length,
+      },
+    })
+    userMessage.value = ''
+    await nextTick()
+    if (logRef.value) logRef.value.scrollTop = logRef.value.scrollHeight
+    return
+  }
+
+  // ── 指令路径：结构校验 → 战略规则 → 世界AI裁定 → 提交执行 ──
   const orderItems: string[] = []
   if (parsed.value) {
     for (let i = 0; i < parsed.value.orders.length; i++) {
@@ -454,6 +487,49 @@ async function onSend(): Promise<void> {
   font-style: italic;
   padding-left: 4px;
   border-left: 2px solid rgba(160, 120, 40, 0.4);
+}
+
+/* ===== 自由行动 ===== */
+.chat-free-action {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  max-width: 96%;
+}
+
+.chat-fa-badge {
+  align-self: flex-start;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: rgba(178, 58, 46, 0.12);
+  color: var(--cinnabar, #b23a2e);
+  border: 1px solid rgba(178, 58, 46, 0.35);
+}
+
+.chat-fa-badge.fail {
+  background: rgba(120, 100, 60, 0.12);
+  color: #8a6020;
+  border-color: rgba(160, 120, 40, 0.4);
+}
+
+.chat-fa-narrative {
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--ink, #3a3128);
+  padding: 8px 12px;
+  background: var(--paper-hi, #fff);
+  border: 1px solid var(--paper-edge, rgba(160, 120, 40, 0.25));
+  border-radius: var(--radius-sm);
+  border-left: 3px solid var(--cinnabar, #b23a2e);
+}
+
+.chat-fa-effects {
+  font-size: 12px;
+  color: var(--ink-muted, #9c8a6a);
+  padding-left: 4px;
 }
 
 /* ===== 队列状态 ===== */

@@ -93,3 +93,37 @@ export function extractAiMessage(obj: unknown): string | null {
   const m = (obj as Record<string, unknown>).msg
   return typeof m === 'string' && m.trim() ? m.trim() : null
 }
+
+/** 自由行动事件（复用已有 reducer 事件类型） */
+export interface FreeActionEffect {
+  type: 'cityStatChange' | 'moraleChange' | 'produce' | 'moveTroops'
+  targetGb?: string
+  field?: string
+  delta?: number
+  amount?: number
+  fromGb?: string
+  toGb?: string
+}
+
+/** 自由行动载荷 */
+export interface FreeActionPayload {
+  narrative: string
+  success: boolean
+  effects: FreeActionEffect[]
+}
+
+/** 自由行动响应格式 */
+export interface FreeActionResult {
+  msg?: string | null
+  freeAction: FreeActionPayload
+}
+
+/** 判断是否为自由行动格式 */
+export function isFreeActionResult(obj: unknown): obj is FreeActionResult {
+  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return false
+  const o = obj as Record<string, unknown>
+  const fa = o.freeAction
+  return !!fa && typeof fa === 'object' && !Array.isArray(fa) &&
+    typeof (fa as Record<string, unknown>).narrative === 'string' &&
+    Array.isArray((fa as Record<string, unknown>).effects)
+}
