@@ -118,7 +118,7 @@
 
 <script setup lang="ts">
 import { ref, computed, reactive } from 'vue'
-import { useAiDebug } from '@/composables/useAiDebug'
+import { useAiOrchestrator } from '@/composables/useAiOrchestrator'
 import { useGameScheduler } from '@/composables/useGameScheduler'
 import GameButton from '@/components/ui/GameButton.vue'
 import { resolveLocationId, searchLocationNames } from '@/utils/locationResolver'
@@ -157,7 +157,7 @@ const {
   runSend,
   undo,
   resetWorld,
-} = useAiDebug()
+} = useAiOrchestrator()
 
 // Agent-Kernel 调度器（P0）：唯一执行路径 —— 队列 + 推进循环 + 停/续
 const { queue, status, stoppedAt, submit, advance } = useGameScheduler()

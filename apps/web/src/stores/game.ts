@@ -24,6 +24,8 @@ export interface Telegram {
   from: string
   /** AI 返回的发报人名称（优先用于显示，不一定是最高领导） */
   leaderName?: string
+  /** 收报势力（direct 频道必填，如 'SHX'、'KMT'） */
+  to?: string
   /** 正文 */
   content: string
   /** direct = 往来势力私信；world = 天下公屏 */
@@ -624,10 +626,17 @@ export const useGameStore = defineStore('game', () => {
     })
   }
 
-  /** 标记某频道（势力 from 或 'world'）所有电报已读 */
-  function markChannelRead(from: string): void {
+  /** 标记某频道（势力代号或 'world'）所有电报已读 */
+  function markChannelRead(channel: string): void {
     for (const t of telegrams.value) {
-      if (t.from === from && !t.read) t.read = true
+      if (!t.read) {
+        if (channel === 'world') {
+          if (t.channel === 'world') t.read = true
+        } else {
+          // direct 频道：匹配该势力的所有往来电报（它发的 / 玩家发给它的）
+          if (t.channel === 'direct' && (t.from === channel || t.to === channel)) t.read = true
+        }
+      }
     }
   }
 
@@ -638,7 +647,11 @@ export const useGameStore = defineStore('game', () => {
   const unreadByChannel = computed(() => {
     const m: Record<string, number> = {}
     for (const t of telegrams.value) {
-      if (!t.read) m[t.from] = (m[t.from] ?? 0) + 1
+      if (!t.read) {
+        // direct 频道按对话对方分组：玩家发的 → to 字段；势力发的 → from 字段
+        const key = t.channel === 'direct' && t.from === 'PLAYER' ? (t.to || 'PLAYER') : t.from
+        m[key] = (m[key] ?? 0) + 1
+      }
     }
     return m
   })

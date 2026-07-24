@@ -35,6 +35,8 @@ import {
   type FreeActionPayload,
 } from '@/utils/aiParse'
 import type { GameOrder } from '@/utils/gameOrders'
+import { invokeTelegramReply } from '@/utils/aiInvoke'
+import { Owner, OWNER_DETAILS, OWNER_LABELS } from '@/data/owners'
 
 export interface ExecResult {
   order: GameOrder
@@ -62,7 +64,7 @@ interface UnifiedAiResponse {
 
 export type AiMode = AiKind
 
-export function useAiDebug(mode: AiMode = 'world') {
+export function useAiOrchestrator(mode: AiMode = 'world') {
   const store = useGameStore()
   const { loading, error, response, send } = useAiChat()
 
@@ -71,7 +73,7 @@ export function useAiDebug(mode: AiMode = 'world') {
   const systemPrompt = ref(buildSystemPrompt(mode))
   const userMessage = ref('')
   const injectContext = ref(mode === 'user')
-  // 历史注入：玩家模式默认开（AI 操作台始终带记忆），god-mode 默认关（调试时手动开）。
+  // 历史注入：玩家模式���认开（AI 操作台始终带记忆），god-mode 默认关（调试时手动开）。
   const injectHistory = ref(mode === 'user')
   const parsed = ref<BatchValidation | null>(null)
   const parseError = ref<string | null>(null)
@@ -273,11 +275,21 @@ export function useAiDebug(mode: AiMode = 'world') {
     }
   }
 
-  /** 自由行动管道：遍历 effects 逐个 applyEvent，执行前打快照支持撤销 */
+  /**
+   * 自由行动管道：遍历 effects 逐个 applyEvent，执行前打快照支持撤销。
+   *
+   * 支持的 effects 类型：
+   * - cityStatChange：调整城市属性（工业/粮食/工事/城级），如办学、筑防、建设等开放行动
+   * - moraleChange：调整城市士气，如演讲、整肃、宣传等精神层面行动
+   * - produce：征兵，如招募民夫、扩编军队等兵力增长行动
+   * - moveTroops：调兵，如军队转移、撤退、换防等兵力调动行动
+   * - sendTelegram：发送电报，如求助、威胁、求和、离间等外交行动
+   */
   async function runExecuteFreeAction(payload: FreeActionPayload): Promise<void> {
     undoStack.value.push(store.snapshotForUndo())
     for (const eff of payload.effects) {
       switch (eff.type) {
+        // 城市属性变更：工业/粮食/工事/城级（如办学、筑防、建设等开放行动）
         case 'cityStatChange':
           if (eff.targetGb && eff.field && eff.delta != null) {
             store.applyEvent({
@@ -288,16 +300,19 @@ export function useAiDebug(mode: AiMode = 'world') {
             })
           }
           break
+        // 士气变更：调整城市士气（如演讲、整肃、宣传等精神层面行动）
         case 'moraleChange':
           if (eff.targetGb && eff.delta != null) {
             store.applyEvent({ type: 'moraleChange', targetGb: eff.targetGb, delta: eff.delta })
           }
           break
+        // 征兵：增加城市驻军（如招募民夫、扩编军队等兵力增长行动）
         case 'produce':
           if (eff.targetGb && eff.amount != null) {
             store.applyEvent({ type: 'produce', targetGb: eff.targetGb, amount: eff.amount })
           }
           break
+        // 调兵：从 A 城搬运兵力到 B 城（如军队转移、撤退、换防等兵力调动行动）
         case 'moveTroops':
           if (eff.fromGb && eff.toGb && eff.amount != null) {
             store.applyEvent({
@@ -306,6 +321,53 @@ export function useAiDebug(mode: AiMode = 'world') {
               toGb: eff.toGb,
               amount: eff.amount,
             })
+          }
+          break
+        // 发送电报：将电报存入往来记录（如求助、威胁、求和、离间等外交行动），并即时触发对方回信
+        case 'sendTelegram':
+          if (eff.to && eff.content) {
+            store.pushTelegram({
+              gameDate: store.currentDate,
+              from: 'PLAYER',
+              to: eff.to,
+              content: eff.content,
+              channel: 'direct',
+              turn: store.turnCount,
+            })
+            // 即时回信：对方收到电报后立即回复（与电报面板 invokeDirectReply 同逻辑）
+            try {
+              const detail = OWNER_DETAILS[eff.to]
+              const label = OWNER_LABELS[eff.to as Owner] ?? eff.to
+              const leader = detail?.leader ?? label
+              const history = store.telegrams
+                .filter((t) => t.channel === 'direct' && (t.from === eff.to || t.to === eff.to))
+                .slice(-6)
+                .map((t) => ({ from: t.from === 'PLAYER' ? 'player' as const : 'faction' as const, text: t.content }))
+              const situation = `${label}，拥有${store.factionCities(eff.to as Owner).length}城，兵力约${store.factionTroops(eff.to as Owner)}k`
+              const items = await invokeTelegramReply({
+                factionName: leader,
+                factionTag: label,
+                factionCode: eff.to,
+                personality: detail?.description?.slice(0, 20) ?? '沉稳',
+                situation,
+                recentChat: history,
+                playerMessage: eff.content,
+                mode: 'direct',
+              })
+              if (items.length && items[0].content) {
+                store.pushTelegram({
+                  gameDate: store.currentDate,
+                  from: eff.to,
+                  to: 'PLAYER',
+                  content: items[0].content,
+                  channel: 'direct',
+                  turn: store.turnCount,
+                  leaderName: items[0].name ?? leader,
+                })
+              }
+            } catch {
+              // 回信失败静默处理，不影响主流程
+            }
           }
           break
       }
@@ -333,7 +395,7 @@ export function useAiDebug(mode: AiMode = 'world') {
           valid: true,
           errors: [],
           result: { ok: false, reason: (e as Error).message },
-          detail: '执行抛错',
+          detail: '��行抛错',
         })
       }
     }

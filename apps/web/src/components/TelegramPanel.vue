@@ -162,7 +162,8 @@ const msgRef = ref<HTMLElement | null>(null)
 const unreadByChannel = computed(() => store.unreadByChannel)
 const unreadTotal = computed(() => store.unreadCount)
 
-// ── 左侧列表：按 from 分组（仅 direct 频道）──
+// ── 左侧列表：按对话对方分组（仅 direct 频道）──
+// 分组 key：玩家发给 X 或 X 发给玩家，都归入 X 频道
 interface ChannelSummary {
   from: string
   lastContent: string
@@ -173,9 +174,12 @@ const channelList = computed<ChannelSummary[]>(() => {
   const map = new Map<string, Telegram>()
   for (const t of store.telegrams) {
     if (t.channel !== 'direct') continue
-    const prev = map.get(t.from)
+    // 确定对话对方：玩家发的 → to 字段；势力发的 → from 字段
+    const counterpart = t.from === 'PLAYER' ? (t.to || 'UNKNOWN') : t.from
+    if (counterpart === 'UNKNOWN') continue
+    const prev = map.get(counterpart)
     if (!prev || t.turn > prev.turn || (t.turn === prev.turn && t.id > prev.id)) {
-      map.set(t.from, t)
+      map.set(counterpart, t)
     }
   }
   return [...map.entries()]
@@ -195,8 +199,11 @@ interface DisplayMsg {
 
 const activeMessages = computed<DisplayMsg[]>(() => {
   const channel = activeChannel.value
+  // direct 频道：显示该势力的所有往来电报（玩家发给它的 + 它发给玩家的）
   const msgs = store.telegrams.filter((t) =>
-    channel === 'world' ? t.channel === 'world' : t.from === channel && t.channel === 'direct',
+    channel === 'world'
+      ? t.channel === 'world'
+      : t.channel === 'direct' && (t.from === channel || t.to === channel),
   )
 
   const result: DisplayMsg[] = []
@@ -237,6 +244,7 @@ async function onSend(): Promise<void> {
   store.pushTelegram({
     gameDate: store.currentDate,
     from: 'PLAYER',
+    to: channel === 'world' ? undefined : channel,
     content: text,
     channel: channel === 'world' ? 'world' : 'direct',
     turn: store.turnCount,
@@ -269,6 +277,7 @@ async function onSend(): Promise<void> {
       store.pushTelegram({
         gameDate: store.currentDate,
         from: channel,
+        to: 'PLAYER',
         content: reply.content,
         channel: 'direct',
         turn: store.turnCount,
@@ -292,7 +301,7 @@ async function invokeDirectReply(faction: string, playerMsg: string): Promise<{ 
 
   // 取最近 6 条对话作为上下文
   const history = store.telegrams
-    .filter((t) => t.channel === 'direct' && (t.from === faction || t.from === 'PLAYER'))
+    .filter((t) => t.channel === 'direct' && (t.from === faction || t.to === faction))
     .slice(-6)
     .map((t) => ({ from: t.from === 'PLAYER' ? 'player' as const : 'faction' as const, text: t.content }))
 
@@ -687,6 +696,7 @@ watch(
   color: var(--ink-strong, #2c1a0a);
   border: 1px solid var(--brown-line, #b8a07a);
   border-bottom-right-radius: 4px;
+  max-width: 72%; /* 与对方气泡（.tg-msg-body）宽度约束保持一致 */
 }
 
 .tg-bubble--other {

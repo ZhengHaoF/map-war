@@ -114,8 +114,9 @@ export function buildFactionContext(faction: Owner): string {
   }
 
   // 电报往来（该势力 vs 玩家，最近 6 条）
+  // 过滤逻辑：该势力发的（from === faction）或发给该势力的（to === faction）
   const telegrams = store.telegrams.filter(
-    (t) => t.channel === 'direct' && (t.from === faction || t.from === 'PLAYER'),
+    (t) => t.channel === 'direct' && (t.from === faction || t.to === faction),
   )
   if (telegrams.length) {
     const recent = telegrams.slice(-6)

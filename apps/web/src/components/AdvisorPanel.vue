@@ -73,7 +73,7 @@
 
 <script setup lang="ts">
 import { ref, computed, nextTick } from 'vue'
-import { useAiDebug } from '@/composables/useAiDebug'
+import { useAiOrchestrator } from '@/composables/useAiOrchestrator'
 import GameButton from '@/components/ui/GameButton.vue'
 import GameModal from '@/components/ui/GameModal.vue'
 import IconSend from '~icons/tabler/send'
@@ -86,7 +86,7 @@ const {
   aiMessage,
   advisorResponse,
   runSend,
-} = useAiDebug('advisor')
+} = useAiOrchestrator('advisor')
 
 const busy = computed(() => loading.value)
 

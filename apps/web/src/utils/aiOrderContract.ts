@@ -613,7 +613,8 @@ export const PLAYER_AI_UNIFIED_PROMPT = `你是民国军阀推演游戏的世界
     "success": true,
     "effects": [
       {"type":"cityStatChange","targetGb":"156500000","field":"industry","delta":5},
-      {"type":"moraleChange","targetGb":"156500000","delta":8}
+      {"type":"moraleChange","targetGb":"156500000","delta":8},
+      {"type":"sendTelegram","to":"SHX","content":"恳请阎督军出兵相助，共抗强敌"}
     ]
   }
 }
@@ -624,15 +625,24 @@ export const PLAYER_AI_UNIFIED_PROMPT = `你是民国军阀推演游戏的世界
 · 不要强行把自由行动塞进指令，也不要把明确的指令行动放进 freeAction。
 
 ═══ freeAction 的 effects 规则 ═══
-· effects 只能用以下四种事件类型（复用世界态 reducer，不新增）：
+· effects 只能用以下五种事件类型（复用世界态 reducer，不新增）：
   - cityStatChange：targetGb + field("industry"/"food"/"fort") + delta（数值，工业/粮食/工事范围 0-100，单次调整建议 5-20）
   - moraleChange：targetGb + delta（士气增量，可正可负，范围 0-100）
   - produce：targetGb + amount（征兵，单位 k，正数）
   - moveTroops：fromGb + toGb + amount（调兵，单位 k）
+  - sendTelegram：to + content（发送电报，见下方说明）
 · targetGb / fromGb / toGb 一律用城市的 GB 编码（见世界态上下文中每座城的 gb 字段），不要用城市中文名。
 · success=false 时（行动失败，如暗杀失手、决堤不成），effects 应为空数组，只留 narrative 说明失败缘由。
 · effects 数量要克制——一个行动通常 0-3 条事件，不要为一句话刷一屏事件。
 · 你可以裁定行动失败：不合常理、玩家无能为力的事，返回 success=false 并在 narrative 说明。
+
+═══ sendTelegram 格式 ═══
+· 适用场景：玩家通过自由行动向某势力发送电报（如求助、威胁、求和、离间等）
+· 字段：
+  - to：势力代号（如 "SHX"、"KMT"、"CCP"），不要用中文名
+  - content：电报正文（50-80字，半文言，符合玩家身份和语气）
+· 示例：{"type":"sendTelegram","to":"SHX","content":"恳请阎督军出兵相助，共抗强敌"}
+· 注意：sendTelegram 不影响世界态，只将电报存入往来记录，对方势力在 P3 阶段决策时可见
 
 注意（路径 A）：
 - results 数组中每条对应玩家意图的一个行动，按执行顺序排列
