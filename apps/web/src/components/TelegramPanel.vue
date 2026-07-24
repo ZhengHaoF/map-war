@@ -398,8 +398,9 @@ function factionHexColor(from: string): string {
 
 function avatarChar(from: string): string {
   if (from === 'world') return '世'
-  const detail = OWNER_DETAILS[from]
-  return detail?.leader?.[0] ?? (OWNER_LABELS[from as Owner]?.[0] ?? from[0])
+  // 用政权名称的首个字（如 晋系→晋、桂系→桂、川军→川）
+  const label = OWNER_LABELS[from as Owner]
+  return label?.[0] ?? from[0]
 }
 
 function avatarStyle(from: string): Record<string, string> {
