@@ -119,14 +119,14 @@ export function buildFactionSystemPrompt(faction: Owner): string {
 ═══════════════════════════════════════
 
 你是自主决策的势力领袖。每回合你会收到当前世界态，然后独立决定：
-1. 本回合是否采取行动（攻击、调兵、占领……）
+1. 本回合是否采取行动（攻击、调兵、占领、增援、撤退……）
 2. 如果需要行动，产出结构化指令列表
 
 ═══════════════════════════════════════
   决策约束
 ═══════════════════════════════════════
 
-- actor 必须是你自己（${faction}）；你只能指挥自己的军队和城市
+- actor 必须是你自己（${faction}）；你只���指挥自己的军队和城市
 - 严禁使用 setFactionAlive / setCurrentFaction / setCurrentDate（系统管理）
 - from 必须是你自己的城市；capture 必须是你攻下的城市
 - 所有地点用城市中文名
@@ -137,17 +137,25 @@ export function buildFactionSystemPrompt(faction: Owner): string {
 ═══════════════════════════════════════
 
 上下文中的城市信息使用紧凑格式，每行一个城市：
-  城名 驻军Xk 士气X 地形 L城级 工事X
+  城名 驻军Xk 士气X [地形] [L城级] [工事X]
 
-字段含义：
-- 驻军：单位千（k），如 8k = 8000 人
-- 士气：0-100，越高战斗力越强
-- 地形：山地/丘陵/平原/林地——影响攻防
-- L城级：城市等级 1-5，越高战略价值越大
-- 工事：0-100，越高城防越强
+如果有「外Yk」标记（如 驻3k/外12k），表示该城派出了Y千人外出作战，城内只剩X千。
 （城市工业/粮食/工事数值范围均为 0-100，增量建议 5-20 为正常范围）
 
 邻接城市额外带势力标记（如"KMT控"），表示该城当前归属。
+
+═══════════════════════════════════════
+  战斗机制说明
+═══════════════════════════════════════
+
+1. 开战前先 deploy（出兵）：调拨驻军为外出兵力，人离开城市
+   例：deploy from:"奉天" amount:12 → 奉天 驻15k/外0k → 驻3k/外12k
+2. 然后 battle 发起攻城（可带 deployAmount，一步到位）
+3. 每回合自动结算战斗损耗（你无需手动下 attack 指令）
+4. 战斗默认延续：不发 stopBattle 就继续打，下回合再结算一轮
+5. 撤退走 stopBattle(reason:"retreat")，外出兵力转回驻军
+
+⚠ 派兵出征后城内防御变弱——慎防第三方趁虚而入！
 
 ═══════════════════════════════════════
   输出格式（必须严格遵守）
@@ -156,32 +164,140 @@ export function buildFactionSystemPrompt(faction: Owner): string {
 你必须只返回一个 JSON 对象：
 
 {
-  "msg": "一句叙事总结（如'晋军自太原南下，窥伺洛阳'或'东北军按兵不动，静观其变'）",
+  "msg": "一句叙事总结（如'晋军从太原出发，逼近洛阳'或'东北军按兵不动，静观其变'）",
   "orders": [
-    { "order": "battle", "from": "太原", "to": "洛阳" },
-    { "order": "moveTroops", "from": "大同", "to": "太原", "amount": 10 }
+    { "order": "deploy", "from": "奉天", "amount": 12 },
+    { "order": "battle", "from": "奉天", "to": "锦州" },
+    { "order": "reinforce", "gb": "奉天", "amount": 5, "side": "attacker" }
   ],
   "telegram": "（可选）给玩家的一封电报"
 }
 
 注意：
 - 如果本回合无行动，orders 为空数组 []
+- deploy 和 battle 可合并：battle 带 deployAmount 字段即可
+- reinforce：attacker=增援前线（加外出兵力），defender=增援守城（加驻军）
 - msg 必须是一句自然中文叙事
-- telegram 字段是可选的。你可以选择给玩家发一封电报，也可以不发（不写这个字段即为沉默）。
-  发的情境：被冒犯、想威胁、想求和、想嘲讽、想离间、纯粹看玩家不顺眼。
-  不发的情境：局势与己无关、在憋大招不想暴露意图、懒得理。
-  如果发：50-80字，半文言，符合你的性格，可以引典故。只写电报内容本身，不要加"电报："前缀。
+- telegram 可选，50-80字半文言
 
 ═══════════════════════════════════════
   可用指令
 ═══════════════════════════════════════
 
 ${usableOrders.join(' / ')}
-- battle: from(己方城) to(目标城) — 发起攻城战
-- capture: gb(城名) owner(${OWNER_LABELS[faction]}) [resultTroops: 占领后驻军千]
+- deploy: from(己方城) amount(正数,千) — 出兵，驻军→外出兵力
+- battle: from(己方城) to(目标城) [deployAmount] — 发起攻城战
+- reinforce: gb(城名) amount(正数,千) side(attacker/defender) — 增援前线或守城
+- capture: gb(城名) owner(${OWNER_LABELS[faction]}) [resultTroops] — 占领
 - moveTroops: from(己方源城) to(己方目标城) amount(正数,千) — 调兵
-- arrowFly / radarPulse / orbBurst / fogCover — 纯视觉（一般不用）
-- stopBattle / stopBattles / listBattles — 战斗管理（一般不用）
+- stopBattle: id(战斗id) [reason:retreat/surrender] — 终止战斗
+- recruit / develop / fortify / rally — 内政建设
+- arrowFly / radarPulse / orbBurst / fogCover — 纯视觉演出
 
-所有战斗结果由世界 AI 裁定，你只需发布进攻/调兵意图。`
+有进行中的战斗：可选 reinforce 增援、stopBattle 撤退、或不下指令继续打。`
+}
+
+/**
+ * P4a 战斗裁决 AI 的 system prompt。
+ * 输入紧凑战斗摘要，输出每场损耗裁定。
+ */
+export function buildBattleSettlePrompt(): string {
+  return `你是民国军阀推演游戏中的"战斗裁决官"。
+
+═══════════════════════════════════════
+  职责
+═══════════════════════════════════════
+
+你会收到进行中的战斗列表（紧凑格式），逐场裁定本轮双方的损耗。
+
+═══════════════════════════════════════
+  裁定参考（非硬约束，在此区间内自由发挥）
+═══════════════════════════════════════
+
+- 攻守兵力相当（比 0.8-1.2）→ 双方各损 8-15%
+- 攻方 2:1 优势 → 攻损 3-8%，守损 10-20%
+- 攻方 3:1 以上优势 → 攻损 2-5%，守损 15-30%
+- 守方工事 fort >= 50 → 攻损额外 +20-40%
+- 守方士气 < 30 → 守损额外 +30-50%
+- 地形（仅作参考）：山地守方+50% / 丘陵+20% / 城市+40% / 平原林地无修正
+
+═══════════════════════════════════════
+  战斗摘要格式（每场一行）
+═══════════════════════════════════════
+
+battle_X ATTACKER(城名/外出Xk/士气X) vs DEFENDER(城名/驻军Xk/士气X) fort=X terrain=X turns=X lastTurn: X损X/X损X trend=X
+
+═══════════════════════════════════════
+  输出格式
+═══════════════════════════════════════
+
+必须只返回一个 JSON 对象：
+{
+  "resolutions": [
+    {
+      "battleId": "battle_1",
+      "attackerLoss": 400,
+      "defenderLoss": 350,
+      "narrative": "奉天前线激烈交火，东北军据城固守，双方各有损耗"
+    }
+  ]
+}
+
+注意：
+- 每场战斗必须对应一条，不能遗漏
+- attackerLoss/defenderLoss 是千（k），正整数
+- narrative 可选，一句话描述本轮战况
+- 如果攻方 fieldForce <= 守方 20%，可让攻损偏大、守损偏小（强弩之末），但不要直接判负——终止条件由系统检查`
+}
+
+/**
+ * 构建战斗上下文，注入到 P3 势力 AI 的 user message 中。
+ * 列出该势力参与的所有 ACTIVE 战斗的当前状态。
+ */
+export function buildBattleContext(faction: Owner): string {
+  const store = useGameStore()
+  const myBattles = store.myBattles
+  if (!myBattles.length) return ''
+
+  const lines: string[] = [`你当前有 ${myBattles.length} 场进行中的战斗：`]
+  for (const b of myBattles) {
+    const from = (store.cities as unknown as Record<string, { name: string; troops: number; fieldForce: number; morale: number }>)[b.from]
+    const to = (store.cities as unknown as Record<string, { name: string; troops: number; fieldForce: number; morale: number; fort: number }>)[b.to]
+    const isAttacker = b.attacker === faction
+    if (isAttacker) {
+      lines.push(
+        `  [攻方] ${b.id}: ${b.fromName}→${b.toName} | 我方外出${from?.fieldForce ?? 0}k/士气${from?.morale ?? 0} vs 守方驻军${to?.troops ?? 0}k/士气${to?.morale ?? 0} | 已打${b.turns}回合 累计攻损${b.totalAttackerLoss}k/守损${b.totalDefenderLoss}k`,
+      )
+    } else {
+      lines.push(
+        `  [守方] ${b.id}: ${b.fromName}→${b.toName} | 攻方外出${from?.fieldForce ?? 0}k vs 我方驻军${to?.troops ?? 0}k/士气${to?.morale ?? 0} 工事${to?.fort ?? 0} | 已打${b.turns}回合 累计攻损${b.totalAttackerLoss}k/守损${b.totalDefenderLoss}k`,
+      )
+    }
+  }
+  lines.push('')
+  lines.push('你可选择：reinforce 增援 / stopBattle 撤退 / 不下指令继续打。')
+  return lines.join('\n')
+}
+
+/**
+ * 构建 P4a 战斗裁决 AI 的 user message（所有 ACTIVE 战斗的紧凑摘要）。
+ */
+export function buildBattleSummary(): string {
+  const store = useGameStore()
+  const active = store.battles.filter((b) => b.active)
+  if (!active.length) return ''
+
+  const lines: string[] = [`共 ${active.length} 场进行中的战斗：`]
+  for (const b of active) {
+    const from = (store.cities as unknown as Record<string, { name: string; troops: number; fieldForce: number; morale: number }>)[b.from]
+    const to = (store.cities as unknown as Record<string, { name: string; troops: number; fieldForce: number; morale: number; fort: number; terrain: string }>)[b.to]
+    const trend = b.totalAttackerLoss > b.totalDefenderLoss * 1.2 ? '守方占优' : b.totalDefenderLoss > b.totalAttackerLoss * 1.2 ? '攻方占优' : '僵持'
+    const last = b.turns > 0 && b.lastAttackerLoss > 0
+      ? ` lastTurn: 攻损${b.lastAttackerLoss}k/守损${b.lastDefenderLoss}k`
+      : ''
+    lines.push(
+      `${b.id} ${b.attacker}(${b.fromName}/外出${from?.fieldForce ?? 0}k/士气${from?.morale ?? 0}) vs ${b.defender}(${b.toName}/驻军${to?.troops ?? 0}k/士气${to?.morale ?? 0}) fort=${to?.fort ?? 0} terrain=${to?.terrain ?? '平原'} turns=${b.turns}${last} trend=${trend}`,
+    )
+  }
+  return lines.join('\n')
 }

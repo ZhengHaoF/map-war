@@ -13,6 +13,13 @@ export interface BattleInfo {
   fromName: string
   toName: string
   active: boolean
+  attacker: Owner
+  defender: Owner
+  turns: number
+  totalAttackerLoss: number
+  totalDefenderLoss: number
+  lastAttackerLoss: number
+  lastDefenderLoss: number
 }
 
 /** 电报（AI 自主生成，非世界态事件，不进 eventLog） */
@@ -49,6 +56,7 @@ export interface CityState {
   food: number
   fort: number
   troops: number // 驻军，单位：千（k）
+  fieldForce: number // 外出兵力，单位：千（k）。出兵时从 troops 转入，战斗损耗从此扣（攻方）
   morale: number // 城市士气 0-100
 }
 
@@ -71,17 +79,22 @@ export const DEVELOP_FIELDS: CityStatField[] = ['industry', 'food']
  * 所有世界态变更（城市态 owner/troops/morale、日期推进、势力存亡）
  * 都必须封装成 GameEvent，经 applyEvent 落地——这是唯一写者（initWorld 播种除外）。
  */
+/** 战斗终止原因 */
+export type BattleEndReason = 'capture' | 'attackerRouted' | 'retreat'
+
 export type GameEvent =
   | { type: 'capture'; targetGb: string; actor: Owner; resultTroops?: number }
   | { type: 'moveTroops'; fromGb: string; toGb: string; amount: number }
+  | { type: 'deploy'; fromGb: string; amount: number }
+  | { type: 'reinforce'; gb: string; amount: number; side: 'attacker' | 'defender' }
   | { type: 'attack'; fromGb: string; targetGb: string; attackerLoss: number; defenderLoss: number }
   | { type: 'moraleChange'; targetGb: string; delta: number }
   | { type: 'cityStatChange'; targetGb: string; field: CityStatField; delta: number }
   | { type: 'produce'; targetGb: string; amount: number }
   | { type: 'dateAdvance'; date: string }
   | { type: 'setFactionAlive'; faction: Owner; alive: boolean }
-  | { type: 'battleStart'; battleId: string; fromGb: string; targetGb: string; fromName: string; toName: string }
-  | { type: 'battleEnd'; battleId: string }
+  | { type: 'battleStart'; battleId: string; fromGb: string; targetGb: string; fromName: string; toName: string; attacker: Owner; defender: Owner }
+  | { type: 'battleEnd'; battleId: string; reason?: BattleEndReason }
   | { type: 'selectFaction'; faction: Owner; playerName: string }
   | { type: 'narrative'; playerInput: string; aiMessage: string; kind?: 'player' | 'settlement' }
 
@@ -125,7 +138,7 @@ export interface WorldStateSnapshot {
   /** 城市归属表：gb 编码 -> 控制政权（派生自 cities） */
   ownership: Record<string, Owner>
   /** 每城动态态，供 AI 据局势决策 */
-  cities: Record<string, { owner: Owner; troops: number; morale: number }>
+  cities: Record<string, { owner: Owner; troops: number; fieldForce: number; morale: number }>
   /** 势力派生聚合（不存）：总兵力，单位 k */
   factionTroops: Record<string, number>
   /** 势力派生聚合（不存）：按兵力加权的平均士气 */
@@ -190,7 +203,7 @@ export const useGameStore = defineStore('game', () => {
   function factionTroops(o: Owner): number {
     return Object.values(cities.value)
       .filter((c) => c.owner === o)
-      .reduce((s, c) => s + c.troops, 0)
+      .reduce((s, c) => s + c.troops + c.fieldForce, 0)
   }
   function factionMorale(o: Owner): number {
     const owned = Object.values(cities.value).filter((c) => c.owner === o)
@@ -247,11 +260,7 @@ export const useGameStore = defineStore('game', () => {
   const myBattles = computed(() => {
     const f = currentFaction.value
     if (!f) return []
-    return battles.value.filter((b) => {
-      const oFrom = b.from ? ownership.value[b.from] : undefined
-      const oTo = b.to ? ownership.value[b.to] : undefined
-      return oFrom === f || oTo === f
-    })
+    return battles.value.filter((b) => b.attacker === f || b.defender === f)
   })
 
   // ── 初始化 / 设置 ──
@@ -274,6 +283,7 @@ export const useGameStore = defineStore('game', () => {
         food: c.food ?? 0,
         fort: c.fort ?? 0,
         troops: c.troops ?? 0,
+        fieldForce: (c as unknown as Record<string, unknown>).fieldForce as number ?? 0,
         morale: c.morale ?? 70,
       }
     }
@@ -318,7 +328,7 @@ export const useGameStore = defineStore('game', () => {
       activeFactions: [...activeFactions.value],
       ownership: { ...ownership.value },
       cities: Object.fromEntries(
-        Object.entries(cities.value).map(([gb, c]) => [gb, { owner: c.owner, troops: c.troops, morale: c.morale }]),
+        Object.entries(cities.value).map(([gb, c]) => [gb, { owner: c.owner, troops: c.troops, fieldForce: c.fieldForce, morale: c.morale }]),
       ),
       factionTroops: factionTroopsMap,
       factionMorale: factionMoraleMap,
@@ -348,6 +358,18 @@ export const useGameStore = defineStore('game', () => {
         if (!from) return { ok: false, reason: `调兵源城不存在: ${e.fromGb}` }
         if (!to) return { ok: false, reason: `调兵目标城不存在: ${e.toGb}` }
         if (e.amount <= 0) return { ok: false, reason: `调兵量必须为正: ${e.amount}` }
+        return { ok: true }
+      }
+      case 'deploy': {
+        const from = cities.value[e.fromGb]
+        if (!from) return { ok: false, reason: `出兵源城不存在: ${e.fromGb}` }
+        if (e.amount <= 0) return { ok: false, reason: `出兵量必须为正: ${e.amount}` }
+        if (e.amount > from.troops) return { ok: false, reason: `出兵量 ${e.amount}k 超过驻军 ${from.troops}k` }
+        return { ok: true }
+      }
+      case 'reinforce': {
+        if (!cities.value[e.gb]) return { ok: false, reason: `增援目标城不存在: ${e.gb}` }
+        if (e.amount <= 0) return { ok: false, reason: `增援量必须为正: ${e.amount}` }
         return { ok: true }
       }
       case 'capture':
@@ -415,11 +437,31 @@ export const useGameStore = defineStore('game', () => {
     }
     // 战斗生命周期事件（无 targetGb，管理 battles 数组）
     if (e.type === 'battleStart') {
-      battles.value.push({ id: e.battleId, from: e.fromGb, to: e.targetGb, fromName: e.fromName, toName: e.toName, active: true })
+      battles.value.push({ id: e.battleId, from: e.fromGb, to: e.targetGb, fromName: e.fromName, toName: e.toName, active: true, attacker: e.attacker, defender: e.defender, turns: 0, totalAttackerLoss: 0, totalDefenderLoss: 0, lastAttackerLoss: 0, lastDefenderLoss: 0 })
       return { ok: true }
     }
     if (e.type === 'battleEnd') {
+      // 战斗结束，根据终止原因处理 fieldForce
+      const bi = battles.value.find((b) => b.id === e.battleId)
+      if (bi) {
+        const from = cities.value[bi.from]
+        if (from) {
+          if (e.reason === 'retreat') {
+            // 撤退：外出兵力转回驻军
+            from.troops += from.fieldForce
+            from.fieldForce = 0
+          } else if (e.reason === 'capture' || e.reason === 'attackerRouted') {
+            // 占领：兵力已转入被占城；溃败：兵散了
+            from.fieldForce = 0
+          } else {
+            // 无 reason（stopBattles 等）：保守按撤退处理，兵回城
+            from.troops += from.fieldForce
+            from.fieldForce = 0
+          }
+        }
+      }
       battles.value = battles.value.filter((b) => b.id !== e.battleId)
+      triggerRef(cities)
       return { ok: true }
     }
     // 玩家择势事件
@@ -441,18 +483,47 @@ export const useGameStore = defineStore('game', () => {
       triggerRef(cities) // shallowRef 手动通知：城市态已变更
       return { ok: true }
     }
+    // 出兵：驻军 → 外出兵力（人离��城市）
+    if (e.type === 'deploy') {
+      const from = cities.value[e.fromGb]!
+      from.troops -= e.amount
+      from.fieldForce += e.amount
+      triggerRef(cities)
+      return { ok: true }
+    }
+    // 增援：向前线补充兵力
+    if (e.type === 'reinforce') {
+      const t = cities.value[e.gb]!
+      if (e.side === 'attacker') {
+        t.fieldForce += e.amount
+      } else {
+        t.troops += e.amount
+      }
+      triggerRef(cities)
+      return { ok: true }
+    }
     // 以下均为城市态事件；preCheck 已保证 targetGb 存在
     const t = cities.value[e.targetGb]!
     switch (e.type) {
-      case 'capture': // 占领：易主 + 设定新驻军
+      case 'capture': // 占领：易主 + 设定新驻军（若未指定则用攻方剩余 fieldForce）
         t.owner = e.actor
-        if (e.resultTroops != null) t.troops = Math.max(0, e.resultTroops)
+        if (e.resultTroops != null) {
+          t.troops = Math.max(0, e.resultTroops)
+        }
         break
-      case 'attack': { // 进攻未占：双方按裁定损耗扣兵（fromGb 为调兵源城）
-        // preCheck 已保证 fromGb 存在（如果提供了）
+      case 'attack': { // 战斗损耗：攻方扣 fieldForce（从来源城），守方扣 troops（目标城）
         if (e.fromGb) {
           const from = cities.value[e.fromGb]!
-          from.troops = Math.max(0, from.troops - e.attackerLoss)
+          from.fieldForce = Math.max(0, from.fieldForce - e.attackerLoss)
+          // 累计战斗统计（更新 battles 中的损耗计数器）
+          const bi = battles.value.find((b) => b.from === e.fromGb && b.to === e.targetGb && b.active)
+          if (bi) {
+            bi.totalAttackerLoss += e.attackerLoss
+            bi.totalDefenderLoss += e.defenderLoss
+            bi.lastAttackerLoss = e.attackerLoss
+            bi.lastDefenderLoss = e.defenderLoss
+            bi.turns++
+          }
         }
         t.troops = Math.max(0, t.troops - e.defenderLoss)
         break

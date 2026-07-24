@@ -168,14 +168,55 @@
       @close="battleListVisible = false"
     >
       <div v-if="battleList.length === 0" class="empty-hint">当前没有进行中的战斗</div>
-      <div v-for="b in battleList" :key="b.id" class="battle-item">
-        <span class="battle-info">
-          {{ b.fromName }} → {{ b.toName }}
-          <span v-if="!b.active" class="inactive">(已停止)</span>
-        </span>
-        <GameButton danger size="small" @click="endBattle(b.id)">
+      <div v-for="b in battleList" :key="b.id" class="battle-item" :class="{ 'battle-stale': !b.active }">
+        <div class="battle-main">
+          <!-- 标题行：出发城 → 目标城 · 回合数 -->
+          <div class="battle-title">
+            <span v-if="b.active" class="battle-live" title="交战中"></span>
+            <span class="battle-route">
+              <span class="battle-city atk">{{ b.fromName }}</span>
+              <span class="battle-arrow">→</span>
+              <span class="battle-city def">{{ b.toName }}</span>
+            </span>
+            <span class="battle-turns">第 {{ b.turns }} 回合</span>
+            <span v-if="!b.active" class="inactive">(已停止)</span>
+          </div>
+          <!-- 对阵行：攻方野战兵力 vs 守方驻军 -->
+          <div class="battle-vs">
+            <div class="battle-side side-atk">
+              <span class="side-tag">攻</span>
+              <span class="side-faction">{{ ownerLabel(b.attacker) }}</span>
+              <span class="side-troops" :class="{ warn: atkForce(b) <= 0 }">
+                {{ atkForce(b) }}k
+                <span class="side-sub">外出</span>
+              </span>
+            </div>
+            <span class="vs-mark">对</span>
+            <div class="battle-side side-def">
+              <span class="side-tag tag-def">守</span>
+              <span class="side-faction">{{ ownerLabel(b.defender) }}</span>
+              <span class="side-troops" :class="{ warn: defForce(b) <= 0 }">
+                {{ defForce(b) }}k
+                <span class="side-sub">驻军</span>
+              </span>
+            </div>
+          </div>
+          <!-- 兵力条：攻守双方当前兵力对比 -->
+          <div class="force-bar">
+            <div class="force-seg seg-atk" :style="{ width: forceShare(b) + '%' }"></div>
+            <div class="force-seg seg-def" :style="{ width: 100 - forceShare(b) + '%' }"></div>
+          </div>
+          <!-- 统计行：累计损耗 + 上回合战况 + 走势 -->
+          <div class="battle-stats">
+            <span class="stat">累计 攻损 <b class="loss-atk">{{ b.totalAttackerLoss }}k</b></span>
+            <span class="stat">守损 <b class="loss-def">{{ b.totalDefenderLoss }}k</b></span>
+            <span v-if="b.turns > 0" class="stat last-turn">上回合 攻-{{ b.lastAttackerLoss }}k / 守-{{ b.lastDefenderLoss }}k</span>
+            <span class="trend" :class="trend(b).cls">{{ trend(b).label }}</span>
+          </div>
+        </div>
+        <GameButton danger size="small" class="battle-end-btn" @click="endBattle(b.id)">
           <component :is="ICONS['x']" :size="14" />
-          结束
+          撤退
         </GameButton>
       </div>
     </GameModal>
@@ -239,9 +280,10 @@ import type { CityData } from '@/data/chinaCities'
 import type { CountryData } from '@/data/worldCountries'
 import { worldCountries, GEO_TO_GAME_ISO } from '@/data/worldCountries'
 import { getDisplayName } from '@/data/displayNames'
-import { init as initGameOrders, executeOrder, restoreActiveAnimations } from '@/utils/gameOrders'
+import { init as initGameOrders, executeOrder, restoreActiveAnimations, resetBattleRuntime } from '@/utils/gameOrders'
 import type { GameOrder, CameraTarget } from '@/utils/gameOrders'
 import { useGameStore } from '@/stores/game'
+import type { BattleInfo } from '@/stores/game'
 import {
   geoToScreen,
   calculateCentroid,
@@ -401,7 +443,13 @@ const currentLayerIndex = ref(1)
 const contextMenuVisible = ref(false)
 const contextMenuPos = ref<Point>({ x: 0, y: 0 })
 const infoModalVisible = ref(false)
-const infoCityData = ref<CityData | null>(null)
+/** 当前查看的城市 gb 编码（响应式断链修复：computed 从 store 实时读，不再缓存 stale ref） */
+const infoCityGb = ref<string | null>(null)
+const infoCityData = computed<CityData | null>(() => {
+  if (!infoCityGb.value) return null
+  const store = useGameStore()
+  return (store.cities as Record<string, CityData>)[infoCityGb.value] ?? null
+})
 const infoCountryData = ref<CountryData | Record<string, unknown> | null>(null)
 const testPanelVisible = ref(false)
 const aiPanelVisible = ref(false)
@@ -517,6 +565,10 @@ const infoRows = computed(() => {
     { label: '粮食生产', value: `${d.food ?? '—'} / 100` },
     { label: '工事等级', value: `${d.fort ?? '—'} / 100` },
     { label: '驻军', value: `${d.troops ?? 0} k` },
+    // 外出兵力（野战军）：出兵后驻军转入 fieldForce，仅在 >0 时展示，让玩家知道兵去了前线
+    ...((d.fieldForce ?? 0) > 0
+      ? [{ label: '外出兵力', value: `▲ ${d.fieldForce} k（作战中）` }]
+      : []),
     { label: '士气', value: `${d.morale ?? 0} / 100` },
   ]
 })
@@ -786,7 +838,7 @@ function onMenuAction(action: string): void {
   if (action === 'info') {
     if (selectedFeature) {
       const gb = selectedFeature.properties?.gb as string | undefined
-      infoCityData.value = gb ? (useGameStore().cities[gb] ?? null) : null
+      infoCityGb.value = gb ?? null
       infoCountryData.value = null
       infoModalVisible.value = true
     } else if (selectedWorldFeature) {
@@ -794,7 +846,7 @@ function onMenuAction(action: string): void {
       infoCountryData.value = isoA3
         ? worldDataMap.get(isoA3) || selectedWorldFeature.properties
         : selectedWorldFeature.properties
-      infoCityData.value = null
+      infoCityGb.value = null
       infoModalVisible.value = true
     }
   } else {
@@ -852,6 +904,37 @@ async function loadTest(): Promise<void> {
 
 function endBattle(id: string): void {
   executeOrder({ order: 'stopBattle', id })
+}
+
+// ─── 战况面板辅助（实时读取 store 城市态，随每回合结算自动刷新）───
+
+function ownerLabel(o: Owner | undefined): string {
+  if (!o) return '—'
+  return (OWNER_LABELS as Record<string, string>)[o] || o
+}
+/** 攻方投入战场的野战兵力 = 来源城 fieldForce */
+function atkForce(b: BattleInfo): number {
+  return (useGameStore().cities as Record<string, CityData>)[b.from]?.fieldForce ?? 0
+}
+/** 守方兵力 = 目标城驻军 */
+function defForce(b: BattleInfo): number {
+  return (useGameStore().cities as Record<string, CityData>)[b.to]?.troops ?? 0
+}
+/** 攻方野战兵力占双方合计的百分比（兵力条） */
+function forceShare(b: BattleInfo): number {
+  const atk = atkForce(b)
+  const total = atk + defForce(b)
+  if (total <= 0) return 50
+  return Math.min(96, Math.max(4, Math.round((atk / total) * 100)))
+}
+/** 走势：按上回合双方损耗判定，损耗低的一方占优 */
+function trend(b: BattleInfo): { label: string; cls: string } {
+  if (b.turns <= 0) return { label: '初次交锋', cls: 'trend-even' }
+  const a = b.lastAttackerLoss
+  const d = b.lastDefenderLoss
+  if (a < d * 0.7) return { label: '▲ 攻方占优', cls: 'trend-atk' }
+  if (d < a * 0.7) return { label: '▼ 守方占优', cls: 'trend-def' }
+  return { label: '— 僵持', cls: 'trend-even' }
 }
 
 function onGlobalMouseDown(e: MouseEvent): void {
@@ -1217,7 +1300,7 @@ function onClick(e: MouseEvent): void {
 }
 
 function onResize(): void {
-  requestAnimationFrame(() => {
+  requestAnimationFrame(async () => {
     const width = app.screen.width
     const height = app.screen.height
     setScreenSize(width, height)
@@ -1227,10 +1310,15 @@ function onResize(): void {
     mapY = height / 2 - center.y
     applyCamera()
 
-    loadLayer(currentLayerIndex.value)
+    await loadLayer(currentLayerIndex.value)
     if (baseMapVisible.value) {
-      renderBaseMap()
+      await renderBaseMap()
     }
+    // loadLayer 的 removeChildren() 会摘掉战斗动画的 Graphics，但 gameOrders 的
+    // battleRegistry/activeBattles 仍认为战斗在打。先清掉 stale 注册表，再按 store
+    // 里的 ACTIVE 战斗重建动画（与读档 loadTest 同一套恢复模式）。
+    resetBattleRuntime()
+    restoreActiveAnimations()
   })
 }
 
@@ -1504,26 +1592,207 @@ onUnmounted(() => {
 
 .battle-item {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  align-items: flex-start;
   gap: 10px;
-  padding: 10px 14px;
-  margin-bottom: 8px;
+  padding: 12px 14px 11px;
+  margin-bottom: 10px;
   background: var(--paper-panel);
   border: 1px solid rgba(138, 109, 75, 0.35);
+  border-left: 3px solid var(--cinnabar);
   border-radius: var(--radius-sm);
   color: var(--ink);
-  font-size: 14px;
   font-family: var(--font-kai);
-  box-shadow: 0 1px 3px rgba(90, 60, 20, 0.06);
+  box-shadow: 0 1px 3px rgba(90, 60, 20, 0.08);
+  transition: box-shadow 0.25s ease, transform 0.25s ease;
+}
+
+.battle-item:hover {
+  box-shadow: 0 3px 12px rgba(90, 60, 20, 0.18);
+  transform: translateY(-1px);
 }
 
 .battle-item:last-child {
   margin-bottom: 0;
 }
 
-.battle-info {
+.battle-stale {
+  opacity: 0.55;
+  border-left-color: var(--brown);
+}
+
+.battle-main {
   flex: 1;
+  min-width: 0;
+}
+
+.battle-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* 交战中的呼吸红点 */
+.battle-live {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--cinnabar);
+  animation: battle-pulse 1.6s ease-out infinite;
+}
+
+@keyframes battle-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(176, 74, 58, 0.45); }
+  70% { box-shadow: 0 0 0 7px rgba(176, 74, 58, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(176, 74, 58, 0); }
+}
+
+.battle-route {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink-strong);
+  letter-spacing: 0.5px;
+}
+
+.battle-arrow {
+  margin: 0 6px;
+  color: var(--cinnabar);
+  font-weight: 700;
+}
+
+.battle-turns {
+  font-size: 11px;
+  color: var(--ink-muted);
+  border: 1px solid rgba(138, 109, 75, 0.4);
+  border-radius: 3px;
+  padding: 1px 5px;
+}
+
+.battle-vs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.battle-side {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.side-def {
+  flex-direction: row-reverse;
+}
+
+.side-tag {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  line-height: 18px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff8ee;
+  background: var(--cinnabar);
+  border-radius: 3px;
+}
+
+.tag-def {
+  background: var(--brown);
+}
+
+.side-faction {
+  font-size: 12px;
+  color: var(--ink-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.side-troops {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--ink-strong);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.side-troops.warn {
+  color: var(--cinnabar);
+}
+
+.side-sub {
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--ink-muted);
+  margin-left: 2px;
+}
+
+.vs-mark {
+  flex: none;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: var(--cinnabar);
+}
+
+/* 兵力对比条：朱砂=攻方野战，赭褐=守方驻军 */
+.force-bar {
+  display: flex;
+  height: 5px;
+  margin-top: 8px;
+  border-radius: 3px;
+  overflow: hidden;
+  background: rgba(138, 109, 75, 0.18);
+}
+
+.force-seg {
+  transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.seg-atk {
+  background: linear-gradient(90deg, var(--cinnabar), #c9664f);
+}
+
+.seg-def {
+  background: linear-gradient(90deg, #a8895e, var(--brown));
+}
+
+.battle-stats {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 7px;
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+
+.stat b {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.loss-atk { color: var(--cinnabar); }
+.loss-def { color: var(--brown); }
+
+.trend {
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.trend-atk { color: var(--cinnabar); }
+.trend-def { color: #6d5a37; }
+.trend-even { color: var(--ink-muted); }
+
+.battle-end-btn {
+  flex: none;
+  margin-top: 2px;
 }
 
 .inactive {

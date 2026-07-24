@@ -70,8 +70,11 @@ export function validateGameOrder(json: unknown): ValidationResult {
   }
 
   const needsFromTo: OrderType[] = ['arrowFly', 'orbBurst', 'battle', 'moveTroops']
-  if (needsFromTo.includes(order as OrderType) && !resolveLocationId(String(o.from ?? ''))) {
-    errors.push(`from 城市不存在或拼写有误: ${String(o.from)}（可填城市名或 gb 编码）`)
+  const needsFrom: OrderType[] = ['radarPulse', 'deploy']
+  if ((needsFromTo as readonly string[]).includes(order) || (needsFrom as readonly string[]).includes(order)) {
+    if (!resolveLocationId(String(o.from ?? ''))) {
+      errors.push(`from 城市不存在或拼写有误: ${String(o.from)}（可填城市名或 gb 编码）`)
+    }
   }
   if (needsFromTo.includes(order as OrderType) && !resolveLocationId(String(o.to ?? ''))) {
     errors.push(`to 城市不存在或拼写有误: ${String(o.to)}（可填城市名或 gb 编码）`)
@@ -95,11 +98,14 @@ export function validateGameOrder(json: unknown): ValidationResult {
     }
   }
 
-  // ── 内政 / 建设指令：gb 城市存在 + amount 校验 + develop 的 field 校验 ──
-  const INTERNAL_ORDERS: OrderType[] = ['recruit', 'develop', 'fortify', 'rally']
-  if (INTERNAL_ORDERS.includes(order as OrderType)) {
-    if (!resolveLocationId(String(o.gb ?? ''))) {
-      errors.push(`gb 城市不存在或拼写有误: ${String(o.gb)}（可填城市名或 gb 编码）`)
+  // ── 内政 / 建设指令 + deploy / reinforce：gb 城市存在 + amount 校验 ──
+  const NEED_GB_AMOUNT: OrderType[] = ['recruit', 'develop', 'fortify', 'rally', 'deploy', 'reinforce']
+  if (NEED_GB_AMOUNT.includes(order as OrderType)) {
+    // deploy 用 from，reinforce 和 内政 用 gb
+    const locId = order === 'deploy' ? resolveLocationId(String(o.from ?? '')) : resolveLocationId(String(o.gb ?? ''))
+    const locField = order === 'deploy' ? 'from' : 'gb'
+    if (!locId) {
+      errors.push(`${locField} 城市不存在或拼写有误: ${String(order === 'deploy' ? o.from : o.gb)}（可填城市名或 gb 编码）`)
     }
     if (order === 'rally') {
       if (typeof o.amount !== 'number' || o.amount === 0) {
@@ -110,6 +116,9 @@ export function validateGameOrder(json: unknown): ValidationResult {
     }
     if (order === 'develop' && !(DEVELOP_FIELDS as readonly string[]).includes(String(o.field))) {
       errors.push(`field 必须是 ${DEVELOP_FIELDS.join(' / ')}（收到: ${String(o.field)}）`)
+    }
+    if (order === 'reinforce' && o.side !== undefined && o.side !== 'attacker' && o.side !== 'defender') {
+      errors.push(`side 必须是 attacker 或 defender（收到: ${String(o.side)}）`)
     }
   }
 
@@ -229,15 +238,24 @@ function validateOwnedOrder(
     }
   }
 
-  // 2.5 内政 / 建设（recruit/develop/fortify/rally）：gb 必须是己方城市——不能给敌方搞建设
-  const INTERNAL_ORDERS: OrderType[] = ['recruit', 'develop', 'fortify', 'rally']
-  if (INTERNAL_ORDERS.includes(order.order as OrderType)) {
-    const gbId = resolveLocationId(order.gb!)
-    if (gbId) {
-      const currentOwner = cityOwnerFn(gbId)
+  // 2.5 内政 / 建设 / deploy / reinforce：目标城市必须是己方——不能给敌方搞建设/增援
+  const NEED_OWN_CITY: OrderType[] = ['recruit', 'develop', 'fortify', 'rally', 'deploy', 'reinforce']
+  if (NEED_OWN_CITY.includes(order.order as OrderType)) {
+    const locId = order.order === 'deploy' ? resolveLocationId(order.from!) : resolveLocationId(order.gb!)
+    const locField = order.order === 'deploy' ? order.from : order.gb
+    if (locId) {
+      const currentOwner = cityOwnerFn(locId)
       if (currentOwner !== undefined && currentOwner !== ownerFaction) {
-        const cityName = getLocationName(gbId)
-        return { ok: false, reason: `${cityName || order.gb} 不属于本方（由 ${currentOwner} 控制），只能建设己方城市` }
+        const cityName = getLocationName(locId)
+        return { ok: false, reason: `${cityName || locField} 不属于本方（由 ${currentOwner} 控制），只能操作己方城市` }
+      }
+    }
+    // deploy 加 checked：出兵量不超过驻军
+    if (order.order === 'deploy' && locId && cityTroopsFn) {
+      const avail = cityTroopsFn(locId)
+      if (avail != null && typeof order.amount === 'number' && order.amount > avail) {
+        const cityName = getLocationName(locId)
+        return { ok: false, reason: `出兵量 ${order.amount}k 超过 ${cityName || order.from} 现存驻军 ${avail}k` }
       }
     }
   }

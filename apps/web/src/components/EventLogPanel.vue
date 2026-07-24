@@ -51,6 +51,8 @@ function badge(e: GameEvent): string {
   const map: Record<GameEvent['type'], string> = {
     capture: '占领',
     attack: '进攻',
+    deploy: '出兵',
+    reinforce: '增援',
     moraleChange: '士气',
     cityStatChange: '建设',
     produce: '征兵',
@@ -82,6 +84,10 @@ function describe(e: GameEvent): string {
       return `${cname(e.targetGb)} → ${fname(e.actor)}${e.resultTroops != null ? ` (驻军 ${e.resultTroops}k)` : ''}`
     case 'attack':
       return `${cname(e.fromGb)} ⇢ ${cname(e.targetGb)} 攻损 ${e.attackerLoss}k / 守损 ${e.defenderLoss}k`
+    case 'deploy':
+      return `${cname(e.fromGb)} 出兵 ${e.amount}k`
+    case 'reinforce':
+      return `${cname(e.gb)} ${e.side === 'defender' ? '守城' : '前线'}增援 ${e.amount}k`
     case 'moraleChange':
       return `${cname(e.targetGb)} 士气 ${e.delta > 0 ? '+' : ''}${e.delta}`
     case 'produce':

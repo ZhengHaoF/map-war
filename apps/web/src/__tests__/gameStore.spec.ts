@@ -9,6 +9,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { useGameStore } from '../stores/game'
+import { Owner } from '../data/owners'
 
 describe('useGameStore / applyEvent 签名与静默失败修复', () => {
   beforeEach(() => {
@@ -208,6 +209,8 @@ describe('useGameStore / setFactionAlive 等非城市态事件不依赖 preCheck
       targetGb: '156500002',
       fromName: 'A',
       toName: 'B',
+      attacker: Owner.KMT,
+      defender: Owner.NEA,
     })
     expect(r1.ok).toBe(true)
     expect(store.battles.length).toBe(1)

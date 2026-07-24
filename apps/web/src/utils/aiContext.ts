@@ -34,12 +34,17 @@ const TERRAIN_LABEL: Record<string, string> = {
  *   城名 驻军Xk 士气X 地形 L城级 工事X
  * 可选势力前缀：`势力控 ` 插在城名后（邻接城市用）
  */
-function formatCityCompact(gb: string, troops: number, morale: number, terrain?: string, cityLevel?: number, fort?: number, ownerLabel?: string): string {
+function formatCityCompact(gb: string, troops: number, morale: number, terrain?: string, cityLevel?: number, fort?: number, ownerLabel?: string, fieldForce?: number): string {
   const store = useGameStore()
   const name = store.cities[gb]?.name ?? gb
   const parts: string[] = [name]
   if (ownerLabel) parts.push(`${ownerLabel}控`)
-  parts.push(`驻军${troops}k`, `士气${morale}`)
+  if (fieldForce != null && fieldForce > 0) {
+    parts.push(`驻${troops}k/外${fieldForce}k`)
+  } else {
+    parts.push(`驻军${troops}k`)
+  }
+  parts.push(`士气${morale}`)
   if (terrain) parts.push(TERRAIN_LABEL[terrain] ?? terrain)
   if (cityLevel != null) parts.push(`L${cityLevel}`)
   if (fort != null) parts.push(`工事${fort}`)
@@ -71,7 +76,7 @@ export function buildFactionContext(faction: Owner): string {
   for (const [gb] of myCities) {
     const full = store.cities[gb]
     if (!full) continue
-    lines.push(`  ${formatCityCompact(gb, full.troops, full.morale, full.terrain, full.cityLevel, full.fort)}`)
+    lines.push(`  ${formatCityCompact(gb, full.troops, full.morale, full.terrain, full.cityLevel, full.fort, undefined, full.fieldForce)}`)
   }
 
   // 一阶邻接城市（按归属分组）
