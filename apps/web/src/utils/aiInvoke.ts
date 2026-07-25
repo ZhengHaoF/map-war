@@ -14,13 +14,20 @@ import { callLlm, type LlmCallOpts } from '@/composables/useLlmClient'
 import { extractPayloads, unwrapData } from '@/utils/aiParse'
 import { validateOrders, type BatchValidation } from '@/utils/aiOrderContract'
 import { OWNER_LABELS } from '@/data/owners'
+import { COUNTRY_COMMS, worldCountries } from '@/data/worldCountries'
 import { buildPlayerProfile } from '@/utils/aiPromptBuilder'
 
 /** 势力代号对照表（注入 prompt，让 AI 直接返回代号而非中文名） */
-const FACTION_CODES = Object.entries(OWNER_LABELS)
-  .filter(([k]) => k !== 'NEUTRAL')
-  .map(([code, label]) => `${code}=${label}`)
-  .join(', ')
+const FACTION_CODES = [
+  ...Object.entries(OWNER_LABELS)
+    .filter(([k]) => k !== 'NEUTRAL')
+    .map(([code, label]) => `${code}=${label}`),
+  // 公屏方案A：国家用 country_ 前缀（LLM 友好），私信/右键用 country: 前缀（代码约定）
+  ...Object.entries(COUNTRY_COMMS).map(([iso, comms]) => {
+    const country = worldCountries.find((c) => c.iso_a3 === iso)
+    return `country_${iso}=${country?.name ?? iso}（${comms.leader}）`
+  }),
+].join(', ')
 
 export interface InvokeAgentDecisionOpts {
   systemPrompt: string

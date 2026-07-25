@@ -35,6 +35,8 @@ export interface Telegram {
   content: string
   /** direct = 往来势力私信；world = 天下公屏 */
   channel: 'direct' | 'world'
+  /** 收件频道（direct 时 = 对方 from 代号；world 时省略） */
+  to?: string
   /** 回合序号 */
   turn: number
   read: boolean
@@ -216,6 +218,12 @@ export const useGameStore = defineStore('game', () => {
   const focusTarget = ref<{ type: 'city' | 'battle'; id: string } | null>(null)
   function requestFocus(type: 'city' | 'battle', id: string): void {
     focusTarget.value = { type, id }
+  }
+
+  // ── 电报跳转请求（右键「电报」→ 面板打开并选频道）──
+  const telegramRequest = ref<{ channel: string; seq: number } | null>(null)
+  function openTelegramTo(channel: string): void {
+    telegramRequest.value = { channel, seq: Date.now() }
   }
 
   // ── 我方聚合（派生，不存）──
@@ -733,6 +741,8 @@ export const useGameStore = defineStore('game', () => {
     factionMorale,
     focusTarget,
     requestFocus,
+    telegramRequest,
+    openTelegramTo,
     myStats,
     myBattles,
     initWorld,

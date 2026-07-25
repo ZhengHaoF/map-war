@@ -808,16 +808,26 @@ function onContextMenu(e: PointerEvent | MouseEvent): void {
   if (result.layer === 'china') {
     selectedFeature = result.feature
     highlightFeature(result.feature)
-    contextMenuItems.value = [
+    const gb = result.feature.properties?.gb as string | undefined
+    const owner = gb ? useGameStore().ownership[gb] : undefined
+    const isFriendly = owner !== undefined && owner === useGameStore().currentFaction
+    const items = [
       { action: 'info', label: '查看信息', icon: 'info-circle' },
       { action: 'investigate', label: '调查', icon: 'search' },
       { action: 'declare-war', label: '宣战', icon: 'flag' },
       { action: 'surprise-attack', label: '奇袭', danger: true, icon: 'bolt' },
     ]
+    if (!isFriendly) {
+      items.push({ action: 'telegram', label: '电报', icon: 'mail' })
+    }
+    contextMenuItems.value = items
   } else {
     selectedWorldFeature = result.feature
     highlightBaseFeature(result.feature)
-    contextMenuItems.value = [{ action: 'info', label: '查看信息', icon: 'info-circle' }]
+    contextMenuItems.value = [
+      { action: 'info', label: '查看信息', icon: 'info-circle' },
+      { action: 'telegram', label: '电报', icon: 'mail' },
+    ]
   }
 
   contextMenuPos.value = { x: screenX, y: screenY }
@@ -835,6 +845,25 @@ function closeInfoModal(): void {
 }
 
 function onMenuAction(action: string): void {
+  if (action === 'telegram') {
+    if (selectedFeature) {
+      const gb = selectedFeature.properties?.gb as string | undefined
+      const owner = gb ? useGameStore().ownership[gb] : undefined
+      if (!owner || owner === Owner.NEUTRAL) {
+        useGameStore().openTelegramTo('world')
+      } else {
+        useGameStore().openTelegramTo(owner)
+      }
+    } else if (selectedWorldFeature) {
+      const isoA3 = selectedWorldFeature.properties?.iso_a3 as string | undefined
+      const gameIso = isoA3 ? (GEO_TO_GAME_ISO[isoA3] ?? isoA3) : ''
+      if (gameIso) useGameStore().openTelegramTo(`country:${gameIso}`)
+    }
+    telegramVisible.value = true
+    closeContextMenu()
+    return
+  }
+
   if (action === 'info') {
     if (selectedFeature) {
       const gb = selectedFeature.properties?.gb as string | undefined

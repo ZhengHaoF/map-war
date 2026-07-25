@@ -95,6 +95,7 @@
 
             <!-- 玩家消息（右对齐） -->
             <div v-else-if="m.me" class="tg-msg tg-msg--me">
+              <div class="tg-msg-to" v-if="m.toLabel">{{ m.toLabel }}</div>
               <div class="tg-bubble tg-bubble--me">{{ m.text }}</div>
             </div>
 
@@ -142,7 +143,9 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick } from 'vue'
 import { useGameStore, type Telegram } from '@/stores/game'
-import { Owner, OWNER_LABELS, OWNER_DETAILS, OWNER_COLORS } from '@/data/owners'
+import { OWNER_LABELS } from '@/data/owners'
+import { COUNTRY_COMMS, worldCountries } from '@/data/worldCountries'
+import { resolveEntity } from '@/utils/commsEntity'
 import { invokeTelegramReply, type TelegramReplyItem } from '@/utils/aiInvoke'
 import GameButton from '@/components/ui/GameButton.vue'
 import GameModal from '@/components/ui/GameModal.vue'
@@ -162,7 +165,8 @@ const msgRef = ref<HTMLElement | null>(null)
 const unreadByChannel = computed(() => store.unreadByChannel)
 const unreadTotal = computed(() => store.unreadCount)
 
-// ── 左侧列表：按 from 分组（仅 direct 频道）──
+// ── 左侧列表：按会话对象分组（仅 direct 频道）──
+// 会话对象 = 玩家发往的 to，或对方发来的 from（两者统一为一个频道 key）
 interface ChannelSummary {
   from: string
   lastContent: string
@@ -173,9 +177,12 @@ const channelList = computed<ChannelSummary[]>(() => {
   const map = new Map<string, Telegram>()
   for (const t of store.telegrams) {
     if (t.channel !== 'direct') continue
-    const prev = map.get(t.from)
+    // 玩家发出的私信，会话对象 = to；对方发来的，会话对象 = from
+    const peer = t.from === 'PLAYER' ? (t.to ?? '') : t.from
+    if (!peer) continue
+    const prev = map.get(peer)
     if (!prev || t.turn > prev.turn || (t.turn === prev.turn && t.id > prev.id)) {
-      map.set(t.from, t)
+      map.set(peer, t)
     }
   }
   return [...map.entries()]
@@ -191,12 +198,18 @@ interface DisplayMsg {
   from?: string
   /** AI 返回的发报人名称（优先显示，不一定是最高领导） */
   leaderName?: string
+  /** 玩家消息的收件标签（致 X / 向世界广播） */
+  toLabel?: string
 }
 
 const activeMessages = computed<DisplayMsg[]>(() => {
   const channel = activeChannel.value
+  // 私信：对方发来的（from===channel）+ 我发往该频道的（from==='PLAYER' && to===channel）
+  // 公屏：所有 world 消息
   const msgs = store.telegrams.filter((t) =>
-    channel === 'world' ? t.channel === 'world' : t.from === channel && t.channel === 'direct',
+    channel === 'world'
+      ? t.channel === 'world'
+      : t.channel === 'direct' && (t.from === channel || (t.from === 'PLAYER' && t.to === channel)),
   )
 
   const result: DisplayMsg[] = []
@@ -208,9 +221,13 @@ const activeMessages = computed<DisplayMsg[]>(() => {
       result.push({ type: 'sep', text: d })
       lastDate = d
     }
-    // 玩家发的（from === 'PLAYER'）
+    // 玩家发的（from === 'PLAYER'）：私信标"致 X"、公屏标"向世界广播"
     if (t.from === 'PLAYER') {
-      result.push({ text: t.content, me: true })
+      result.push({
+        text: t.content,
+        me: true,
+        toLabel: t.channel === 'world' ? '向世界广播' : `致${resolveEntity(channel).label}`,
+      })
     } else {
       result.push({ text: t.content, from: t.from, leaderName: t.leaderName })
     }
@@ -233,12 +250,13 @@ async function onSend(): Promise<void> {
 
   const channel = activeChannel.value
 
-  // 玩家电报入 store
+  // 玩家电报入 store（direct 时记录 to，供会话归属与列表分组）
   store.pushTelegram({
     gameDate: store.currentDate,
     from: 'PLAYER',
     content: text,
     channel: channel === 'world' ? 'world' : 'direct',
+    to: channel === 'world' ? undefined : channel,
     turn: store.turnCount,
   })
   await nextTick()
@@ -284,37 +302,33 @@ async function onSend(): Promise<void> {
   }
 }
 
-/** 私信回信（返回 AI 名字和内容） */
+/** 私信回信（返回 AI 名字和内容），支持势力与国家 */
 async function invokeDirectReply(faction: string, playerMsg: string): Promise<{ content: string; leaderName: string }> {
-  const detail = OWNER_DETAILS[faction]
-  const label = OWNER_LABELS[faction as Owner] ?? faction
-  const leader = detail?.leader ?? label
+  const entity = resolveEntity(faction)
 
-  // 取最近 6 条对话作为上下文
   const history = store.telegrams
     .filter((t) => t.channel === 'direct' && (t.from === faction || t.from === 'PLAYER'))
     .slice(-6)
     .map((t) => ({ from: t.from === 'PLAYER' ? 'player' as const : 'faction' as const, text: t.content }))
 
-  const situation = `${label}，拥有${store.factionCities(faction as Owner).length}城，兵力约${store.factionTroops(faction as Owner)}k`
-
   const items = await invokeTelegramReply({
-    factionName: leader,
-    factionTag: label,
+    factionName: entity.name,
+    factionTag: entity.label,
     factionCode: faction,
-    personality: detail?.description?.slice(0, 20) ?? '沉稳',
-    situation,
+    personality: entity.personality,
+    situation: entity.status,
     recentChat: history,
     playerMessage: playerMsg,
     mode: 'direct',
   })
-  return { content: items[0]?.content ?? '……', leaderName: items[0]?.name ?? leader }
+  return { content: items[0]?.content ?? '……', leaderName: items[0]?.name ?? entity.name }
 }
 
 /** 世界公屏回信：多势力各自回应 */
 async function invokeWorldReply(playerMsg: string): Promise<{ from: string; content: string; leaderName: string }[]> {
   const alive = store.activeFactions.filter((f) => f !== store.currentFaction)
-  if (!alive.length) return [{ from: 'SYSTEM', content: '（天下寂然，无人应答）', leaderName: '系统' }]
+  const hasCountries = Object.keys(COUNTRY_COMMS).length > 0
+  if (!alive.length && !hasCountries) return [{ from: 'SYSTEM', content: '（天下寂然，无人应答）', leaderName: '系统' }]
 
   const items: TelegramReplyItem[] = await invokeTelegramReply({
     factionName: '',
@@ -338,59 +352,52 @@ async function invokeWorldReply(playerMsg: string): Promise<{ from: string; cont
   }))
 }
 
-/** 构建世界局势一句话（供世界公屏 prompt） */
+/** 构建世界局势一句话（供世界公屏 prompt），含势力与列强 */
 function buildWorldSituation(): string {
-  return store.activeFactions
+  const factionParts = store.activeFactions
     .filter((f) => f !== store.currentFaction)
     .map((f) => `${OWNER_LABELS[f]}（${store.factionCities(f).length}城）`)
-    .join('、')
+  const countryParts = Object.entries(COUNTRY_COMMS).map(([iso]) => {
+    const c = worldCountries.find((w) => w.iso_a3 === iso)
+    if (!c) return ''
+    return `${c.name}（${COUNTRY_COMMS[iso].leader}·军${c.military}·${c.diplomacy === 'HOSTILE' ? '敌对' : '中立'}）`
+  }).filter(Boolean)
+  return [...factionParts, ...countryParts].join('、')
 }
 
-// ── 辅助函数 ──
+// ── 辅助函数（全部走通讯实体适配层）──
 function scrollBottom(): void {
   if (msgRef.value) msgRef.value.scrollTop = msgRef.value.scrollHeight
 }
 
 function shortDate(iso: string): string {
-  // '1931-04-01' → '1931年4月'
   const m = iso.match(/^(\d{4})-(\d{2})/)
   if (!m) return iso
   return `${m[1]}年${parseInt(m[2])}月`
 }
 
 function factionName(from: string): string {
-  if (from === 'world') return '世界频道'
-  const detail = OWNER_DETAILS[from]
-  return detail?.leader ?? OWNER_LABELS[from as Owner] ?? from
+  return resolveEntity(from).name
 }
 
 function factionLabel(from: string): string {
-  return OWNER_LABELS[from as Owner] ?? from
+  return resolveEntity(from).label
 }
 
 function factionStatus(from: string): string {
-  const owner = from as Owner
-  if (!store.isAlive(owner)) return '已覆灭'
-  const cities = store.factionCities(owner).length
-  const troops = store.factionTroops(owner)
-  return `存活 · ${cities}城 · 兵力${troops}k`
+  return resolveEntity(from).status
 }
 
 function isDead(from: string): boolean {
-  if (from === 'world') return false
-  return !store.isAlive(from as Owner)
+  return !resolveEntity(from).alive
 }
 
 function factionHexColor(from: string): string {
-  const hex = OWNER_COLORS[from as Owner]
-  if (hex === undefined) return '#666'
-  return '#' + hex.toString(16).padStart(6, '0')
+  return resolveEntity(from).colorHex
 }
 
 function avatarChar(from: string): string {
-  if (from === 'world') return '世'
-  const detail = OWNER_DETAILS[from]
-  return detail?.leader?.[0] ?? (OWNER_LABELS[from as Owner]?.[0] ?? from[0])
+  return resolveEntity(from).avatarChar
 }
 
 function avatarStyle(from: string): Record<string, string> {
@@ -415,6 +422,16 @@ function tagStyle(from: string): Record<string, string> {
 watch(
   () => activeMessages.value.length,
   () => nextTick(scrollBottom),
+)
+
+// 右键「电报」跳转 → 打开面板并切频道
+watch(
+  () => store.telegramRequest,
+  (req) => {
+    if (!req) return
+    selectChannel(req.channel)
+    nextTick(scrollBottom)
+  },
 )
 </script>
 
@@ -649,7 +666,15 @@ watch(
 }
 
 .tg-msg--me {
-  justify-content: flex-end;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.tg-msg-to {
+  font-size: 11px;
+  color: var(--ink-muted, #9c8a6a);
+  letter-spacing: 1px;
+  margin-bottom: 2px;
 }
 
 .tg-msg-avatar {

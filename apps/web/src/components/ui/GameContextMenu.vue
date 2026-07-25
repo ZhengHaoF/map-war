@@ -25,6 +25,7 @@ import IconInfoCircle from '~icons/tabler/info-circle'
 import IconSearch from '~icons/tabler/search'
 import IconFlag from '~icons/tabler/flag'
 import IconBolt from '~icons/tabler/bolt'
+import IconMail from '~icons/tabler/mail'
 
 interface MenuItem {
   action: string
@@ -39,6 +40,7 @@ const ICONS: Record<string, Component> = {
   search: IconSearch,
   flag: IconFlag,
   bolt: IconBolt,
+  mail: IconMail,
 }
 
 defineProps<{
