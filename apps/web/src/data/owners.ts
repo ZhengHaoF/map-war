@@ -12,19 +12,26 @@ export enum Owner {
   NEUTRAL = 'NEUTRAL', // 中立/无主
 }
 
-/** 政权颜色映射（PixiJS 使用 0xRRGGBB 格式） */
+/**
+ * 政权颜色映射（PixiJS 使用 0xRRGGBB 格式）
+ *
+ * 民国水彩舆图体系：色相沿用原版（蓝/红/紫/灰/橙/绿/黄/青/棕/金十色），
+ * 饱和度大幅降低、明度提到纸上水彩区间——像颜料罩染在羊皮纸上，
+ * 而非数字 GIS 的纯色平涂。与 App.vue 的 --paper(#e2d4b6) / --ink(#3b2a18)
+ * 同族，地图/图例/择势卡/HUD/电报头像/占领动画全局共用此单一常量。
+ */
 export const OWNER_COLORS: Record<Owner, number> = {
-  [Owner.KMT]: 0x3b82f6, // 蓝色 - 国民政府
-  [Owner.CCP]: 0xef4444, // 红色 - 中共苏区
-  [Owner.JPN]: 0xa855f7, // 紫色 - 日本
-  [Owner.NEA]: 0x6b7280, // 灰色 - 东北军
-  [Owner.SHX]: 0xf97316, // 橙色 - 晋系
-  [Owner.GXC]: 0x22c55e, // 绿色 - 桂系
-  [Owner.SCC]: 0xca8a04, // 黄褐 - 川军
-  [Owner.MA]: 0x06b6d4, // 青色 - 马家军
-  [Owner.XJ]: 0x92400e, // 棕色 - 新疆
-  [Owner.TIB]: 0xeab308, // 金色 - 西藏
-  [Owner.NEUTRAL]: 0x888888,
+  [Owner.KMT]: 0x5f7fa6, // 黛蓝 - 国民政府
+  [Owner.CCP]: 0xb25144, // 朱砂 - 中共苏区
+  [Owner.JPN]: 0x8a6d9c, // 灰紫 - 日本
+  [Owner.NEA]: 0x7d8288, // 铁灰 - 东北军
+  [Owner.SHX]: 0xc07a48, // 赭橙 - 晋系
+  [Owner.GXC]: 0x6f9468, // 苍绿 - 桂系
+  [Owner.SCC]: 0xb09440, // 土黄 - 川军
+  [Owner.MA]: 0x54939c, // 青瓷 - 马家军
+  [Owner.XJ]: 0x96603a, // 焦褐 - 新疆
+  [Owner.TIB]: 0xc3a43e, // 秋香金 - 西藏
+  [Owner.NEUTRAL]: 0xa99a7e, // 纸灰 - 中立
 }
 
 /** 政权中文名 */

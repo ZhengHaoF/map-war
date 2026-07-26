@@ -228,7 +228,7 @@ async function arrowFly(from: string, to: string, text?: string): Promise<OrderR
         container: _container,
         mode: 'dots',
         text: text || '出兵！',
-        color: 0xffcc00,
+        color: 0x5c4426,
         dots: 5,
         duration,
       })
@@ -242,7 +242,7 @@ async function arrowFly(from: string, to: string, text?: string): Promise<OrderR
         container: _container,
         mode: 'dots',
         text: text || '出兵！',
-        color: 0xffcc00,
+        color: 0x5c4426,
         dots: 5,
         duration,
       })
@@ -275,7 +275,7 @@ async function radarPulse(from: string, text?: string): Promise<OrderResult> {
       await playScoutAnimation({
         fromId: from,
         container: _container,
-        color: 0x22c55e,
+        color: 0x54939c,
         rings: 3,
         duration,
         text: text || '侦察！',
@@ -286,7 +286,7 @@ async function radarPulse(from: string, text?: string): Promise<OrderResult> {
       await playScoutAnimation({
         fromId: from,
         container: _container,
-        color: 0x22c55e,
+        color: 0x54939c,
         rings: 3,
         duration,
         text: text || '侦察！',
@@ -327,7 +327,7 @@ async function orbBurst(from: string, to: string, text?: string): Promise<OrderR
         explosion: true,
         shockwaves: 3,
         text: text || '宣战！',
-        color: 0xff4444,
+        color: 0xb04a3a,
         duration: 1200,
         explosionDuration: 800,
       })
@@ -343,7 +343,7 @@ async function orbBurst(from: string, to: string, text?: string): Promise<OrderR
         explosion: true,
         shockwaves: 3,
         text: text || '宣战！',
-        color: 0xff4444,
+        color: 0xb04a3a,
         duration: 1200,
         explosionDuration: 800,
       })
@@ -420,8 +420,8 @@ async function battle(from: string, to: string, text?: string): Promise<BattleOr
       fromId: from,
       toId: to,
       container: _container,
-      colorA: 0x3b82f6,
-      colorB: 0xef4444,
+      colorA: 0x5f7fa6,
+      colorB: 0xb25144,
       text: text ?? `${getLocationName(from)} 与 ${getLocationName(to)} 交战`,
     })
 
@@ -527,8 +527,8 @@ export function restoreActiveAnimations(): void {
       fromId: b.from,
       toId: b.to,
       container: _container,
-      colorA: 0x3b82f6,
-      colorB: 0xef4444,
+      colorA: 0x5f7fa6,
+      colorB: 0xb25144,
     })
     // eslint-disable-next-line no-console
     console.log('[restoreActiveAnimations] anim.graphics=', !!anim.graphics)

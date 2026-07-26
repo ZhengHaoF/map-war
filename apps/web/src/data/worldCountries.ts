@@ -36,11 +36,11 @@ export interface CountryComms {
 }
 
 export const COUNTRY_COMMS: Record<string, CountryComms> = {
-  JPN: { leader: '犬养毅', personality: '咄咄逼人·扩张野心', color: 0xa855f7 },
-  SUN: { leader: '斯大林', personality: '务实谨慎·不轻信西方', color: 0xef4444 },
-  USA: { leader: '胡佛', personality: '孤立主义·商人本色', color: 0x3b82f6 },
-  GBR: { leader: '麦克唐纳', personality: '老练务实·殖民思维', color: 0x1d4ed8 },
-  FRA: { leader: '赖伐尔', personality: '谨慎狡黠·欧陆关切', color: 0x2563eb },
-  DEU: { leader: '兴登堡', personality: '威严持重·凡尔赛怨恨', color: 0x71717a },
-  ITA: { leader: '墨索里尼', personality: '狂妄自信·地中海野心', color: 0x22c55e },
+  JPN: { leader: '犬养毅', personality: '咄咄逼人·扩张野心', color: 0x8a6d9c },
+  SUN: { leader: '斯大林', personality: '务实谨慎·不轻信西方', color: 0xb25144 },
+  USA: { leader: '胡佛', personality: '孤立主义·商人本色', color: 0x5f7fa6 },
+  GBR: { leader: '麦克唐纳', personality: '老练务实·殖民思维', color: 0x4a6a92 },
+  FRA: { leader: '赖伐尔', personality: '谨慎狡黠·欧陆关切', color: 0x5878a8 },
+  DEU: { leader: '兴登堡', personality: '威严持重·凡尔赛怨恨', color: 0x7a7a72 },
+  ITA: { leader: '墨索里尼', personality: '狂妄自信·地中海野心', color: 0x6f9468 },
 }

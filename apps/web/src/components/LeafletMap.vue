@@ -269,13 +269,15 @@
       免责声明：本地图数据来源于网络公开数据源，仅供娱乐参考。游戏中的政权划分、边界线等均为虚构设定，不代表任何个人或组织的政治立场，亦不代表对现实世界领土归属的任何主张，不对应、不代表当下世界各国法定领土国界。本人始终坚持遵循以中华人民共和国自然资源部（原国家测绘地理信息局）发布的标准地图。
       点击查看详情
     </div>
+    <PaperTexture />
+    <MapCompass />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { Application, Container, Graphics, Text, TextStyle } from 'pixi.js'
-import { OWNER_COLORS, OWNER_LABELS, Owner } from '@/data/owners'
+import { OWNER_COLORS, OWNER_LABELS, OWNER_DETAILS, Owner } from '@/data/owners'
 import type { CityData } from '@/data/chinaCities'
 import type { CountryData } from '@/data/worldCountries'
 import { worldCountries, GEO_TO_GAME_ISO } from '@/data/worldCountries'
@@ -302,6 +304,8 @@ import TelegramPanel from '@/components/TelegramPanel.vue'
 import PlayerStatusPanel from '@/components/PlayerStatusPanel.vue'
 import InfoTable from '@/components/ui/InfoTable.vue'
 import LegendPanel from '@/components/ui/LegendPanel.vue'
+import PaperTexture from '@/components/ui/PaperTexture.vue'
+import MapCompass from '@/components/ui/MapCompass.vue'
 import type { Component } from 'vue'
 import IconStack2 from '~icons/tabler/stack-2'
 import IconFlag from '~icons/tabler/flag'
@@ -362,6 +366,8 @@ interface LayerConfig {
 interface LayerStyle {
   color: number
   fillColor: number
+  /** 边界线宽（默认 0.5；本国陆地用舆图墨线宽） */
+  borderWidth?: number
 }
 
 interface HitResult {
@@ -375,8 +381,13 @@ interface LabelText extends Text {
   _geoY: number
 }
 
+/** 首府钤印容器：自定义属性用于随相机定位（固定屏幕尺寸，不随地图缩放） */
+interface SealMark extends Container {
+  _geoX: number
+  _geoY: number
+}
+
 type TerrainKey = keyof typeof TERRAIN_NAMES
-type DiplomacyKey = keyof typeof DIPLOMACY_COLORS
 type CountryTypeKey = keyof typeof COUNTRY_TYPE_NAMES
 
 // ─── 常量 ───
@@ -398,21 +409,8 @@ const TERRAIN_NAMES: Record<string, string> = {
 
 const LEVEL_NAMES = ['', '县城/小城', '普通城市', '区域中心', '全国重要城市', '超级城市']
 
-const DIPLOMACY_COLORS: Record<string, number> = {
-  HOSTILE: 0x6b2020,
-  WAR: 0x4b0000,
-  NEUTRAL: 0x2d3a2e,
-  FRIENDLY: 0x2a3a5e,
-  ALLIED: 0x1a3a7e,
-}
-
-const DIPLOMACY_BORDER_COLORS: Record<string, number> = {
-  HOSTILE: 0x8b3030,
-  WAR: 0x6b1010,
-  NEUTRAL: 0x3d4a3e,
-  FRIENDLY: 0x3a5a7e,
-  ALLIED: 0x2a5a9e,
-}
+// 外交态势不再以国土填色表达（旧深海军蓝色块已废）——
+// 世界背景统一为冷灰纸，态势信息归右键「查看信息」与电报渠道。
 
 const COUNTRY_TYPE_NAMES: Record<string, string> = {
   EMPIRE: '帝国',
@@ -431,9 +429,43 @@ const DIPLOMACY_NAMES: Record<string, string> = {
   WAR: '交战中',
 }
 
+/**
+ * ── 舆图调色板（民国军用地图 · 整屏同纸色）──
+ * 画布底色 = 羊皮纸（与 --paper #e2d4b6 同族），海域陆地一张纸；
+ * 陆地靠「墨线 + 暖纸罩染」与海区分，世界背景为冷灰纸的异邦国土。
+ */
+const MAP_PALETTE = {
+  /** 画布底色：整屏同纸 */
+  canvas: 0xe2d4b6,
+  /** 未着色陆地填色（暖纸微亮，罩染 0.5 后比画布略浅一档） */
+  landFill: 0xeadfc6,
+  /** 陆地边界：墨线（--ink 同源） */
+  landBorder: 0x5c4426,
+  /** 陆地边界宽度 */
+  landBorderWidth: 0.8,
+  /** 海域水色罩染（冷灰褐，极淡，区分海陆又不割裂纸面） */
+  seaTint: 0x7c8577,
+  seaAlpha: 0.1,
+  /** 世界背景国土：按外交态势着冷灰纸色，与本国暖纸形成冷暖对照 */
+  worldFill: 0xc7bba0,
+  worldFillAlpha: 0.42,
+  worldBorder: 0x84735a,
+  worldBorderWidth: 0.5,
+} as const
+
 const LAYERS: LayerConfig[] = [
-  { file: '/中国_省.geojson', label: '省级', color: 0x555555, fillColor: 0xdddddd },
-  { file: '/中国_市.geojson', label: '市级', color: 0x444444, fillColor: 0xcccccc },
+  {
+    file: '/中国_省.geojson',
+    label: '省级',
+    color: MAP_PALETTE.landBorder,
+    fillColor: MAP_PALETTE.landFill,
+  },
+  {
+    file: '/中国_市.geojson',
+    label: '市级',
+    color: MAP_PALETTE.landBorder,
+    fillColor: MAP_PALETTE.landFill,
+  },
 ]
 
 // ─── 响应式状态 ───
@@ -466,7 +498,7 @@ const battleList = computed(() => useGameStore().battles)
 const unreadCount = computed(() => useGameStore().unreadCount)
 const disclaimerVisible = ref(false)
 const ownerColorEnabled = ref(true)
-const labelsVisible = ref(false)
+const labelsVisible = ref(true)
 const baseMapVisible = ref(true)
 
 // ─── PixiJS 实例 ───
@@ -474,6 +506,7 @@ const baseMapVisible = ref(true)
 let app: Application
 let worldContainer: Container
 let labelContainer: Container
+let sealContainer: Container
 let selectionHighlightGfx: Graphics
 let baseContainer: Container
 let baseHighlightGraphics: Graphics
@@ -590,7 +623,7 @@ const countryInfoRows = computed(() => {
     { label: '对华威胁', value: `${dc.threat ?? '—'} / 10` },
     {
       label: '外交关系',
-      value: DIPLOMACY_NAMES[dc.diplomacy as DiplomacyKey] || dc.diplomacy || '—',
+      value: DIPLOMACY_NAMES[dc.diplomacy as string] || dc.diplomacy || '—',
     },
   ]
 })
@@ -676,6 +709,7 @@ function drawFeature(
   width: number,
   height: number,
   style: LayerStyle,
+  alpha = 0.5,
 ): void {
   const { geometry } = feature
   const polygons: GeoJSON.Position[][][] =
@@ -696,8 +730,11 @@ function drawFeature(
       }
       graphics.closePath()
     }
-    graphics.fill({ color: style.fillColor, alpha: 0.5 })
-    graphics.stroke({ width: 0.5, color: style.color, alpha: 1 })
+    graphics.fill({ color: style.fillColor, alpha })
+    const borderWidth = style.borderWidth ?? 0.5
+    if (borderWidth > 0) {
+      graphics.stroke({ width: borderWidth, color: style.color, alpha: 1 })
+    }
   }
 }
 
@@ -771,15 +808,18 @@ async function renderBaseMap(): Promise<void> {
 
   const gfx = new Graphics()
   for (const feature of worldData.features) {
-    const isoA3 = feature.properties?.iso_a3 as string | undefined
-    const countryData = isoA3 ? worldDataMap.get(isoA3) : undefined
-    const diplomacy = (countryData?.diplomacy || 'NEUTRAL') as DiplomacyKey
-    const fillColor = DIPLOMACY_COLORS[diplomacy] || DIPLOMACY_COLORS.NEUTRAL
-    const borderColor = DIPLOMACY_BORDER_COLORS[diplomacy] || DIPLOMACY_BORDER_COLORS.NEUTRAL
-    drawFeature(gfx, feature, width, height, {
-      color: borderColor,
-      fillColor,
-    })
+    drawFeature(
+      gfx,
+      feature,
+      width,
+      height,
+      {
+        color: MAP_PALETTE.worldBorder,
+        fillColor: MAP_PALETTE.worldFill,
+        borderWidth: MAP_PALETTE.worldBorderWidth,
+      },
+      MAP_PALETTE.worldFillAlpha,
+    )
   }
   baseContainer.addChild(gfx)
   baseContainer.addChild(baseHighlightGraphics)
@@ -1020,21 +1060,23 @@ function focusBattle(id: string): void {
   const fTo = b.to ? findCityFeature(b.to) : null
   const fFrom = b.from ? findCityFeature(b.from) : null
   if (fTo) highlightFeature(fTo, 0xb04a3a)
-  if (fFrom) highlightFeature(fFrom, 0x3b82f6)
+  if (fFrom) highlightFeature(fFrom, 0x5f7fa6)
 }
 
 // ─── 标签图层 ───
 
 function getLabelStyle(layerIndex: number): TextStyle {
   const sizes = [16, 13, 11]
+  // 舆图注记：墨色汇文明朝体，罩一层极淡的纸色光晕保证色块上的可读性
+  // （不是黑描边——白字黑边是 GIS 的味道，此处要的是"手写注记"）
   return new TextStyle({
     fontSize: sizes[layerIndex],
-    fill: 0xffffff,
-    fontFamily: 'Arial, sans-serif',
-    fontWeight: 'bold',
+    fill: 0x3b2a18, // --ink
+    fontFamily: '"HuiWen Ming", serif',
+    letterSpacing: 2,
     stroke: {
-      color: 0x000000,
-      width: 2,
+      color: 0xefe6cf, // --paper-hi 同族，极淡纸晕
+      width: 2.5,
     },
   })
 }
@@ -1081,6 +1123,104 @@ function updateLabels(): void {
   }
 }
 
+// ─── 首府钤印层（朱砂方章，像指挥员在地图上盖下的印）───
+
+/**
+ * 首府城名（用于在种子城市数据中匹配，取今地名）：
+ * 取 OWNER_DETAILS.capital 第一段，去「市」后缀与括号注记；
+ * 旅顺（关东州）→ 今大连市、迪化 → 今乌鲁木齐市，种子数据用今地名故需别名。
+ */
+const CAPITAL_NAMES: Partial<Record<Owner, string>> = {
+  ...(Object.fromEntries(
+    Object.entries(OWNER_DETAILS).map(([owner, d]) => [
+      owner,
+      d.capital.split('/')[0].split('（')[0].replace(/市$/, '').trim(),
+    ]),
+  ) as Partial<Record<Owner, string>>),
+  [Owner.JPN]: '大连',
+  [Owner.XJ]: '乌鲁木齐',
+}
+
+/** 在城市 GeoJSON 中按 gb 找几何质心（复用注册表找不到时兜底用） */
+function findCityCentroid(gb: string): { lng: number; lat: number } | null {
+  const cityJson = geoJsonCache.get(LAYERS[1].file)
+  if (!cityJson) return null
+  const feature = cityJson.features.find((f) => (f.properties?.gb as string | undefined) === gb)
+  if (!feature) return null
+  return calculateCentroid(feature.geometry)
+}
+
+/** 绘制单枚钤印：双框方章 + 竖排双字，微微倾斜如真实钤盖 */
+function buildSealMark(geoX: number, geoY: number, owner: Owner): SealMark {
+  const seal = new Container() as SealMark
+  const S = 15 // 半边长
+
+  const frame = new Graphics()
+  frame.rect(-S, -S, S * 2, S * 2)
+  frame.stroke({ width: 2.5, color: 0xb04a3a, alpha: 0.9 })
+  frame.rect(-S + 4, -S + 4, (S - 4) * 2, (S - 4) * 2)
+  frame.stroke({ width: 1, color: 0xb04a3a, alpha: 0.5 })
+  seal.addChild(frame)
+
+  const label = (OWNER_LABELS as Record<string, string>)[owner] ?? ''
+  const glyph = label.length >= 2 ? `${label[0]}\n${label[1]}` : label
+  const text = new Text({
+    text: glyph,
+    style: new TextStyle({
+      fontFamily: '"HuiWen Ming", serif',
+      fontSize: 13,
+      lineHeight: 14,
+      fill: 0xb04a3a,
+      align: 'center',
+    }),
+  })
+  text.anchor.set(0.5)
+  seal.addChild(text)
+
+  seal.rotation = (Math.random() * 2 - 1) * 0.07
+  seal.alpha = 0.88
+  seal._geoX = geoX
+  seal._geoY = geoY
+  seal.x = geoX
+  seal.y = geoY
+  return seal
+}
+
+/** 为每个存活势力的首府钤盖朱砂方章（随占领易主、势力存亡重建） */
+function renderSeals(): void {
+  if (!sealContainer) return
+  const width = app.screen.width
+  const height = app.screen.height
+  const store = useGameStore()
+
+  sealContainer.removeChildren()
+  for (const [ownerKey, capName] of Object.entries(CAPITAL_NAMES)) {
+    const owner = ownerKey as Owner
+    if (!store.isAlive(owner)) continue
+    const city = (Object.values(store.cities) as CityData[]).find(
+      (c) => c.owner === owner && c.name.startsWith(capName),
+    )
+    if (!city) continue
+
+    const centroid = findCityCentroid(city.gb)
+    if (!centroid) continue
+
+    const screenPos = geoToScreen(centroid.lng, centroid.lat, width, height)
+    sealContainer.addChild(buildSealMark(screenPos.x, screenPos.y, owner))
+  }
+  updateSeals()
+}
+
+/** 钤印随相机平移缩放定位，但自身保持固定尺寸（印不随地图放大） */
+function updateSeals(): void {
+  if (!sealContainer) return
+  for (const child of sealContainer.children) {
+    const seal = child as SealMark
+    seal.x = seal._geoX * mapScale + mapX
+    seal.y = seal._geoY * mapScale + mapY
+  }
+}
+
 // ─── 图层切换 ───
 
 async function switchLayer(index: number): Promise<void> {
@@ -1114,6 +1254,23 @@ async function loadLayer(index: number): Promise<void> {
   worldContainer.removeChildren()
   labelContainer.removeChildren()
 
+  // 海域罩染：先铺一层极淡的冷色，让本国疆域内的海与纸面微微区分，
+  // 又不割裂「整屏一张纸」的氛围（罩染在陆地图层之下）
+  if (currentData) {
+    const seaGfx = new Graphics()
+    for (const feature of currentData.features) {
+      drawFeature(
+        seaGfx,
+        feature,
+        width,
+        height,
+        { color: MAP_PALETTE.seaTint, fillColor: MAP_PALETTE.seaTint, borderWidth: 0 },
+        MAP_PALETTE.seaAlpha,
+      )
+    }
+    worldContainer.addChild(seaGfx)
+  }
+
   const graphics = new Graphics()
   if (currentData) {
     for (const feature of currentData.features) {
@@ -1125,7 +1282,11 @@ async function loadLayer(index: number): Promise<void> {
           fillColor = (OWNER_COLORS as Record<string, number>)[owner] ?? config.fillColor
         }
       }
-      drawFeature(graphics, feature, width, height, { color: config.color, fillColor })
+      drawFeature(graphics, feature, width, height, {
+        color: config.color,
+        fillColor,
+        borderWidth: MAP_PALETTE.landBorderWidth,
+      })
     }
   }
   worldContainer.addChild(graphics)
@@ -1137,6 +1298,7 @@ async function loadLayer(index: number): Promise<void> {
   }
   labelContainer.visible = labelsVisible.value
   updateLabels()
+  renderSeals()
 }
 
 // ─── 相机控制（镜头演出）───
@@ -1154,6 +1316,7 @@ function applyCamera(): void {
   baseContainer.scale.set(mapScale)
   baseContainer.position.set(mapX, mapY)
   updateLabels()
+  updateSeals()
 }
 
 /** 将相机平滑补间到目标 {scale, x, y} */
@@ -1357,7 +1520,7 @@ onMounted(async () => {
   app = new Application()
   await app.init({
     resizeTo: mapContainer.value!,
-    backgroundColor: 0x1a1a2e,
+    backgroundColor: MAP_PALETTE.canvas,
     antialias: true,
   })
   mapContainer.value!.appendChild(app.canvas)
@@ -1365,11 +1528,13 @@ onMounted(async () => {
   baseContainer = new Container()
   worldContainer = new Container()
   labelContainer = new Container()
+  sealContainer = new Container()
   selectionHighlightGfx = new Graphics()
   baseHighlightGraphics = new Graphics()
   app.stage.addChild(baseContainer)
   app.stage.addChild(worldContainer)
   app.stage.addChild(labelContainer)
+  app.stage.addChild(sealContainer)
   worldContainer.addChild(selectionHighlightGfx)
 
   const width = app.screen.width
@@ -1423,6 +1588,16 @@ onMounted(async () => {
   }
 
   await loadLayer(currentLayerIndex.value)
+
+  // 汇文明朝体异步加载：首帧 Pixi Text 纹理可能已用 fallback 字体生成，
+  // 字体就绪后重绘一次标签，否则地图注记永远停留在系统衬线上
+  document.fonts?.ready.then(() => {
+    if (!currentData) return
+    renderLabels(currentData, app.screen.width, app.screen.height, currentLayerIndex.value)
+    labelContainer.visible = labelsVisible.value
+    updateLabels()
+    renderSeals()
+  })
 
   const cityJson = geoJsonCache.get(LAYERS[1].file)
   if (cityJson) registerLocations(cityJson.features, 'gb')

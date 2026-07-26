@@ -14,7 +14,7 @@ function bezier(t: number, p0: Point, p1: Point, p2: Point): Point {
 
 // ─── 绘制辅助 ───
 
-function drawArrow(gfx: Graphics, x: number, y: number, angle: number, color = 0xffcc00): void {
+function drawArrow(gfx: Graphics, x: number, y: number, angle: number, color = 0x5c4426): void {
   const size = 8
   gfx.moveTo(x + Math.cos(angle) * size, y + Math.sin(angle) * size)
   gfx.lineTo(x + Math.cos(angle + 2.5) * size * 0.7, y + Math.sin(angle + 2.5) * size * 0.7)
@@ -69,16 +69,18 @@ function showPopupText(
   container: Container,
   to: Point,
   text: string | undefined,
-  color = 0xffffff,
+  color = 0x3b2a18,
 ): void {
   if (!text) return
 
+  // 舆图弹字：墨色明朝体 + 纸色光晕（白字黑描边是 GIS 的味道，已废）
   const style = new TextStyle({
     fontSize: 18,
-    fontWeight: 'bold',
+    fontFamily: '"HuiWen Ming", serif',
+    letterSpacing: 2,
     fill: color,
-    stroke: { color: 0x000000, width: 3 },
-    dropShadow: { color: 0x000000, blur: 4, distance: 2 },
+    stroke: { color: 0xefe6cf, width: 3 },
+    dropShadow: { color: 0x3b2a18, alpha: 0.2, blur: 3, distance: 1 },
   })
 
   const textObj = new Text({ text, style })
@@ -176,7 +178,7 @@ export interface BattleAnimationOptions {
   speed?: number
   /** 战斗弹字文案（可选；默认由调用方计算“XX 与 XX 交战”，AI 可覆盖） */
   text?: string
-  /** 弹字颜色（默认朱红 0xff4444） */
+  /** 弹字颜色（默认深朱 0x8a2f22） */
   textColor?: number
 }
 
@@ -215,8 +217,8 @@ export async function playArcAnimation({
   explosion = false,
   shockwaves = 3,
   text,
-  textColor = 0xffffff,
-  color = 0xffcc00,
+  textColor = 0x3b2a18,
+  color = 0x5c4426,
   dots = 5,
   spacing = 0.08,
   duration = 2000,
@@ -387,7 +389,7 @@ export async function playArcAnimation({
 export async function playScoutAnimation({
   fromId,
   container,
-  color = 0x22c55e,
+  color = 0x54939c,
   rings = 3,
   duration = 1800,
   text,
@@ -499,8 +501,8 @@ export function startBattleAnimation({
   fromId,
   toId,
   container,
-  colorA = 0x3b82f6,
-  colorB = 0xef4444,
+  colorA = 0x5f7fa6,
+  colorB = 0xb25144,
   dotsA = 3,
   dotsB = 3,
   spacing = 0.15,
@@ -518,8 +520,8 @@ export function startBattleAnimation({
   // 内部高亮（仅描边，不填充，避免大面积高亮刺眼）
   const hlGfx = new Graphics()
   container.addChild(hlGfx)
-  drawFeatureOutline(hlGfx, resolveLocation(fromId), 0xef4444, 0, 1, 1)
-  drawFeatureOutline(hlGfx, resolveLocation(toId), 0xef4444, 0, 1, 1)
+  drawFeatureOutline(hlGfx, resolveLocation(fromId), 0xb25144, 0, 1, 1)
+  drawFeatureOutline(hlGfx, resolveLocation(toId), 0xb25144, 0, 1, 1)
 
   // 贝塞尔控制点
   const p0 = from
@@ -530,7 +532,7 @@ export function startBattleAnimation({
   }
 
   // 战斗弹字：在光束中点浮出（AI 可覆盖文案），与镜头平行 —— 方案 A：光束亮起即弹
-  showPopupText(container, bezier(0.5, p0, p1, p2), text, textColor ?? 0xff4444)
+  showPopupText(container, bezier(0.5, p0, p1, p2), text, textColor ?? 0x8a2f22)
 
   const animGfx = new Graphics()
   container.addChild(animGfx)
@@ -613,7 +615,7 @@ export function startBattleAnimation({
 export async function playCaptureAnimation({
   targetId,
   container,
-  color = 0xffcc00,
+  color = 0xb09440,
   duration = 1700,
   text,
 }: CaptureAnimationOptions): Promise<void> {
@@ -720,7 +722,7 @@ export interface DevelopAnimationOptions {
 export async function playDevelopAnimation({
   targetId,
   container,
-  color = 0xef9f27,
+  color = 0xb09440,
   duration = 1100,
   text,
 }: DevelopAnimationOptions): Promise<void> {

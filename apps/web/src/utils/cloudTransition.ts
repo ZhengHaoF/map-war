@@ -78,9 +78,10 @@ interface Cloud {
   spin: number
 }
 
-const WHITE = 0xffffff
-const WHITE_SOFT = 0xf2f2f2
-const SHADE = 0xd2d2d2
+// 纸色雾气：蒙太奇从纸面升腾，不用冷白（与整屏同纸色一致）
+const WHITE = 0xf5ecd9
+const WHITE_SOFT = 0xefe4cc
+const SHADE = 0xd8c9a8
 
 export interface CloudOptions {
   coverDuration?: number
@@ -119,7 +120,7 @@ export async function playCloudTransition(
 
   const base = new Graphics()
   base.rect(-W * 0.15, -H * 0.15, W * 1.3, H * 1.3)
-  base.fill({ color: 0xf2f2f2, alpha: 1 })
+  base.fill({ color: 0xefe4cc, alpha: 1 })
   base.alpha = 0
   container.addChild(base)
 
