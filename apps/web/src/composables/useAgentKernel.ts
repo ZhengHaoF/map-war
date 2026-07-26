@@ -321,6 +321,14 @@ async function runWorldTurn(): Promise<void> {
   progress.value = `执行 ${allOrders.length} 条指令…`
   await scheduler.advance()
 
+  // ── P4a: 战斗裁决 ──
+  const activeBattles = store.battles.filter((b) => b.active)
+  if (activeBattles.length > 0) {
+    phase.value = 'settling'
+    progress.value = '战斗裁决中…'
+    await scheduler.settleActiveBattles()
+  }
+
   // ── P4 结算 ──
   phase.value = 'settling'
   progress.value = '世界 AI 总结中…'

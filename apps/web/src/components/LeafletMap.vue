@@ -513,6 +513,7 @@ const baseMapVisible = ref(true)
 
 let app: Application
 let worldContainer: Container
+let fxContainer: Container
 let labelContainer: Container
 let sealContainer: Container
 let selectionHighlightGfx: Graphics
@@ -1330,6 +1331,8 @@ function applyCamera(): void {
   worldContainer.position.set(mapX, mapY)
   baseContainer.scale.set(mapScale)
   baseContainer.position.set(mapX, mapY)
+  fxContainer.scale.set(mapScale)
+  fxContainer.position.set(mapX, mapY)
   updateLabels()
   updateSeals()
 }
@@ -1521,9 +1524,9 @@ function onResize(): void {
     if (baseMapVisible.value) {
       await renderBaseMap()
     }
-    // loadLayer 的 removeChildren() 会摘掉战斗动画的 Graphics，但 gameOrders 的
-    // battleRegistry/activeBattles 仍认为战斗在打。先清掉 stale 注册表，再按 store
-    // 里的 ACTIVE 战斗重建动画（与读档 loadTest 同一套恢复模式）。
+    // fxContainer 不被 loadLayer 清除，但光束坐标在 startBattleAnimation 创建时
+    // 烘焙（p0/p1/p2 闭包），resize 后 geoToScreen 的 scale 变了而光束不更新。
+    // 销毁旧动画并按 store 的 ACTIVE 战斗重建（新动画用新 screenSize 算坐标）。
     resetBattleRuntime()
     restoreActiveAnimations()
   })
@@ -1542,12 +1545,14 @@ onMounted(async () => {
 
   baseContainer = new Container()
   worldContainer = new Container()
+  fxContainer = new Container()
   labelContainer = new Container()
   sealContainer = new Container()
   selectionHighlightGfx = new Graphics()
   baseHighlightGraphics = new Graphics()
   app.stage.addChild(baseContainer)
   app.stage.addChild(worldContainer)
+  app.stage.addChild(fxContainer)
   app.stage.addChild(labelContainer)
   app.stage.addChild(sealContainer)
   worldContainer.addChild(selectionHighlightGfx)
@@ -1555,12 +1560,13 @@ onMounted(async () => {
   const width = app.screen.width
   const height = app.screen.height
   setScreenSize(width, height)
-  initGameOrders(worldContainer, cameraController, app)
+  initGameOrders(fxContainer, cameraController, app)
   const center = geoToScreen(104, 36, width, height)
   mapX = width / 2 - center.x
   mapY = height / 2 - center.y
   worldContainer.position.set(mapX, mapY)
   baseContainer.position.set(mapX, mapY)
+  fxContainer.position.set(mapX, mapY)
 
   app.canvas.style.cursor = 'grab'
   app.canvas.addEventListener('wheel', onWheel, { passive: false })

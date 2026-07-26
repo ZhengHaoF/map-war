@@ -154,14 +154,12 @@ async function settleActiveBattles(): Promise<void> {
 
 /**
  * 串行推进队列：逐条消费直到跑完或遇到 needsPlayerDecision。
- * 队列消费完后，在 dateAdvance 之前插入 P4a 战斗结算。
+ * 不结算战斗（P4a 已移至 useAgentKernel.runWorldTurn 的 P3 推进之后）。
  * @returns 'done' 队列跑空；'stopped' 遇到停标交还玩家；'running' 已在推进中（直接返回）
  */
 async function advance(): Promise<'done' | 'stopped' | 'running'> {
   if (status.value === 'running') return 'running'
   if (!queue.value.length) {
-    // 即使没有指令，也要跑 P4a 战斗结算（前线不能停）
-    await settleActiveBattles()
     status.value = 'done'
     stoppedAt.value = null
     return 'done'
@@ -199,9 +197,6 @@ async function advance(): Promise<'done' | 'stopped' | 'running'> {
       }
     }
 
-    // P4a：战斗结算（在 dateAdvance 之前）
-    await settleActiveBattles()
-
     // P4b：时间推进（云雾蒙太奇 + 日期变更）
     for (const d of dateOrders) {
       await playTimeJump(d.date!)
@@ -217,5 +212,5 @@ async function advance(): Promise<'done' | 'stopped' | 'running'> {
 }
 
 export function useGameScheduler() {
-  return { queue, status, stoppedAt, submit, advance }
+  return { queue, status, stoppedAt, submit, advance, settleActiveBattles }
 }
