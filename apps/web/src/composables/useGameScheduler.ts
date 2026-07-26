@@ -126,8 +126,9 @@ async function settleActiveBattles(): Promise<void> {
     let attackerLoss: number
     let defenderLoss: number
     if (resolution) {
-      attackerLoss = Math.max(1, Math.min(Math.round(resolution.attackerLoss), from.fieldForce))
-      defenderLoss = Math.max(1, Math.min(Math.round(resolution.defenderLoss), to.troops))
+      // 尊重 AI 裁决：0 损耗是合法值（未交战/无接触），不强制保底
+      attackerLoss = Math.max(0, Math.min(Math.round(resolution.attackerLoss), from.fieldForce))
+      defenderLoss = Math.max(0, Math.min(Math.round(resolution.defenderLoss), to.troops))
     } else {
       const fort = to.fort ?? 0
       ;({ attackerLoss, defenderLoss } = fallbackTick(from.fieldForce, to.troops, fort))

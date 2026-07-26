@@ -725,8 +725,8 @@ export const useGameStore = defineStore('game', () => {
     const m: Record<string, number> = {}
     for (const t of telegrams.value) {
       if (!t.read) {
-        // direct 频道按对话对方分组：玩家发的 → to 字段；势力发的 → from 字段
-        const key = t.channel === 'direct' && t.from === 'PLAYER' ? (t.to || 'PLAYER') : t.from
+        // world 公屏电报归到 'world' 频道；direct 按会话对方分组（玩家发出→to，对方发来→from）
+        const key = t.channel === 'world' ? 'world' : t.from === 'PLAYER' ? (t.to || 'PLAYER') : t.from
         m[key] = (m[key] ?? 0) + 1
       }
     }
