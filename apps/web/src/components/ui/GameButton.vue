@@ -1,5 +1,11 @@
 <template>
-  <button class="game-btn" :class="{ active, danger, parchment }" @click="$emit('click', $event)">
+  <button
+    class="game-btn"
+    :class="{ active, danger, parchment, 'is-loading': loading, 'is-small': size === 'small' }"
+    :disabled="disabled || loading"
+    @click="$emit('click', $event)"
+  >
+    <span v-if="loading" class="game-btn__spinner" aria-hidden="true"></span>
     <slot />
     <span v-if="tooltip" class="game-btn__tip">{{ tooltip }}</span>
   </button>
@@ -11,6 +17,9 @@ defineProps<{
   danger?: boolean
   parchment?: boolean
   tooltip?: string
+  loading?: boolean
+  disabled?: boolean
+  size?: 'small' | 'normal'
 }>()
 
 defineEmits<{
@@ -132,5 +141,60 @@ defineEmits<{
   background: linear-gradient(to bottom, var(--danger-bg), var(--danger-bg2));
   border-color: var(--cinnabar);
   color: var(--danger-ink);
+}
+
+/* ===== loading / disabled / size 变体（纯增量，不改现有变体） ===== */
+.game-btn__spinner {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid rgba(176, 74, 58, 0.28);
+  border-top-color: var(--cinnabar);
+  flex-shrink: 0;
+  animation: btn-spin 0.8s linear infinite;
+}
+
+.game-btn.is-loading {
+  cursor: wait;
+}
+
+/* loading 时隐藏 slot 里原有的图标，由 spinner 顶替 */
+.game-btn.is-loading :deep(svg) {
+  display: none;
+}
+
+.game-btn.is-small {
+  padding: 4px 10px;
+  font-size: 12px;
+  gap: 4px;
+}
+
+.game-btn.is-small :deep(svg) {
+  width: 14px;
+  height: 14px;
+}
+
+.game-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.game-btn.parchment:disabled {
+  background: linear-gradient(to bottom, var(--paper-darker), var(--paper-darkest));
+  border-style: dashed;
+  border-color: rgba(138, 109, 75, 0.4);
+  color: var(--ink-muted);
+}
+
+@keyframes btn-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .game-btn__spinner {
+    animation-duration: 1.6s;
+  }
 }
 </style>

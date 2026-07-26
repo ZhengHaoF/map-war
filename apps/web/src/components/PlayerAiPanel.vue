@@ -78,12 +78,6 @@
             </div>
           </div>
 
-          <!-- 队列状态 -->
-          <div class="chat-status">
-            <span class="chat-queue">队列 {{ queue.length }} · {{ statusText }}</span>
-            <span v-if="status === 'stopped'" class="chat-stopped">⏸ 已在 {{ stoppedAt?.order }} 处停下</span>
-          </div>
-
           <!-- 输入区 -->
           <div class="chat-input-area">
             <textarea
@@ -100,13 +94,19 @@
               </GameButton>
               <GameButton
                 parchment
+                :loading="kernelLoading"
                 :disabled="busy"
                 title="结束玩家回合，启动世界AI推演"
                 @click="endPlayerTurn"
               >
                 <IconEndTurn :size="14" />{{ kernelLoading ? kernelPhase : '结束回合' }}
               </GameButton>
-              <GameButton parchment :disabled="busy" @click="onSend">
+              <GameButton
+                parchment
+                :loading="loading || status === 'running'"
+                :disabled="busy"
+                @click="onSend"
+              >
                 <IconSend :size="16" />{{ sendButtonText }}
               </GameButton>
             </div>
@@ -147,7 +147,7 @@ const {
   undo,
 } = useAiOrchestrator('user')
 
-const { queue, status, stoppedAt, submit, advance } = useGameScheduler()
+const { queue, status, submit, advance } = useGameScheduler()
 
 const { loading: kernelLoading, phase: kernelPhase, endPlayerTurn } = useAgentKernel()
 
@@ -155,7 +155,6 @@ const busy = computed(() => loading.value || status.value === 'running' || kerne
 const sendButtonText = computed(() => {
   if (loading.value) return '解析中…'
   if (status.value === 'running') return `推进中 · ${queue.value.length}`
-  if (kernelLoading.value) return kernelPhase.value
   return '发送'
 })
 
@@ -191,15 +190,6 @@ interface ChatEntry {
   /** 自由行动：叙事已由 useAiOrchestrator 落库，此处只存 effects 摘要供 UI 展示 */
   freeAction?: { narrative: string; success: boolean; effectCount: number }
 }
-
-const statusText = computed(() => {
-  switch (status.value) {
-    case 'running': return '推进中…'
-    case 'done': return '已跑完'
-    case 'stopped': return '已停下'
-    default: return '空闲'
-  }
-})
 
 async function onSend(): Promise<void> {
   if (busy.value) return
@@ -530,28 +520,6 @@ async function onSend(): Promise<void> {
   font-size: 12px;
   color: var(--ink-muted, #9c8a6a);
   padding-left: 4px;
-}
-
-/* ===== 队列状态 ===== */
-.chat-status {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  flex-shrink: 0;
-  font-size: 12px;
-  color: var(--ink-muted, #9c8a6a);
-}
-
-.chat-queue {
-  padding: 2px 8px;
-  border: 1px solid rgba(138, 109, 75, 0.3);
-  border-radius: var(--radius-sm);
-  background: var(--paper-faint, #e8dcc0);
-  align-self: flex-start;
-}
-
-.chat-stopped {
-  color: var(--danger-ink, #b23a2e);
 }
 
 /* ===== 输入区 ===== */
