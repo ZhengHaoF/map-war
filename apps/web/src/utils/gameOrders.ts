@@ -659,11 +659,26 @@ export async function executeOrder(
       const toId = resolveLocationId(json.to!)
       if (!fromId) { result = { ok: false, reason: `A 方城市不存在: ${json.from}` }; break }
       if (!toId) { result = { ok: false, reason: `B 方城市不存在: ${json.to}` }; break }
-      // 如果带 deployAmount，先出兵（驻军 → 外出兵力）
+      // 守卫式自动出兵：显式指定量 > 已有外出兵力 > 兜底全驻军
       const store = useGameStore()
-      if (json.deployAmount != null && json.deployAmount > 0) {
-        const dr = store.applyEvent({ type: 'deploy', fromGb: fromId, amount: json.deployAmount })
+      const preFrom0 = store.cities[fromId]
+      const autoDeploy =
+        json.deployAmount != null && json.deployAmount > 0
+          ? json.deployAmount                      // ① 显式指定 → 用该量
+          : (preFrom0?.fieldForce ?? 0) > 0
+            ? 0                                     // ② 已有部署 → 不抽兵（尊重预部署 / 守家留兵）
+            : (preFrom0?.troops ?? 0)               // ③ 兜底：fieldForce 与驻军皆空则 0
+      if (autoDeploy > 0) {
+        const dr = store.applyEvent({ type: 'deploy', fromGb: fromId, amount: autoDeploy })
         if (!dr.ok) { result = { ok: false, reason: `出兵失败: ${dr.reason}` }; break }
+        // 告知玩家自动出兵量（独立 toast：battle 的 popToast 分支不携带 deploy 量，此处显式告知）
+        useToast().push({ icon: 'sword', tone: 'cinnabar', title: '出兵', text: `${getLocationName(fromId)} 出兵 ${autoDeploy}k（驻军转外出）` })
+      }
+      // 前置检查：来源城必须有外出兵力，否则不得立战线
+      const preFrom = store.cities[fromId]
+      if (!preFrom || preFrom.fieldForce <= 0) {
+        result = { ok: false, reason: `${getLocationName(fromId)} 无可战之兵（驻军与外出均为 0），无法开战` }
+        break
       }
       const r = await battle(fromId, toId, json.text)
       if (!r.ok) { result = r; break }

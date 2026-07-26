@@ -145,14 +145,13 @@ export function buildFactionSystemPrompt(faction: Owner): string {
   战斗机制说明
 ═══════════════════════════════════════
 
-1. 开战前先 deploy（出兵）：调拨驻军为外出兵力，人离开城市
-   例：deploy from:"奉天" amount:12 → 奉天 驻15k/外0k → 驻3k/外12k
-2. 然后 battle 发起攻城（可带 deployAmount，一步到位）
-3. 每回合自动结算战斗损耗（你无需手动下 attack 指令）
-4. 战斗默认延续：不发 stopBattle 就继续打，下回合再结算一轮
-5. 撤退走 stopBattle(reason:"retreat")，外出兵力转回驻军
+- battle 直接开战，引擎自动出兵兜底（默认全驻军；若已有外出兵力则不重复抽兵）
+- 每回合自动结算战斗损耗（你无需手动下 attack 指令）
+- 战斗默认延续：不发 stopBattle 就继续打，下回合再结算一轮
+- 撤退走 stopBattle(reason:"retreat")，外出兵力转回驻军
 
-⚠ 派兵出征后城内防御变弱——慎防第三方趁虚而入！
+⚠ battle 默认全出会掏空守城驻军！要留兵守家，请显式带 deployAmount 只出一部分，
+  或先 deploy 精确部署。
 
 ═══════════════════════════════════════
   输出格式（必须严格遵守）
@@ -163,8 +162,7 @@ export function buildFactionSystemPrompt(faction: Owner): string {
 {
   "msg": "一句叙事总结（如'晋军从太原出发，逼近洛阳'或'东北军按兵不动，静观其变'）",
   "orders": [
-    { "order": "deploy", "from": "奉天", "amount": 12 },
-    { "order": "battle", "from": "奉天", "to": "锦州" },
+    { "order": "battle", "from": "奉天", "to": "锦州", "deployAmount": 8 },
     { "order": "reinforce", "gb": "奉天", "amount": 5, "side": "attacker" }
   ],
   "telegram": "（可选）给玩家的一封电报"
@@ -172,7 +170,7 @@ export function buildFactionSystemPrompt(faction: Owner): string {
 
 注意：
 - 如果本回合无行动，orders 为空数组 []
-- deploy 和 battle 可合并：battle 带 deployAmount 字段即可
+- battle 已自带出兵，**不再需要先 deploy 后 battle**；deploy 用于开战前精确控量、或已开战后从本城抽兵补前线
 - reinforce：attacker=增援前线（加外出兵力），defender=增援守城（加驻军）
 - msg 必须是一句自然中文叙事
 - telegram 可选，50-80字半文言
@@ -182,8 +180,8 @@ export function buildFactionSystemPrompt(faction: Owner): string {
 ═══════════════════════════════════════
 
 ${usableOrders.join(' / ')}
-- deploy: from(己方城) amount(正数,千) — 出兵，驻军→外出兵力
-- battle: from(己方城) to(目标城) [deployAmount] — 发起攻城战
+- battle: from(己方城) to(目标城) [deployAmount] — 发起攻城战（自动出兵兜底）
+- deploy: from(己方城) amount(正数,千) — 出兵（精确控制出兵量 / 战中从本城抽兵补前线）
 - reinforce: gb(城名) amount(正数,千) side(attacker/defender) — 增援前线或守城
 - capture: gb(城名) owner(${OWNER_LABELS[faction]}) [resultTroops] — 占领
 - moveTroops: from(己方源城) to(己方目标城) amount(正数,千) — 调兵
@@ -191,7 +189,7 @@ ${usableOrders.join(' / ')}
 - recruit / develop / fortify / rally — 内政建设
 - arrowFly / radarPulse / orbBurst / fogCover — 纯视觉演出
 
-有进行中的战斗：可选 reinforce 增援、stopBattle 撤退、或不下指令继续打。`
+有进行中的战斗：可选 deploy 从本城抽兵、reinforce 增援、stopBattle 撤退、或不下指令继续打。`
 }
 
 /**

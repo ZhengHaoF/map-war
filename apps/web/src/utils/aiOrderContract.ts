@@ -691,10 +691,13 @@ export const PLAYER_AI_UNIFIED_PROMPT = `你是民国军阀推演游戏的世界
 3. orbBurst — 光球爆炸动画（纯视觉，不改世界态）
    from(必填,己方城) to(必填) text(可选)
 
-4. battle — 开启持续战斗（双向交火动画，世界态登记 battleStart）⚠ 需源城有外出兵力
-   需要先 deploy 出兵，或直接在 battle 上带 deployAmount（自动先派出该数量的兵再开战）。
-   若玩家未指定出兵数量，默认将源城全部驻军作为 deployAmount。
-   from(必填,己方城) to(必填) deployAmount(可选,k,默认=源城全部驻军) text(可选)
+4. battle — 开启持续战斗（双向交火动画，世界态登记 battleStart）
+   from(必填,己方城) to(必填) deployAmount(可选,k) text(可选)
+   【自动出兵规则】
+   · 显式指定 deployAmount > 0 → 出该量（最优先）
+   · 来源城已有外出兵力（fieldForce > 0）→ 不抽兵，沿用已有部署，避免掏空守军
+   · 来源城无外出兵力（fieldForce = 0）→ 自动出动全部驻军兜底
+   ⚠ 自动出动全部驻军会掏空守城兵力！欲留兵守家请显式指定 deployAmount，或用 deploy 先精确部署
 
 5. stopBattle — 停止指定战斗
    id(必填)
@@ -723,7 +726,7 @@ export const PLAYER_AI_UNIFIED_PROMPT = `你是民国军阀推演游戏的世界
 14. rally — 整军（调整士气，正=鼓舞 负=挫败）
    gb(必填,己方城) amount(必填,非零，可正可负)
 
-15. deploy — 出兵（将驻军调拨为外出兵力，准备对外作战；常用于 battle 前手动部署）
+15. deploy — 出兵（将驻军调拨为外出兵力；用于开战前精确控制出兵量 / 战斗中从本城抽兵补前线兜底不足）
    from(必填,己方城) amount(必填,k，不超过驻军)
 
 ═══════════════════════════════════════
