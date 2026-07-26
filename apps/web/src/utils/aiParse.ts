@@ -19,6 +19,8 @@ export function isUnifiedResult(obj: unknown): obj is UnifiedAiResponse {
 /** 从文本中抽取 JSON（支持 markdown fence / 裸 JSON / 截断容错） */
 export function extractJson(text: string): unknown {
   let t = (text ?? '').trim()
+  // 剥除 LLM 深度思考标签（DeepSeek 等模型 thinking 模式会输出 ...）
+  t = t.replace(/[\s\S]*?/gi, '').trim()
   const fence = t.match(/```(?:json)?\s*([\s\S]*?)```/i)
   if (fence) t = fence[1].trim()
   try {

@@ -105,10 +105,11 @@ async function settleActiveBattles(): Promise<void> {
       continue
     }
 
-    // 攻方无兵可战
+    // 攻方来源城无外出兵力：本不该开战（开战入口已拦截），属异常兜底。
+    // 不判"溃败"（兵没外出、谈不上溃散），温和撤销战线，reason 用 retreat 使兵态自洽。
     if (from.fieldForce <= 0) {
-      store.applyEvent({ type: 'battleEnd', battleId: b.id, reason: 'attackerRouted' })
-      pushToast({ icon: 'skull', tone: 'error', title: '攻方溃败', text: `${b.fromName} 无兵可战` })
+      store.applyEvent({ type: 'battleEnd', battleId: b.id, reason: 'retreat' })
+      pushToast({ icon: 'player-stop', tone: 'neutral', title: '战线撤销', text: `${b.fromName} 未驻前线兵力，对峙作罢` })
       continue
     }
 
