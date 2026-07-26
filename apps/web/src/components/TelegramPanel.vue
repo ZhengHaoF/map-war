@@ -204,8 +204,6 @@ interface DisplayMsg {
 
 const activeMessages = computed<DisplayMsg[]>(() => {
   const channel = activeChannel.value
-  // 私信：对方发来的（from===channel）+ 我发往该频道的（from==='PLAYER' && to===channel）
-  // 公屏：所有 world 消息
   const msgs = store.telegrams.filter((t) =>
     channel === 'world'
       ? t.channel === 'world'
@@ -254,6 +252,7 @@ async function onSend(): Promise<void> {
   store.pushTelegram({
     gameDate: store.currentDate,
     from: 'PLAYER',
+    to: channel === 'world' ? undefined : channel,
     content: text,
     channel: channel === 'world' ? 'world' : 'direct',
     to: channel === 'world' ? undefined : channel,
@@ -287,6 +286,7 @@ async function onSend(): Promise<void> {
       store.pushTelegram({
         gameDate: store.currentDate,
         from: channel,
+        to: 'PLAYER',
         content: reply.content,
         channel: 'direct',
         turn: store.turnCount,
@@ -307,7 +307,7 @@ async function invokeDirectReply(faction: string, playerMsg: string): Promise<{ 
   const entity = resolveEntity(faction)
 
   const history = store.telegrams
-    .filter((t) => t.channel === 'direct' && (t.from === faction || t.from === 'PLAYER'))
+    .filter((t) => t.channel === 'direct' && (t.from === faction || t.to === faction))
     .slice(-6)
     .map((t) => ({ from: t.from === 'PLAYER' ? 'player' as const : 'faction' as const, text: t.content }))
 
@@ -712,6 +712,7 @@ watch(
   color: var(--ink-strong, #2c1a0a);
   border: 1px solid var(--brown-line, #b8a07a);
   border-bottom-right-radius: 4px;
+  max-width: 72%; /* 与对方气泡（.tg-msg-body）宽度约束保持一致 */
 }
 
 .tg-bubble--other {

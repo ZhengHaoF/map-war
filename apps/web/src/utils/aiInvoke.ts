@@ -8,7 +8,7 @@
  * - 调 callLlm（重试策略集中在 useLlmClient）
  * - 解析失败不重试（重试 AI 同 prompt 大概率同结果，浪费 token）
  * - 战略校验不在此处（玩家/政权校验规则差异大，由调用方做）
- * - useAiDebug 暂不接入（user 模式 results[] 结构不同，保留独立解析路径；待后续迁移）
+ * - useAiOrchestrator 暂不接入（user 模式 results[] 结构不同，保留独立解析路径；待后续迁移）
  */
 import { callLlm, type LlmCallOpts } from '@/composables/useLlmClient'
 import { extractPayloads, unwrapData } from '@/utils/aiParse'

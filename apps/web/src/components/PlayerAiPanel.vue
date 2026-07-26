@@ -119,7 +119,7 @@
 
 <script setup lang="ts">
 import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
-import { useAiDebug } from '@/composables/useAiDebug'
+import { useAiOrchestrator } from '@/composables/useAiOrchestrator'
 import { useGameScheduler } from '@/composables/useGameScheduler'
 import { useAgentKernel } from '@/composables/useAgentKernel'
 import GameButton from '@/components/ui/GameButton.vue'
@@ -145,7 +145,7 @@ const {
   applyStrategicRules,
   getFinalApprovedOrders,
   undo,
-} = useAiDebug('user')
+} = useAiOrchestrator('user')
 
 const { queue, status, stoppedAt, submit, advance } = useGameScheduler()
 
@@ -188,7 +188,7 @@ interface ChatEntry {
   rejected?: { label: string; reason: string }[]
   impossible?: { label: string; reason: string; suggestion?: string }[]
   validationSummary?: string
-  /** 自由行动：叙事已由 useAiDebug 落库，此处只存 effects 摘要供 UI 展示 */
+  /** 自由行动：叙事已由 useAiOrchestrator 落库，此处只存 effects 摘要供 UI 展示 */
   freeAction?: { narrative: string; success: boolean; effectCount: number }
 }
 
@@ -224,7 +224,7 @@ async function onSend(): Promise<void> {
   // 本轮用完后清空，避免跨模式残留
   chatTurns.value = []
 
-  // ── 自由行动路径：叙事 + 事件已由 useAiDebug 立即落地，此处只渲染 ──
+  // ── 自由行动路径：叙事 + 事件已由 useAiOrchestrator 立即落地，此处只渲染 ──
   if (freeActionResult.value) {
     chatHistory.value.push({
       user: userText,
@@ -264,7 +264,7 @@ async function onSend(): Promise<void> {
     impossibleItems.push({ label: `⚠ ${orderName}`, reason: r.reason, suggestion: r.suggestion })
   }
 
-  // narrative 落库已收敛到编排层（useAiDebug.runSend），此处只负责 UI 渲染，不再写 eventLog。
+  // narrative 落库已收敛到编排层（useAiOrchestrator.runSend），此处只负责 UI 渲染，不再写 eventLog。
   chatHistory.value.push({
     user: userText,
     msg: aiMessage.value,

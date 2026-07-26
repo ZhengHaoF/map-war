@@ -1,7 +1,7 @@
 /**
- * AI 回包解析工具 —— 纯函数，供编排器（useAgentKernel）与调试面板（useAiDebug）共用。
+ * AI 回包解析工具 —— 纯函数，供编排器（useAgentKernel）与调试面板（useAiOrchestrator）共用。
  *
- * 从 useAiDebug.ts 中抽取，不依赖任何 Vue / Pinia 响应式。
+ * 从 useAiOrchestrator.ts 中抽取，不依赖任何 Vue / Pinia 响应式。
  */
 
 /** 判断是否为统一 results 格式（有 results 数组且无 orders 键） */
@@ -96,13 +96,16 @@ export function extractAiMessage(obj: unknown): string | null {
 
 /** 自由行动事件（复用已有 reducer 事件类型） */
 export interface FreeActionEffect {
-  type: 'cityStatChange' | 'moraleChange' | 'produce' | 'moveTroops'
+  type: 'cityStatChange' | 'moraleChange' | 'produce' | 'moveTroops' | 'sendTelegram'
   targetGb?: string
   field?: string
   delta?: number
   amount?: number
   fromGb?: string
   toGb?: string
+  // sendTelegram 专用字段
+  to?: string      // 势力代号，如 'SHX'
+  content?: string // 电报内容
 }
 
 /** 自由行动载荷 */

@@ -175,7 +175,7 @@ async function invokeWorldAISettle(
 3. chatter: 1-3 条势力时局短评（世界公屏电报）。以 1-3 个势力的口吻，对本回合局势各发表一句短评。
    - 可以是吃瓜、嘲讽、放话、感慨，不一定跟玩家有关
    - 每条 20-40 字，性格鲜明，半文言
-   - from 用势力代号（KMT/CCP/FENG/JIN/GUI 等），name 用领袖名
+   - from 用势力代号（KMT/CCP/NEA/SHX/GXC 等），name 用领袖名
    - 如果本回合没什么大事，chatter 可以为空数组 []
 
 返回 JSON 格式：
@@ -294,6 +294,7 @@ async function runWorldTurn(): Promise<void> {
       store.pushTelegram({
         gameDate: snap.currentDate,
         from: faction,
+        to: 'PLAYER',
         content: telegram,
         channel: 'direct',
         turn: store.turnCount,
