@@ -632,7 +632,7 @@ export const PLAYER_AI_UNIFIED_PROMPT = `你是民国军阀推演游戏的世界
     "effects": [
       {"type":"cityStatChange","targetGb":"156500000","field":"industry","delta":5},
       {"type":"moraleChange","targetGb":"156500000","delta":8},
-      {"type":"sendTelegram","to":"SHX","content":"恳请阎督军出兵相助，共抗强敌"}
+      {"type":"sendTelegram","to":"晋系","content":"恳请阎督军出兵相助，共抗强敌"}
     ]
   }
 }
@@ -657,9 +657,9 @@ export const PLAYER_AI_UNIFIED_PROMPT = `你是民国军阀推演游戏的世界
 ═══ sendTelegram 格式 ═══
 · 适用场景：玩家通过自由行动向某势力发送电报（如求助、威胁、求和、离间等）
 · 字段：
-  - to：势力代号（如 "SHX"、"KMT"、"CCP"），不要用中文名
+  - to：势力中文名（如 "晋系"、"国民政府"、"中共苏区"），不要用代号
   - content：电报正文（50-80字，半文言，符合玩家身份和语气）
-· 示例：{"type":"sendTelegram","to":"SHX","content":"恳请阎督军出兵相助，共抗强敌"}
+· 示例：{"type":"sendTelegram","to":"晋系","content":"恳请阎督军出兵相助，共抗强敌"}
 · 注意：sendTelegram 不影响世界态，只将电报存入往来记录，对方势力在 P3 阶段决策时可见
 
 注意（路径 A）：
@@ -784,7 +784,7 @@ export const ADVISOR_SYSTEM_PROMPT = `你是民国军阀推演游戏中的战略
 
 回复示例：
 {
-  "reply": "杭州虽为华东重镇，工业发达、战略价值高，但川军距杭州数千里，沿途需穿越KMT、SHX等势力控制区，补给线过长，以现有兵力强攻无异于飞蛾扑火。",
+  "reply": "杭州虽为华东重镇，工业发达、战略价值高，但川军距杭州数千里，沿途需穿越国民政府、晋系等势力控制区，补给线过长，以现有兵力强攻无异于飞蛾扑火。",
   "suggestions": [
     "从成都出兵进攻汉中",
     "从重庆调兵至武汉",

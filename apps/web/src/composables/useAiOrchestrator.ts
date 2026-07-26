@@ -24,6 +24,7 @@ import {
   type WorldValidationItem,
   type WarVerdict,
 } from '@/utils/aiOrderContract'
+import { normalizeCommsFrom } from '@/utils/commsEntity'
 import {
   extractJson,
   extractPayloads,
@@ -326,28 +327,29 @@ export function useAiOrchestrator(mode: AiMode = 'world') {
         // 发送电报：将电报存入往来记录（如求助、威胁、求和、离间等外交行动），并即时触发对方回信
         case 'sendTelegram':
           if (eff.to && eff.content) {
+            const toCode = normalizeCommsFrom(eff.to)
             store.pushTelegram({
               gameDate: store.currentDate,
               from: 'PLAYER',
-              to: eff.to,
+              to: toCode,
               content: eff.content,
               channel: 'direct',
               turn: store.turnCount,
             })
             // 即时回信：对方收到电报后立即回复（与电报面板 invokeDirectReply 同逻辑）
             try {
-              const detail = OWNER_DETAILS[eff.to]
-              const label = OWNER_LABELS[eff.to as Owner] ?? eff.to
+              const detail = OWNER_DETAILS[toCode]
+              const label = OWNER_LABELS[toCode as Owner] ?? toCode
               const leader = detail?.leader ?? label
               const history = store.telegrams
-                .filter((t) => t.channel === 'direct' && (t.from === eff.to || t.to === eff.to))
+                .filter((t) => t.channel === 'direct' && (t.from === toCode || t.to === toCode))
                 .slice(-6)
                 .map((t) => ({ from: t.from === 'PLAYER' ? 'player' as const : 'faction' as const, text: t.content }))
-              const situation = `${label}，拥有${store.factionCities(eff.to as Owner).length}城，兵力约${store.factionTroops(eff.to as Owner)}k`
+              const situation = `${label}，拥有${store.factionCities(toCode as Owner).length}城，兵力约${store.factionTroops(toCode as Owner)}k`
               const items = await invokeTelegramReply({
                 factionName: leader,
                 factionTag: label,
-                factionCode: eff.to,
+                factionCode: toCode,
                 personality: detail?.description?.slice(0, 20) ?? '沉稳',
                 situation,
                 recentChat: history,
@@ -357,7 +359,7 @@ export function useAiOrchestrator(mode: AiMode = 'world') {
               if (items.length && items[0].content) {
                 store.pushTelegram({
                   gameDate: store.currentDate,
-                  from: eff.to,
+                  from: toCode,
                   to: 'PLAYER',
                   content: items[0].content,
                   channel: 'direct',

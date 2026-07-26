@@ -17,15 +17,15 @@ import { OWNER_LABELS } from '@/data/owners'
 import { COUNTRY_COMMS, worldCountries } from '@/data/worldCountries'
 import { buildPlayerProfile } from '@/utils/aiPromptBuilder'
 
-/** 势力代号对照表（注入 prompt，让 AI 直接返回代号而非中文名） */
-const FACTION_CODES = [
+/** 势力中文名对照表（注入 prompt，让 AI 用中文名而非代号；消费侧再用 normalizeCommsFrom 归一化回代码） */
+const FACTION_LABELS = [
   ...Object.entries(OWNER_LABELS)
     .filter(([k]) => k !== 'NEUTRAL')
-    .map(([code, label]) => `${code}=${label}`),
+    .map(([code, label]) => `${label}=${code}`),
   // 公屏方案A：国家用 country_ 前缀（LLM 友好），私信/右键用 country: 前缀（代码约定）
   ...Object.entries(COUNTRY_COMMS).map(([iso, comms]) => {
     const country = worldCountries.find((c) => c.iso_a3 === iso)
-    return `country_${iso}=${country?.name ?? iso}（${comms.leader}）`
+    return `${country?.name ?? iso}=country_${iso}（${comms.leader}）`
   }),
 ].join(', ')
 
@@ -159,11 +159,11 @@ ${opts.situation}
 ${playerIdentity}
 每个势力的回应要符合其代表人物的性格，20-60字，半文言，性格鲜明。回应者可以是领袖、将领或幕僚，不一定是最高领导人。
 
-势力代号对照：${FACTION_CODES}
-必须返回 JSON 数组（1-3条），每条是一个包含 name/faction/content 的独立对象：
+势力对照（用中文名；国民政府/中共苏区/日本关东军/东北军/晋系/桂系/川军/马家军/新疆/西藏/苏联等）：${FACTION_LABELS}
+必须返回 JSON 数组（1-3条），每条是一个包含 name/faction/content 的独立对象，faction 用中文名：
 [
-  {"name": "张学良", "faction": "NEA", "content": "电文内容..."},
-  {"name": "蒋中正", "faction": "KMT", "content": "电文内容..."}
+  {"name": "张学良", "faction": "东北军", "content": "电文内容..."},
+  {"name": "蒋中正", "faction": "国民政府", "content": "电文内容..."}
 ]
 注意：不要用平行数组格式（不要把 name、faction、content 各写成一个数组）。
 挑 1-3 个最有戏的势力即可。`

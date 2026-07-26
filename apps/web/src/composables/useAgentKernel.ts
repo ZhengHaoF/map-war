@@ -12,6 +12,7 @@
 
 import { ref, watch } from 'vue'
 import { useGameStore, type Telegram } from '@/stores/game'
+import { normalizeCommsFrom } from '@/utils/commsEntity'
 import { useGameScheduler } from '@/composables/useGameScheduler'
 import { callLlm } from '@/composables/useLlmClient'
 import { classifyFactions } from '@/utils/aiClassify'
@@ -175,11 +176,11 @@ async function invokeWorldAISettle(
 3. chatter: 1-3 条势力时局短评（世界公屏电报）。以 1-3 个势力的口吻，对本回合局势各发表一句短评。
    - 可以是吃瓜、嘲讽、放话、感慨，不一定跟玩家有关
    - 每条 20-40 字，性格鲜明，半文言
-   - from 用势力代号（KMT/CCP/NEA/SHX/GXC 等），name 用领袖名
+   - from 用势力中文名（国民政府、中共苏区、日本关东军、东北军、晋系、桂系、川军、马家军、新疆、西藏），name 用领袖名
    - 如果本回合没什么大事，chatter 可以为空数组 []
 
 返回 JSON 格式：
-{ "narrative": "全境战报…", "newDate": "1931-04-10", "chatter": [{ "name": "蒋介石", "from": "KMT", "content": "…" }] }`
+{ "narrative": "全境战报…", "newDate": "1931-04-10", "chatter": [{ "name": "蒋介石", "from": "国民政府", "content": "…" }] }`
 
   // P4 总结返回值结构特殊（narrative + newDate），不走 invokeAgentDecision，直接调 callLlm + 自取字段
   // user 消息走 buildSettleContext：自带当前日期 + sinceDateAdvance 历史 + 引导语（#5.3 改动）
@@ -330,12 +331,12 @@ async function runWorldTurn(): Promise<void> {
   // 系统结算叙事落 eventLog（kind='settlement' 让 aiHistory 不带"玩家："前缀）
   store.applyEvent({ type: 'narrative', playerInput: '', aiMessage: narrative, kind: 'settlement' })
 
-  // 世界公屏电报：from 已是势力代号（如 KMT），直接使用
+  // 世界公屏电报：from 是 AI 返回的中文势力名，归一化回内部代码
   if (chatter.length) {
     for (const c of chatter) {
       store.pushTelegram({
         gameDate: newDate,
-        from: c.from,
+        from: normalizeCommsFrom(c.from),
         content: c.content,
         channel: 'world',
         turn: store.turnCount,

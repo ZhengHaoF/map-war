@@ -145,7 +145,7 @@ import { ref, computed, watch, nextTick } from 'vue'
 import { useGameStore, type Telegram } from '@/stores/game'
 import { OWNER_LABELS } from '@/data/owners'
 import { COUNTRY_COMMS, worldCountries } from '@/data/worldCountries'
-import { resolveEntity } from '@/utils/commsEntity'
+import { resolveEntity, normalizeCommsFrom } from '@/utils/commsEntity'
 import { invokeTelegramReply, type TelegramReplyItem } from '@/utils/aiInvoke'
 import GameButton from '@/components/ui/GameButton.vue'
 import GameModal from '@/components/ui/GameModal.vue'
@@ -343,9 +343,9 @@ async function invokeWorldReply(playerMsg: string): Promise<{ from: string; cont
     mode: 'world',
   })
 
-  // AI 返回的 faction 已是代号（如 KMT），直接使用
+  // AI 返回的 faction 是中文势力名，归一化回内部代码
   return items.map((it) => ({
-    from: it.faction,
+    from: normalizeCommsFrom(it.faction),
     content: it.content,
     leaderName: it.name,
   }))

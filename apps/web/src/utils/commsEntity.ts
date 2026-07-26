@@ -46,6 +46,34 @@ function colorToHex(c: number | undefined, fallback = '#666'): string {
  * - 势力：         from = "KMT"/"CCP"…（裸 Owner 枚举值）
  * - 系统：         from = "PLAYER"/"WORLD"/"SYSTEM"
  */
+/** 中文名 → Owner 代码（势力） */
+const OWNER_LABEL_REVERSE: Record<string, Owner> = {}
+for (const [k, v] of Object.entries(OWNER_LABELS)) {
+  if (k !== 'NEUTRAL') OWNER_LABEL_REVERSE[v as string] = k as Owner
+}
+/** 中文名（国家） → country_ISO 代码 */
+const COUNTRY_LABEL_REVERSE: Record<string, string> = {}
+for (const c of worldCountries) {
+  COUNTRY_LABEL_REVERSE[c.name] = `country_${c.iso_a3}`
+}
+
+/**
+ * 把 AI 返回的通讯方字符串归一化回内部代码：
+ * - 已是代码（Owner 裸代号 或 country: / country_ 前缀）→ 原样
+ * - 势力中文名（如 "国民政府"）→ Owner 代码（"KMT"）
+ * - 国家中文名（如 "日本"）→ "country_JPN"
+ * 找不到映射则原样返回，避免误伤未知值。
+ */
+export function normalizeCommsFrom(input: unknown): string {
+  const s = String(input ?? '').trim()
+  if (!s) return s
+  if (s in OWNER_LABELS) return s
+  if (/^country[:_].+$/.test(s)) return s
+  if (OWNER_LABEL_REVERSE[s]) return OWNER_LABEL_REVERSE[s]
+  if (COUNTRY_LABEL_REVERSE[s]) return COUNTRY_LABEL_REVERSE[s]
+  return s
+}
+
 export function resolveEntity(from: string): CommsEntity {
   // ── 系统实体 ──
   if (from === 'WORLD') {
