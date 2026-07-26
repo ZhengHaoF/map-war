@@ -73,9 +73,9 @@ export function useAiOrchestrator(mode: AiMode = 'world') {
   // 以便 AI 在「进攻杭州」缺省 from 时挑最近己方城市；god-mode 仍默认关、可手动开。
   const systemPrompt = ref(buildSystemPrompt(mode))
   const userMessage = ref('')
-  const injectContext = ref(mode === 'user')
+  const injectContext = ref(mode === 'user' || mode === 'advisor')
   // 历史注入：玩家模式���认开（AI 操作台始终带记忆），god-mode 默认关（调试时手动开）。
-  const injectHistory = ref(mode === 'user')
+  const injectHistory = ref(mode === 'user' || mode === 'advisor')
   const parsed = ref<BatchValidation | null>(null)
   const parseError = ref<string | null>(null)
   const aiMessage = ref<string | null>(null)
@@ -172,7 +172,7 @@ export function useAiOrchestrator(mode: AiMode = 'world') {
     const messages = buildMessages({
       userText: userMessage.value,
       injectContext: injectContext.value,
-      injectWorldOverview: mode === 'user',
+      injectWorldOverview: mode === 'user' || mode === 'advisor',
       history,
       chatTurns: chatTurns.value.length > 0 ? chatTurns.value : undefined,
     })

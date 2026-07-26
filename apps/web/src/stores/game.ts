@@ -3,6 +3,7 @@ import { ref, shallowRef, computed, triggerRef } from 'vue'
 import { chinaCities } from '@/data/chinaCities'
 import { Owner, OWNER_LABELS } from '@/data/owners'
 import { resetBattleRuntime } from '@/utils/gameOrders'
+import { resolveLocationId } from '@/utils/locationResolver'
 import { useToast } from '@/composables/useToast'
 
 // 战斗元数据（PixiJS 句柄不进 store，由 gameOrders 模块本地持有）
@@ -361,22 +362,26 @@ export const useGameStore = defineStore('game', () => {
   function preCheck(e: GameEvent): { ok: true } | { ok: false; reason: string } {
     switch (e.type) {
       case 'moveTroops': {
-        const from = cities.value[e.fromGb]
-        const to = cities.value[e.toGb]
+        const fromGb = resolveLocationId(e.fromGb) ?? e.fromGb
+        const toGb = resolveLocationId(e.toGb) ?? e.toGb
+        const from = cities.value[fromGb]
+        const to = cities.value[toGb]
         if (!from) return { ok: false, reason: `调兵源城不存在: ${e.fromGb}` }
         if (!to) return { ok: false, reason: `调兵目标城不存在: ${e.toGb}` }
         if (e.amount <= 0) return { ok: false, reason: `调兵量必须为正: ${e.amount}` }
         return { ok: true }
       }
       case 'deploy': {
-        const from = cities.value[e.fromGb]
+        const fromGb = resolveLocationId(e.fromGb) ?? e.fromGb
+        const from = cities.value[fromGb]
         if (!from) return { ok: false, reason: `出兵源城不存在: ${e.fromGb}` }
         if (e.amount <= 0) return { ok: false, reason: `出兵量必须为正: ${e.amount}` }
         if (e.amount > from.troops) return { ok: false, reason: `出兵量 ${e.amount}k 超过驻军 ${from.troops}k` }
         return { ok: true }
       }
       case 'reinforce': {
-        if (!cities.value[e.gb]) return { ok: false, reason: `增援目标城不存在: ${e.gb}` }
+        const gb = resolveLocationId(e.gb) ?? e.gb
+        if (!cities.value[gb]) return { ok: false, reason: `增援目标城不存在: ${e.gb}` }
         if (e.amount <= 0) return { ok: false, reason: `增援量必须为正: ${e.amount}` }
         return { ok: true }
       }
@@ -384,17 +389,22 @@ export const useGameStore = defineStore('game', () => {
       case 'moraleChange':
       case 'cityStatChange':
       case 'produce': {
-        if (!cities.value[e.targetGb]) {
+        const targetGb = resolveLocationId(e.targetGb) ?? e.targetGb
+        if (!cities.value[targetGb]) {
           return { ok: false, reason: `城市不存在: ${e.targetGb}` }
         }
         return { ok: true }
       }
       case 'attack': {
-        if (!cities.value[e.targetGb]) {
+        const targetGb = resolveLocationId(e.targetGb) ?? e.targetGb
+        if (!cities.value[targetGb]) {
           return { ok: false, reason: `目标城不存在: ${e.targetGb}` }
         }
-        if (e.fromGb && !cities.value[e.fromGb]) {
-          return { ok: false, reason: `源城不存在: ${e.fromGb}` }
+        if (e.fromGb) {
+          const fromGb = resolveLocationId(e.fromGb) ?? e.fromGb
+          if (!cities.value[fromGb]) {
+            return { ok: false, reason: `源城不存在: ${e.fromGb}` }
+          }
         }
         return { ok: true }
       }
@@ -419,6 +429,19 @@ export const useGameStore = defineStore('game', () => {
    * 例外：initWorld() 开局播种可直接写（仅此一处）。
    */
   function applyEvent(e: GameEvent): { ok: boolean; reason?: string } {
+    // 入口统一反查：支持中文城市名（自由行动等路径传中文名时自动转 GB 编码）
+    if ('targetGb' in e && typeof e.targetGb === 'string' && e.targetGb) {
+      const r = resolveLocationId(e.targetGb); if (r) (e as Record<string, unknown>).targetGb = r
+    }
+    if ('fromGb' in e && typeof e.fromGb === 'string' && e.fromGb) {
+      const r = resolveLocationId(e.fromGb); if (r) (e as Record<string, unknown>).fromGb = r
+    }
+    if ('toGb' in e && typeof e.toGb === 'string' && e.toGb) {
+      const r = resolveLocationId(e.toGb); if (r) (e as Record<string, unknown>).toGb = r
+    }
+    if ('gb' in e && typeof e.gb === 'string' && e.gb) {
+      const r = resolveLocationId(e.gb); if (r) (e as Record<string, unknown>).gb = r
+    }
     // 1. 前置校验（拦截 4 个静默 return 点；先校验再 push 让坏事件也能进日志但不影响世界态）
     const check = preCheck(e)
     if (!check.ok) {

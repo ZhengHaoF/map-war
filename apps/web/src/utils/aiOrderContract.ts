@@ -443,7 +443,7 @@ export const CONTRACT_SCHEMA_TEXT = `你是民国军阀推演游戏的最高权�
 【地点参数说明】所有城市地点参数（arrowFly / radarPulse / orbBurst / battle 的 from / to，以及 capture 的 gb）请直接填城市中文名（如 "北京"、"上海"、"日本"），系统会自动转换为内部编码。支持简称/简写（如 "重庆"、"咸阳"），也兼容直接填 gb 编码，但优先用中文名。
 
 ═══════════════════════════════════════
-  指令一览（共 17 条）
+  指令一览（共 19 条）
 ═══════════════════════════════════════
 
 1. arrowFly — 箭头飞行动画（黄点弧线从 A 飞 B，纯视觉演出，不改世界态）
@@ -511,6 +511,15 @@ export const CONTRACT_SCHEMA_TEXT = `你是民国军阀推演游戏的最高权�
 
 17. setCurrentFaction — 切换玩家操控势力
     - faction（必填）：势力中文名（见下方势力一览）
+
+18. deploy — 出兵（将驻军调拨为外出兵力，离开城市对外作战）
+   - from  （必填）：出发城市中文名（己方城）
+   - amount（必填）：出兵数量，单位 k，须为正数
+
+19. reinforce — 增援（向已开战的攻方或守方前线/城内补充兵力）
+   - gb    （必填）：城市中文名
+   - amount（必填）：增援数量，单位 k，须为正数
+   - side  （必填）：attacker（补攻方前线兵力）或 defender（补守方城内驻军）
 
 ═══════════════════════════════════════
   势力一览（全部用中文名）
@@ -649,7 +658,7 @@ export const PLAYER_AI_UNIFIED_PROMPT = `你是民国军阀推演游戏的世界
   - produce：targetGb + amount（征兵，单位 k，正数）
   - moveTroops：fromGb + toGb + amount（调兵，单位 k）
   - sendTelegram：to + content（发送电报，见下方说明）
-· targetGb / fromGb / toGb 一律用城市的 GB 编码（见世界态上下文中每座城的 gb 字段），不要用城市中文名。
+· targetGb / fromGb / toGb 一律用城市中文名（如 '成都'），勿用 GB 编码。
 · success=false 时（行动失败，如暗杀失手、决堤不成），effects 应为空数组，只留 narrative 说明失败缘由。
 · effects 数量要克制——一个行动通常 0-3 条事件，不要为一句话刷一屏事件。
 · 你可以裁定行动失败：不合常理、玩家无能为力的事，返回 success=false 并在 narrative 说明。
@@ -682,8 +691,10 @@ export const PLAYER_AI_UNIFIED_PROMPT = `你是民国军阀推演游戏的世界
 3. orbBurst — 光球爆炸动画（纯视觉，不改世界态）
    from(必填,己方城) to(必填) text(可选)
 
-4. battle — 开启持续战斗（双向交火动画，世界态登记 battleStart）
-   from(必填,己方城) to(必填) text(可选)
+4. battle — 开启持续战斗（双向交火动画，世界态登记 battleStart）⚠ 需源城有外出兵力
+   需要先 deploy 出兵，或直接在 battle 上带 deployAmount（自动先派出该数量的兵再开战）。
+   若玩家未指定出兵数量，默认将源城全部驻军作为 deployAmount。
+   from(必填,己方城) to(必填) deployAmount(可选,k,默认=源城全部驻军) text(可选)
 
 5. stopBattle — 停止指定战斗
    id(必填)
@@ -711,6 +722,9 @@ export const PLAYER_AI_UNIFIED_PROMPT = `你是民国军阀推演游戏的世界
 
 14. rally — 整军（调整士气，正=鼓舞 负=挫败）
    gb(必填,己方城) amount(必填,非零，可正可负)
+
+15. deploy — 出兵（将驻军调拨为外出兵力，准备对外作战；常用于 battle 前手动部署）
+   from(必填,己方城) amount(必填,k，不超过驻军)
 
 ═══════════════════════════════════════
   势力名一览（全部用中文）

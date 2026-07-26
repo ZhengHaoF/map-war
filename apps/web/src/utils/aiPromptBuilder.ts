@@ -48,10 +48,7 @@ export function buildPlayerProfile(): string {
   return `玩家名称：${store.playerName || '（未设置）'}\n玩家势力：${factionLabel ? `${factionLabel}（${faction}）` : '（未选）'}`
 }
 
-/** 玩家基本信息，注入为一条 system 消息。 */
-export function buildWorldContext(): string {
-  return `玩家信息：\n${buildPlayerProfile()}`
-}
+/** 玩家基本信息，当前未使用；保留供未来调度器引用。 */
 
 export interface BuildMessagesOpts {
   userText: string

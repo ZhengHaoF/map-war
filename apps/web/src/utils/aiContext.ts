@@ -13,6 +13,7 @@ import { useGameStore } from '@/stores/game'
 import { chinaCitiesAdjacent } from '@/data/chinaCitiesAdjacent'
 import { Owner, OWNER_LABELS } from '@/data/owners'
 import { buildEventHistory } from './aiHistory'
+import { buildBattleContext } from './aiPromptBuilder'
 import type { CityDataWithAdjacent } from '@/data/chinaCitiesAdjacent'
 
 // ─── 邻接表（模块级只建一次）───
@@ -131,6 +132,13 @@ export function buildFactionContext(faction: Owner): string {
       const speaker = t.from === 'PLAYER' ? '玩家' : '你'
       lines.push(`  ${speaker}："${t.content}"`)
     }
+  }
+
+  // 战斗上下文（本势力参与的 active 战斗，决定增援/撤退策略）
+  const battles = buildBattleContext(faction)
+  if (battles) {
+    lines.push('')
+    lines.push(battles)
   }
 
   lines.push('')
