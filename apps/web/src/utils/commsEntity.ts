@@ -21,8 +21,6 @@ export interface CommsEntity {
   name: string
   /** 短标签（川军 / 苏联） */
   label: string
-  /** 头像字（领袖首字或国名首字） */
-  avatarChar: string
   /** 颜色 #rrggbb */
   colorHex: string
   /** 回信性格关键词 */
@@ -53,14 +51,14 @@ export function resolveEntity(from: string): CommsEntity {
   if (from === 'WORLD') {
     return {
       kind: 'system', code: 'WORLD',
-      name: '世界频道', label: '世界', avatarChar: '世',
+      name: '世界频道', label: '世界',
       colorHex: '#2c1a0a', personality: '', status: '诸势力时局短评', alive: true,
     }
   }
   if (from === 'PLAYER') {
     return {
       kind: 'system', code: 'PLAYER',
-      name: '玩家', label: '玩家', avatarChar: '我',
+      name: '玩家', label: '玩家',
       colorHex: '#b04a3a', personality: '', status: '', alive: true,
     }
   }
@@ -75,7 +73,6 @@ export function resolveEntity(from: string): CommsEntity {
       kind: 'country', code: iso,
       name: comms?.leader ?? country?.name ?? iso,
       label: country?.name ?? iso,
-      avatarChar: comms?.leader?.[0] ?? (country?.name?.[0] ?? iso[0]),
       colorHex: colorToHex(comms?.color),
       personality: comms?.personality ?? '老练务实',
       status: country
@@ -96,7 +93,6 @@ export function resolveEntity(from: string): CommsEntity {
     return {
       kind: 'faction', code: from,
       name: detail?.leader ?? label, label,
-      avatarChar: detail?.leader?.[0] ?? label[0],
       colorHex: colorToHex(color),
       personality: detail?.description?.slice(0, 20) ?? '沉稳',
       status: '已覆灭', alive: false,
@@ -106,7 +102,6 @@ export function resolveEntity(from: string): CommsEntity {
   return {
     kind: 'faction', code: from,
     name: detail?.leader ?? label, label,
-    avatarChar: detail?.leader?.[0] ?? label[0],
     colorHex: colorToHex(color),
     personality: detail?.description?.slice(0, 20) ?? '沉稳',
     status: `存活 · ${store.factionCities(from as Owner).length}城 · 兵力${store.factionTroops(from as Owner)}k`,

@@ -255,7 +255,6 @@ async function onSend(): Promise<void> {
     to: channel === 'world' ? undefined : channel,
     content: text,
     channel: channel === 'world' ? 'world' : 'direct',
-    to: channel === 'world' ? undefined : channel,
     turn: store.turnCount,
   })
   await nextTick()
@@ -397,7 +396,7 @@ function factionHexColor(from: string): string {
 }
 
 function avatarChar(from: string): string {
-  return resolveEntity(from).avatarChar
+  return resolveEntity(from).name[0] || '?'
 }
 
 function avatarStyle(from: string): Record<string, string> {

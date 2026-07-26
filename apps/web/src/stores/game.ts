@@ -37,8 +37,6 @@ export interface Telegram {
   content: string
   /** direct = 往来势力私信；world = 天下公屏 */
   channel: 'direct' | 'world'
-  /** 收件频道（direct 时 = 对方 from 代号；world 时省略） */
-  to?: string
   /** 回合序号 */
   turn: number
   read: boolean
