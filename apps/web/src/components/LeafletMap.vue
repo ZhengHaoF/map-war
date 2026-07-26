@@ -259,6 +259,51 @@
       </div>
     </GameModal>
     <LegendPanel v-if="ownerColorEnabled" class="map-ui" :items="legendItems" />
+    <!-- 战况浮层：每场进行中战斗一张可折叠卡片，锚定守方城、跟随相机 -->
+    <div class="battle-overlay">
+      <div
+        v-for="b in battleList"
+        v-show="battleCardPos[b.id]"
+        :key="b.id"
+        class="battle-card"
+        :class="{ collapsed: !battleCardExpanded[b.id] }"
+        :style="battleCardPos[b.id] ? { transform: battleCardPos[b.id] } : undefined"
+      >
+        <!-- 折叠态：精简标题条 -->
+        <div class="bc-head" @click="toggleBattleCard(b.id)">
+          <span class="bc-live" title="交战中"></span>
+          <span class="bc-route">{{ b.fromName }} ⇢ {{ b.toName }}</span>
+          <span class="bc-turns">{{ b.turns }} 回合</span>
+          <component :is="ICONS[battleCardExpanded[b.id] ? 'chevron-up' : 'chevron-down']" :size="13" class="bc-toggle" />
+        </div>
+        <!-- 展开态：兵力 / 战报 / 操作 -->
+        <div v-show="battleCardExpanded[b.id]" class="bc-body">
+          <div class="bc-vs">
+            <span class="bc-side bc-atk">{{ ownerLabel(b.attacker) }} {{ atkForce(b) }}k</span>
+            <span class="bc-vs-mark">对</span>
+            <span class="bc-side bc-def">{{ defForce(b) }}k {{ ownerLabel(b.defender) }}</span>
+          </div>
+          <div class="bc-force">
+            <div class="bc-force-atk" :style="{ width: forceShare(b) + '%' }"></div>
+          </div>
+          <div v-if="b.turns > 0" class="bc-loss">
+            上回合 攻-{{ b.lastAttackerLoss }}k / 守-{{ b.lastDefenderLoss }}k
+            <span class="bc-trend" :class="trend(b).cls">{{ trend(b).label }}</span>
+          </div>
+          <div v-if="b.lastNarrative" class="bc-report">「{{ b.lastNarrative }}」</div>
+          <div class="bc-actions">
+            <button class="bc-btn" @click.stop="focusBattle(b.id)">
+              <component :is="ICONS['crosshair']" :size="13" /> 聚焦
+            </button>
+            <button class="bc-btn bc-btn-danger" @click.stop="endBattle(b.id)">
+              <component :is="ICONS['x']" :size="13" /> 撤退
+            </button>
+          </div>
+        </div>
+        <!-- 指向守方城的锚点尖角 -->
+        <span class="bc-anchor"></span>
+      </div>
+    </div>
     </div>
     <PlayerAiPanel :visible="commandVisible" @close="commandVisible = false" />
     <AdvisorPanel :visible="advisorVisible" @close="advisorVisible = false" />
@@ -325,6 +370,8 @@ import IconUser from '~icons/tabler/user'
 import IconMail from '~icons/tabler/mail'
 import IconCloud from '~icons/tabler/cloud'
 import IconClipboardText from '~icons/tabler/clipboard-text'
+import IconChevronDown from '~icons/tabler/chevron-down'
+import IconChevronUp from '~icons/tabler/chevron-up'
 import AiDebugPanel from '@/components/AiDebugPanel.vue'
 import EventLogPanel from '@/components/EventLogPanel.vue'
 import GameDateDisplay from '@/components/ui/GameDateDisplay.vue'
@@ -352,6 +399,8 @@ const ICONS: Record<string, Component> = {
   mail: IconMail,
   cloud: IconCloud,
   'clipboard-text': IconClipboardText,
+  'chevron-down': IconChevronDown,
+  'chevron-up': IconChevronUp,
 }
 
 // ─── 类型定义 ───
@@ -1022,6 +1071,48 @@ function trend(b: BattleInfo): { label: string; cls: string } {
   return { label: '— 僵持', cls: 'trend-even' }
 }
 
+// ─── 战况浮层（DOM 卡片锚定守方城，跟随相机）───
+/** 每场战斗卡片的屏幕 transform（缺省即出屏/隐藏） */
+const battleCardPos = ref<Record<string, string>>({})
+/** 卡片展开状态（默认折叠，节省屏占） */
+const battleCardExpanded = ref<Record<string, boolean>>({})
+
+function toggleBattleCard(id: string): void {
+  battleCardExpanded.value[id] = !battleCardExpanded.value[id]
+}
+
+/**
+ * 把每场进行中战斗的锚点（守方城）投影到屏幕坐标，写入 transform。
+ * 由 applyCamera() 每帧调用（拖拽/缩放/镜头演出统一收口于此），天然跟手。
+ * 锚点出屏则不生成条目 → v-show 隐藏；锚点过近的卡片逐张上移错开。
+ */
+function syncBattleCards(): void {
+  const w = mapContainer.value?.clientWidth ?? 0
+  const h = mapContainer.value?.clientHeight ?? 0
+  const next: Record<string, string> = {}
+  const placed: Array<{ sx: number; sy: number }> = []
+  for (const b of battleList.value) {
+    if (!b.active) continue
+    const local = resolveLocationXY(b.to)
+    if (!local) continue
+    const sx = local.x * mapScale + mapX
+    let sy = local.y * mapScale + mapY
+    // 锚点出屏（预留卡片上抬高度）→ 隐藏
+    if (sx < -40 || sx > w + 40 || sy < 140 || sy > h + 40) continue
+    // 与已放置卡片过近时逐张上移（按折叠态高度错开）
+    for (const p of placed) {
+      if (Math.abs(sx - p.sx) < 160 && Math.abs(sy - p.sy) < 48) sy = p.sy - 48
+    }
+    placed.push({ sx, sy })
+    // 卡片浮在城池上方：锚点再抬 26px，translate(-50%,-100%) 使尖角指向城
+    next[b.id] = `translate3d(${sx}px, ${sy - 26}px, 0) translate(-50%, -100%)`
+  }
+  battleCardPos.value = next
+}
+
+// 战斗新增/结束 → 重算卡片。battles 原地 push/filter（引用不变），须 deep 才能捕获
+watch(battleList, syncBattleCards, { deep: true })
+
 function onGlobalMouseDown(e: MouseEvent): void {
   if (!contextMenuVisible.value) return
   const menu = document.querySelector('.context-menu')
@@ -1335,6 +1426,7 @@ function applyCamera(): void {
   fxContainer.position.set(mapX, mapY)
   updateLabels()
   updateSeals()
+  syncBattleCards()
 }
 
 /** 将相机平滑补间到目标 {scale, x, y} */
@@ -2076,5 +2168,201 @@ onUnmounted(() => {
   background: linear-gradient(to bottom, var(--danger-bg), var(--danger-bg2));
   border-color: var(--cinnabar);
   color: var(--danger-ink);
+}
+
+/* ─── 战况浮层：锚定守方城的可折叠战斗卡片 ─── */
+.battle-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none; /* 空白处不挡地图操作，卡片自身再开启 */
+  z-index: 900;
+}
+
+.battle-card {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 224px;
+  pointer-events: auto;
+  font-family: var(--font-kai);
+  background: linear-gradient(to bottom, var(--paper-panel), var(--paper-darker));
+  border: 1px solid rgba(138, 109, 75, 0.42);
+  border-top: 2px solid var(--cinnabar);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 6px 20px rgba(60, 40, 15, 0.28), 0 1px 3px rgba(60, 40, 15, 0.18);
+  color: var(--ink);
+  cursor: default;
+  transition: box-shadow 0.2s ease;
+}
+
+.battle-card:hover {
+  box-shadow: 0 8px 26px rgba(60, 40, 15, 0.38), 0 1px 3px rgba(60, 40, 15, 0.18);
+}
+
+/* 折叠态标题条（整条可点，切换展开） */
+.bc-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.bc-live {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--cinnabar);
+  animation: battle-pulse 1.6s ease-out infinite;
+}
+
+.bc-route {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink-strong);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bc-turns {
+  flex: none;
+  font-size: 10px;
+  color: var(--ink-muted);
+  border: 1px solid rgba(138, 109, 75, 0.4);
+  border-radius: 3px;
+  padding: 0 4px;
+}
+
+.bc-toggle {
+  flex: none;
+  color: var(--ink-muted);
+  transition: color 0.15s ease;
+}
+
+.bc-head:hover .bc-toggle {
+  color: var(--cinnabar);
+}
+
+/* 展开主体 */
+.bc-body {
+  padding: 2px 9px 8px;
+  border-top: 1px dashed rgba(138, 109, 75, 0.3);
+}
+
+.bc-vs {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.bc-side {
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.bc-atk { color: var(--cinnabar); }
+.bc-def { color: #6d5a37; }
+
+.bc-vs-mark {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: var(--ink-muted);
+}
+
+.bc-force {
+  height: 5px;
+  margin-top: 6px;
+  border-radius: 3px;
+  overflow: hidden;
+  background: linear-gradient(90deg, #a8895e, var(--brown));
+}
+
+.bc-force-atk {
+  height: 100%;
+  background: linear-gradient(90deg, var(--cinnabar), #c9664f);
+  transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.bc-loss {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.bc-trend {
+  margin-left: 6px;
+  font-weight: 700;
+}
+
+/* AI 战报叙事 */
+.bc-report {
+  margin-top: 7px;
+  padding: 5px 7px;
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: var(--ink-mid);
+  background: rgba(176, 74, 58, 0.06);
+  border-left: 2px solid rgba(176, 74, 58, 0.5);
+  border-radius: 2px;
+}
+
+.bc-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.bc-btn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 4px 6px;
+  font-family: var(--font-kai);
+  font-size: 12px;
+  letter-spacing: 0.5px;
+  color: var(--ink);
+  background: linear-gradient(to bottom, var(--paper-input), var(--paper-darker));
+  border: 1px solid rgba(138, 109, 75, 0.35);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.bc-btn:hover {
+  background: linear-gradient(to bottom, var(--paper-hi), var(--paper-hi2));
+  color: var(--ink-strong);
+  border-color: rgba(138, 109, 75, 0.55);
+}
+
+.bc-btn-danger:hover {
+  background: linear-gradient(to bottom, var(--danger-bg), var(--danger-bg2));
+  color: var(--danger-ink);
+  border-color: var(--cinnabar);
+}
+
+/* 指向守方城的锚点尖角（卡片底部居中） */
+.bc-anchor {
+  position: absolute;
+  left: 50%;
+  bottom: -6px;
+  width: 10px;
+  height: 10px;
+  background: var(--paper-darker);
+  border-right: 1px solid rgba(138, 109, 75, 0.42);
+  border-bottom: 1px solid rgba(138, 109, 75, 0.42);
+  transform: translateX(-50%) rotate(45deg);
 }
 </style>

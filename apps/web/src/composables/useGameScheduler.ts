@@ -135,7 +135,7 @@ async function settleActiveBattles(): Promise<void> {
       ;({ attackerLoss, defenderLoss } = fallbackTick(from.fieldForce, to.troops, fort))
     }
 
-    store.applyEvent({ type: 'attack', fromGb: b.from, targetGb: b.to, attackerLoss, defenderLoss })
+    store.applyEvent({ type: 'attack', fromGb: b.from, targetGb: b.to, attackerLoss, defenderLoss, narrative: resolution?.narrative })
 
     // 结算后再次检查终止条件
     const finalFrom = cities[b.from]

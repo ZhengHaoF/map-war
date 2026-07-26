@@ -21,6 +21,8 @@ export interface BattleInfo {
   totalDefenderLoss: number
   lastAttackerLoss: number
   lastDefenderLoss: number
+  /** AI 战斗裁决官最近一次战报叙事（每回合结算时更新；开局为空） */
+  lastNarrative?: string
 }
 
 /** 电报（AI 自主生成，非世界态事件，不进 eventLog） */
@@ -90,7 +92,7 @@ export type GameEvent =
   | { type: 'moveTroops'; fromGb: string; toGb: string; amount: number }
   | { type: 'deploy'; fromGb: string; amount: number }
   | { type: 'reinforce'; gb: string; amount: number; side: 'attacker' | 'defender' }
-  | { type: 'attack'; fromGb: string; targetGb: string; attackerLoss: number; defenderLoss: number }
+  | { type: 'attack'; fromGb: string; targetGb: string; attackerLoss: number; defenderLoss: number; narrative?: string }
   | { type: 'moraleChange'; targetGb: string; delta: number }
   | { type: 'cityStatChange'; targetGb: string; field: CityStatField; delta: number }
   | { type: 'produce'; targetGb: string; amount: number }
@@ -554,6 +556,8 @@ export const useGameStore = defineStore('game', () => {
             bi.lastAttackerLoss = e.attackerLoss
             bi.lastDefenderLoss = e.defenderLoss
             bi.turns++
+            // AI 裁决战报（每回合覆盖更新；无则保留上一次）
+            if (e.narrative) bi.lastNarrative = e.narrative
           }
         }
         t.troops = Math.max(0, t.troops - e.defenderLoss)
