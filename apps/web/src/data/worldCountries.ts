@@ -6,11 +6,13 @@ export interface CountryData {
   name: string
   full_name: string
   countryType: string
-  military: number
-  industry: number
-  population: number
-  threat: number
-  diplomacy: string
+  military: number // 军事实力评分（1-10），代表军队质量/装备/训练水平
+  industry: number // 工业能力评分（0-100），代表装备水平与工业产能
+  population: number // 人口（单位：千人），实数值
+  troops: number // 驻军（单位：千人）
+  fieldForce: number // 外出兵力（单位：千人），开战出兵后从此扣
+  threat: number // 对华威胁度（0-10）
+  diplomacy: string // 外交关系 NEUTRAL/HOSTILE/ALLIED
 }
 
 /**

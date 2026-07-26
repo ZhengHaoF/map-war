@@ -76,7 +76,7 @@ export function resolveEntity(from: string): CommsEntity {
       colorHex: colorToHex(comms?.color),
       personality: comms?.personality ?? '老练务实',
       status: country
-        ? `${country.full_name} · 军事${country.military} · 工业${country.industry} · ${country.diplomacy === 'HOSTILE' ? '敌对' : '中立'}`
+        ? `${country.name} · ${country.troops}k兵 · 军力${country.military} · 工业${country.industry} · ${country.diplomacy === 'HOSTILE' ? '敌对' : '中立'}`
         : iso,
       alive: true,
     }

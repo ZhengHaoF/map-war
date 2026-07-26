@@ -359,7 +359,7 @@ function buildWorldSituation(): string {
   const countryParts = Object.entries(COUNTRY_COMMS).map(([iso]) => {
     const c = worldCountries.find((w) => w.iso_a3 === iso)
     if (!c) return ''
-    return `${c.name}（${COUNTRY_COMMS[iso].leader}·军${c.military}·${c.diplomacy === 'HOSTILE' ? '敌对' : '中立'}）`
+    return `${c.name}（${COUNTRY_COMMS[iso].leader}·${c.troops}k兵·军力${c.military}·${c.diplomacy === 'HOSTILE' ? '敌对' : '中立'}）`
   }).filter(Boolean)
   return [...factionParts, ...countryParts].join('、')
 }

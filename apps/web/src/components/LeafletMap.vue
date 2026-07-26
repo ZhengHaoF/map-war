@@ -429,6 +429,14 @@ const DIPLOMACY_NAMES: Record<string, string> = {
   WAR: '交战中',
 }
 
+/** 格式化人口（存储单位：千人）→ 中文万/亿 */
+function formatPopulation(n: number | undefined | null): string {
+  if (n == null || n < 0) return '—'
+  if (n >= 100000) return `${(n / 100000).toFixed(1)} 亿`
+  if (n >= 10000) return `${(n / 10).toFixed(0)} 万`
+  return `${n} 千`
+}
+
 /**
  * ── 舆图调色板（民国军用地图 · 整屏同纸色）──
  * 画布底色 = 羊皮纸（与 --paper #e2d4b6 同族），海域陆地一张纸；
@@ -610,22 +618,29 @@ const countryInfoRows = computed(() => {
   if (!infoCountryData.value) return []
   const d = infoCountryData.value
   const dc = d as CountryData
-  return [
+  const rows = [
     { label: '国名', value: `${dc.name || '—'}（${dc.iso_a3 || dc.id || '—'}）` },
     { label: '全称', value: dc.full_name || '—' },
     {
       label: '国家类型',
       value: COUNTRY_TYPE_NAMES[dc.countryType as CountryTypeKey] || dc.countryType || '—',
     },
+    { label: '人口', value: formatPopulation(dc.population) },
     { label: '军事实力', value: `${dc.military ?? '—'} / 10` },
     { label: '工业能力', value: `${dc.industry ?? '—'} / 100` },
-    { label: '人口/资源', value: `${dc.population ?? '—'} / 10` },
+    { label: '驻军', value: `${dc.troops ?? 0} k` },
+  ]
+  if ((dc.fieldForce ?? 0) > 0) {
+    rows.push({ label: '外出兵力', value: `▲ ${dc.fieldForce} k（作战中）` })
+  }
+  rows.push(
     { label: '对华威胁', value: `${dc.threat ?? '—'} / 10` },
     {
       label: '外交关系',
       value: DIPLOMACY_NAMES[dc.diplomacy as string] || dc.diplomacy || '—',
     },
-  ]
+  )
+  return rows
 })
 
 const infoTitle = computed(() => {
