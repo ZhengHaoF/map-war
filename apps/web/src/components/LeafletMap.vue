@@ -24,15 +24,15 @@
         <component :is="ICONS['world']" :size="16" />
         世界背景
       </GameButton>
-      <GameButton tooltip="领土 · 城市 · 战斗一览" @click="overviewVisible = true">
+      <GameButton tooltip="领土 · 城市 · 战斗一览" :active="overviewVisible" @click="overviewVisible = !overviewVisible">
         <component :is="ICONS['map']" :size="16" />
         总览
       </GameButton>
-      <GameButton tooltip="调出玩家 AI 操作台" @click="commandVisible = true">
+      <GameButton tooltip="调出玩家 AI 操作台" :active="commandVisible" @click="commandVisible = !commandVisible">
         <component :is="ICONS['brain']" :size="16" />
         指挥
       </GameButton>
-      <GameButton tooltip="咨询战略顾问" @click="advisorVisible = true">
+      <GameButton tooltip="咨询战略顾问" :active="advisorVisible" @click="advisorVisible = !advisorVisible">
         <component :is="ICONS['user']" :size="16" />
         顾问
       </GameButton>
@@ -41,7 +41,7 @@
         电报
         <span v-if="unreadCount > 0" class="tg-nav-badge">{{ unreadCount > 9 ? '9+' : unreadCount }}</span>
       </GameButton>
-      <GameButton tooltip="查看世界事件日志" @click="eventLogPanelVisible = true">
+      <GameButton tooltip="查看世界事件日志" :active="eventLogPanelVisible" @click="eventLogPanelVisible = !eventLogPanelVisible">
         <component :is="ICONS['clipboard-text']" :size="16" />
         事件日志
       </GameButton>
