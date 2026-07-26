@@ -23,7 +23,7 @@ for (const c of chinaCitiesAdjacent as CityDataWithAdjacent[]) {
 }
 
 /** terrain 英文 → 中文 */
-const TERRAIN_LABEL: Record<string, string> = {
+export const TERRAIN_LABEL: Record<string, string> = {
   MOUNTAIN: '山地',
   HILL: '丘陵',
   PLAIN: '平原',

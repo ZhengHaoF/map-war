@@ -13,6 +13,7 @@
 
 import { useGameStore } from '@/stores/game'
 import { Owner, OWNER_DETAILS, OWNER_LABELS } from '@/data/owners'
+import { TERRAIN_LABEL } from './aiContext'
 import { CONTRACT_SCHEMA_TEXT, PLAYER_AI_UNIFIED_PROMPT, ADVISOR_SYSTEM_PROMPT } from './aiOrderContract'
 import { ORDER_TYPES } from './gameOrders'
 import { buildWorldOverview } from './aiContext'
@@ -214,7 +215,7 @@ export function buildBattleSettlePrompt(): string {
 - 攻方 3:1 以上优势 → 攻损 2-5%，守损 15-30%
 - 守方工事 fort >= 50 → 攻损额外 +20-40%
 - 守方士气 < 30 → 守损额外 +30-50%
-- 地形（仅作参考）：山地守方+50% / 丘陵+20% / 城市+40% / 平原林地无修正
+- 地形（仅作参考）：山地守方+50% / 丘陵+20% / 平原林地无修正
 
 ═══════════════════════════════════════
   战斗摘要格式（每场一行）
@@ -291,7 +292,7 @@ export function buildBattleSummary(): string {
       ? ` lastTurn: 攻损${b.lastAttackerLoss}k/守损${b.lastDefenderLoss}k`
       : ''
     lines.push(
-      `${b.id} ${b.attacker}(${b.fromName}/外出${from?.fieldForce ?? 0}k/士气${from?.morale ?? 0}) vs ${b.defender}(${b.toName}/驻军${to?.troops ?? 0}k/士气${to?.morale ?? 0}) fort=${to?.fort ?? 0} terrain=${to?.terrain ?? '平原'} turns=${b.turns}${last} trend=${trend}`,
+      `${b.id} ${b.attacker}(${b.fromName}/外出${from?.fieldForce ?? 0}k/士气${from?.morale ?? 0}) vs ${b.defender}(${b.toName}/驻军${to?.troops ?? 0}k/士气${to?.morale ?? 0}) fort=${to?.fort ?? 0} terrain=${TERRAIN_LABEL[to?.terrain ?? ''] ?? to?.terrain ?? '平原'} turns=${b.turns}${last} trend=${trend}`,
     )
   }
   return lines.join('\n')
