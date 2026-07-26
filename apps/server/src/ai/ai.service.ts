@@ -1,6 +1,6 @@
 import { Injectable, Logger, HttpException, HttpStatus } from '@nestjs/common';
 import OpenAI from 'openai';
-import { createLLMClient, getModel, getMissingEnv } from './llm.client';
+import { createLLMClient, getModel, getMissingEnv, getReasoningEffort } from './llm.client';
 
 @Injectable()
 export class AiService {
@@ -29,6 +29,7 @@ export class AiService {
     const payload = {
       ...body,
       model: body.model ?? this.model,
+      reasoning_effort: (body.reasoning_effort as string | undefined) ?? getReasoningEffort(),
     };
 
     try {
