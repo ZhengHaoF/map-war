@@ -6,7 +6,6 @@ import GameModal from '@/components/ui/GameModal.vue'
 import OnboardingView from '@/views/OnboardingView.vue'
 import SaveSelectorModal from '@/components/SaveSelectorModal.vue'
 import ToastStack from '@/components/ui/ToastStack.vue'
-import WorldProgressBanner from '@/components/WorldProgressBanner.vue'
 
 const gameStore = useGameStore()
 const { loadGame } = useSaveGame()
@@ -60,9 +59,6 @@ function onBackToSelector(): void {
 
   <!-- 轻量提示层：Teleport 到 body，独立渲染，不受地图演出/模态遮挡影响 -->
   <ToastStack />
-
-  <!-- 推演进队栏：世界推演 / 玩家指令推进时浮层显示 -->
-  <WorldProgressBanner />
 </template>
 
 <style>

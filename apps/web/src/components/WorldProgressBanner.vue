@@ -88,20 +88,16 @@ function detailOf(o: GameOrder): string {
 
 <style scoped>
 .world-progress-banner {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 34px;
-  z-index: 600;
+  flex-shrink: 0;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 12px;
-  padding: 10px 18px;
+  gap: 10px 12px;
+  padding: 8px 12px;
   background: linear-gradient(to bottom, var(--paper-input), var(--paper-darker));
-  border-top: 1px solid rgba(138, 109, 75, 0.4);
-  border-bottom: 1px solid rgba(138, 109, 75, 0.4);
-  box-shadow: 0 -4px 16px rgba(60, 40, 15, 0.18);
+  border: 1px solid rgba(138, 109, 75, 0.4);
+  border-radius: var(--radius-md);
+  box-shadow: 0 2px 8px rgba(60, 40, 15, 0.12);
   font-family: var(--font-kai);
   color: var(--ink);
 }

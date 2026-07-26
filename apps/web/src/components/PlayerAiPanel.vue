@@ -99,7 +99,7 @@
                 title="结束玩家回合，启动世界AI推演"
                 @click="endPlayerTurn"
               >
-                <IconEndTurn :size="14" />{{ kernelLoading ? kernelPhase : '结束回合' }}
+                <IconEndTurn :size="14" />结束回合
               </GameButton>
               <GameButton
                 parchment
@@ -111,6 +111,9 @@
               </GameButton>
             </div>
           </div>
+
+          <!-- 进队栏：面板底部，展示当前推演进度与待执行指令 -->
+          <WorldProgressBanner />
         </div>
       </Transition>
     </div>
@@ -124,6 +127,7 @@ import { useGameScheduler } from '@/composables/useGameScheduler'
 import { useAgentKernel } from '@/composables/useAgentKernel'
 import GameButton from '@/components/ui/GameButton.vue'
 import GameModal from '@/components/ui/GameModal.vue'
+import WorldProgressBanner from '@/components/WorldProgressBanner.vue'
 import IconSend from '~icons/tabler/send'
 import IconUndo from '~icons/tabler/arrow-back-up'
 import IconEndTurn from '~icons/tabler/player-stop'
@@ -147,14 +151,14 @@ const {
   undo,
 } = useAiOrchestrator('user')
 
-const { queue, status, submit, advance } = useGameScheduler()
+const { status, submit, advance } = useGameScheduler()
 
-const { loading: kernelLoading, phase: kernelPhase, endPlayerTurn } = useAgentKernel()
+const { loading: kernelLoading, endPlayerTurn } = useAgentKernel()
 
 const busy = computed(() => loading.value || status.value === 'running' || kernelLoading.value)
 const sendButtonText = computed(() => {
   if (loading.value) return '解析中…'
-  if (status.value === 'running') return `推进中 · ${queue.value.length}`
+  if (status.value === 'running') return '推进中…'
   return '发送'
 })
 
