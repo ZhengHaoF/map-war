@@ -17,12 +17,11 @@
  */
 
 import { ref } from 'vue'
-import { executeOrder, playTimeJump } from '@/utils/gameOrders'
+import { executeOrder, playTimeJump, stopBattleVisual } from '@/utils/gameOrders'
 import type { GameOrder } from '@/utils/gameOrders'
 import { useToast } from '@/composables/useToast'
 import { useGameStore } from '@/stores/game'
-import type { CityState } from '@/stores/game'
-import type { Owner } from '@/data/owners'
+import type { BattleEndReason, CityState } from '@/stores/game'
 import { callLlm } from '@/composables/useLlmClient'
 import { extractPayloads } from '@/utils/aiParse'
 import { buildBattleFlavorPrompt, buildBattleFlavorSummary } from '@/utils/aiPromptBuilder'
@@ -53,6 +52,12 @@ async function settleActiveBattles(): Promise<void> {
   const active = store.battles.filter((b) => b.active)
   if (!active.length) return
 
+  // 本地 helper：灭光柱 + applyEvent 同步收口，避免光柱残留 bug
+  const endBattle = (id: string, reason: BattleEndReason) => {
+    stopBattleVisual(id)
+    store.applyEvent({ type: 'battleEnd', battleId: id, reason })
+  }
+
   // ── 第一阶段：前置检查 + 本地公式（不展示） ──
   const baseResults = new Map<string, BaseResult>()
   const validBattles: (typeof active)[number][] = []
@@ -65,14 +70,14 @@ async function settleActiveBattles(): Promise<void> {
 
     // 偷家检测：攻方来源城已被第三方占领
     if (from.owner !== b.attacker) {
-      store.applyEvent({ type: 'battleEnd', battleId: b.id, reason: 'attackerRouted' })
+      endBattle(b.id, 'attackerRouted')
       pushToast({ icon: 'skull', tone: 'error', title: '战线崩溃', text: `${b.fromName} 被占，前线溃散` })
       continue
     }
 
     // 攻方来源城无外出兵力：本不该开战（开战入口已拦截），属异常兜底。
     if (from.fieldForce <= 0) {
-      store.applyEvent({ type: 'battleEnd', battleId: b.id, reason: 'retreat' })
+      endBattle(b.id, 'retreat')
       pushToast({ icon: 'player-stop', tone: 'neutral', title: '战线撤销', text: `${b.fromName} 未驻前线兵力，对峙作罢` })
       continue
     }
@@ -81,7 +86,7 @@ async function settleActiveBattles(): Promise<void> {
     if (to.troops <= 0) {
       const remaining = from.fieldForce
       store.applyEvent({ type: 'capture', targetGb: b.to, actor: b.attacker, resultTroops: remaining })
-      store.applyEvent({ type: 'battleEnd', battleId: b.id, reason: 'capture' })
+      endBattle(b.id, 'capture')
       pushToast({ icon: 'flag', tone: 'cinnabar', title: '城池陷落', text: `${b.toName} 被 ${b.attacker} 占领（进驻 ${remaining}k 兵）` })
       continue
     }
@@ -220,12 +225,12 @@ async function settleActiveBattles(): Promise<void> {
         actor: b.attacker,
         resultTroops: finalFrom.fieldForce,
       })
-      store.applyEvent({ type: 'battleEnd', battleId: b.id, reason: 'defenderCollapse' })
+      endBattle(b.id, 'defenderCollapse')
       pushToast({ icon: 'flag', tone: 'purple', title: '军心瓦解', text: `${b.toName} 守军士气崩溃，城池陷落` })
       continue
     }
     if (collapse === 'attacker') {
-      store.applyEvent({ type: 'battleEnd', battleId: b.id, reason: 'attackerCollapse' })
+      endBattle(b.id, 'attackerCollapse')
       pushToast({ icon: 'skull', tone: 'purple', title: '军心瓦解', text: `${b.fromName} 攻军士气崩溃，全线溃散` })
       continue
     }
@@ -234,10 +239,10 @@ async function settleActiveBattles(): Promise<void> {
     if (finalTo.troops <= 0) {
       const remaining = finalFrom.fieldForce
       store.applyEvent({ type: 'capture', targetGb: b.to, actor: b.attacker, resultTroops: remaining })
-      store.applyEvent({ type: 'battleEnd', battleId: b.id, reason: 'capture' })
+      endBattle(b.id, 'capture')
       pushToast({ icon: 'flag', tone: 'cinnabar', title: '城池陷落', text: `${b.toName} 被 ${b.attacker} 占领（进驻 ${remaining}k 兵）` })
     } else if (finalFrom.fieldForce <= 0) {
-      store.applyEvent({ type: 'battleEnd', battleId: b.id, reason: 'attackerRouted' })
+      endBattle(b.id, 'attackerRouted')
       pushToast({ icon: 'skull', tone: 'error', title: '攻方溃败', text: `${b.fromName} 兵锋耗尽` })
     }
   }

@@ -475,6 +475,21 @@ function stopBattle(id: string): OrderResult {
 }
 
 /**
+ * 按 id 灭光柱并清理动画层注册表（幂等：id 不存在则静默跳过）。
+ * 仅清理画面层，不碰世界态（battleEnd 事件由调用方独立 apply）。
+ *
+ * 使用场景：战斗经由 world-state 结算路径（如 settleActiveBattles）结束时，
+ * 绕过 executeOrder 直调 applyEvent('battleEnd')，需同步灭光柱。
+ */
+export function stopBattleVisual(id: string): void {
+  const entry = activeBattles.get(id)
+  if (!entry) return // 幂等：动画本就不在运行，无需报错阻断
+  entry.battle.stop()
+  activeBattles.delete(id)
+  battleRegistry.delete(id)
+}
+
+/**
  * 停止全部进行中的战斗动画并清空战斗注册表（灭全部光束）。
  * 世界态（battleEnd 事件）由 executeOrder 在调用本函数后统一 applyEvent。
  * @returns 始终成功
