@@ -165,6 +165,8 @@
       title="战斗管理"
       :z-index="3500"
       variant="parchment"
+      :draggable="true"
+      :overlay="false"
       @close="battleListVisible = false"
     >
       <div class="battle-list-body">
