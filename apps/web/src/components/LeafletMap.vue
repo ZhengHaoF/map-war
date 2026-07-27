@@ -1791,6 +1791,7 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  padding: 14px 20px 18px;
 }
 
 .layer-switcher {
