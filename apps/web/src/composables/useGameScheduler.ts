@@ -25,7 +25,9 @@ import type { CityState } from '@/stores/game'
 import type { Owner } from '@/data/owners'
 import { callLlm } from '@/composables/useLlmClient'
 import { extractPayloads } from '@/utils/aiParse'
-import { buildBattleSettlePrompt, buildBattleSummary } from '@/utils/aiPromptBuilder'
+import { buildBattleFlavorPrompt, buildBattleFlavorSummary } from '@/utils/aiPromptBuilder'
+import { computeBaseBattle, clampFlavor, checkMoraleCollapse } from '@/utils/battleFormula'
+import type { BaseResult, FlavorResult, FlavorEvent } from '@/utils/battleFormula'
 
 export type AdvanceStatus = 'idle' | 'running' | 'done' | 'stopped'
 
@@ -44,54 +46,17 @@ function submit(orders: GameOrder[]): void {
 }
 
 /**
- * P4a 战斗兜底公式（仅 AI 失败/漏裁时用）。
- * 简单考虑兵力比与守方工事，每回合各损约 5-10%。
- */
-function fallbackTick(atkFieldForce: number, defTroops: number, fort: number): { attackerLoss: number; defenderLoss: number } {
-  const ratio = atkFieldForce / Math.max(defTroops, 1)
-  const baseRate = 0.06
-  // fort 范围 0-100，归一化为 0-1 的系数影响（最高让攻方损耗翻倍）
-  const fortFactor = 1 + (fort / 100) * 1.0
-  const attackerLoss = Math.max(1, Math.round(atkFieldForce * baseRate * fortFactor))
-  const defenderLoss = Math.max(1, Math.round(defTroops * baseRate * Math.min(ratio, 3)))
-  return { attackerLoss, defenderLoss }
-}
-
-/**
- * P4a 战斗结算：遍历 ACTIVE 战斗，优先走 LLM 裁决，fallback 用兜底公式。
+ * P4a 战斗结算：本地公式为主干、AI 为调味层。
  */
 async function settleActiveBattles(): Promise<void> {
   const store = useGameStore()
   const active = store.battles.filter((b) => b.active)
   if (!active.length) return
 
-  // ── 第一步：尝试 LLM 战斗裁决 ──
-  type Resolution = { attackerLoss: number; defenderLoss: number; narrative?: string }
-  const llmResolutions: Record<string, Resolution> = {}
-  const summary = buildBattleSummary()
-  if (summary) {
-    try {
-      const raw = await callLlm({
-        messages: [
-          { role: 'system', content: buildBattleSettlePrompt() },
-          { role: 'user', content: summary },
-        ],
-        maxRetries: 2,
-      })
-      const payloads = extractPayloads(raw)
-      const obj = payloads[0] as Record<string, unknown> | undefined
-      const list = (obj?.resolutions as Array<{ battleId?: string; attackerLoss?: number; defenderLoss?: number; narrative?: string }>) ?? []
-      for (const r of list) {
-        if (r.battleId && typeof r.attackerLoss === 'number' && typeof r.defenderLoss === 'number') {
-          llmResolutions[r.battleId] = { attackerLoss: r.attackerLoss, defenderLoss: r.defenderLoss, narrative: r.narrative }
-        }
-      }
-    } catch (e) {
-      console.warn('[P4a] LLM 战斗裁决失败，全部走 fallback 兜底', e)
-    }
-  }
+  // ── 第一阶段：前置检查 + 本地公式（不展示） ──
+  const baseResults = new Map<string, BaseResult>()
+  const validBattles: (typeof active)[number][] = []
 
-  // ── 第二步：逐场结算 ──
   for (const b of active) {
     const cities = store.cities as unknown as Record<string, CityState>
     const from = cities[b.from]
@@ -106,14 +71,13 @@ async function settleActiveBattles(): Promise<void> {
     }
 
     // 攻方来源城无外出兵力：本不该开战（开战入口已拦截），属异常兜底。
-    // 不判"溃败"（兵没外出、谈不上溃散），温和撤销战线，reason 用 retreat 使兵态自洽。
     if (from.fieldForce <= 0) {
       store.applyEvent({ type: 'battleEnd', battleId: b.id, reason: 'retreat' })
       pushToast({ icon: 'player-stop', tone: 'neutral', title: '战线撤销', text: `${b.fromName} 未驻前线兵力，对峙作罢` })
       continue
     }
 
-    // 守方归零 → 占领
+    // 守方已归零 → 直接占领（跳过公式，无仗可打）
     if (to.troops <= 0) {
       const remaining = from.fieldForce
       store.applyEvent({ type: 'capture', targetGb: b.to, actor: b.attacker, resultTroops: remaining })
@@ -122,26 +86,151 @@ async function settleActiveBattles(): Promise<void> {
       continue
     }
 
-    // 正常结算：优先 LLM 裁决，缺则 fallback
-    const resolution = llmResolutions[b.id]
-    let attackerLoss: number
-    let defenderLoss: number
-    if (resolution) {
-      // 尊重 AI 裁决：0 损耗是合法值（未交战/无接触），不强制保底
-      attackerLoss = Math.max(0, Math.min(Math.round(resolution.attackerLoss), from.fieldForce))
-      defenderLoss = Math.max(0, Math.min(Math.round(resolution.defenderLoss), to.troops))
-    } else {
-      const fort = to.fort ?? 0
-      ;({ attackerLoss, defenderLoss } = fallbackTick(from.fieldForce, to.troops, fort))
+    // 本地公式：确定性基础减员 + 士气变化
+    baseResults.set(
+      b.id,
+      computeBaseBattle({
+        atkForce: from.fieldForce,
+        defTroops: to.troops,
+        atkMorale: from.morale,
+        defMorale: to.morale,
+        fort: to.fort ?? 0,
+        terrain: to.terrain,
+      }),
+    )
+    validBattles.push(b)
+  }
+
+  if (!validBattles.length) return
+
+  // ── 第二阶段：AI 调味（尽力而为，失败不阻塞）───
+  let flavorMap: Record<string, FlavorResult> = {}
+
+  try {
+    const summary = buildBattleFlavorSummary(validBattles, baseResults)
+    if (summary) {
+      const raw = await callLlm({
+        messages: [
+          { role: 'system', content: buildBattleFlavorPrompt() },
+          { role: 'user', content: summary },
+        ],
+        maxRetries: 2,
+      })
+      const payloads = extractPayloads(raw)
+      const obj = payloads[0] as Record<string, unknown> | undefined
+      const list =
+        (obj?.results as Array<{
+          battleId?: string
+          events?: FlavorEvent[]
+          narrative?: string
+        }>) ?? []
+      for (const r of list) {
+        if (r.battleId) {
+          flavorMap[r.battleId] = { events: r.events ?? [], narrative: r.narrative }
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('[P4a] AI 调味失败，纯公式结算', e)
+  }
+
+  // ── 第三阶段：钳制 AI 调味 + 合并 + apply ──
+  for (const b of validBattles) {
+    const cities = store.cities as unknown as Record<string, CityState>
+    const from = cities[b.from]
+    const to = cities[b.to]
+    if (!from || !to) continue
+
+    const base = baseResults.get(b.id)!
+    const rawFlavor = flavorMap[b.id] ?? { events: [] }
+    const flavor = clampFlavor(rawFlavor, base)
+
+    // 合并：基础 + AI shock 突发减员
+    let attackerShock = 0
+    let defenderShock = 0
+    for (const e of flavor.events) {
+      if (e.type === 'shock') {
+        if (e.side === 'attacker') attackerShock += e.magnitude ?? 0
+        else defenderShock += e.magnitude ?? 0
+      }
+    }
+    const finalAttackerLoss = Math.min(
+      Math.max(1, base.attackerLoss + attackerShock),
+      from.fieldForce,
+    )
+    const finalDefenderLoss = Math.min(
+      Math.max(1, base.defenderLoss + defenderShock),
+      to.troops,
+    )
+
+    // applyEvent(attack) — 兵力损耗
+    store.applyEvent({
+      type: 'attack',
+      fromGb: b.from,
+      targetGb: b.to,
+      attackerLoss: finalAttackerLoss,
+      defenderLoss: finalDefenderLoss,
+      narrative: flavor.narrative,
+    })
+
+    // applyEvent(moraleChange) — 公式士气损耗
+    if (base.atkMoraleDelta !== 0) {
+      store.applyEvent({
+        type: 'moraleChange',
+        targetGb: b.from,
+        delta: base.atkMoraleDelta,
+      })
+    }
+    if (base.defMoraleDelta !== 0) {
+      store.applyEvent({
+        type: 'moraleChange',
+        targetGb: b.to,
+        delta: base.defMoraleDelta,
+      })
     }
 
-    store.applyEvent({ type: 'attack', fromGb: b.from, targetGb: b.to, attackerLoss, defenderLoss, narrative: resolution?.narrative })
+    // applyEvent(moraleChange) — AI 士气扰动
+    for (const e of flavor.events) {
+      if (e.type === 'morale') {
+        const targetGb = e.side === 'attacker' ? b.from : b.to
+        store.applyEvent({
+          type: 'moraleChange',
+          targetGb,
+          delta: e.delta ?? 0,
+        })
+      }
+    }
 
-    // 结算后再次检查终止条件
+    // ── 第四阶段：终局复检 ──
     const finalFrom = cities[b.from]
     const finalTo = cities[b.to]
     if (!finalFrom || !finalTo) continue
 
+    // ② 士气崩溃（优先于归零，守方优先判定）
+    const collapse = checkMoraleCollapse({
+      battleId: b.id,
+      turns: store.battles.find((x) => x.id === b.id)?.turns ?? 0,
+      atkMorale: finalFrom.morale,
+      defMorale: finalTo.morale,
+    })
+    if (collapse === 'defender') {
+      store.applyEvent({
+        type: 'capture',
+        targetGb: b.to,
+        actor: b.attacker,
+        resultTroops: finalFrom.fieldForce,
+      })
+      store.applyEvent({ type: 'battleEnd', battleId: b.id, reason: 'defenderCollapse' })
+      pushToast({ icon: 'flag', tone: 'purple', title: '军心瓦解', text: `${b.toName} 守军士气崩溃，城池陷落` })
+      continue
+    }
+    if (collapse === 'attacker') {
+      store.applyEvent({ type: 'battleEnd', battleId: b.id, reason: 'attackerCollapse' })
+      pushToast({ icon: 'skull', tone: 'purple', title: '军心瓦解', text: `${b.fromName} 攻军士气崩溃，全线溃散` })
+      continue
+    }
+
+    // ① 兵力归零（原逻辑保留）
     if (finalTo.troops <= 0) {
       const remaining = finalFrom.fieldForce
       store.applyEvent({ type: 'capture', targetGb: b.to, actor: b.attacker, resultTroops: remaining })

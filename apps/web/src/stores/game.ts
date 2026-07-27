@@ -85,7 +85,7 @@ export const DEVELOP_FIELDS: CityStatField[] = ['industry', 'food']
  * 都必须封装成 GameEvent，经 applyEvent 落地——这是唯一写者（initWorld 播种除外）。
  */
 /** 战斗终止原因 */
-export type BattleEndReason = 'capture' | 'attackerRouted' | 'retreat'
+export type BattleEndReason = 'capture' | 'attackerRouted' | 'retreat' | 'defenderCollapse' | 'attackerCollapse'
 
 export type GameEvent =
   | { type: 'capture'; targetGb: string; actor: Owner; resultTroops?: number }
@@ -483,7 +483,7 @@ export const useGameStore = defineStore('game', () => {
             // 撤退：外出兵力转回驻军
             from.troops += from.fieldForce
             from.fieldForce = 0
-          } else if (e.reason === 'capture' || e.reason === 'attackerRouted') {
+          } else if (e.reason === 'capture' || e.reason === 'attackerRouted' || e.reason === 'defenderCollapse' || e.reason === 'attackerCollapse') {
             // 占领：兵力已转入被占城；溃败：兵散了
             from.fieldForce = 0
           } else {

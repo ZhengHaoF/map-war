@@ -17,6 +17,8 @@ import { TERRAIN_LABEL } from './aiContext'
 import { CONTRACT_SCHEMA_TEXT, PLAYER_AI_UNIFIED_PROMPT, ADVISOR_SYSTEM_PROMPT } from './aiOrderContract'
 import { ORDER_TYPES } from './gameOrders'
 import { buildWorldOverview } from './aiContext'
+import type { BaseResult } from './battleFormula'
+import type { BattleInfo } from '@/stores/game'
 
 /** AI 角色类型：world = god-mode 调试（最高权限）；user = 玩家势力代理（受限）；advisor = 战略顾问（场外援助）。 */
 export type AiKind = 'world' | 'user' | 'advisor'
@@ -194,34 +196,40 @@ ${usableOrders.join(' / ')}
 }
 
 /**
- * P4a 战斗裁决 AI 的 system prompt。
- * 输入紧凑战斗摘要，输出每场损耗裁定。
+ * P4a 战斗调味 AI 的 system prompt。
+ * 输入战斗摘要 + 基础公式结果，输出可选的突发事件（shock / morale）+ 叙事。
  */
-export function buildBattleSettlePrompt(): string {
-  return `你是民国军阀推演游戏中的"战斗裁决官"。
+export function buildBattleFlavorPrompt(): string {
+  return `你是民国军阀推演游戏中的"战地记者"。
 
 ═══════════════════════════════════════
   职责
 ═══════════════════════════════════════
 
-你会收到进行中的战斗列表（紧凑格式），逐场裁定本轮双方的损耗。
+你会收到进行中的战斗列表及本轮基础减员结果（由系统公式算出）。
+你的工作是为战报增添戏剧色彩，而非改变战局。
 
 ═══════════════════════════════════════
-  裁定参考（非硬约束，在此区间内自由发挥）
+  你可以做的（可选，大多数时候什么都不做）
 ═══════════════════════════════════════
 
-- 攻守兵力相当（比 0.8-1.2）→ 双方各损 8-15%
-- 攻方 2:1 优势 → 攻损 3-8%，守损 10-20%
-- 攻方 3:1 以上优势 → 攻损 2-5%，守损 15-30%
-- 守方工事 fort >= 50 → 攻损额外 +20-40%
-- 守方士气 < 30 → 守损额外 +30-50%
-- 地形（仅作参考）：山地守方+50% / 丘陵+20% / 平原林地无修正
+1. shock（突发减员）：弹药库殉爆、主将阵亡、伏兵突袭、友军误击等意外。
+   - magnitude 是额外伤亡（k），系统会封顶不超过该方基础减员的 50%。
+   - 一场战斗里出现一两次就已足够，多了就不值钱了——大多数回合不应有 shock。
+
+2. morale（士气扰动）：援军消息、瘟疫蔓延、叛逃哗变、捷报等。
+   - delta 是士气变化量（正=提振，负=打击），系统会封顶不超过 ±20。
+   - 士气事件可以比 shock 稍频繁，但也不要每回合都编——"什么都没发生"才是战场常态。
 
 ═══════════════════════════════════════
-  战斗摘要格式（每场一行）
+  关键原则
 ═══════════════════════════════════════
 
-battle_X ATTACKER(城名/外出Xk/士气X) vs DEFENDER(城名/驻军Xk/士气X) fort=X terrain=X turns=X lastTurn: X损X/X损X trend=X
+- 大多数回合 events 应为空数组 []。
+- 突发事件是稀缺的戏剧高潮，不要每回合都输出。
+- 如果你本轮确实没有值得报告的突发，直接返回空 events，不要硬编。
+- 你不需要判定谁胜谁负——终局由系统检查。
+- narrative 用一句话描述本轮战况，可参考但勿照抄基础减员数字。
 
 ═══════════════════════════════════════
   输出格式
@@ -229,21 +237,23 @@ battle_X ATTACKER(城名/外出Xk/士气X) vs DEFENDER(城名/驻军Xk/士气X) 
 
 必须只返回一个 JSON 对象：
 {
-  "resolutions": [
+  "results": [
     {
       "battleId": "battle_1",
-      "attackerLoss": 400,
-      "defenderLoss": 350,
-      "narrative": "奉天前线激烈交火，东北军据城固守，双方各有损耗"
+      "events": [
+        { "type": "shock", "side": "defender", "magnitude": 120, "narrative": "守军弹药库中弹殉爆" },
+        { "type": "morale", "side": "attacker", "delta": -15, "narrative": "攻方主将阵亡，军心动摇" }
+      ],
+      "narrative": "奉天城下激战终日，东北军据城死守"
     }
   ]
 }
 
 注意：
-- 每场战斗必须对应一条，不能遗漏
-- attackerLoss/defenderLoss 是千（k），正整数
-- narrative 可选，一句话描述本轮战况
-- 如果攻方 fieldForce <= 守方 20%，可让攻损偏大、守损偏小（强弩之末），但不要直接判负——终止条件由系统检查`
+- 每场战斗必须对应一条 results，不能遗漏
+- events 可以为空数组
+- magnitude 是千（k），正整数
+- morale 的 delta 可正可负`
 }
 
 /**
@@ -276,23 +286,26 @@ export function buildBattleContext(faction: Owner): string {
 }
 
 /**
- * 构建 P4a 战斗裁决 AI 的 user message（所有 ACTIVE 战斗的紧凑摘要）。
+ * 构建 P4a 战斗调味 AI 的 user message（战斗摘要 + 基础公式结果）。
  */
-export function buildBattleSummary(): string {
+export function buildBattleFlavorSummary(
+  active: BattleInfo[],
+  baseResults: Map<string, BaseResult>,
+): string {
   const store = useGameStore()
-  const active = store.battles.filter((b) => b.active)
   if (!active.length) return ''
 
-  const lines: string[] = [`共 ${active.length} 场进行中的战斗：`]
+  const lines: string[] = [`共 ${active.length} 场进行中的战斗（基础减员已由系统公式算出，你只需添戏剧色彩）：`]
   for (const b of active) {
     const from = (store.cities as unknown as Record<string, { name: string; troops: number; fieldForce: number; morale: number }>)[b.from]
     const to = (store.cities as unknown as Record<string, { name: string; troops: number; fieldForce: number; morale: number; fort: number; terrain: string }>)[b.to]
+    const base = baseResults.get(b.id)
     const trend = b.totalAttackerLoss > b.totalDefenderLoss * 1.2 ? '守方占优' : b.totalDefenderLoss > b.totalAttackerLoss * 1.2 ? '攻方占优' : '僵持'
     const last = b.turns > 0 && b.lastAttackerLoss > 0
       ? ` lastTurn: 攻损${b.lastAttackerLoss}k/守损${b.lastDefenderLoss}k`
       : ''
     lines.push(
-      `${b.id} ${b.attacker}(${b.fromName}/外出${from?.fieldForce ?? 0}k/士气${from?.morale ?? 0}) vs ${b.defender}(${b.toName}/驻军${to?.troops ?? 0}k/士气${to?.morale ?? 0}) fort=${to?.fort ?? 0} terrain=${TERRAIN_LABEL[to?.terrain ?? ''] ?? to?.terrain ?? '平原'} turns=${b.turns}${last} trend=${trend}`,
+      `${b.id} ${b.attacker}(${b.fromName}/外出${from?.fieldForce ?? 0}k/士气${from?.morale ?? 0}) vs ${b.defender}(${b.toName}/驻军${to?.troops ?? 0}k/士气${to?.morale ?? 0}) fort=${to?.fort ?? 0} terrain=${TERRAIN_LABEL[to?.terrain ?? ''] ?? to?.terrain ?? '平原'} turns=${b.turns}${last} trend=${trend} base: 攻损${base?.attackerLoss ?? '?'}k/守损${base?.defenderLoss ?? '?'}k/士气攻${base?.atkMoraleDelta ?? '?'}/守${base?.defMoraleDelta ?? '?'}`,
     )
   }
   return lines.join('\n')
