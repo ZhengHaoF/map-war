@@ -260,7 +260,7 @@
     </GameModal>
     <LegendPanel v-if="ownerColorEnabled" class="map-ui" :items="legendItems" />
     <!-- 战况浮层：每场进行中战斗一张可折叠卡片，锚定守方城、跟随相机 -->
-    <div class="battle-overlay">
+    <div class="battle-overlay map-ui">
       <div
         v-for="b in battleList"
         v-show="battleCardPos[b.id]"
@@ -2176,6 +2176,11 @@ onUnmounted(() => {
   inset: 0;
   pointer-events: none; /* 空白处不挡地图操作，卡片自身再开启 */
   z-index: 900;
+}
+
+/* 云雾蒙太奇期间与 .map-ui 面板一起淡出；卡片显式开过 pointer-events，需单独收掉防误触 */
+body.cloud-active .battle-card {
+  pointer-events: none;
 }
 
 .battle-card {
