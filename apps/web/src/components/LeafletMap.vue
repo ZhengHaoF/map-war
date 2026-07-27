@@ -167,6 +167,7 @@
       variant="parchment"
       @close="battleListVisible = false"
     >
+      <div class="battle-list-body">
       <div v-if="battleList.length === 0" class="empty-hint">当前没有进行中的战斗</div>
       <div v-for="b in battleList" :key="b.id" class="battle-item" :class="{ 'battle-stale': !b.active }">
         <div class="battle-main">
@@ -218,6 +219,7 @@
           <component :is="ICONS['x']" :size="14" />
           撤退
         </GameButton>
+      </div>
       </div>
     </GameModal>
     <GameModal class="map-ui"
@@ -1905,6 +1907,11 @@ onUnmounted(() => {
 .disclaimer-content a {
   color: var(--cinnabar);
   text-decoration: none;
+}
+
+/* 战斗管理面板内容区 padding（parchment 变体 modal-body padding=0，需自行补） */
+.battle-list-body {
+  padding: 16px 20px 18px;
 }
 
 .battle-item {
