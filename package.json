@@ -1,14 +1,14 @@
 {
-  "name": "map-war",
+  "name": "warlords-1931",
   "version": "0.0.0",
   "private": true,
   "scripts": {
     "dev": "pnpm -r --parallel run dev",
     "build": "pnpm -r run build",
-    "dev:web": "pnpm --filter map-war-web run dev",
-    "dev:server": "pnpm --filter map-war-server run start:dev",
-    "typecheck": "pnpm --filter map-war-web run typecheck",
-    "lint": "pnpm --filter map-war-web run lint",
+    "dev:web": "pnpm --filter warlords-1931-web run dev",
+    "dev:server": "pnpm --filter warlords-1931-server run start:dev",
+    "typecheck": "pnpm --filter warlords-1931-web run typecheck",
+    "lint": "pnpm --filter warlords-1931-web run lint",
     "subset-font": "python scripts/subset-font.py"
   }
 }

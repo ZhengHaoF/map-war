@@ -1,5 +1,5 @@
 {
-  "name": "map-war-server",
+  "name": "warlords-1931-server",
   "version": "0.0.1",
   "description": "NestJS backend proxy for DeepSeek AI (game orders)",
   "private": true,

@@ -1,4 +1,4 @@
-# map-war
+# 烽火舆图 · Warlords 1931
 
 全栈战争地图策略游戏。仓库采用 **pnpm workspace** 单仓多包（monorepo）结构：
 

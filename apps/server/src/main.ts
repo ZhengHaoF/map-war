@@ -10,6 +10,6 @@ async function bootstrap() {
   app.setGlobalPrefix('api');
   const port = process.env.PORT ?? 3001;
   await app.listen(port);
-  console.log(`map-war-server listening on http://localhost:${port}`);
+  console.log(`warlords-1931-server listening on http://localhost:${port}`);
 }
 bootstrap();
