@@ -58,6 +58,10 @@
         <component :is="ICONS['bug']" :size="16" />
         调试
       </GameButton>
+      <GameButton @click="fullRerender">
+        <component :is="ICONS['refresh']" :size="16" />
+        刷新
+      </GameButton>
     </div>
     <GameDateDisplay class="map-ui" />
     <GameContextMenu
@@ -234,9 +238,9 @@
             <span class="trend" :class="trend(b).cls">{{ trend(b).label }}</span>
           </div>
         </div>
-        <GameButton danger size="small" class="battle-end-btn" @click="endBattle(b.id)">
+        <GameButton v-if="canRetreat(b)" danger size="small" class="battle-end-btn" :disabled="retreatingId === b.id" @click="requestRetreat(b)">
           <component :is="ICONS['x']" :size="14" />
-          撤退
+          {{ retreatingId === b.id ? '对方思考中…' : '撤退' }}
         </GameButton>
       </div>
       </div>
@@ -279,6 +283,21 @@
         </ul>
       </div>
     </GameModal>
+    <GameModal
+      :visible="retreatVerdictVisible"
+      title="撤退裁决"
+      variant="parchment"
+      width="360px"
+      @close="onRetreatVerdictConfirm"
+    >
+      <div class="retreat-verdict">
+        <p class="verdict-text">{{ retreatVerdictText }}</p>
+        <div v-if="retreatVerdictOrder" class="verdict-loss">
+          追击损失：{{ retreatVerdictOrder.retreatLoss }}k
+        </div>
+        <button class="verdict-btn" @click="onRetreatVerdictConfirm">知晓</button>
+      </div>
+    </GameModal>
     <LegendPanel v-if="ownerColorEnabled" class="map-ui" :items="legendItems" />
     <!-- 战况浮层：每场进行中战斗一张可折叠卡片，锚定守方城、跟随相机 -->
     <div class="battle-overlay map-ui">
@@ -313,11 +332,12 @@
           </div>
           <div v-if="b.lastNarrative" class="bc-report">「{{ b.lastNarrative }}」</div>
           <div class="bc-actions">
-            <button class="bc-btn" @click.stop="focusBattle(b.id)">
-              <component :is="ICONS['crosshair']" :size="13" /> 聚焦
+            <button v-if="canPeace(b)" class="bc-btn" @click.stop="requestPeace(b)">
+              <component :is="ICONS['affiliate']" :size="13" /> 求和
             </button>
-            <button class="bc-btn bc-btn-danger" @click.stop="endBattle(b.id)">
-              <component :is="ICONS['x']" :size="13" /> 撤退
+            <button v-if="canRetreat(b)" class="bc-btn bc-btn-danger" :disabled="retreatingId === b.id" @click.stop="requestRetreat(b)">
+              <component :is="ICONS['x']" :size="13" />
+              {{ retreatingId === b.id ? '对方思考中…' : '撤退' }}
             </button>
           </div>
         </div>
@@ -394,12 +414,16 @@ import IconDeviceFloppy from '~icons/tabler/device-floppy'
 import IconFolderOpen from '~icons/tabler/folder-open'
 import IconChevronDown from '~icons/tabler/chevron-down'
 import IconChevronUp from '~icons/tabler/chevron-up'
+import IconRefresh from '~icons/tabler/refresh'
+import IconAffiliate from '~icons/tabler/affiliate'
 import AiDebugPanel from '@/components/AiDebugPanel.vue'
 import EventLogPanel from '@/components/EventLogPanel.vue'
 import SaveSelectorModal from '@/components/SaveSelectorModal.vue'
 import GameDateDisplay from '@/components/ui/GameDateDisplay.vue'
 import { playCloudTransition, disposeCloudTransition } from '@/utils/cloudTransition'
+import { invokeRetreatOutcome } from '@/utils/aiInvoke'
 import { useSaveGame } from '@/composables/useSaveGame'
+import { useToast } from '@/composables/useToast'
 
 /** 开发构建标志：AI 调试面板仅在 dev 下挂载，不进生产包。 */
 const isDev = import.meta.env.DEV
@@ -428,6 +452,8 @@ const ICONS: Record<string, Component> = {
   'folder-open': IconFolderOpen,
   'chevron-down': IconChevronDown,
   'chevron-up': IconChevronUp,
+  refresh: IconRefresh,
+  affiliate: IconAffiliate,
 }
 
 // ─── 类型定义 ───
@@ -1041,8 +1067,76 @@ async function captureTest(): Promise<void> {
   await executeOrder({ order: 'capture', gb: '156610300', owner: Owner.SCC })
 }
 
-function endBattle(id: string): void {
-  executeOrder({ order: 'stopBattle', id })
+/** 玩家是否为攻方（撤退仅攻方玩家可发起） */
+function canRetreat(b: BattleInfo): boolean {
+  const me = useGameStore().currentFaction
+  return me != null && b.attacker === me
+}
+
+/** 玩家是否为参战方（攻方或守方均可求和） */
+function canPeace(b: BattleInfo): boolean {
+  const me = useGameStore().currentFaction
+  return me != null && (b.attacker === me || b.defender === me)
+}
+
+const retreatingId = ref<string | null>(null)
+
+// ── 撤退裁决弹窗 ──
+const retreatVerdictVisible = ref(false)
+const retreatVerdictText = ref('')
+const retreatVerdictOrder = ref<{ id: string; retreatLoss: number; narrative: string } | null>(null)
+
+/** 撤退请求：AI 裁定追击 → 弹窗展示叙事 → 玩家确认后 executeOrder 落地 */
+async function requestRetreat(b: BattleInfo): Promise<void> {
+  if (retreatingId.value) return
+  retreatingId.value = b.id
+  try {
+    const defDetail = OWNER_DETAILS[b.defender]
+    const atkLabel = (OWNER_LABELS as Record<string, string>)[b.attacker] ?? b.attacker
+    const outcome = await invokeRetreatOutcome({
+      defenderTag: (OWNER_LABELS as Record<string, string>)[b.defender] ?? b.defender,
+      defenderLeader: defDetail?.leader ?? (OWNER_LABELS as Record<string, string>)[b.defender] ?? b.defender,
+      personality: defDetail?.personality ?? '沉稳',
+      attackerTag: atkLabel,
+      fromName: b.fromName,
+      toName: b.toName,
+      atkForce: atkForce(b),
+      defForce: defForce(b),
+      turns: b.turns,
+      lastAtkLoss: b.lastAttackerLoss,
+      lastDefLoss: b.lastDefenderLoss,
+    })
+    // 暂存裁决结果，先弹窗让玩家看叙事，关闭后再落地
+    retreatVerdictOrder.value = {
+      id: b.id,
+      retreatLoss: outcome.pursuitLoss,
+      narrative: outcome.narrative,
+    }
+    retreatVerdictText.value = outcome.narrative
+    retreatVerdictVisible.value = true
+  } finally {
+    retreatingId.value = null
+  }
+}
+
+/** 撤退弹窗关闭 → 执行真正的停战 */
+function onRetreatVerdictConfirm(): void {
+  const o = retreatVerdictOrder.value
+  if (!o) return
+  retreatVerdictVisible.value = false
+  executeOrder({
+    order: 'stopBattle',
+    id: o.id,
+    reason: 'retreat',
+    retreatLoss: o.retreatLoss,
+    text: o.narrative,
+  })
+  retreatVerdictOrder.value = null
+}
+
+/** 求和占位 */
+function requestPeace(_b: BattleInfo): void {
+  useToast().push({ icon: 'affiliate', tone: 'neutral', title: '求和', text: '功能开发中，敬请期待' })
 }
 
 /** 读取存档：代理到 useSaveGame.loadGame（含地图重绘收尾） */
@@ -1610,6 +1704,20 @@ function onClick(e: MouseEvent): void {
     selectedWorldFeature = result.feature
     highlightBaseFeature(result.feature)
   }
+}
+
+/** 全量重绘：清空所有渲染层并按当前状态重新绘制（相机位置保持不变）。 */
+async function fullRerender(): Promise<void> {
+  setScreenSize(app.screen.width, app.screen.height)
+  disposeCloudTransition()
+  clearAllHighlights()
+  await loadLayer(currentLayerIndex.value)
+  if (baseMapVisible.value) {
+    await renderBaseMap()
+  }
+  resetBattleRuntime()
+  restoreActiveAnimations()
+  applyCamera()
 }
 
 function onResize(): void {
@@ -2386,5 +2494,50 @@ body.cloud-active .battle-card {
   border-right: 1px solid rgba(138, 109, 75, 0.42);
   border-bottom: 1px solid rgba(138, 109, 75, 0.42);
   transform: translateX(-50%) rotate(45deg);
+}
+
+/* ── 撤退裁决弹窗 ── */
+.retreat-verdict {
+  padding: 20px 20px 16px;
+}
+
+.verdict-text {
+  color: var(--ink-darkest);
+  font-family: var(--font-song);
+  font-size: 17px;
+  line-height: 1.9;
+  letter-spacing: 1px;
+  margin: 0 0 16px;
+  text-align: justify;
+}
+
+.verdict-loss {
+  color: var(--cinnabar);
+  font-family: var(--font-song);
+  font-size: 14px;
+  letter-spacing: 2px;
+  text-align: right;
+  margin-bottom: 16px;
+}
+
+.verdict-btn {
+  display: block;
+  width: 100%;
+  padding: 10px 0;
+  background: linear-gradient(to bottom, var(--paper-head), var(--paper-head2));
+  border: 1px solid var(--brown-line);
+  border-radius: var(--radius-xs);
+  color: var(--ink-panel);
+  font-family: var(--font-song);
+  font-size: 15px;
+  letter-spacing: 4px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.verdict-btn:hover {
+  background: linear-gradient(to bottom, var(--paper-darker), var(--paper-deep));
+  color: var(--ink-darkest);
+  border-color: var(--brown-deep);
 }
 </style>

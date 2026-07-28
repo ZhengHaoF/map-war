@@ -211,3 +211,74 @@ ${playerIdentity}
     return [fallback]
   }
 }
+
+// ── 撤退裁定（AI 裁撤退过程中的追击 / 全身而退）──
+
+export interface RetreatOutcome {
+  /** 追击减员（k，0 = 全身而退） */
+  pursuitLoss: number
+  /** 30-60字半文言撤退叙事 */
+  narrative: string
+}
+
+export interface RetreatJudgmentOpts {
+  defenderTag: string
+  defenderLeader: string
+  personality: string
+  attackerTag: string
+  fromName: string
+  toName: string
+  atkForce: number
+  defForce: number
+  turns: number
+  lastAtkLoss: number
+  lastDefLoss: number
+}
+
+/**
+ * 调 LLM 裁定一次撤退的经过。
+ * 对方阵营 AI 裁决是否追击及造成多少减员，返回结构化结果 + 叙事。
+ * 失败兜底：全身而退，不减员。
+ */
+export async function invokeRetreatOutcome(opts: RetreatJudgmentOpts): Promise<RetreatOutcome> {
+  const fallback: RetreatOutcome = {
+    pursuitLoss: 0,
+    narrative: '敌军未追，我军安然收兵。',
+  }
+
+  const playerIdentity = buildPlayerProfile()
+  const systemPrompt = `你是「${opts.defenderTag}」的${opts.defenderLeader}，性格${opts.personality}。
+${playerIdentity}
+${opts.attackerTag}（玩家）围攻${opts.toName}后请求收兵撤退。战况：
+  攻方野战兵 ${opts.atkForce}k，守方驻军 ${opts.defForce}k，已战 ${opts.turns} 回合
+  上回合 攻损 ${opts.lastAtkLoss}k / 守损 ${opts.lastDefLoss}k
+
+裁决这次撤退的经过：
+- 若你兵力占优、士气正盛，可下令追击，造成减员（追击减员不得超过 ${opts.atkForce}k）
+- 若你已疲敝、乐见停战，可目送其归去，减员为 0
+- 须符合你的性格（暴烈者追击凶，持重者多礼送）
+
+必须只返回一个 JSON 对象：
+{"pursuitLoss": 减员数(k,整数,0=不追击), "narrative": "30-60字半文言撤退经过"}`
+
+  try {
+    const raw = await callLlm({
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: `${opts.attackerTag}欲从「${opts.fromName} → ${opts.toName}」战线撤退。` },
+      ],
+    })
+    const payloads = extractPayloads(raw)
+    const obj = (payloads?.[0] ?? {}) as Record<string, unknown>
+    const pursuitLoss = Math.max(0, Math.min(
+      typeof obj.pursuitLoss === 'number' ? Math.round(obj.pursuitLoss) : 0,
+      opts.atkForce,
+    ))
+    const narrative = typeof obj.narrative === 'string' && obj.narrative.trim()
+      ? obj.narrative.trim()
+      : fallback.narrative
+    return { pursuitLoss, narrative }
+  } catch {
+    return fallback
+  }
+}

@@ -48,6 +48,8 @@ const mockStore = {
   applyEvent: mockApplyEvent,
   selectFaction: mockSelectFaction,
   getSnapshot: () => ({}),
+  getTreasury: () => 99999,
+  getGranary: () => 99999,
   DEVELOP_FIELDS: ['industry', 'food', 'fort', 'cityLevel'],
 }
 

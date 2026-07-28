@@ -122,7 +122,7 @@ export function resolveEntity(from: string): CommsEntity {
       kind: 'faction', code: from,
       name: detail?.leader ?? label, label,
       colorHex: colorToHex(color),
-      personality: detail?.description?.slice(0, 20) ?? '沉稳',
+      personality: detail?.personality ?? '沉稳',
       status: '已覆灭', alive: false,
     }
   }
@@ -131,7 +131,7 @@ export function resolveEntity(from: string): CommsEntity {
     kind: 'faction', code: from,
     name: detail?.leader ?? label, label,
     colorHex: colorToHex(color),
-    personality: detail?.description?.slice(0, 20) ?? '沉稳',
+    personality: detail?.personality ?? '沉稳',
     status: `存活 · ${store.factionCities(from as Owner).length}城 · 兵力${store.factionTroops(from as Owner)}k`,
     alive: true,
   }

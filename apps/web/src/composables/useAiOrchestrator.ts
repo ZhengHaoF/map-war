@@ -345,7 +345,7 @@ export function useAiOrchestrator(mode: AiMode = 'world') {
                 factionName: leader,
                 factionTag: label,
                 factionCode: toCode,
-                personality: detail?.description?.slice(0, 20) ?? '沉稳',
+                personality: detail?.personality ?? '沉稳',
                 situation,
                 recentChat: history,
                 playerMessage: eff.content,
@@ -365,6 +365,28 @@ export function useAiOrchestrator(mode: AiMode = 'world') {
             } catch {
               // 回信失败静默处理，不影响主流程
             }
+          }
+          break
+        // 银库变更：经济事件（赔款、截断商路、加税、劫掠等），faction 中文/代号归一化
+        case 'treasuryChange':
+          if (eff.faction && eff.delta != null) {
+            store.applyEvent({
+              type: 'treasuryChange',
+              faction: normalizeCommsFrom(eff.faction) as Owner,
+              delta: eff.delta,
+              reason: payload.narrative.slice(0, 30),
+            })
+          }
+          break
+        // 粮仓变更：经济事件（旱灾、焚粮、征粮、断粮道等）
+        case 'granaryChange':
+          if (eff.faction && eff.delta != null) {
+            store.applyEvent({
+              type: 'granaryChange',
+              faction: normalizeCommsFrom(eff.faction) as Owner,
+              delta: eff.delta,
+              reason: payload.narrative.slice(0, 30),
+            })
           }
           break
       }

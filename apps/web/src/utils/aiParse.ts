@@ -98,7 +98,7 @@ export function extractAiMessage(obj: unknown): string | null {
 
 /** 自由行动事件（复用已有 reducer 事件类型） */
 export interface FreeActionEffect {
-  type: 'cityStatChange' | 'moraleChange' | 'produce' | 'moveTroops' | 'sendTelegram'
+  type: 'cityStatChange' | 'moraleChange' | 'produce' | 'moveTroops' | 'sendTelegram' | 'treasuryChange' | 'granaryChange'
   targetGb?: string
   field?: string
   delta?: number
@@ -108,6 +108,8 @@ export interface FreeActionEffect {
   // sendTelegram 专用字段
   to?: string      // 势力代号，如 'SHX'
   content?: string // 电报内容
+  // treasuryChange / granaryChange 专用字段
+  faction?: string // 势力中文名或代号
 }
 
 /** 自由行动载荷 */

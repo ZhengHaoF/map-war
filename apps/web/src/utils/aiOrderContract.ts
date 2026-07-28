@@ -652,12 +652,14 @@ export const PLAYER_AI_UNIFIED_PROMPT = `你是民国军阀推演游戏的世界
 · 不要强行把自由行动塞进指令，也不要把明确的指令行动放进 freeAction。
 
 ═══ freeAction 的 effects 规则 ═══
-· effects 只能用以下五种事件类型（复用世界态 reducer，不新增）：
+· effects 只能用以下七种事件类型（复用世界态 reducer，不新增）：
   - cityStatChange：targetGb + field("industry"/"food"/"fort") + delta（数值，工业/粮食/工事范围 0-100，单次调整建议 5-20）
   - moraleChange：targetGb + delta（士气增量，可正可负，范围 0-100）
   - produce：targetGb + amount（征兵，单位 k，正数）
   - moveTroops：fromGb + toGb + amount（调兵，单位 k）
   - sendTelegram：to + content（发送电报，见下方说明）
+  - treasuryChange：faction + delta（银库变更，单位万银，可正可负。正=收入如赔款/劫掠/商路税；负=支出如赔款/军费超支）
+  - granaryChange：faction + delta（粮仓变更，单位万石，可正可负。正=征粮/丰收；负=旱灾/焚粮/断粮道）
 · targetGb / fromGb / toGb 一律用城市中文名（如 '成都'），勿用 GB 编码。
 · success=false 时（行动失败，如暗杀失手、决堤不成），effects 应为空数组，只留 narrative 说明失败缘由。
 · effects 数量要克制——一个行动通常 0-3 条事件，不要为一句话刷一屏事件。
@@ -670,6 +672,15 @@ export const PLAYER_AI_UNIFIED_PROMPT = `你是民国军阀推演游戏的世界
   - content：电报正文（50-80字，半文言，符合玩家身份和语气）
 · 示例：{"type":"sendTelegram","to":"晋系","content":"恳请阎督军出兵相助，共抗强敌"}
 · 注意：sendTelegram 不影响世界态，只将电报存入往来记录，对方势力在 P3 阶段决策时可见
+
+═══ treasuryChange / granaryChange 格式 ═══
+· 适用场景：叙事中附带经济后果（赔款、截断商路、旱灾、焚粮、征粮、劫掠等）
+· 字段：
+  - faction：势力中文名（如 "晋系"、"国民政府"），不要用代号
+  - delta：变化量（可正可负，单位：银库=万银，粮仓=万石。正=收入/丰收，负=支出/损失）
+· 示例：{"type":"treasuryChange","faction":"晋系","delta":-30}（晋系赔款 30 万银）
+· 示例：{"type":"granaryChange","faction":"川军","delta":-20}（川军粮仓遭焚，损失 20 万石）
+· 注意：克制使用，单次 delta 建议 -50~+50 区间；只在叙事确实涉及经济后果时才加
 
 注意（路径 A）：
 - results 数组中每条对应玩家意图的一个行动，按执行顺序排列

@@ -24,6 +24,8 @@ import { extractPayloads, extractAiMessage, unwrapData } from '@/utils/aiParse'
 import type { GameOrder } from '@/utils/gameOrders'
 import { Owner, OWNER_LABELS, OWNER_DETAILS } from '@/data/owners'
 import { useToast } from '@/composables/useToast'
+import { computeFactionEconomy } from '@/utils/economy'
+import type { EconomyTickEntry } from '@/stores/game'
 
 // ─── 模块级单例 ───
 const loading = ref(false)
@@ -204,6 +206,42 @@ async function invokeWorldAISettle(
 
 // ─── 公开 API ───
 
+/**
+ * P0 经济结算：每回合开局先算各势力收支（本地确定性公式，零 LLM）。
+ * 经 applyEvent('economicTick') 落地——明细入 eventLog，replay 重放确定性一致。
+ * 欠饷扣士气、缺粮损兵的惩罚由 reducer 内部执行。
+ * 玩家相关：若本方欠饷/缺粮则弹 toast 预警。
+ */
+function runEconomicTick(): void {
+  const store = useGameStore()
+  const entries: EconomyTickEntry[] = []
+  for (const f of store.activeFactions) {
+    const eco = computeFactionEconomy(store.cities, f)
+    const arrear = eco.silverNet < 0 && store.getTreasury(f) + eco.silverNet < 0
+    const famine = eco.foodNet < 0 && store.getGranary(f) + eco.foodNet < 0
+    entries.push({
+      faction: f,
+      silverDelta: eco.silverNet,
+      foodDelta: eco.foodNet,
+      arrear,
+      famine,
+    })
+  }
+  store.applyEvent({ type: 'economicTick', entries })
+
+  // 玩家预警
+  const pf = store.currentFaction
+  if (pf) {
+    const me = entries.find((e) => e.faction === pf)
+    if (me?.arrear) {
+      pushToast({ icon: 'alert-triangle', tone: 'error', title: '欠饷', text: `银库空虚，全军士气低落（余 ${store.getTreasury(pf)} 万银）` })
+    }
+    if (me?.famine) {
+      pushToast({ icon: 'alert-triangle', tone: 'amber', title: '缺粮', text: `粮草不继，驻军减员（余 ${store.getGranary(pf)} 万石）` })
+    }
+  }
+}
+
 /** 玩家结束回合 → 排空残留指令 → 启动世界回合 */
 async function endPlayerTurn(): Promise<void> {
   const store = useGameStore()
@@ -240,6 +278,9 @@ async function endPlayerTurn(): Promise<void> {
 async function runWorldTurn(): Promise<void> {
   const store = useGameStore()
   const scheduler = useGameScheduler()
+
+  // ── P0: 经济结算（每回合开局先收税扣养兵，AI 据新国库决策）──
+  runEconomicTick()
 
   // ── P2: 分类 ──
   phase.value = 'classifying'

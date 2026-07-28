@@ -34,6 +34,7 @@ import { DEVELOP_FIELDS } from '@/stores/game'
 import { Owner, OWNER_COLORS, OWNER_LABELS } from '@/data/owners'
 import { getDisplayName } from '@/data/displayNames'
 import { useToast } from '@/composables/useToast'
+import { computeActionCost } from '@/utils/economy'
 
 // ─── 类型定义 ───
 
@@ -109,6 +110,7 @@ export interface GameOrder {
   // 战斗：增援/出兵/撤退相关
   side?: 'attacker' | 'defender' // reinforce 指定补攻方还是守方
   reason?: string // stopBattle 结束原因（retreat/surrender）
+  retreatLoss?: number // stopBattle(reason:'retreat') 时追击减员（k）
   deployAmount?: number // battle 时同时 deploy 的兵力
   // 内政：develop 指定调整字段（industry / food）；recruit 用 amount，fortify 用 amount，rally 用 amount 作士气增量
   field?: CityStatField
@@ -181,6 +183,26 @@ function hasActiveBattle(from: string, to: string): boolean {
     if (entry.from === from && entry.to === to) return true
   }
   return false
+}
+
+/**
+ * 生成下一个战斗 id（格式 `battle_N`，自增）。
+ * 防冲突：resetBattleRuntime 会把计数器归零（读档/重置/resize/手动刷新都会触发），
+ * 但 store.battles 里可能残留历史战斗 id（含已 inactive 的）。若计数器从 0 重排，
+ * 新战斗可能撞上残留 id，导致 stopBattle/裁决官按 id 查找时命中错误条目。
+ * 故生成前先扫描 store.battles，把计数器抬到「现存最大编号」之上再自增。
+ */
+function nextBattleId(): string {
+  let max = 0
+  for (const b of useGameStore().battles) {
+    const m = /^battle_(\d+)$/.exec(b.id)
+    if (m) {
+      const n = parseInt(m[1], 10)
+      if (n > max) max = n
+    }
+  }
+  if (battleIdCounter < max) battleIdCounter = max
+  return `battle_${++battleIdCounter}`
 }
 
 // ─── 初始化 ───
@@ -429,7 +451,7 @@ async function battle(from: string, to: string, text?: string): Promise<BattleOr
       return { ok: false, reason: '战斗动画创建失败（无法解析坐标）' }
     }
 
-    const id = `battle_${++battleIdCounter}`
+    const id = nextBattleId()
 
     battleRegistry.set(id, {
       from,
@@ -628,6 +650,44 @@ const FIELD_LABELS: Record<CityStatField, string> = {
 // 内部动画函数只负责画面，所有世界态（capture / battleStart / battleEnd / setFactionAlive /
 // dateAdvance / selectFaction）统一由 executeOrder 在动画播完后 applyEvent 落地。
 
+/**
+ * 内政指令的经济前置检查（征兵/建设/筑防/整军）。
+ * 付费主体 = 目标城的 owner（内政指令目标城必为己方，校验层已保证）。
+ *
+ * 流程：
+ * 1. 算一次性成本（银/粮）
+ * 2. 校验余额是否足够，不足则返回 { ok:false, reason }
+ * 3. 足够则 applyEvent 扣款（treasuryChange / granaryChange），落库
+ *
+ * @param faction 付费势力（目标城 owner）
+ * @param order   指令类型
+ * @param amount  数量（征兵 k / 建设点 / 工事点；rally 忽略）
+ */
+function applyDomesticCost(
+  faction: Owner,
+  order: 'recruit' | 'develop' | 'fortify' | 'rally',
+  amount: number,
+): OrderResult {
+  const store = useGameStore()
+  const cost = computeActionCost(order, amount)
+  // 银库不足（getTreasury 缺省 0 时亦按余额判定，老存档/测试环境兼容）
+  if (store.getTreasury(faction) < cost.silver) {
+    return { ok: false, reason: `饷银不足（需 ${cost.silver} 万银，余 ${store.getTreasury(faction)} 万银）` }
+  }
+  // 粮仓不足（仅征兵耗粮）
+  if (cost.food > 0 && store.getGranary(faction) < cost.food) {
+    return { ok: false, reason: `粮草不足（需 ${cost.food} 万石，余 ${store.getGranary(faction)} 万石）` }
+  }
+  // 扣款
+  if (cost.silver > 0) {
+    store.applyEvent({ type: 'treasuryChange', faction, delta: -cost.silver, reason: `内政·${order}` })
+  }
+  if (cost.food > 0) {
+    store.applyEvent({ type: 'granaryChange', faction, delta: -cost.food, reason: `征兵·${order}` })
+  }
+  return { ok: true }
+}
+
 // ─── AI JSON 协议解析器 ───
 
 /**
@@ -720,8 +780,13 @@ export async function executeOrder(
     case 'stopBattle': {
       const r = stopBattle(json.id!)
       if (!r.ok) { result = r; break }
-      // 灭光束后，由唯一写者结束战斗（battleEnd），携带 reason
-      useGameStore().applyEvent({ type: 'battleEnd', battleId: json.id!, reason: (json.reason as 'retreat' | undefined) })
+      // 灭光束后，由唯一写者结束战斗（battleEnd），携带 reason + 撤退追击减员
+      useGameStore().applyEvent({
+        type: 'battleEnd',
+        battleId: json.id!,
+        reason: (json.reason as 'retreat' | undefined),
+        retreatLoss: json.retreatLoss,
+      })
       result = r
       break
     }
@@ -820,6 +885,10 @@ export async function executeOrder(
         result = { ok: false, reason: 'amount 必须是正数（单位 k）' }
         break
       }
+      // 经济前置：征兵耗银 + 粮，付费主体 = 目标城 owner
+      const payFaction = useGameStore().cities[gbId]?.owner as Owner
+      const costChk = applyDomesticCost(payFaction, 'recruit', json.amount)
+      if (!costChk.ok) { result = costChk; break }
       await developCity(gbId, DEVELOP_COLORS.recruit, `+${json.amount}k 兵`)
       const r = useGameStore().applyEvent({ type: 'produce', targetGb: gbId, amount: json.amount })
       if (!r.ok) { result = { ok: false, reason: r.reason! }; break }
@@ -839,6 +908,10 @@ export async function executeOrder(
         result = { ok: false, reason: 'amount 必须是正数' }
         break
       }
+      // 经济前置：建设耗银
+      const payFaction = useGameStore().cities[gbId]?.owner as Owner
+      const costChk = applyDomesticCost(payFaction, 'develop', json.amount)
+      if (!costChk.ok) { result = costChk; break }
       await developCity(gbId, DEVELOP_COLORS.develop, `+${json.amount} ${FIELD_LABELS[field]}`)
       const r = useGameStore().applyEvent({ type: 'cityStatChange', targetGb: gbId, field, delta: json.amount })
       if (!r.ok) { result = { ok: false, reason: r.reason! }; break }
@@ -853,6 +926,10 @@ export async function executeOrder(
         result = { ok: false, reason: 'amount 必须是正数' }
         break
       }
+      // 经济前置：筑防耗银
+      const payFaction = useGameStore().cities[gbId]?.owner as Owner
+      const costChk = applyDomesticCost(payFaction, 'fortify', json.amount)
+      if (!costChk.ok) { result = costChk; break }
       await developCity(gbId, DEVELOP_COLORS.fortify, `+${json.amount} 工事`)
       const r = useGameStore().applyEvent({ type: 'cityStatChange', targetGb: gbId, field: 'fort', delta: json.amount })
       if (!r.ok) { result = { ok: false, reason: r.reason! }; break }
@@ -867,6 +944,10 @@ export async function executeOrder(
         result = { ok: false, reason: 'amount 必须是非零数字（士气增量，可正可负）' }
         break
       }
+      // 经济前置：整军耗银（固定，不论增量大小）
+      const payFaction = useGameStore().cities[gbId]?.owner as Owner
+      const costChk = applyDomesticCost(payFaction, 'rally', Math.abs(json.amount))
+      if (!costChk.ok) { result = costChk; break }
       const sign = json.amount > 0 ? '+' : ''
       await developCity(gbId, DEVELOP_COLORS.rally, `${sign}${json.amount} 士气`)
       const r = useGameStore().applyEvent({ type: 'moraleChange', targetGb: gbId, delta: json.amount })
@@ -948,7 +1029,11 @@ function popToast(
       break
     }
     case 'stopBattle':
-      push({ icon: 'player-stop', tone: 'neutral', title: '停战', text: '战斗结束' })
+      if (json.reason === 'retreat') {
+        push({ icon: 'player-stop', tone: 'neutral', title: '撤退', text: json.text ?? '我军收兵回城' })
+      } else {
+        push({ icon: 'player-stop', tone: 'neutral', title: '停战', text: '战斗结束' })
+      }
       break
     case 'stopBattles':
       push({ icon: 'player-stop', tone: 'neutral', title: '停战', text: '全线停战' })

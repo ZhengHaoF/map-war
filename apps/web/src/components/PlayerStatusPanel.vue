@@ -59,6 +59,24 @@
           </ul>
         </section>
 
+        <!-- 府库（经济） -->
+        <section class="psp-section">
+          <h3><component :is="ICONS.coins" :size="15" /> 府库</h3>
+          <div class="stat-grid">
+            <div class="stat" :class="{ 'stat--deficit': myStats.treasury < 0 }">
+              <span class="stat-num">{{ myStats.treasury }}</span>
+              <span class="stat-label">银库（万银）</span>
+              <span class="stat-delta" :class="deltaCls(myStats.silverNet)">{{ deltaText(myStats.silverNet) }}</span>
+            </div>
+            <div class="stat" :class="{ 'stat--deficit': myStats.granary < 0 }">
+              <span class="stat-num">{{ myStats.granary }}</span>
+              <span class="stat-label">粮仓（万石）</span>
+              <span class="stat-delta" :class="deltaCls(myStats.foodNet)">{{ deltaText(myStats.foodNet) }}</span>
+            </div>
+          </div>
+          <div class="fund-hint">每回合税饷抵养兵；征兵/建设/筑防/整军另耗银两，征兵另耗粮。</div>
+        </section>
+
         <!-- 进行中战斗 -->
         <section class="psp-section">
           <h3><component :is="ICONS.crosshair" :size="15" /> 进行中战斗</h3>
@@ -97,6 +115,7 @@ import IconSword from '~icons/tabler/sword'
 import IconAffiliate from '~icons/tabler/affiliate'
 import IconAlertTriangle from '~icons/tabler/alert-triangle'
 import IconHistory from '~icons/tabler/history'
+import IconCoins from '~icons/tabler/coins'
 
 defineProps<{ visible: boolean }>()
 defineEmits<{ close: [] }>()
@@ -110,6 +129,7 @@ const ICONS: Record<string, Component> = {
   affiliate: IconAffiliate,
   'alert-triangle': IconAlertTriangle,
   history: IconHistory,
+  coins: IconCoins,
 }
 
 const gameStore = useGameStore()
@@ -138,6 +158,17 @@ function focusCity(gb: string): void {
 }
 function focusBattle(id: string): void {
   gameStore.requestFocus('battle', id)
+}
+
+/** 净收支展示文案（带正负号） */
+function deltaText(v: number): string {
+  return `${v >= 0 ? '+' : ''}${v}/回合`
+}
+/** 净收支配色：正=绿、零=灰、负=朱砂 */
+function deltaCls(v: number): string {
+  if (v > 0) return 'delta--up'
+  if (v < 0) return 'delta--down'
+  return 'delta--flat'
 }
 </script>
 
@@ -236,6 +267,26 @@ function focusBattle(id: string): void {
 .stat-label {
   font-size: 11px;
   color: var(--ink-soft);
+}
+
+/* 府库净收支 */
+.stat-delta {
+  display: block;
+  font-size: 11px;
+  margin-top: 3px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+.delta--up { color: #5a7a3a; }
+.delta--down { color: var(--cinnabar); }
+.delta--flat { color: var(--ink-muted); }
+.stat--deficit .stat-num { color: var(--cinnabar); }
+.fund-hint {
+  font-size: 11px;
+  color: var(--ink-muted);
+  line-height: 1.6;
+  letter-spacing: 0.5px;
+  padding: 2px 2px 0;
 }
 
 .level-dist {

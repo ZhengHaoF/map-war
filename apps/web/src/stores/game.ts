@@ -5,6 +5,12 @@ import { Owner, OWNER_LABELS } from '@/data/owners'
 import { resetBattleRuntime } from '@/utils/gameOrders'
 import { resolveLocationId } from '@/utils/locationResolver'
 import { useToast } from '@/composables/useToast'
+import {
+  computeFactionEconomy,
+  computeInitialFunds,
+  ARREAR_MORALE_PENALTY,
+  FAMINE_TROOP_LOSS_RATE,
+} from '@/utils/economy'
 
 // 战斗元数据（PixiJS 句柄不进 store，由 gameOrders 模块本地持有）
 export interface BattleInfo {
@@ -87,6 +93,19 @@ export const DEVELOP_FIELDS: CityStatField[] = ['industry', 'food']
 /** 战斗终止原因 */
 export type BattleEndReason = 'capture' | 'attackerRouted' | 'retreat' | 'defenderCollapse' | 'attackerCollapse'
 
+/** 单势力经济结算明细（进 eventLog 供 replay 重建国库/粮仓） */
+export interface EconomyTickEntry {
+  faction: Owner
+  /** 银库变化 = 税饷 - 养兵银 */
+  silverDelta: number
+  /** 粮仓变化 = 粮产 - 养兵粮 */
+  foodDelta: number
+  /** 是否欠饷（银库 < 0） */
+  arrear: boolean
+  /** 是否缺粮（粮仓 < 0） */
+  famine: boolean
+}
+
 export type GameEvent =
   | { type: 'capture'; targetGb: string; actor: Owner; resultTroops?: number }
   | { type: 'moveTroops'; fromGb: string; toGb: string; amount: number }
@@ -99,9 +118,13 @@ export type GameEvent =
   | { type: 'dateAdvance'; date: string }
   | { type: 'setFactionAlive'; faction: Owner; alive: boolean }
   | { type: 'battleStart'; battleId: string; fromGb: string; targetGb: string; fromName: string; toName: string; attacker: Owner; defender: Owner }
-  | { type: 'battleEnd'; battleId: string; reason?: BattleEndReason }
+  | { type: 'battleEnd'; battleId: string; reason?: BattleEndReason; retreatLoss?: number }
   | { type: 'selectFaction'; faction: Owner; playerName: string }
   | { type: 'narrative'; playerInput: string; aiMessage: string; kind?: 'player' | 'settlement' }
+  // ── 经济系统 ──
+  | { type: 'treasuryChange'; faction: Owner; delta: number; reason?: string }
+  | { type: 'granaryChange'; faction: Owner; delta: number; reason?: string }
+  | { type: 'economicTick'; entries: EconomyTickEntry[] }
 
 // ── 存档 / 持久化 ──
 
@@ -143,11 +166,15 @@ export interface WorldStateSnapshot {
   /** 城市归属表：gb 编码 -> 控制政权（派生自 cities） */
   ownership: Record<string, Owner>
   /** 每城动态态，供 AI 据局势决策 */
-  cities: Record<string, { owner: Owner; troops: number; fieldForce: number; morale: number }>
+  cities: Record<string, { owner: Owner; troops: number; fieldForce: number; morale: number; industry: number; food: number; fort: number }>
   /** 势力派生聚合（不存）：总兵力，单位 k */
   factionTroops: Record<string, number>
   /** 势力派生聚合（不存）：按兵力加权的平均士气 */
   factionMorale: Record<string, number>
+  /** 势力银库（万银） */
+  factionTreasury: Record<string, number>
+  /** 势力粮仓（万石） */
+  factionGranary: Record<string, number>
   /** 进行中的战斗元数据列表 */
   battles: BattleInfo[]
 }
@@ -186,6 +213,12 @@ export const useGameStore = defineStore('game', () => {
   ])
   const battles = ref<BattleInfo[]>([])
 
+  // ── 势力级经济状态（银库 / 粮仓，唯一经 applyEvent 改写，initWorld 灌溉除外）──
+  const treasury = ref<Record<string, number>>({})
+  const granary = ref<Record<string, number>>({})
+  /** 上一回合各势力经济结算明细（供 HUD 展示收支，不进 eventLog） */
+  const lastEconomy = ref<Record<string, { silverNet: number; foodNet: number }>>({})
+
   // ── 电报（AI 自主生成，不进 eventLog，单独持久化）──
   const telegrams = ref<Telegram[]>([])
   const turnCount = ref(0) // 当前回合序号（dateAdvance 时 +1）
@@ -217,6 +250,14 @@ export const useGameStore = defineStore('game', () => {
     return Math.round(owned.reduce((s, c) => s + c.morale * c.troops, 0) / total)
   }
 
+  // 势力级经济读取（银库/粮仓；缺省 0）
+  function getTreasury(o: Owner): number {
+    return treasury.value[o] ?? 0
+  }
+  function getGranary(o: Owner): number {
+    return granary.value[o] ?? 0
+  }
+
   // ── 聚焦请求（面板 → 地图联动）──
   const focusTarget = ref<{ type: 'city' | 'battle'; id: string } | null>(null)
   function requestFocus(type: 'city' | 'battle', id: string): void {
@@ -238,6 +279,11 @@ export const useGameStore = defineStore('game', () => {
     avgFort: number
     levelDistribution: Record<number, number>
     cities: MyCityStat[]
+    // 经济（v1 新增）
+    treasury: number
+    granary: number
+    silverNet: number
+    foodNet: number
   }
   const myStats = computed<MyStats>(() => {
     const f = currentFaction.value
@@ -265,7 +311,18 @@ export const useGameStore = defineStore('game', () => {
     for (const c of stats) {
       levelDistribution[c.cityLevel] = (levelDistribution[c.cityLevel] ?? 0) + 1
     }
-    return { cityCount: stats.length, totalIndustry, totalFood, avgFort, levelDistribution, cities: stats }
+    return {
+      cityCount: stats.length,
+      totalIndustry,
+      totalFood,
+      avgFort,
+      levelDistribution,
+      cities: stats,
+      treasury: f ? getTreasury(f) : 0,
+      granary: f ? getGranary(f) : 0,
+      silverNet: f ? (lastEconomy.value[f]?.silverNet ?? 0) : 0,
+      foodNet: f ? (lastEconomy.value[f]?.foodNet ?? 0) : 0,
+    }
   })
 
   const myBattles = computed(() => {
@@ -299,6 +356,17 @@ export const useGameStore = defineStore('game', () => {
       }
     }
     cities.value = seed // 一次替换，一次触发
+    // 经济灌溉：按各势力城市规模/兵力算初始银库粮仓（唯一直接写点，同 city 播种）
+    const treas: Record<string, number> = {}
+    const gran: Record<string, number> = {}
+    for (const f of activeFactions.value) {
+      const funds = computeInitialFunds(seed, f)
+      treas[f] = funds.treasury
+      gran[f] = funds.granary
+    }
+    treasury.value = treas
+    granary.value = gran
+    lastEconomy.value = {}
     currentDate.value = '1931-04-01'
     playerName.value = ''
     currentFaction.value = null
@@ -329,9 +397,13 @@ export const useGameStore = defineStore('game', () => {
   function getSnapshot(): WorldStateSnapshot {
     const factionTroopsMap: Record<string, number> = {}
     const factionMoraleMap: Record<string, number> = {}
+    const factionTreasuryMap: Record<string, number> = {}
+    const factionGranaryMap: Record<string, number> = {}
     for (const f of activeFactions.value) {
       factionTroopsMap[f] = factionTroops(f)
       factionMoraleMap[f] = factionMorale(f)
+      factionTreasuryMap[f] = getTreasury(f)
+      factionGranaryMap[f] = getGranary(f)
     }
     return {
       currentDate: currentDate.value,
@@ -339,10 +411,15 @@ export const useGameStore = defineStore('game', () => {
       activeFactions: [...activeFactions.value],
       ownership: { ...ownership.value },
       cities: Object.fromEntries(
-        Object.entries(cities.value).map(([gb, c]) => [gb, { owner: c.owner, troops: c.troops, fieldForce: c.fieldForce, morale: c.morale }]),
+        Object.entries(cities.value).map(([gb, c]) => [
+          gb,
+          { owner: c.owner, troops: c.troops, fieldForce: c.fieldForce, morale: c.morale, industry: c.industry, food: c.food, fort: c.fort },
+        ]),
       ),
       factionTroops: factionTroopsMap,
       factionMorale: factionMoraleMap,
+      factionTreasury: factionTreasuryMap,
+      factionGranary: factionGranaryMap,
       battles: battles.value.map((b) => ({ ...b })),
     }
   }
@@ -417,6 +494,9 @@ export const useGameStore = defineStore('game', () => {
       case 'battleEnd':
       case 'selectFaction':
       case 'narrative':
+      case 'treasuryChange':
+      case 'granaryChange':
+      case 'economicTick':
         return { ok: true }
     }
   }
@@ -480,7 +560,9 @@ export const useGameStore = defineStore('game', () => {
         const from = cities.value[bi.from]
         if (from) {
           if (e.reason === 'retreat') {
-            // 撤退：外出兵力转回驻军
+            // 撤退：AI 裁定追击减员后，剩余兵力转回驻军
+            const loss = Math.min(e.retreatLoss ?? 0, from.fieldForce)
+            from.fieldForce = Math.max(0, from.fieldForce - loss)
             from.troops += from.fieldForce
             from.fieldForce = 0
           } else if (e.reason === 'capture' || e.reason === 'attackerRouted' || e.reason === 'defenderCollapse' || e.reason === 'attackerCollapse') {
@@ -505,6 +587,40 @@ export const useGameStore = defineStore('game', () => {
     }
     // 叙事事件：玩家输入 + AI 总结，仅记录不改变世界态
     if (e.type === 'narrative') return { ok: true }
+
+    // ── 经济事件 ──
+    // 银库单次增减（征兵/建设扣款、AI 叙事经济事件等）
+    if (e.type === 'treasuryChange') {
+      treasury.value[e.faction] = (treasury.value[e.faction] ?? 0) + e.delta
+      return { ok: true }
+    }
+    // 粮仓单次增减
+    if (e.type === 'granaryChange') {
+      granary.value[e.faction] = (granary.value[e.faction] ?? 0) + e.delta
+      return { ok: true }
+    }
+    // 每回合经济结算：应用各势力银粮净收支 + 欠饷/缺粮惩罚
+    // 明细（entries）随事件入日志，replay 重放时据当时余额重算惩罚，确定性一致
+    if (e.type === 'economicTick') {
+      const nextLast: Record<string, { silverNet: number; foodNet: number }> = {}
+      for (const ent of e.entries) {
+        const f = ent.faction
+        treasury.value[f] = (treasury.value[f] ?? 0) + ent.silverDelta
+        granary.value[f] = (granary.value[f] ?? 0) + ent.foodDelta
+        nextLast[f] = { silverNet: ent.silverDelta, foodNet: ent.foodDelta }
+        const owed = treasury.value[f] < 0
+        const starved = granary.value[f] < 0
+        if (!owed && !starved) continue
+        for (const c of Object.values(cities.value)) {
+          if (c.owner !== f) continue
+          if (owed) c.morale = clamp(c.morale + ARREAR_MORALE_PENALTY, 0, 100)
+          if (starved) c.troops = Math.max(0, Math.round(c.troops * (1 - FAMINE_TROOP_LOSS_RATE)))
+        }
+      }
+      lastEconomy.value = nextLast
+      triggerRef(cities)
+      return { ok: true }
+    }
     // 调兵：己方两城间搬运驻军（from 扣、to 加，钳制 ≥0）
     // 必须用 fromGb/toGb，不能走下面的 targetGb 分支（本事件无 targetGb，会提前 return 丢失）
     if (e.type === 'moveTroops') {
@@ -740,6 +856,9 @@ export const useGameStore = defineStore('game', () => {
     factionCities,
     factionTroops,
     factionMorale,
+    getTreasury,
+    getGranary,
+    lastEconomy,
     focusTarget,
     requestFocus,
     telegramRequest,

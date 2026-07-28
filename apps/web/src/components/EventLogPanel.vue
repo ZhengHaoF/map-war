@@ -63,6 +63,9 @@ function badge(e: GameEvent): string {
     battleEnd: '停战',
     selectFaction: '择势',
     narrative: '叙事',
+    treasuryChange: '银库',
+    granaryChange: '粮仓',
+    economicTick: '经济',
   }
   return map[e.type]
 }
@@ -106,6 +109,14 @@ function describe(e: GameEvent): string {
       return `${e.playerName || '主公'} 择 ${fname(e.faction)}`
     case 'narrative':
       return `${e.playerInput} ← ${e.aiMessage}`
+    case 'treasuryChange':
+      return `${fname(e.faction)} 银库 ${e.delta > 0 ? '+' : ''}${e.delta} 万银${e.reason ? `（${e.reason}）` : ''}`
+    case 'granaryChange':
+      return `${fname(e.faction)} 粮仓 ${e.delta > 0 ? '+' : ''}${e.delta} 万石${e.reason ? `（${e.reason}）` : ''}`
+    case 'economicTick': {
+      const parts = e.entries.map((it) => `${fname(it.faction)}${it.silverDelta >= 0 ? '+' : ''}${it.silverDelta}`)
+      return `经济结算：${parts.join('，')}`
+    }
   }
   return ''
 }

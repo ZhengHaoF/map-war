@@ -72,6 +72,7 @@ export function buildFactionContext(faction: Owner): string {
   lines.push('')
   lines.push(`你的势力：${OWNER_LABELS[faction] ?? faction}`)
   lines.push(`你控制 ${myCities.length} 座城市，总兵力 ${snap.factionTroops[faction] ?? 0}k`)
+  lines.push(`银库 ${snap.factionTreasury[faction] ?? 0} 万银，粮仓 ${snap.factionGranary[faction] ?? 0} 万石（征兵/建设/筑防/整军均需耗银，征兵另耗粮）`)
   lines.push('')
   lines.push('城市详情：')
   for (const [gb] of myCities) {
@@ -169,7 +170,7 @@ export function buildMinorContext(factions: Owner[]): string {
     const factionCities = Object.entries(snap.cities).filter(([, c]) => c.owner === f)
     const cityCount = factionCities.length
     const label = OWNER_LABELS[f] ?? f
-    lines.push(`- ${label}：${cityCount} 座城，${troops}k 兵力`)
+    lines.push(`- ${label}：${cityCount} 座城，${troops}k 兵力，银库 ${snap.factionTreasury[f] ?? 0} 万银，粮仓 ${snap.factionGranary[f] ?? 0} 万石`)
     for (const [gb] of factionCities) {
       const full = store.cities[gb]
       if (!full) continue
