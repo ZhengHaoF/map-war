@@ -10,9 +10,6 @@
         <input type="checkbox" v-model="injectHistory" />
         注入历史
       </label>
-      <GameButton size="small" :disabled="!undoStack.length" @click="undo">
-        <component :is="ICONS.undo" :size="14" />撤销
-      </GameButton>
       <GameButton size="small" danger @click="resetWorld">
         <component :is="ICONS.reset" :size="14" />重置世界
       </GameButton>
@@ -125,7 +122,6 @@ import { resolveLocationId, searchLocationNames } from '@/utils/locationResolver
 import type { Component } from 'vue'
 import IconSend from '~icons/tabler/send'
 import IconPlay from '~icons/tabler/player-play'
-import IconUndo from '~icons/tabler/arrow-back-up'
 import IconReset from '~icons/tabler/reload'
 import IconSearch from '~icons/tabler/search'
 import IconChevronDown from '~icons/tabler/chevron-down'
@@ -134,7 +130,6 @@ import IconChevronUp from '~icons/tabler/chevron-up'
 const ICONS: Record<string, Component> = {
   send: IconSend,
   play: IconPlay,
-  undo: IconUndo,
   reset: IconReset,
   search: IconSearch,
   chevronDown: IconChevronDown,
@@ -153,9 +148,7 @@ const {
   parseError,
   aiMessage,
   execResults,
-  undoStack,
   runSend,
-  undo,
   resetWorld,
 } = useAiOrchestrator()
 

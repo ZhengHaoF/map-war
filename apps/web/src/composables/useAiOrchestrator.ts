@@ -6,7 +6,6 @@
  *
  * 关键语义（来自 grill 结论）：
  * - 调试 AI = god-mode，校验只查结构、不查战略合法性。
- * - 每条指令执行前对世界态打快照，支持单步撤销。
  * - 实时改图 + store；指令执行均带 PixiJS 演出动画。
  */
 
@@ -47,8 +46,6 @@ export interface ExecResult {
   detail?: string
 }
 
-type UndoFrame = ReturnType<ReturnType<typeof useGameStore>['snapshotForUndo']>
-
 /** 统一 AI 响应的 results 条目 */
 interface UnifiedResultItem {
   order: Record<string, unknown>
@@ -80,7 +77,6 @@ export function useAiOrchestrator(mode: AiMode = 'world') {
   const parseError = ref<string | null>(null)
   const aiMessage = ref<string | null>(null)
   const execResults = ref<ExecResult[]>([])
-  const undoStack = ref<UndoFrame[]>([])
   // 顾问模式专属：存储完整顾问响应
   const advisorResponse = ref<{ reply?: string; suggestions?: string[] } | null>(null)
 
@@ -277,7 +273,7 @@ export function useAiOrchestrator(mode: AiMode = 'world') {
   }
 
   /**
-   * 自由行动管道：遍历 effects 逐个 applyEvent，执行前打快照支持撤销。
+   * 自由行动管道：遍历 effects 逐个 applyEvent。
    *
    * 支持的 effects 类型：
    * - cityStatChange：调整城市属性（工业/粮食/工事/城级），如办学、筑防、建设等开放行动
@@ -287,7 +283,6 @@ export function useAiOrchestrator(mode: AiMode = 'world') {
    * - sendTelegram：发送电报，如求助、威胁、求和、离间等外交行动
    */
   async function runExecuteFreeAction(payload: FreeActionPayload): Promise<void> {
-    undoStack.value.push(store.snapshotForUndo())
     for (const eff of payload.effects) {
       switch (eff.type) {
         // 城市属性变更：工业/粮食/工事/城级（如办学、筑防、建设等开放行动）
@@ -386,8 +381,6 @@ export function useAiOrchestrator(mode: AiMode = 'world') {
         results.push({ order, valid: false, errors: errs })
         continue
       }
-      // 执行前打快照（单步撤销）
-      undoStack.value.push(store.snapshotForUndo())
       try {
         const r = await executeOrder(order)
         results.push({ order, valid: true, errors: [], result: r as any, detail: describe(order) })
@@ -421,15 +414,9 @@ export function useAiOrchestrator(mode: AiMode = 'world') {
     }
   }
 
-  function undo() {
-    const frame = undoStack.value.pop()
-    if (frame) store.restoreUndo(frame)
-  }
-
   function resetWorld() {
     store.initWorld()
     resetBattleRuntime()
-    undoStack.value = []
     execResults.value = []
     parsed.value = null
     parseError.value = null
@@ -452,7 +439,6 @@ export function useAiOrchestrator(mode: AiMode = 'world') {
     parseError,
     aiMessage,
     execResults,
-    undoStack,
     // 玩家模式校验
     strategicRejected,
     worldValidation,
@@ -468,7 +454,6 @@ export function useAiOrchestrator(mode: AiMode = 'world') {
     runExecute,
     applyStrategicRules,
     getFinalApprovedOrders,
-    undo,
     resetWorld,
   }
 }

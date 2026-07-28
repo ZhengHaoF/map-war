@@ -89,9 +89,6 @@
               @keydown.enter.exact.prevent="onSend"
             ></textarea>
             <div class="chat-input-btns">
-              <GameButton parchment size="small" :disabled="busy || !undoStack.length" @click="undo">
-                <IconUndo :size="14" />撤销
-              </GameButton>
               <GameButton
                 parchment
                 :loading="kernelLoading"
@@ -129,7 +126,6 @@ import GameButton from '@/components/ui/GameButton.vue'
 import GameModal from '@/components/ui/GameModal.vue'
 import WorldProgressBanner from '@/components/WorldProgressBanner.vue'
 import IconSend from '~icons/tabler/send'
-import IconUndo from '~icons/tabler/arrow-back-up'
 import IconEndTurn from '~icons/tabler/player-stop'
 
 const {
@@ -139,7 +135,6 @@ const {
   parsed,
   parseError,
   aiMessage,
-  undoStack,
   strategicRejected,
   worldValidation,
   worldImpossible,
@@ -148,7 +143,6 @@ const {
   runSend,
   applyStrategicRules,
   getFinalApprovedOrders,
-  undo,
 } = useAiOrchestrator('user')
 
 const { status, submit, advance } = useGameScheduler()
