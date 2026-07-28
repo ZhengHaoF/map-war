@@ -86,8 +86,8 @@ export function computeBaseBattle(input: BattleInput): BaseResult {
   const fortF = 1 + (input.fort / 100) * (r.fortMaxFactor - 1)
   const terrainF = r.terrainFactor[input.terrain ?? 'plain'] ?? 1.0
 
-  const atkLossRate = r.baseRate * fortF * terrainF * moraleFactor(input.atkMorale)
-  const defLossRate = r.baseRate * ratio * moraleFactor(input.defMorale)
+  const atkLossRate = r.baseRate * terrainF * moraleFactor(input.atkMorale)
+  const defLossRate = r.baseRate * ratio / fortF * moraleFactor(input.defMorale)
 
   const attackerLoss = Math.max(1, Math.round(input.atkForce * atkLossRate))
   const defenderLoss = Math.max(1, Math.round(input.defTroops * defLossRate))

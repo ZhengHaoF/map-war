@@ -26,7 +26,14 @@ describe('computeBaseBattle', () => {
     const noFort = computeBaseBattle({ atkForce: 100, defTroops: 100, atkMorale: 70, defMorale: 70, fort: 0 })
     const withFort = computeBaseBattle({ atkForce: 100, defTroops: 100, atkMorale: 70, defMorale: 70, fort: 100 })
     // 有工事时守方减员应更低
-    expect(withFort.defenderLoss).toBeLessThanOrEqual(noFort.defenderLoss)
+    expect(withFort.defenderLoss).toBeLessThan(noFort.defenderLoss)
+  })
+
+  it('工事不影响攻方减员', () => {
+    // 工事是守方修正，不应改变攻方减员
+    const noFort = computeBaseBattle({ atkForce: 100, defTroops: 100, atkMorale: 70, defMorale: 70, fort: 0 })
+    const withFort = computeBaseBattle({ atkForce: 100, defTroops: 100, atkMorale: 70, defMorale: 70, fort: 100 })
+    expect(withFort.attackerLoss).toBe(noFort.attackerLoss)
   })
 
   it('地形因子：山地 > 丘陵 > 平原', () => {
