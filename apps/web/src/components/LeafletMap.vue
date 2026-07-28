@@ -45,6 +45,14 @@
         <component :is="ICONS['clipboard-text']" :size="16" />
         事件日志
       </GameButton>
+      <GameButton tooltip="保存当前进度" @click="saveModalVisible = true">
+        <component :is="ICONS['device-floppy']" :size="16" />
+        保存
+      </GameButton>
+      <GameButton tooltip="载入已有存档" @click="loadModalVisible = true">
+        <component :is="ICONS['folder-open']" :size="16" />
+        读取
+      </GameButton>
       <div class="switcher-divider"></div>
       <GameButton @click="testPanelVisible = !testPanelVisible">
         <component :is="ICONS['bug']" :size="16" />
@@ -128,12 +136,6 @@
         <GameButton @click="captureTest"
           ><component :is="ICONS['tag']" :size="16" />占领测试</GameButton
         >
-        <GameButton @click="saveTest"
-          ><component :is="ICONS['player-stop']" :size="16" />存档测试</GameButton
-        >
-        <GameButton @click="loadTest"
-          ><component :is="ICONS['stack-2']" :size="16" />读档测试</GameButton
-        >
       </div>
     </GameModal>
     <GameModal v-if="isDev" class="map-ui"
@@ -160,6 +162,21 @@
     >
       <EventLogPanel />
     </GameModal>
+    <!-- 保存模态 -->
+    <SaveSelectorModal
+      :visible="saveModalVisible"
+      mode="save"
+      :closable="true"
+      @close="saveModalVisible = false"
+    />
+    <!-- 读取模态 -->
+    <SaveSelectorModal
+      :visible="loadModalVisible"
+      mode="load"
+      :closable="true"
+      @load="onLoadGame"
+      @close="loadModalVisible = false"
+    />
     <GameModal class="map-ui"
       :visible="battleListVisible"
       title="战斗管理"
@@ -365,7 +382,6 @@ import IconBug from '~icons/tabler/bug'
 import IconSword from '~icons/tabler/sword'
 import IconEye from '~icons/tabler/eye'
 import IconCrosshair from '~icons/tabler/crosshair'
-import IconPlayerStop from '~icons/tabler/player-stop'
 import IconList from '~icons/tabler/list'
 import IconCircleX from '~icons/tabler/circle-x'
 import IconX from '~icons/tabler/x'
@@ -374,15 +390,21 @@ import IconUser from '~icons/tabler/user'
 import IconMail from '~icons/tabler/mail'
 import IconCloud from '~icons/tabler/cloud'
 import IconClipboardText from '~icons/tabler/clipboard-text'
+import IconDeviceFloppy from '~icons/tabler/device-floppy'
+import IconFolderOpen from '~icons/tabler/folder-open'
 import IconChevronDown from '~icons/tabler/chevron-down'
 import IconChevronUp from '~icons/tabler/chevron-up'
 import AiDebugPanel from '@/components/AiDebugPanel.vue'
 import EventLogPanel from '@/components/EventLogPanel.vue'
+import SaveSelectorModal from '@/components/SaveSelectorModal.vue'
 import GameDateDisplay from '@/components/ui/GameDateDisplay.vue'
 import { playCloudTransition, disposeCloudTransition } from '@/utils/cloudTransition'
+import { useSaveGame } from '@/composables/useSaveGame'
 
 /** 开发构建标志：AI 调试面板仅在 dev 下挂载，不进生产包。 */
 const isDev = import.meta.env.DEV
+
+const { loadGame } = useSaveGame()
 
 const ICONS: Record<string, Component> = {
   'stack-2': IconStack2,
@@ -394,7 +416,6 @@ const ICONS: Record<string, Component> = {
   sword: IconSword,
   eye: IconEye,
   crosshair: IconCrosshair,
-  'player-stop': IconPlayerStop,
   list: IconList,
   'circle-x': IconCircleX,
   x: IconX,
@@ -403,6 +424,8 @@ const ICONS: Record<string, Component> = {
   mail: IconMail,
   cloud: IconCloud,
   'clipboard-text': IconClipboardText,
+  'device-floppy': IconDeviceFloppy,
+  'folder-open': IconFolderOpen,
   'chevron-down': IconChevronDown,
   'chevron-up': IconChevronUp,
 }
@@ -555,6 +578,8 @@ const advisorVisible = ref(false)
 const telegramVisible = ref(false)
 const battleListVisible = ref(false)
 const eventLogPanelVisible = ref(false)
+const saveModalVisible = ref(false)
+const loadModalVisible = ref(false)
 const battleList = computed(() => useGameStore().battles)
 const unreadCount = computed(() => useGameStore().unreadCount)
 const disclaimerVisible = ref(false)
@@ -1016,32 +1041,14 @@ async function captureTest(): Promise<void> {
   await executeOrder({ order: 'capture', gb: '156610300', owner: Owner.SCC })
 }
 
-/** 调试：存档测试——当前世界态序列化到 test 槽 */
-function saveTest(): void {
-  const ok = useGameStore().save('test', { label: `调试存档 ${useGameStore().currentDate}` })
-  if (ok) {
-    const m = useGameStore().listSaves()['test']
-    // eslint-disable-next-line no-console
-    console.log(`[saveTest] 已存档 → slot=test, 事件数=${m?.eventCount}, 日期=${m?.currentDate}`)
-  }
-}
-
-/** 调试：读档测试——从 test 槽恢复世界态 */
-async function loadTest(): Promise<void> {
-  const ok = useGameStore().load('test')
-  // eslint-disable-next-line no-console
-  console.log('[loadTest] load 返回, ok=', ok, 'battles=', useGameStore().battles.length)
-  if (!ok) return
-  // watcher 在 isReplaying 期间被跳过，手动重绘地图
-  await loadLayer(currentLayerIndex.value)
-  restoreActiveAnimations()
-  useGameStore().isReplaying = false // 动画恢复完成后才解锁 watcher
-  // eslint-disable-next-line no-console
-  console.log(`[loadTest] 已读档 → slot=test, 日期=${useGameStore().currentDate}`)
-}
-
 function endBattle(id: string): void {
   executeOrder({ order: 'stopBattle', id })
+}
+
+/** 读取存档：代理到 useSaveGame.loadGame（含地图重绘收尾） */
+function onLoadGame(slot: string): void {
+  loadGame(slot)
+  loadModalVisible.value = false
 }
 
 // ─── 战况面板辅助（实时读取 store 城市态，随每回合结算自动刷新）───
@@ -1720,7 +1727,7 @@ onMounted(async () => {
   if (cityJson) registerLocations(cityJson.features, 'gb')
 
   // 归属变化时实时重绘当前图层，确保占领/易主后政权着色立即更新
-  // 读档期间跳过（isReplaying），由 loadTest 手动调 loadLayer
+  // 读档期间跳过（isReplaying），由 requestMapReload 触发重绘
   watch(
     () => useGameStore().ownership,
     () => {

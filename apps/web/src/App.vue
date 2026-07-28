@@ -43,7 +43,7 @@ function onBackToSelector(): void {
 <template>
   <RouterView />
 
-  <SaveSelectorModal :visible="showSelector" @load="onLoad" @new-game="onNewGame" />
+  <SaveSelectorModal :visible="showSelector" mode="load" :closable="false" @load="onLoad" @new-game="onNewGame" />
 
   <GameModal
     :visible="showOnboarding"

@@ -26,6 +26,25 @@ export function useSaveGame() {
     return ok
   }
 
+  /**
+   * 保存游戏到指定槽位。
+   * slot 为 'auto' 时被自动存档专用，玩家不可手动覆盖 auto 槽。
+   * 返回是否成功。
+   */
+  function saveGame(slot: string, label?: string): boolean {
+    if (slot === 'auto') {
+      pushToast({ icon: 'alert-triangle', tone: 'error', title: '保存失败', text: '自动存档槽不可手动覆盖' })
+      return false
+    }
+    const ok = store.save(slot, { label })
+    if (ok) {
+      pushToast({ icon: 'device-floppy', tone: 'green', title: '保存成功', text: label || slot })
+    } else {
+      pushToast({ icon: 'alert-triangle', tone: 'error', title: '保存失败', text: '存储空间可能已满' })
+    }
+    return ok
+  }
+
   /** 删除某槽存档 */
   function deleteGame(slot: string): void {
     store.deleteSave(slot)
@@ -37,5 +56,10 @@ export function useSaveGame() {
     return Object.values(store.listSaves()).sort((a, b) => b.savedAt - a.savedAt)
   }
 
-  return { loadGame, deleteGame, listGames }
+  /** 生成新的存档槽位名（基于时间戳，保证不重复） */
+  function newSlotName(): string {
+    return `save_${Date.now().toString(36)}`
+  }
+
+  return { loadGame, saveGame, deleteGame, listGames, newSlotName }
 }

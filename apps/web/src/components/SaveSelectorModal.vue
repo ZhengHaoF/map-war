@@ -1,11 +1,12 @@
 <template>
   <GameModal
     :visible="visible"
-    title="载入战局"
+    :title="mode === 'save' ? '保存战局' : '载入战局'"
     width="620px"
     :z-index="10001"
-    :closable="false"
+    :closable="closable"
     variant="parchment"
+    @close="$emit('close')"
   >
     <div class="selector">
       <div class="scroll-edges">
@@ -15,19 +16,51 @@
         <span class="edge left" />
       </div>
 
-      <div class="sel-head">
-        <span class="head-line" />
-        <span class="sel-title">存档卷宗</span>
-        <span class="head-line" />
-      </div>
-      <p class="sel-sub">择一存档，续写山河</p>
+      <!-- ── 保存模式：新建存档卡 ── -->
+      <template v-if="mode === 'save'">
+        <div class="sel-head">
+          <span class="head-line" />
+          <span class="sel-title">铭刻时局</span>
+          <span class="head-line" />
+        </div>
+        <p class="sel-sub">存当前战局为新档，或覆盖旧档</p>
 
+        <div class="save-new-card">
+          <div class="new-input-row">
+            <input
+              v-model="newLabel"
+              class="new-label-input"
+              placeholder="输入存档标签..."
+              @keyup.enter="doSaveNew"
+            />
+            <button class="act-btn new-save-btn" @click="doSaveNew">
+              保存新档
+            </button>
+          </div>
+        </div>
+
+        <div v-if="saves.length" class="section-divider">
+          <span class="divider-label">或覆盖已有存档</span>
+        </div>
+      </template>
+
+      <!-- ── 读取模式 ── -->
+      <template v-else>
+        <div class="sel-head">
+          <span class="head-line" />
+          <span class="sel-title">存档卷宗</span>
+          <span class="head-line" />
+        </div>
+        <p class="sel-sub">择一存档，续写山河</p>
+      </template>
+
+      <!-- ── 存档列表（两模式共用） ── -->
       <div v-if="saves.length" class="save-list">
-        <div v-for="s in saves" :key="s.slot" class="save-card">
+        <div v-for="s in saves" :key="s.slot" class="save-card" :class="{ 'is-auto': s.slot === AUTO_SLOT }">
           <div class="card-main">
             <div class="card-top">
               <span class="card-label">{{ s.label }}</span>
-              <span v-if="s.slot === AUTO_SLOT" class="card-badge">自动存档</span>
+              <span v-if="s.slot === AUTO_SLOT" class="card-badge">自动</span>
             </div>
             <div class="card-meta">
               <span class="meta-item"><span class="meta-key">将领</span>{{ s.playerName || '—' }}</span>
@@ -37,22 +70,37 @@
             <div class="card-time">{{ formatTime(s.savedAt) }}</div>
           </div>
           <div class="card-actions">
-            <button class="act-btn load" @click="$emit('load', s.slot)">读取</button>
-            <template v-if="confirmSlot === s.slot">
-              <button class="act-btn confirm" @click="doDelete(s.slot)">确认删除</button>
-              <button class="act-btn cancel" @click="confirmSlot = null">取消</button>
+            <!-- 保存模式：覆盖（auto 槽除外） -->
+            <template v-if="mode === 'save'">
+              <template v-if="confirmSlot === s.slot">
+                <button class="act-btn confirm" @click="doOverwrite(s.slot)">确认覆盖</button>
+                <button class="act-btn cancel" @click="confirmSlot = null">取消</button>
+              </template>
+              <button
+                v-else-if="s.slot !== AUTO_SLOT"
+                class="act-btn overwrite"
+                @click="confirmSlot = s.slot"
+              >覆盖</button>
             </template>
-            <button v-else class="act-btn del" @click="confirmSlot = s.slot">删除</button>
+            <!-- 读取模式 -->
+            <template v-else>
+              <button class="act-btn load" @click="$emit('load', s.slot)">读取</button>
+              <template v-if="confirmSlot === s.slot">
+                <button class="act-btn confirm" @click="doDelete(s.slot)">确认删除</button>
+                <button class="act-btn cancel" @click="confirmSlot = null">取消</button>
+              </template>
+              <button v-else class="act-btn del" @click="confirmSlot = s.slot">删除</button>
+            </template>
           </div>
         </div>
       </div>
 
       <div v-else class="empty">
         <span class="empty-seal">档</span>
-        <p>尚无存档，请另起新局</p>
+        <p>尚无存档</p>
       </div>
 
-      <button class="new-btn" @click="$emit('new-game')">
+      <button v-if="mode === 'load'" class="new-btn" @click="$emit('new-game')">
         <span class="btn-text">另起新局</span>
       </button>
     </div>
@@ -60,28 +108,56 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import GameModal from '@/components/ui/GameModal.vue'
 import { useSaveGame } from '@/composables/useSaveGame'
+import { useGameStore } from '@/stores/game'
 import type { SaveMeta } from '@/stores/game'
 
 const props = defineProps<{
   visible?: boolean
+  mode?: 'load' | 'save'
+  closable?: boolean
 }>()
 
-defineEmits<{
+const emit = defineEmits<{
   load: [slot: string]
   'new-game': []
+  close: []
 }>()
 
 const AUTO_SLOT = 'auto'
-const { listGames, deleteGame } = useSaveGame()
+const { listGames, saveGame, deleteGame, newSlotName } = useSaveGame()
+const gameStore = useGameStore()
 
 const saves = ref<SaveMeta[]>([])
 const confirmSlot = ref<string | null>(null)
+const newLabel = ref('')
 
 function refresh(): void {
   saves.value = listGames()
+}
+
+function defaultLabel(): string {
+  return `存档 ${gameStore.currentDate}`
+}
+
+function doSaveNew(): void {
+  const label = newLabel.value.trim() || defaultLabel()
+  const slot = newSlotName()
+  if (saveGame(slot, label)) {
+    newLabel.value = ''
+    refresh()
+  }
+}
+
+function doOverwrite(slot: string): void {
+  const meta = saves.value.find((s) => s.slot === slot)
+  const label = meta?.label || defaultLabel()
+  if (saveGame(slot, label)) {
+    confirmSlot.value = null
+    refresh()
+  }
 }
 
 function doDelete(slot: string): void {
@@ -96,12 +172,13 @@ function formatTime(ts: number): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
-// 每次弹窗打开时刷新列表（并清掉遗留的删除确认态）
+// 每次弹窗打开时刷新列表
 watch(
   () => props.visible,
   (v) => {
     if (v) {
       confirmSlot.value = null
+      newLabel.value = ''
       refresh()
     }
   },
@@ -151,12 +228,8 @@ watch(
   height: 1px;
 }
 
-.edge.top {
-  top: 6px;
-}
-.edge.bottom {
-  bottom: 6px;
-}
+.edge.top { top: 6px; }
+.edge.bottom { bottom: 6px; }
 
 .edge.left,
 .edge.right {
@@ -166,12 +239,8 @@ watch(
   background: linear-gradient(to bottom, transparent, rgba(138, 109, 75, 0.45), transparent);
 }
 
-.edge.left {
-  left: 6px;
-}
-.edge.right {
-  right: 6px;
-}
+.edge.left { left: 6px; }
+.edge.right { right: 6px; }
 
 .sel-head {
   display: flex;
@@ -216,6 +285,76 @@ watch(
   font-family: var(--font-kai);
 }
 
+/* ── 保存模式：新建存档卡 ── */
+
+.save-new-card {
+  padding: 14px 16px;
+  background: linear-gradient(to bottom, var(--paper-hi), var(--paper-hi2));
+  border: 1px dashed rgba(138, 109, 75, 0.45);
+  border-radius: var(--radius-xs);
+}
+
+.new-input-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.new-label-input {
+  flex: 1;
+  padding: 8px 12px;
+  font-size: 14px;
+  font-family: var(--font-kai);
+  background: var(--paper-input);
+  border: 1px solid rgba(138, 109, 75, 0.4);
+  border-radius: var(--radius-xs);
+  color: var(--ink);
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.new-label-input::placeholder {
+  color: var(--ink-muted);
+  font-size: 13px;
+}
+
+.new-label-input:focus {
+  border-color: var(--cinnabar);
+}
+
+.new-save-btn {
+  flex-shrink: 0;
+  padding: 8px 20px;
+  font-size: 14px;
+  letter-spacing: 2px;
+  white-space: nowrap;
+}
+
+.section-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 2px 0;
+}
+
+.section-divider::before,
+.section-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(to right, transparent, var(--brown-line-faint), transparent);
+}
+
+.divider-label {
+  font-size: 12px;
+  color: var(--ink-muted);
+  font-family: var(--font-kai);
+  letter-spacing: 2px;
+  white-space: nowrap;
+}
+
+/* ── 存档列表 ── */
+
 .save-list {
   display: flex;
   flex-direction: column;
@@ -248,6 +387,10 @@ watch(
 
 .save-card:active {
   transform: scale(0.99);
+}
+
+.save-card.is-auto {
+  opacity: 0.85;
 }
 
 .card-main {
@@ -343,14 +486,24 @@ watch(
   transform: translateY(-1px);
 }
 
-/* 按下即时反馈（Apple §1）：从悬停抬升回到下沉，明确"按下" */
 .act-btn:active {
   transform: translateY(1px) scale(0.97);
   transition: transform 80ms ease-out;
 }
 
-.act-btn.load {
+.act-btn.load,
+.act-btn.new-save-btn {
   border-color: var(--cinnabar);
+  color: #fff;
+  background: linear-gradient(135deg, var(--cinnabar-bright) 0%, var(--cinnabar-deep) 100%);
+}
+
+.act-btn.overwrite {
+  border-color: var(--cinnabar);
+  color: var(--cinnabar);
+}
+
+.act-btn.overwrite:hover {
   color: #fff;
   background: linear-gradient(135deg, var(--cinnabar-bright) 0%, var(--cinnabar-deep) 100%);
 }
