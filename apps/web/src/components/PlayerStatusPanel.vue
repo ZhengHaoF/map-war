@@ -74,7 +74,28 @@
               <span class="stat-delta" :class="deltaCls(myStats.foodNet)">{{ deltaText(myStats.foodNet) }}</span>
             </div>
           </div>
-          <div class="fund-hint">每回合税饷抵养兵；征兵/建设/筑防/整军另耗银两，征兵另耗粮。</div>
+          <!-- 上回合收支明细（T-1）：玩家本回合看到的是上一回合结算结果 -->
+          <div v-if="myStats.hasEconomy" class="ledger">
+            <div class="ledger-title">上回合收支（万银 / 万石）</div>
+            <div class="ledger-row">
+              <span class="ledger-key">税饷</span>
+              <span class="ledger-val ledger-in">+{{ myStats.silverTax }}</span>
+              <span class="ledger-key">养兵</span>
+              <span class="ledger-val ledger-out">−{{ myStats.silverUpkeep }}</span>
+              <span class="ledger-key">银净收</span>
+              <span class="ledger-val" :class="deltaCls(myStats.silverNet)">{{ deltaText(myStats.silverNet) }}</span>
+            </div>
+            <div class="ledger-row">
+              <span class="ledger-key">粮产</span>
+              <span class="ledger-val ledger-in">+{{ myStats.foodProduce }}</span>
+              <span class="ledger-key">兵粮</span>
+              <span class="ledger-val ledger-out">−{{ myStats.foodUpkeep }}</span>
+              <span class="ledger-key">粮净收</span>
+              <span class="ledger-val" :class="deltaCls(myStats.foodNet)">{{ deltaText(myStats.foodNet) }}</span>
+            </div>
+          </div>
+          <div v-else class="fund-hint">尚未结算——结束本回合后，此处展示税饷与养兵的逐笔收支。</div>
+          <div class="fund-hint">征兵/建设/筑防/整军另耗银两，征兵另耗粮（非每回合固定项）。</div>
         </section>
 
         <!-- 进行中战斗 -->
@@ -288,6 +309,39 @@ function deltaCls(v: number): string {
   letter-spacing: 0.5px;
   padding: 2px 2px 0;
 }
+/* ── 上回合收支台账（T-1）── */
+.ledger {
+  margin-top: 8px;
+  padding: 8px 10px;
+  border: 1px solid color-mix(in srgb, var(--ink-soft) 35%, transparent);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--paper-hi, #f7efdb) 60%, transparent);
+}
+.ledger-title {
+  font-size: 11px;
+  color: var(--ink-soft);
+  letter-spacing: 1px;
+  margin-bottom: 6px;
+}
+.ledger-row {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+  font-size: 12px;
+  line-height: 1.9;
+}
+.ledger-key {
+  color: var(--ink-muted);
+  font-size: 11px;
+}
+.ledger-val {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  margin-right: 8px;
+}
+.ledger-in { color: #5a7a3a; }
+.ledger-out { color: var(--ink-soft); }
 
 .level-dist {
   display: flex;

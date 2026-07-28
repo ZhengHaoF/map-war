@@ -223,6 +223,10 @@ function runEconomicTick(): void {
       faction: f,
       silverDelta: eco.silverNet,
       foodDelta: eco.foodNet,
+      silverTax: eco.silverTax,
+      silverUpkeep: eco.silverUpkeep,
+      foodProduce: eco.foodProduce,
+      foodUpkeep: eco.foodUpkeep,
       arrear,
       famine,
     })

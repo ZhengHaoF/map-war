@@ -100,10 +100,29 @@ export interface EconomyTickEntry {
   silverDelta: number
   /** 粮仓变化 = 粮产 - 养兵粮 */
   foodDelta: number
+  // ── 收支拆分（供 HUD T-1 展示；落库仍用 delta，replay 确定性不受影响）──
+  /** 税饷收入（万银） */
+  silverTax: number
+  /** 养兵银支出（万银） */
+  silverUpkeep: number
+  /** 粮秣产出（万石） */
+  foodProduce: number
+  /** 养兵粮支出（万石） */
+  foodUpkeep: number
   /** 是否欠饷（银库 < 0） */
   arrear: boolean
   /** 是否缺粮（粮仓 < 0） */
   famine: boolean
+}
+
+/** 单势力上一回合经济收支拆分（供 HUD T-1 展示，不进 eventLog） */
+export interface FactionEconomyBreakdown {
+  silverTax: number
+  silverUpkeep: number
+  foodProduce: number
+  foodUpkeep: number
+  silverNet: number
+  foodNet: number
 }
 
 export type GameEvent =
@@ -216,8 +235,8 @@ export const useGameStore = defineStore('game', () => {
   // ── 势力级经济状态（银库 / 粮仓，唯一经 applyEvent 改写，initWorld 灌溉除外）──
   const treasury = ref<Record<string, number>>({})
   const granary = ref<Record<string, number>>({})
-  /** 上一回合各势力经济结算明细（供 HUD 展示收支，不进 eventLog） */
-  const lastEconomy = ref<Record<string, { silverNet: number; foodNet: number }>>({})
+  /** 上一回合各势力经济结算明细（供 HUD 展示 T-1 收支拆分，不进 eventLog） */
+  const lastEconomy = ref<Record<string, FactionEconomyBreakdown>>({})
 
   // ── 电报（AI 自主生成，不进 eventLog，单独持久化）──
   const telegrams = ref<Telegram[]>([])
@@ -282,6 +301,13 @@ export const useGameStore = defineStore('game', () => {
     // 经济（v1 新增）
     treasury: number
     granary: number
+    /** 是否有上一回合结算数据（开局首回合无） */
+    hasEconomy: boolean
+    // T-1 收支拆分（上一回合结算）
+    silverTax: number
+    silverUpkeep: number
+    foodProduce: number
+    foodUpkeep: number
     silverNet: number
     foodNet: number
   }
@@ -320,6 +346,11 @@ export const useGameStore = defineStore('game', () => {
       cities: stats,
       treasury: f ? getTreasury(f) : 0,
       granary: f ? getGranary(f) : 0,
+      hasEconomy: f ? !!lastEconomy.value[f] : false,
+      silverTax: f ? (lastEconomy.value[f]?.silverTax ?? 0) : 0,
+      silverUpkeep: f ? (lastEconomy.value[f]?.silverUpkeep ?? 0) : 0,
+      foodProduce: f ? (lastEconomy.value[f]?.foodProduce ?? 0) : 0,
+      foodUpkeep: f ? (lastEconomy.value[f]?.foodUpkeep ?? 0) : 0,
       silverNet: f ? (lastEconomy.value[f]?.silverNet ?? 0) : 0,
       foodNet: f ? (lastEconomy.value[f]?.foodNet ?? 0) : 0,
     }
@@ -602,12 +633,19 @@ export const useGameStore = defineStore('game', () => {
     // 每回合经济结算：应用各势力银粮净收支 + 欠饷/缺粮惩罚
     // 明细（entries）随事件入日志，replay 重放时据当时余额重算惩罚，确定性一致
     if (e.type === 'economicTick') {
-      const nextLast: Record<string, { silverNet: number; foodNet: number }> = {}
+      const nextLast: Record<string, FactionEconomyBreakdown> = {}
       for (const ent of e.entries) {
         const f = ent.faction
         treasury.value[f] = (treasury.value[f] ?? 0) + ent.silverDelta
         granary.value[f] = (granary.value[f] ?? 0) + ent.foodDelta
-        nextLast[f] = { silverNet: ent.silverDelta, foodNet: ent.foodDelta }
+        nextLast[f] = {
+          silverTax: ent.silverTax,
+          silverUpkeep: ent.silverUpkeep,
+          foodProduce: ent.foodProduce,
+          foodUpkeep: ent.foodUpkeep,
+          silverNet: ent.silverDelta,
+          foodNet: ent.foodDelta,
+        }
         const owed = treasury.value[f] < 0
         const starved = granary.value[f] < 0
         if (!owed && !starved) continue
