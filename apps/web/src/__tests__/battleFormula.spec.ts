@@ -4,7 +4,7 @@
  */
 import { describe, it, expect } from 'vitest'
 import { computeBaseBattle, checkMoraleCollapse, clampFlavor, BATTLE_RULES } from '../utils/battleFormula'
-import type { BaseResult, FlavorResult } from '../utils/battleFormula'
+import type { BaseResult, FlavorResult, FlavorEvent } from '../utils/battleFormula'
 
 describe('computeBaseBattle', () => {
   it('基础：兵力比影响减员', () => {
@@ -106,8 +106,7 @@ describe('checkMoraleCollapse', () => {
     // 多次采样，至少有一个不同（概率极高）
     const results = new Set<string>()
     for (let i = 0; i < 20; i++) {
-      results.add(checkMoraleCollapse({ battleId: `b${i}`, turns: 5, atkMorale: 10, defMorale: 10 } ?? 'null')
-      )
+      results.add(checkMoraleCollapse({ battleId: `b${i}`, turns: 5, atkMorale: 10, defMorale: 10 }) ?? 'null')
     }
     // 由于是确定性随机，不同 seed 应产生不同结果
     expect(results.size).toBeGreaterThan(1)
@@ -145,7 +144,7 @@ describe('clampFlavor', () => {
     const flavor: FlavorResult = {
       events: [
         { type: 'shock', side: 'attacker', magnitude: 10 },
-        { type: 'other', side: 'defender' },
+        { type: 'other', side: 'defender' } as unknown as FlavorEvent,
       ],
     }
     const r = clampFlavor(flavor, base)

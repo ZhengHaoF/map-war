@@ -29,7 +29,7 @@ export const BATTLE_RULES = {
     shockCap: 0.5,
     moraleCap: 20,
   },
-} as const
+}
 
 // ─── 类型 ───
 
