@@ -292,6 +292,61 @@ describe('popToast 提示', () => {
   })
 })
 
+describe('executeOrder 遗漏指令补充', () => {
+  it('stopBattles：无战斗时也成功（幂等）', async () => {
+    const r = await executeOrder({ order: 'stopBattles' } as any)
+    expect(r.ok).toBe(true)
+  })
+
+  it('stopBattles：有战斗时清空 battleRegistry 并 applyEvent battleEnd', async () => {
+    // 先执行 battle 指令注册一个战斗到 battleRegistry
+    mockStartBattleAnimation.mockReturnValue({ graphics: {} as any, stop: vi.fn() })
+    await executeOrder({ order: 'battle', from: '111', to: '333' } as any)
+    expect(mockApplyEvent).toHaveBeenCalledWith(expect.objectContaining({ type: 'battleStart' }))
+    mockApplyEvent.mockClear()
+
+    const r = await executeOrder({ order: 'stopBattles' } as any)
+    expect(r.ok).toBe(true)
+    // stopBattles 会为每个 id 发 battleEnd
+    expect(mockApplyEvent).toHaveBeenCalledTimes(1)
+    expect(mockApplyEvent).toHaveBeenCalledWith(expect.objectContaining({ type: 'battleEnd' }))
+  })
+
+  it('listBattles：返回当前战斗列表', async () => {
+    mockBattles.push({ id: 'b1', active: true, from: '111', to: '222', attacker: Owner.KMT, defender: Owner.CCP, fromName: 'A', toName: 'B' } as any)
+    const r = await executeOrder({ order: 'listBattles' } as any)
+    expect(r.ok).toBe(true)
+    expect((r as any).battles?.length).toBe(1)
+  })
+
+  it('fogCover：云雾蒙太奇，播动画', async () => {
+    mockPlayCloudTransition.mockResolvedValue({ ok: true })
+    const r = await executeOrder({ order: 'fogCover' } as any)
+    expect(r.ok).toBe(true)
+    expect(mockPlayCloudTransition).toHaveBeenCalledTimes(1)
+  })
+
+  it('fortify：城市不存在返回错误', async () => {
+    mockResolveLocationId.mockReturnValue(null)
+    const r = await executeOrder({ order: 'fortify', gb: '999', amount: 5 } as any)
+    expect(r.ok).toBe(false)
+    expect(r.reason).toContain('目标城市不存在')
+  })
+
+  it('fortify：amount <= 0 返回错误', async () => {
+    const r = await executeOrder({ order: 'fortify', gb: '111', amount: 0 } as any)
+    expect(r.ok).toBe(false)
+    expect(r.reason).toContain('amount 必须是正数')
+  })
+
+  it('fortify：合法路径 applyEvent cityStatChange(fort)', async () => {
+    mockDevelopAnimation.mockResolvedValue({ ok: true })
+    const r = await executeOrder({ order: 'fortify', gb: '111', amount: 3 } as any)
+    expect(r.ok).toBe(true)
+    expect(mockApplyEvent).toHaveBeenCalledWith({ type: 'cityStatChange', targetGb: '111', field: 'fort', delta: 3 })
+  })
+})
+
 describe('ORDER_TYPES 导出', () => {
   it('包含所有已知指令类型', () => {
     expect(ORDER_TYPES).toContain('arrowFly')
