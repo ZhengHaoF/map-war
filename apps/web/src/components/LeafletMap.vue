@@ -298,6 +298,47 @@
         <button class="verdict-btn" @click="onRetreatVerdictConfirm">知晓</button>
       </div>
     </GameModal>
+    <!-- 求和谈判弹窗 -->
+    <GameModal
+      :visible="peaceVisible"
+      title="议和"
+      variant="parchment"
+      width="400px"
+      :z-index="5100"
+      @close="onPeaceReject"
+    >
+      <div v-if="peaceState" class="peace-dlg">
+        <div class="peace-round">与 {{ peaceFoeLabel }} 谈判 · 第 {{ peaceState.round }} / {{ PEACE_MAX_ROUNDS }} 轮</div>
+        <!-- AI 思考中 -->
+        <div v-if="peaceState.busy" class="peace-thinking">
+          <span class="peace-dot"></span><span class="peace-dot"></span><span class="peace-dot"></span>
+          <span class="peace-thinking-text">对方权衡中…</span>
+        </div>
+        <template v-else-if="peaceState.outcome">
+          <p class="peace-text">「{{ peaceState.outcome.narrative }}」</p>
+          <div class="peace-indemnity" :class="peaceState.outcome.indemnity > 0 ? 'peace-pay' : 'peace-gain'">
+            {{ peaceIndemnityText }}
+          </div>
+          <div v-if="peaceState.outcome.final" class="peace-final-hint">此为对方最终报价</div>
+          <!-- 还价输入（可还价时显示） -->
+          <div v-if="canCounter" class="peace-counter">
+            <input
+              v-model="counterInput"
+              class="peace-input"
+              type="number"
+              placeholder="你愿赔多少（万银，可填负数）"
+            />
+            <GameButton parchment size="small" @click="onPeaceCounter">还价</GameButton>
+          </div>
+          <div class="peace-actions">
+            <GameButton parchment active size="small" @click="onPeaceAccept">接受条件</GameButton>
+            <GameButton parchment danger size="small" @click="onPeaceReject">
+              {{ canCounter ? '拒绝（战）' : '谈判破裂（战）' }}
+            </GameButton>
+          </div>
+        </template>
+      </div>
+    </GameModal>
     <LegendPanel v-if="ownerColorEnabled" class="map-ui" :items="legendItems" />
     <!-- 战况浮层：每场进行中战斗一张可折叠卡片，锚定守方城、跟随相机 -->
     <div class="battle-overlay map-ui">
@@ -421,7 +462,7 @@ import EventLogPanel from '@/components/EventLogPanel.vue'
 import SaveSelectorModal from '@/components/SaveSelectorModal.vue'
 import GameDateDisplay from '@/components/ui/GameDateDisplay.vue'
 import { playCloudTransition, disposeCloudTransition } from '@/utils/cloudTransition'
-import { invokeRetreatOutcome } from '@/utils/aiInvoke'
+import { invokeRetreatOutcome, invokePeaceOutcome, type PeaceOutcome } from '@/utils/aiInvoke'
 import { useSaveGame } from '@/composables/useSaveGame'
 import { useToast } from '@/composables/useToast'
 
@@ -1134,9 +1175,156 @@ function onRetreatVerdictConfirm(): void {
   retreatVerdictOrder.value = null
 }
 
-/** 求和占位 */
-function requestPeace(_b: BattleInfo): void {
-  useToast().push({ icon: 'affiliate', tone: 'neutral', title: '求和', text: '功能开发中，敬请期待' })
+// ── 求和谈判弹窗（照撤退范式；赔款玩家视角带符号：正=我方付给对方）──
+const PEACE_MAX_ROUNDS = 3
+
+interface PeaceState {
+  battle: BattleInfo
+  foe: Owner            // 对方势力
+  playerSide: 'attacker' | 'defender'
+  round: number
+  busy: boolean         // AI 思考中
+  outcome: PeaceOutcome | null
+}
+const peaceState = ref<PeaceState | null>(null)
+const peaceVisible = ref(false)
+const counterInput = ref('')
+
+/** 当前谈判对方标签 */
+const peaceFoeLabel = computed(() => {
+  const s = peaceState.value
+  return s ? ((OWNER_LABELS as Record<string, string>)[s.foe] ?? s.foe) : ''
+})
+/** 当前赔款文本（玩家视角） */
+const peaceIndemnityText = computed(() => {
+  const o = peaceState.value?.outcome
+  if (!o) return ''
+  if (o.indemnity > 0) return `我方赔付 ${o.indemnity} 万银`
+  if (o.indemnity < 0) return `对方倒贴 ${-o.indemnity} 万银`
+  return '互不赔款'
+})
+/** 是否还能还价（未到上限、非最终报价、非 AI 思考中） */
+const canCounter = computed(() => {
+  const s = peaceState.value
+  return !!s && s.round < PEACE_MAX_ROUNDS && !!s.outcome && !s.outcome.final && !s.busy
+})
+
+/** 求和开局：调 AI 定首轮回应，弹窗展示 */
+async function requestPeace(b: BattleInfo): Promise<void> {
+  const store = useGameStore()
+  const me = store.currentFaction
+  if (!me || (b.attacker !== me && b.defender !== me)) return
+  const foe = me === b.attacker ? b.defender : b.attacker
+  const side: 'attacker' | 'defender' = me === b.attacker ? 'attacker' : 'defender'
+  const myForce = side === 'attacker' ? atkForce(b) : defForce(b)
+  const foeForce = side === 'attacker' ? defForce(b) : atkForce(b)
+  const foeDetail = OWNER_DETAILS[foe]
+  peaceState.value = { battle: b, foe, playerSide: side, round: 1, busy: true, outcome: null }
+  peaceVisible.value = true
+  counterInput.value = ''
+  try {
+    const outcome = await invokePeaceOutcome({
+      foeTag: (OWNER_LABELS as Record<string, string>)[foe] ?? foe,
+      foeLeader: foeDetail?.leader ?? ((OWNER_LABELS as Record<string, string>)[foe] ?? foe),
+      personality: foeDetail?.personality ?? '沉稳',
+      playerTag: (OWNER_LABELS as Record<string, string>)[me] ?? me,
+      playerSide: side,
+      fromName: b.fromName,
+      toName: b.toName,
+      myForce,
+      foeForce,
+      turns: b.turns,
+      myLastLoss: side === 'attacker' ? b.lastAttackerLoss : b.lastDefenderLoss,
+      foeLastLoss: side === 'attacker' ? b.lastDefenderLoss : b.lastAttackerLoss,
+      myTreasury: store.getTreasury(me),
+      foeTreasury: store.getTreasury(foe),
+      round: 1,
+    })
+    // AI 返回时战斗可能已结束，丢弃结果
+    if (!peaceState.value || peaceState.value.battle.id !== b.id) return
+    peaceState.value.outcome = outcome
+    peaceState.value.busy = false
+  } catch {
+    if (peaceState.value) {
+      peaceState.value.outcome = { accept: false, indemnity: 0, narrative: '和议未成。', final: false }
+      peaceState.value.busy = false
+    }
+  }
+}
+
+/** 还价：带上玩家期望额度再调一轮 AI */
+async function onPeaceCounter(): Promise<void> {
+  const s = peaceState.value
+  const store = useGameStore()
+  const me = store.currentFaction
+  if (!s || !me || s.busy || s.round >= PEACE_MAX_ROUNDS) return
+  const counter = Number(counterInput.value)
+  if (!Number.isFinite(counter)) {
+    useToast().push({ icon: 'alert-triangle', tone: 'error', title: '还价', text: '请输入一个数字（万银）' })
+    return
+  }
+  const b = s.battle
+  const myForce = s.playerSide === 'attacker' ? atkForce(b) : defForce(b)
+  const foeForce = s.playerSide === 'attacker' ? defForce(b) : atkForce(b)
+  const foeDetail = OWNER_DETAILS[s.foe]
+  const round = s.round + 1
+  s.round = round
+  s.busy = true
+  s.outcome = null
+  counterInput.value = ''
+  try {
+    const outcome = await invokePeaceOutcome({
+      foeTag: (OWNER_LABELS as Record<string, string>)[s.foe] ?? s.foe,
+      foeLeader: foeDetail?.leader ?? ((OWNER_LABELS as Record<string, string>)[s.foe] ?? s.foe),
+      personality: foeDetail?.personality ?? '沉稳',
+      playerTag: (OWNER_LABELS as Record<string, string>)[me] ?? me,
+      playerSide: s.playerSide,
+      fromName: b.fromName,
+      toName: b.toName,
+      myForce,
+      foeForce,
+      turns: b.turns,
+      myLastLoss: s.playerSide === 'attacker' ? b.lastAttackerLoss : b.lastDefenderLoss,
+      foeLastLoss: s.playerSide === 'attacker' ? b.lastDefenderLoss : b.lastAttackerLoss,
+      myTreasury: store.getTreasury(me),
+      foeTreasury: store.getTreasury(s.foe),
+      round,
+      playerCounter: Math.round(counter),
+    })
+    if (!peaceState.value || peaceState.value.battle.id !== b.id) return
+    peaceState.value.outcome = outcome
+    peaceState.value.busy = false
+  } catch {
+    if (peaceState.value) {
+      peaceState.value.outcome = { accept: false, indemnity: 0, narrative: '来使语塞，谈判僵持。', final: false }
+      peaceState.value.busy = false
+    }
+  }
+}
+
+/** 接受当前条件：转移赔款 + 停战 */
+function onPeaceAccept(): void {
+  const s = peaceState.value
+  const store = useGameStore()
+  const me = store.currentFaction
+  if (!s || !s.outcome || !me) return
+  const b = s.battle
+  const ind = s.outcome.indemnity
+  // 赔款双向转移（正=玩家付出；扣成负数由经济系统欠饷机制承接，不阻断议和）
+  if (ind !== 0) {
+    store.applyEvent({ type: 'treasuryChange', faction: me, delta: -ind, reason: '议和赔款' })
+    store.applyEvent({ type: 'treasuryChange', faction: s.foe, delta: ind, reason: '议和受款' })
+  }
+  peaceVisible.value = false
+  executeOrder({ order: 'stopBattle', id: b.id, reason: 'peace', text: s.outcome.narrative })
+  peaceState.value = null
+}
+
+/** 拒绝 / 谈判破裂：关弹窗，战斗继续 */
+function onPeaceReject(): void {
+  peaceVisible.value = false
+  useToast().push({ icon: 'affiliate', tone: 'neutral', title: '议和破裂', text: '和谈未成，战事继续' })
+  peaceState.value = null
 }
 
 /** 读取存档：代理到 useSaveGame.loadGame（含地图重绘收尾） */
@@ -2539,5 +2727,116 @@ body.cloud-active .battle-card {
   background: linear-gradient(to bottom, var(--paper-darker), var(--paper-deep));
   color: var(--ink-darkest);
   border-color: var(--brown-deep);
+}
+
+/* ── 求和谈判弹窗 ── */
+.peace-dlg {
+  padding: 18px 20px 16px;
+}
+
+.peace-round {
+  font-size: 12px;
+  color: var(--ink-muted);
+  letter-spacing: 1px;
+  text-align: center;
+  margin-bottom: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.peace-text {
+  color: var(--ink-darkest);
+  font-family: var(--font-song);
+  font-size: 16px;
+  line-height: 1.9;
+  letter-spacing: 1px;
+  margin: 0 0 14px;
+  text-align: justify;
+}
+
+.peace-indemnity {
+  font-family: var(--font-song);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-align: center;
+  padding: 8px 0;
+  margin-bottom: 10px;
+  border-top: 1px dashed rgba(138, 109, 75, 0.35);
+  border-bottom: 1px dashed rgba(138, 109, 75, 0.35);
+}
+
+.peace-pay { color: var(--cinnabar); }
+.peace-gain { color: #5a7a3a; }
+
+.peace-final-hint {
+  font-size: 12px;
+  color: var(--cinnabar);
+  text-align: center;
+  letter-spacing: 1px;
+  margin-bottom: 12px;
+}
+
+.peace-counter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.peace-input {
+  flex: 1;
+  min-width: 0;
+  padding: 7px 10px;
+  border: 1px solid rgba(138, 109, 75, 0.4);
+  border-radius: var(--radius-sm);
+  background: var(--paper-input);
+  color: var(--ink-strong);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.peace-input::placeholder {
+  color: var(--ink-muted);
+  font-size: 13px;
+}
+
+.peace-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.peace-actions .game-btn {
+  flex: 1;
+}
+
+.peace-thinking {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 22px 0;
+}
+
+.peace-thinking-text {
+  margin-left: 8px;
+  color: var(--ink-soft);
+  font-size: 14px;
+  letter-spacing: 1px;
+}
+
+.peace-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--cinnabar);
+  animation: peace-blink 1.2s ease-in-out infinite;
+}
+
+.peace-dot:nth-child(2) { animation-delay: 0.2s; }
+.peace-dot:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes peace-blink {
+  0%, 80%, 100% { opacity: 0.25; transform: scale(0.8); }
+  40% { opacity: 1; transform: scale(1); }
 }
 </style>

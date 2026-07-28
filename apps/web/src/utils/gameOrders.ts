@@ -109,7 +109,7 @@ export interface GameOrder {
   amount?: number
   // 战斗：增援/出兵/撤退相关
   side?: 'attacker' | 'defender' // reinforce 指定补攻方还是守方
-  reason?: string // stopBattle 结束原因（retreat/surrender）
+  reason?: string // stopBattle 结束原因（retreat/peace/surrender）
   retreatLoss?: number // stopBattle(reason:'retreat') 时追击减员（k）
   deployAmount?: number // battle 时同时 deploy 的兵力
   // 内政：develop 指定调整字段（industry / food）；recruit 用 amount，fortify 用 amount，rally 用 amount 作士气增量
@@ -784,7 +784,7 @@ export async function executeOrder(
       useGameStore().applyEvent({
         type: 'battleEnd',
         battleId: json.id!,
-        reason: (json.reason as 'retreat' | undefined),
+        reason: (json.reason as 'retreat' | 'peace' | undefined),
         retreatLoss: json.retreatLoss,
       })
       result = r
@@ -1031,6 +1031,8 @@ function popToast(
     case 'stopBattle':
       if (json.reason === 'retreat') {
         push({ icon: 'player-stop', tone: 'neutral', title: '撤退', text: json.text ?? '我军收兵回城' })
+      } else if (json.reason === 'peace') {
+        push({ icon: 'affiliate', tone: 'green', title: '议和', text: json.text ?? '双方罢兵言和' })
       } else {
         push({ icon: 'player-stop', tone: 'neutral', title: '停战', text: '战斗结束' })
       }

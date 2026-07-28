@@ -91,7 +91,7 @@ export const DEVELOP_FIELDS: CityStatField[] = ['industry', 'food']
  * 都必须封装成 GameEvent，经 applyEvent 落地——这是唯一写者（initWorld 播种除外）。
  */
 /** 战斗终止原因 */
-export type BattleEndReason = 'capture' | 'attackerRouted' | 'retreat' | 'defenderCollapse' | 'attackerCollapse'
+export type BattleEndReason = 'capture' | 'attackerRouted' | 'retreat' | 'defenderCollapse' | 'attackerCollapse' | 'peace'
 
 /** 单势力经济结算明细（进 eventLog 供 replay 重建国库/粮仓） */
 export interface EconomyTickEntry {
@@ -600,7 +600,7 @@ export const useGameStore = defineStore('game', () => {
             // 占领：兵力已转入被占城；溃败：兵散了
             from.fieldForce = 0
           } else {
-            // 无 reason（stopBattles 等）：保守按撤退处理，兵回城
+            // peace（求和停战）/ 无 reason（stopBattles 等）：各自收兵，攻方野战兵回城
             from.troops += from.fieldForce
             from.fieldForce = 0
           }

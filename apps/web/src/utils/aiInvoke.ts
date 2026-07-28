@@ -282,3 +282,116 @@ ${opts.attackerTag}（玩家）围攻${opts.toName}后请求收兵撤退。战�
     return fallback
   }
 }
+
+// ── 求和谈判（AI 据战况裁定是否接受 + 赔款额度）──
+
+/** 求和谈判中对方一轮的回应 */
+export interface PeaceOutcome {
+  /** 对方是否接受按此条件停战 */
+  accept: boolean
+  /** 赔款（万银，玩家视角带符号：正=我方付给对方，负=对方倒贴我方） */
+  indemnity: number
+  /** 对方 30-70 字半文言回应（开条件 / 拒绝 / 还价措辞） */
+  narrative: string
+  /** 是否已到对方底线（final 时前端不再给还价按钮，只能接受或破裂） */
+  final: boolean
+}
+
+/** 求和谈判请求参数（全部以玩家视角归一化，AI 据此定赔款） */
+export interface PeaceOfferOpts {
+  /** 对方阵营标签（中文名，如「晋系」） */
+  foeTag: string
+  /** 对方首领 */
+  foeLeader: string
+  /** 对方性格（好战 / 务实 / 持重…） */
+  personality: string
+  /** 玩家阵营标签 */
+  playerTag: string
+  /** 玩家在战斗中的角色 */
+  playerSide: 'attacker' | 'defender'
+  fromName: string
+  toName: string
+  /** 玩家方投入兵力 k */
+  myForce: number
+  /** 对方兵力 k */
+  foeForce: number
+  /** 已战回合数 */
+  turns: number
+  /** 上回合玩家方损失 k */
+  myLastLoss: number
+  /** 上回合对方损失 k */
+  foeLastLoss: number
+  /** 玩家银库（万银） */
+  myTreasury: number
+  /** 对方银库（万银） */
+  foeTreasury: number
+  /** 第几轮谈判（1 起） */
+  round: number
+  /** 本轮玩家还价数额（万银，玩家视角带符号）；首轮 undefined */
+  playerCounter?: number
+}
+
+/** 单轮赔款额度上限（万银，绝对值），防 AI 报出离谱数字 */
+const PEACE_INDEMNITY_CAP = 500
+
+/**
+ * 调 LLM 裁定求和谈判中对方一轮的回应。
+ * 把兵力对比 / 回合 / 双方损失 / 双方银库 / 性格 / 玩家还价全灌入提示词，
+ * 由 AI 综合判断是否接受、要多少赔款（玩家劣势越重、回合越久，赔款越高）。
+ * 失败兜底：拒绝求和，战斗继续。
+ */
+export async function invokePeaceOutcome(opts: PeaceOfferOpts): Promise<PeaceOutcome> {
+  const fallback: PeaceOutcome = {
+    accept: false,
+    indemnity: 0,
+    narrative: '来使未及陈词，已遭逐出辕门。和议不成，唯战而已。',
+    final: false,
+  }
+
+  const playerIdentity = buildPlayerProfile()
+  const sideText = opts.playerSide === 'attacker'
+    ? `围攻${opts.toName}（${opts.playerTag} 主攻）`
+    : `据守${opts.toName}（${opts.playerTag} 主守）`
+  const counterLine = opts.playerCounter != null
+    ? `\n玩家本轮还价：愿赔 ${opts.playerCounter} 万银（负数表示反要你家赔款）。请就这个数回应：接受、或报出你的最终数。`
+    : '\n这是玩家首次求和。请开价。'
+
+  const systemPrompt = `你是「${opts.foeTag}」的${opts.foeLeader}，性格${opts.personality}。
+${playerIdentity}
+战况：${opts.playerTag}（玩家）正${sideText}。
+  玩家兵力 ${opts.myForce}k，我方兵力 ${opts.foeForce}k，已战 ${opts.turns} 回合
+  上回合 玩家损 ${opts.myLastLoss}k / 我方损 ${opts.foeLastLoss}k
+  玩家银库 ${opts.myTreasury} 万银，我方银库 ${opts.foeTreasury} 万银
+这是第 ${opts.round} 轮谈判（至多 3 轮）。${counterLine}
+
+裁定是否接受停战、以及赔款条件：
+- 若我方占优（玩家兵劣、损重、久攻不下），可索要赔款；玩家越弱、战越久，要价越高
+- 若我方不利或战事胶着，可少要甚至倒贴求和（赔款为负）
+- 好战者苛刻、务实者见好就收、持重者重信守约
+- 赔款为整数万银，正数=玩家付给我方，负数=我方付给玩家；绝对值不宜超过 ${PEACE_INDEMNITY_CAP}
+- 第 3 轮或你已无退让余地时，把 final 设为 true
+
+必须只返回一个 JSON 对象：
+{"accept": 是否接受(true/false), "indemnity": 赔款整数(玩家视角万银), "narrative": "30-70字半文言回应", "final": 是否最终报价(true/false)}`
+
+  try {
+    const raw = await callLlm({
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: `${opts.playerTag}遣使至${opts.foeTag}辕门，请议和。` },
+      ],
+    })
+    const payloads = extractPayloads(raw)
+    const obj = (payloads?.[0] ?? {}) as Record<string, unknown>
+    const accept = obj.accept === true
+    let indemnity = typeof obj.indemnity === 'number' ? Math.round(obj.indemnity) : 0
+    indemnity = Math.max(-PEACE_INDEMNITY_CAP, Math.min(PEACE_INDEMNITY_CAP, indemnity))
+    const narrative = typeof obj.narrative === 'string' && obj.narrative.trim()
+      ? obj.narrative.trim()
+      : fallback.narrative
+    const final = obj.final === true
+    return { accept, indemnity, narrative, final }
+  } catch {
+    return fallback
+  }
+}
