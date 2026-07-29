@@ -25,18 +25,31 @@ const BATCH_PROMPT = `你是民国军阀推演游戏的「世界 AI」。你负�
   - 工事：0-100，越高城防越强
   （工业/粮食/工事数值范围均为 0-100）
 
+═══════════════════════════════════════
+  可用指令（只允许以下 5 种，每条必须带 actor）
+═══════════════════════════════════════
+
+- battle:     from(己方城) to(目标城) actor — 试探性进攻
+- moveTroops: from(己方源城) to(己方目标城) amount(正数,千) actor — 调兵
+- recruit:    gb(己方城) amount(正数,千) actor — 征兵
+- develop:    gb(己方城) field("industry"/"food") amount(正数) actor — 建设（提升工业或粮食）
+- fortify:    gb(己方城) amount(正数) actor — 筑防（提升工事）
+
+⚠ 调兵就是 moveTroops——系统里没有名为 move 的指令，写了 move 会被直接丢弃。
+⚠ 严禁使用 capture / deploy / reinforce / stopBattle / 任何系统指令（setCurrentDate / setFactionAlive 等）。
+
 返回格式：
 {
   "orders": [
     { "order": "battle", "from": "城A", "to": "城B", "actor": "势力中文名" },
-    ...
+    { "order": "moveTroops", "from": "城C", "to": "城D", "amount": 5, "actor": "势力中文名" }
   ]
 }
 
 约束：
 - 每条指令必须带 actor（指明是哪个势力，用中文名，如"晋系"/"马家军"）
-- 只生成合理、小型的行动（调兵/试探进攻），不要改变大局
-- 保守为上——次要势力通常按兵不动
+- 只生成合理、小型的行动（调兵/试探进攻/低调内政），不要改变大局
+- 保守为上——次要势力通常按兵不动，无行动就返回空 orders 数组 []
 - 所有地点用城市中文名`
 
 const SETTLE_PROMPT = `你是民国军阀推演游戏的「世界 AI」叙事者。本回合各势力的行动已经执行完毕。
@@ -55,14 +68,26 @@ const SETTLE_PROMPT = `你是民国军阀推演游戏的「世界 AI」叙事者
 
 /**
  * P3 批量次要势力决策。
- * 返回通过结构校验的指令列表（调用方负责战略校验 + 入队）。
+ * 返回指令列表 + 逐条结构校验错误 + 解析是否成功（调用方负责"结构非法即跳过"门卫 + 战略校验 + 入队）。
+ *
+ * 注意：orders 中包含结构校验失败的原始项（validateOrders 会保留原文便于回显），
+ * 调用方必须用 errors[i] 是否非空来跳过非法指令，否则非法指令会漏到执行层。
  */
-export async function runWorldBatch(context: string): Promise<GameOrder[]> {
+export interface WorldBatchResult {
+  orders: GameOrder[]
+  errors: string[][]
+  parseSucceeded: boolean
+}
+
+export async function runWorldBatch(context: string): Promise<WorldBatchResult> {
   const result = await invokeAgentDecision({
     systemPrompt: BATCH_PROMPT,
     userContext: context,
   })
-  return result.parseSucceeded ? result.orders : []
+  if (!result.parseSucceeded) {
+    return { orders: [], errors: [], parseSucceeded: false }
+  }
+  return { orders: result.orders, errors: result.errors, parseSucceeded: true }
 }
 
 export interface WorldSettleResult {

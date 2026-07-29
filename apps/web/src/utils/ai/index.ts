@@ -10,7 +10,7 @@ export { decideFaction } from './factionAi'
 export type { FactionDecision } from './factionAi'
 
 export { runWorldBatch, runWorldSettle } from './worldAi'
-export type { WorldSettleResult } from './worldAi'
+export type { WorldSettleResult, WorldBatchResult } from './worldAi'
 
 export { flavorBattles } from './battleFlavorAi'
 export {

@@ -54,9 +54,10 @@ async function invokeWorldAIBatch(
   _factions: Owner[],
   context: string,
 ): Promise<GameOrder[]> {
-  const rawOrders = await runWorldBatch(context)
+  const { orders: rawOrders, errors: rawErrors, parseSucceeded } = await runWorldBatch(context)
 
-  if (!rawOrders.length) {
+  // 仅解析失败才弹 toast；合法的空 orders（次要势力按兵不动）静默通过
+  if (!parseSucceeded) {
     pushToast({
       icon: 'alert-triangle',
       tone: 'error',
@@ -75,7 +76,14 @@ async function invokeWorldAIBatch(
   // 按每条指令的 actor 独立做战略校验
   const store = useGameStore()
   const strategicOk: GameOrder[] = []
-  for (const order of rawOrders) {
+  for (let i = 0; i < rawOrders.length; i++) {
+    // 门卫：结构校验不过的指令（未知指令名 / 非法字段）直接丢弃，不让它漏到执行层
+    if (rawErrors[i]?.length) {
+      console.warn('[世界AI批量] 结构校验失败，丢弃指令:', rawOrders[i], rawErrors[i])
+      continue
+    }
+
+    const order = rawOrders[i]
     const rawActor = (order as unknown as Record<string, unknown>).actor as string | undefined
     const actorOwner = rawActor ? labelToOwner.get(rawActor) : undefined
     if (!actorOwner) {
