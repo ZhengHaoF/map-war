@@ -146,7 +146,7 @@ import { useGameStore, type Telegram } from '@/stores/game'
 import { OWNER_LABELS } from '@/data/owners'
 import { COUNTRY_COMMS, worldCountries } from '@/data/worldCountries'
 import { resolveEntity, normalizeCommsFrom } from '@/utils/commsEntity'
-import { invokeTelegramReply, type TelegramReplyItem } from '@/utils/aiInvoke'
+import { sendTelegram, type TelegramReply } from '@/utils/ai'
 import GameButton from '@/components/ui/GameButton.vue'
 import GameModal from '@/components/ui/GameModal.vue'
 import IconSend from '~icons/tabler/send'
@@ -310,7 +310,7 @@ async function invokeDirectReply(faction: string, playerMsg: string): Promise<{ 
     .slice(-6)
     .map((t) => ({ from: t.from === 'PLAYER' ? 'player' as const : 'faction' as const, text: t.content }))
 
-  const items = await invokeTelegramReply({
+  const items = await sendTelegram({
     factionName: entity.name,
     factionTag: entity.label,
     factionCode: faction,
@@ -329,7 +329,7 @@ async function invokeWorldReply(playerMsg: string): Promise<{ from: string; cont
   const hasCountries = Object.keys(COUNTRY_COMMS).length > 0
   if (!alive.length && !hasCountries) return [{ from: 'SYSTEM', content: '（天下寂然，无人应答）', leaderName: '系统' }]
 
-  const items: TelegramReplyItem[] = await invokeTelegramReply({
+  const items: TelegramReply[] = await sendTelegram({
     factionName: '',
     factionTag: '',
     personality: '',

@@ -10,9 +10,9 @@
 
 项目当前处于**「设计领先、落地 partially、工程债累积」**的阶段：
 
-- ✅ 架构设计文档详尽，核心决策（Kernel 唯一写者、事件溯源、P1-P4 回合流、电报/顾问/事件日志）**已落地或部分落地**；
-- 🟡 前端单文件过载严重，`LeafletMap.vue` / `gameOrders.ts` / `game.ts` 三文件合计 **超 3000 行**，职责边界模糊；
-- ⬜ 测试覆盖率低、类型安全靠 `as` 断言桥接、性能热点未量化、内存泄漏风险未系统排查。
+- ✅ 架构设计文档详尽，核心决策（Kernel 唯一写者、事件溯源、P1-P4 回合流、电报/顾问/事件日志、经济系统、地形修正）**已落地或部分落地**；
+- 🟡 前端单文件过载严重，`LeafletMap.vue` 2842 行 / `gameOrders.ts` 1108 行 / `game.ts` 924 行，职责边界模糊；
+- ⬜ 测试覆盖率仍偏低、类型安全靠 `as` 断言桥接、性能热点未量化、内存泄漏风险未系统排查。
 
 **建议优先级**：先拆文件（可读性）→ 补测试（安全网）→ 修性能（体验）→ 上监控（可观测）。
 
@@ -37,11 +37,14 @@
 
 | 问题 | 风险 | 建议 |
 |---|---|---|
-| `LeafletMap.vue` 单文件 2000+ 行，混了地图渲染、UI 状态、相机控制、战��卡片、右键菜单、模态框 | 维护困难，改地图渲染容易误伤 UI | 拆分为 `MapRenderer` / `MapCamera` / `BattleCardLayer` / `MapUiOverlay` 等子组件 |
+| `LeafletMap.vue` 单文件 2000+ 行，混了地图渲染、UI 状态、相机控制、战斗卡片、右键菜单、模态框 | 维护困难，改地图渲染容易误伤 UI | 拆分为 `MapRenderer` / `MapCamera` / `BattleCardLayer` / `MapUiOverlay` 等子组件 |
 | `gameOrders.ts` 1000+ 行， giant switch + 模块级可变状态 | 新增指令成本高，重入锁 `locks` 易遗漏 | 拆为 `orders/` 目录，每指令一个文件；引入 `OrderRegistry` 类管理锁与注册表 |
 | `game.ts` store 800+ 行， reducer + 存档 + 电报 + 派生聚合全塞在一个文件 | 类型改动影响面大，`applyEvent` 单函数 150 行 | 拆为 `game.reducer.ts` + `game.save.ts` + `game.telegram.ts` + `game.selectors.ts` |
 | 模块级单例（`useGameScheduler` / `useAgentKernel`）用 Vue `ref` 持有，无清理机制 | HMR / 热重载时状态残留，测试隔离困难 | 改为类单例或提供 `dispose()`， composable 只做门面 |
 | `gameOrders.ts` 模块级 `_container/_camera/_app` 可变全局 | 多实例（未来双地图） Impossible，测试需 mock 全局 | 改为 `GameOrdersEngine` 类，通过 inject / provide 传递 |
+| **LeafletMap.vue 单文件 2842 行（2026-07-29 复核）** | 维护困难，改地图渲染容易误伤 UI | 拆分为 `MapRenderer` / `MapCamera` / `BattleCardLayer` / `MapUiOverlay` 等子组件 |
+| **gameOrders.ts 1108 行（2026-07-29 复核）** | giant switch + 模块级可变状态 | 拆为 `orders/` 目录，每指令一个文件；引入 `OrderRegistry` 类管理锁与注册表 |
+| **game.ts store 924 行（2026-07-29 复核）** | reducer + 存档 + 电报 + 派生聚合全塞在一个文件 | 拆为 `game.reducer.ts` + `game.save.ts` + `game.telegram.ts` + `game.selectors.ts` |
 
 ---
 
@@ -97,6 +100,7 @@
 | `drawFeature` / `highlightOn` | `LeafletMap.vue` | O(vertices) | 每次 `loadLayer` 重建 Graphics |
 | `pointInPolygon` | `LeafletMap.vue` | O(ring length) | 点击测试遍历所有 feature |
 | `getSnapshot` | `game.ts` | O(N) 深拷贝 | 每回合 P2/P3 各调用至少一次 |
+| **经济结算 (`runEconomicTick`)** | `useAgentKernel.ts` | O(N) | 每回合开局遍历全城市，已实现 |
 
 ### 4.2 优化建议
 
@@ -164,6 +168,14 @@
 | `llmClient.spec.ts` | LLM 客户端 |
 | `gameStore.spec.ts` | store 基本操作 |
 | `aiHistory.spec.ts` | 历史装配 |
+| `aiParse.spec.ts` | 指令解析 |
+| `locationResolver.spec.ts` | 地名解析 |
+| `commsEntity.spec.ts` | 电报实体 |
+| `aiPromptBuilder.spec.ts` | Prompt 构建 |
+| `orderText.spec.ts` | 指令文本 |
+| `aiClassify.spec.ts` | 势力分类 |
+| `battleFormula.spec.ts` | 战斗公式 |
+| `gameOrders.spec.ts` | 指令执行 |
 
 ### 8.2 缺失的关键测试
 
@@ -171,6 +183,7 @@
 |---|---|---|
 | `game.ts` `applyEvent` | P0 | 每条 `GameEvent` 的 happy path + preCheck 拦截 + replay 等价性 |
 | `game.ts` `save/load` | P0 | 多槽位、老存档兼容、损坏存档容错 |
+| `game.ts` `economicTick` | P0 | 各势力收支计算 + 欠饷/缺粮惩罚 + replay 一致性 |
 | `gameOrders.ts` `executeOrder` | P0 | 每指令的动画 mock + world state 验证 |
 | `useGameScheduler.ts` | P0 | `submit` + `advance` + `needsPlayerDecision` 停点 + 异常跳过 |
 | `useAgentKernel.ts` | P1 | `endPlayerTurn` 四阶段 mock LLM + 失败 fallback |

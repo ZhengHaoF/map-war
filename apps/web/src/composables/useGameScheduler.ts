@@ -22,9 +22,7 @@ import type { GameOrder } from '@/utils/gameOrders'
 import { useToast } from '@/composables/useToast'
 import { useGameStore } from '@/stores/game'
 import type { BattleEndReason, CityState } from '@/stores/game'
-import { callLlm } from '@/composables/useLlmClient'
-import { extractPayloads } from '@/utils/aiParse'
-import { buildBattleFlavorPrompt, buildBattleFlavorSummary } from '@/utils/aiPromptBuilder'
+import { flavorBattles } from '@/utils/ai'
 import { computeBaseBattle, clampFlavor, checkMoraleCollapse } from '@/utils/battleFormula'
 import type { BaseResult, FlavorResult, FlavorEvent } from '@/utils/battleFormula'
 
@@ -109,35 +107,7 @@ async function settleActiveBattles(): Promise<void> {
   if (!validBattles.length) return
 
   // ── 第二阶段：AI 调味（尽力而为，失败不阻塞）───
-  let flavorMap: Record<string, FlavorResult> = {}
-
-  try {
-    const summary = buildBattleFlavorSummary(validBattles, baseResults)
-    if (summary) {
-      const raw = await callLlm({
-        messages: [
-          { role: 'system', content: buildBattleFlavorPrompt() },
-          { role: 'user', content: summary },
-        ],
-        maxRetries: 2,
-      })
-      const payloads = extractPayloads(raw)
-      const obj = payloads[0] as Record<string, unknown> | undefined
-      const list =
-        (obj?.results as Array<{
-          battleId?: string
-          events?: FlavorEvent[]
-          narrative?: string
-        }>) ?? []
-      for (const r of list) {
-        if (r.battleId) {
-          flavorMap[r.battleId] = { events: r.events ?? [], narrative: r.narrative }
-        }
-      }
-    }
-  } catch (e) {
-    console.warn('[P4a] AI 调味失败，纯公式结算', e)
-  }
+  const flavorMap = await flavorBattles(validBattles, baseResults)
 
   // ── 第三阶段：钳制 AI 调味 + 合并 + apply ──
   for (const b of validBattles) {

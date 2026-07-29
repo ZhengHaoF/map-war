@@ -35,7 +35,7 @@ import {
   type FreeActionPayload,
 } from '@/utils/aiParse'
 import type { GameOrder } from '@/utils/gameOrders'
-import { invokeTelegramReply } from '@/utils/aiInvoke'
+import { sendTelegram } from '@/utils/ai'
 import { Owner, OWNER_DETAILS, OWNER_LABELS } from '@/data/owners'
 
 export interface ExecResult {
@@ -341,7 +341,7 @@ export function useAiOrchestrator(mode: AiMode = 'world') {
                 .slice(-6)
                 .map((t) => ({ from: t.from === 'PLAYER' ? 'player' as const : 'faction' as const, text: t.content }))
               const situation = `${label}，拥有${store.factionCities(toCode as Owner).length}城，兵力约${store.factionTroops(toCode as Owner)}k`
-              const items = await invokeTelegramReply({
+              const items = await sendTelegram({
                 factionName: leader,
                 factionTag: label,
                 factionCode: toCode,

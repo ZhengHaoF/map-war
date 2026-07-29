@@ -462,7 +462,7 @@ import EventLogPanel from '@/components/EventLogPanel.vue'
 import SaveSelectorModal from '@/components/SaveSelectorModal.vue'
 import GameDateDisplay from '@/components/ui/GameDateDisplay.vue'
 import { playCloudTransition, disposeCloudTransition } from '@/utils/cloudTransition'
-import { invokeRetreatOutcome, invokePeaceOutcome, type PeaceOutcome } from '@/utils/aiInvoke'
+import { judgeRetreat, negotiatePeace, type PeaceResult } from '@/utils/ai'
 import { useSaveGame } from '@/composables/useSaveGame'
 import { useToast } from '@/composables/useToast'
 
@@ -1134,7 +1134,7 @@ async function requestRetreat(b: BattleInfo): Promise<void> {
   try {
     const defDetail = OWNER_DETAILS[b.defender]
     const atkLabel = (OWNER_LABELS as Record<string, string>)[b.attacker] ?? b.attacker
-    const outcome = await invokeRetreatOutcome({
+    const outcome = await judgeRetreat({
       defenderTag: (OWNER_LABELS as Record<string, string>)[b.defender] ?? b.defender,
       defenderLeader: defDetail?.leader ?? (OWNER_LABELS as Record<string, string>)[b.defender] ?? b.defender,
       personality: defDetail?.personality ?? '沉稳',
@@ -1184,7 +1184,7 @@ interface PeaceState {
   playerSide: 'attacker' | 'defender'
   round: number
   busy: boolean         // AI 思考中
-  outcome: PeaceOutcome | null
+  outcome: PeaceResult | null
 }
 const peaceState = ref<PeaceState | null>(null)
 const peaceVisible = ref(false)
@@ -1223,7 +1223,7 @@ async function requestPeace(b: BattleInfo): Promise<void> {
   peaceVisible.value = true
   counterInput.value = ''
   try {
-    const outcome = await invokePeaceOutcome({
+    const outcome = await negotiatePeace({
       foeTag: (OWNER_LABELS as Record<string, string>)[foe] ?? foe,
       foeLeader: foeDetail?.leader ?? ((OWNER_LABELS as Record<string, string>)[foe] ?? foe),
       personality: foeDetail?.personality ?? '沉稳',
@@ -1273,7 +1273,7 @@ async function onPeaceCounter(): Promise<void> {
   s.outcome = null
   counterInput.value = ''
   try {
-    const outcome = await invokePeaceOutcome({
+    const outcome = await negotiatePeace({
       foeTag: (OWNER_LABELS as Record<string, string>)[s.foe] ?? s.foe,
       foeLeader: foeDetail?.leader ?? ((OWNER_LABELS as Record<string, string>)[s.foe] ?? s.foe),
       personality: foeDetail?.personality ?? '沉稳',
