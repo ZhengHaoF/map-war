@@ -1,3 +1,6 @@
+import type { Relation } from '@/utils/diplomacy'
+import { relationKey } from '@/utils/diplomacy'
+
 export enum Owner {
   KMT = 'KMT', // 国民政府
   CCP = 'CCP', // 中共苏区
@@ -10,6 +13,24 @@ export enum Owner {
   XJ = 'XJ', // 新疆
   TIB = 'TIB', // 西藏
   NEUTRAL = 'NEUTRAL', // 中立/无主
+}
+
+/**
+ * 1931-04 开局历史关系种子（不走事件，直接灌入 relations）。
+ * 用对称键存储：蒋阎/蒋桂停战带冷却期（中原大战刚结束），国共内战中。
+ * 其余势力默认 peace（不显式存）。
+ */
+export function buildInitialRelations(): Record<string, Relation> {
+  const r: Record<string, Relation> = {}
+  const set = (a: Owner, b: Owner, rel: Relation): void => {
+    r[relationKey(a, b)] = rel
+  }
+  // 中原大战（1930）刚结束：蒋 vs 阎、蒋 vs 桂 停战，冷却期至 1931-10
+  set(Owner.KMT, Owner.SHX, { status: 'peace', truceUntil: '1931-10-01', note: '中原大战罢兵' })
+  set(Owner.KMT, Owner.GXC, { status: 'peace', truceUntil: '1931-10-01', note: '中原大战罢兵' })
+  // 国共内战
+  set(Owner.KMT, Owner.CCP, { status: 'war', note: '围剿与反围剿' })
+  return r
 }
 
 /**

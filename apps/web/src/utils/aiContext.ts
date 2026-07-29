@@ -14,6 +14,7 @@ import { chinaCitiesAdjacent } from '@/data/chinaCitiesAdjacent'
 import { Owner, OWNER_LABELS } from '@/data/owners'
 import { buildEventHistory } from './aiHistory'
 import { buildBattleContext } from './aiPromptBuilder'
+import { readRelation, isInTruce } from './diplomacy'
 import type { CityDataWithAdjacent } from '@/data/chinaCitiesAdjacent'
 
 // ─── 邻接表（模块级只建一次）───
@@ -73,6 +74,25 @@ export function buildFactionContext(faction: Owner): string {
   lines.push(`你的势力：${OWNER_LABELS[faction] ?? faction}`)
   lines.push(`你控制 ${myCities.length} 座城市，总兵力 ${snap.factionTroops[faction] ?? 0}k`)
   lines.push(`银库 ${snap.factionTreasury[faction] ?? 0} 万银，粮仓 ${snap.factionGranary[faction] ?? 0} 万石（征兵/建设/筑防/整军均需耗银，征兵另耗粮）`)
+  // 外交关系：只列非常态（war/alliance/停战冷却中），默认和平不占篇幅
+  const relTable = snap.relations ?? {}
+  const relLines: string[] = []
+  for (const other of snap.activeFactions) {
+    if (other === faction || other === Owner.NEUTRAL) continue
+    const rel = readRelation(relTable, faction, other)
+    if (rel.status === 'war') {
+      relLines.push(`  与${OWNER_LABELS[other] ?? other}：交战中${rel.note ? `（${rel.note}）` : ''}`)
+    } else if (rel.status === 'alliance') {
+      relLines.push(`  与${OWNER_LABELS[other] ?? other}：同盟${rel.note ? `（${rel.note}）` : ''}`)
+    } else if (isInTruce(relTable, faction, other, snap.currentDate)) {
+      relLines.push(`  与${OWNER_LABELS[other] ?? other}：停战中（冷却至 ${rel.truceUntil}，期内不可再战）`)
+    }
+  }
+  if (relLines.length) {
+    lines.push('')
+    lines.push('外交关系：')
+    for (const l of relLines) lines.push(l)
+  }
   lines.push('')
   lines.push('城市详情：')
   for (const [gb] of myCities) {

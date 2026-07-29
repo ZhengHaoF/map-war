@@ -1,10 +1,11 @@
 import { defineStore } from 'pinia'
 import { ref, shallowRef, computed, triggerRef } from 'vue'
 import { chinaCities } from '@/data/chinaCities'
-import { Owner, OWNER_LABELS } from '@/data/owners'
+import { Owner, OWNER_LABELS, buildInitialRelations } from '@/data/owners'
 import { resetBattleRuntime } from '@/utils/gameOrders'
 import { resolveLocationId } from '@/utils/locationResolver'
 import { useToast } from '@/composables/useToast'
+import { relationKey, readRelation, type Relation, type RelationStatus } from '@/utils/diplomacy'
 import {
   computeFactionEconomy,
   computeInitialFunds,
@@ -144,6 +145,8 @@ export type GameEvent =
   | { type: 'treasuryChange'; faction: Owner; delta: number; reason?: string }
   | { type: 'granaryChange'; faction: Owner; delta: number; reason?: string }
   | { type: 'economicTick'; entries: EconomyTickEntry[] }
+  // ── 外交系统 ──
+  | { type: 'relationChange'; a: Owner; b: Owner; status: RelationStatus; truceUntil?: string; note?: string }
 
 // ── 存档 / 持久化 ──
 
@@ -196,6 +199,8 @@ export interface WorldStateSnapshot {
   factionGranary: Record<string, number>
   /** 进行中的战斗元数据列表 */
   battles: BattleInfo[]
+  /** 外交关系表（对称键 → 关系），供 AI 决策与战略校验 */
+  relations: Record<string, Relation>
 }
 
 export const useGameStore = defineStore('game', () => {
@@ -231,6 +236,9 @@ export const useGameStore = defineStore('game', () => {
     Owner.TIB,
   ])
   const battles = ref<BattleInfo[]>([])
+
+  // ── 外交关系（对称键 → 关系；initWorld 种子 + eventLog 重放重建，存档无需单独字段）──
+  const relations = ref<Record<string, Relation>>({})
 
   // ── 势力级经济状态（银库 / 粮仓，唯一经 applyEvent 改写，initWorld 灌溉除外）──
   const treasury = ref<Record<string, number>>({})
@@ -362,6 +370,11 @@ export const useGameStore = defineStore('game', () => {
     return battles.value.filter((b) => b.attacker === f || b.defender === f)
   })
 
+  /** 读取两势力间关系（未记录默认 peace）。供面板/校验层便捷调用。 */
+  function relationBetween(a: Owner, b: Owner): Relation {
+    return readRelation(relations.value, a, b)
+  }
+
   // ── 初始化 / 设置 ──
   // seed 单向灌溉：仅在此处读取 chinaCities，之后世界态完全活在 cities 里。
   function initWorld(): void {
@@ -404,6 +417,7 @@ export const useGameStore = defineStore('game', () => {
     eventLog.value = [] // 重置事件日志
     battles.value = []   // 重置战斗列表（否则重复读档会叠加）
     telegrams.value = [] // 重置电报
+    relations.value = buildInitialRelations() // 外交种子（蒋阎/蒋桂停战冷却、国共内战）；读档时由 eventLog 重放覆盖
     turnCount.value = 0
   }
 
@@ -452,6 +466,7 @@ export const useGameStore = defineStore('game', () => {
       factionTreasury: factionTreasuryMap,
       factionGranary: factionGranaryMap,
       battles: battles.value.map((b) => ({ ...b })),
+      relations: { ...relations.value },
     }
   }
 
@@ -529,6 +544,12 @@ export const useGameStore = defineStore('game', () => {
       case 'granaryChange':
       case 'economicTick':
         return { ok: true }
+      case 'relationChange': {
+        if (!e.a || !e.b) return { ok: false, reason: 'relationChange 需要 a 和 b 两个势力' }
+        if (e.a === e.b) return { ok: false, reason: '不能对自身设置外交关系' }
+        if (e.a === Owner.NEUTRAL || e.b === Owner.NEUTRAL) return { ok: false, reason: '中立势力无外交关系' }
+        return { ok: true }
+      }
     }
   }
 
@@ -657,6 +678,18 @@ export const useGameStore = defineStore('game', () => {
       }
       lastEconomy.value = nextLast
       triggerRef(cities)
+      return { ok: true }
+    }
+
+    // ── 外交事件 ──
+    // 关系变更：无 targetGb，直接改写对称键关系表（war→peace 时若带 truceUntil 则记冷却期）。
+    // 叙事 actor 不入关系（关系对称，发起方仅用于 toast/电报展示）。
+    if (e.type === 'relationChange') {
+      const key = relationKey(e.a, e.b)
+      const next: Relation = { status: e.status }
+      if (e.status === 'peace' && e.truceUntil) next.truceUntil = e.truceUntil
+      if (e.note) next.note = e.note
+      relations.value[key] = next
       return { ok: true }
     }
     // 调兵：己方两城间搬运驻军（from 扣、to 加，钳制 ≥0）
@@ -920,5 +953,8 @@ export const useGameStore = defineStore('game', () => {
     markChannelRead,
     unreadCount,
     unreadByChannel,
+    // 外交
+    relations,
+    relationBetween,
   }
 })

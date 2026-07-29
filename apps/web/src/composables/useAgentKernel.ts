@@ -215,6 +215,7 @@ async function runWorldTurn(): Promise<void> {
     activeFactions: snap.activeFactions,
     ownership: snap.ownership,
     eventLog: [...store.eventLog],
+    relations: snap.relations,
   })
 
   progress.value = `related: ${related.length}, unrelated: ${unrelated.length}`

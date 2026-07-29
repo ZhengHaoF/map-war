@@ -77,6 +77,11 @@
               <div class="tg-chat-title">
                 <span>{{ factionName(activeChannel) }}</span>
                 <span class="tg-tag" :style="tagStyle(activeChannel)">{{ factionLabel(activeChannel) }}</span>
+                <span
+                  v-if="relationBadge(activeChannel)"
+                  class="tg-rel-badge"
+                  :class="`tg-rel-badge--${relationBadge(activeChannel)!.cls}`"
+                >{{ relationBadge(activeChannel)!.label }}</span>
               </div>
               <div class="tg-chat-sub">{{ factionStatus(activeChannel) }}</div>
             </div>
@@ -143,9 +148,10 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick } from 'vue'
 import { useGameStore, type Telegram } from '@/stores/game'
-import { OWNER_LABELS } from '@/data/owners'
+import { Owner, OWNER_LABELS } from '@/data/owners'
 import { COUNTRY_COMMS, worldCountries } from '@/data/worldCountries'
 import { resolveEntity, normalizeCommsFrom } from '@/utils/commsEntity'
+import { isInTruce } from '@/utils/diplomacy'
 import { sendTelegram, type TelegramReply } from '@/utils/ai'
 import GameButton from '@/components/ui/GameButton.vue'
 import GameModal from '@/components/ui/GameModal.vue'
@@ -395,6 +401,23 @@ function factionHexColor(from: string): string {
   return resolveEntity(from).colorHex
 }
 
+/**
+ * 与当前频道势力的外交关系徽标（仅 war/alliance/停战冷却 三种非常态显示）。
+ * 返回 null 表示默认和平，不占位。世界频道/国家频道无关系，返回 null。
+ */
+function relationBadge(from: string): { label: string; cls: string } | null {
+  if (from === 'world') return null
+  const me = store.currentFaction
+  if (!me) return null
+  const other = normalizeCommsFrom(from) as Owner
+  if (!other || !store.activeFactions.includes(other) || other === me) return null
+  const rel = store.relationBetween(me, other)
+  if (rel.status === 'war') return { label: '交战中', cls: 'war' }
+  if (rel.status === 'alliance') return { label: '同盟', cls: 'alliance' }
+  if (isInTruce(store.relations, me, other, store.currentDate)) return { label: '停战中', cls: 'truce' }
+  return null
+}
+
 function avatarChar(from: string): string {
   return resolveEntity(from).name[0] || '?'
 }
@@ -606,6 +629,28 @@ watch(
 .tg-tag--world {
   background: var(--ink-strong, #2c1a0a);
   color: var(--paper-deep, #f5edd8);
+}
+
+/* 外交关系徽标：交战=朱砂 / 同盟=苍绿 / 停战=土黄（与舆图填色、toast 同族） */
+.tg-rel-badge {
+  font-size: 11px;
+  padding: 1px 7px;
+  border-radius: 99px;
+  font-weight: 600;
+  margin-left: 2px;
+  border: 1px solid currentColor;
+}
+.tg-rel-badge--war {
+  color: var(--cinnabar, #b25144);
+  background: rgba(178, 81, 68, 0.12);
+}
+.tg-rel-badge--alliance {
+  color: #5c7d52;
+  background: rgba(111, 148, 104, 0.16);
+}
+.tg-rel-badge--truce {
+  color: #96802f;
+  background: rgba(176, 148, 64, 0.16);
 }
 
 .tg-chat-sub {

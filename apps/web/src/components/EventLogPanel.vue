@@ -66,6 +66,7 @@ function badge(e: GameEvent): string {
     treasuryChange: '银库',
     granaryChange: '粮仓',
     economicTick: '经济',
+    relationChange: '外交',
   }
   return map[e.type]
 }
@@ -116,6 +117,10 @@ function describe(e: GameEvent): string {
     case 'economicTick': {
       const parts = e.entries.map((it) => `${fname(it.faction)}${it.silverDelta >= 0 ? '+' : ''}${it.silverDelta}`)
       return `经济结算：${parts.join('，')}`
+    }
+    case 'relationChange': {
+      const verb = e.status === 'war' ? '宣战' : e.status === 'alliance' ? '结盟' : '停战'
+      return `${fname(e.a)} ⇄ ${fname(e.b)} ${verb}${e.note ? `（${e.note}）` : ''}`
     }
   }
   return ''

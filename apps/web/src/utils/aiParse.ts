@@ -98,7 +98,7 @@ export function extractAiMessage(obj: unknown): string | null {
 
 /** 自由行动事件（复用已有 reducer 事件类型） */
 export interface FreeActionEffect {
-  type: 'cityStatChange' | 'moraleChange' | 'produce' | 'moveTroops' | 'sendTelegram' | 'treasuryChange' | 'granaryChange'
+  type: 'cityStatChange' | 'moraleChange' | 'produce' | 'moveTroops' | 'sendTelegram' | 'treasuryChange' | 'granaryChange' | 'relationChange'
   targetGb?: string
   field?: string
   delta?: number
@@ -110,6 +110,12 @@ export interface FreeActionEffect {
   content?: string // 电报内容
   // treasuryChange / granaryChange 专用字段
   faction?: string // 势力中文名或代号
+  // relationChange 专用字段（宣战/结盟/停战）
+  a?: string       // 势力甲（中文名或代号，如 '川军'/'SCC'）
+  b?: string       // 势力乙（中文名或代号，如 '晋系'/'SHX'）
+  status?: 'war' | 'peace' | 'alliance' // 目标关系态
+  truceUntil?: string // 仅 peace 时：停战冷却截止日（ISO）
+  note?: string    // 叙事备注（如"川军通电讨伐阎锡山"）
 }
 
 /** 自由行动载荷 */

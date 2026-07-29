@@ -7,6 +7,7 @@
 
 import { Owner } from '@/data/owners'
 import type { GameEvent } from '@/stores/game'
+import { readRelation, type Relation } from './diplomacy'
 
 /** 从事件中提取涉及的势力（actor / target 的城主） */
 function extractFactionsFromEvent(
@@ -55,8 +56,10 @@ export function classifyFactions(opts: {
   ownership: Record<string, Owner>
   /** 事件日志（用于提取近期互动） */
   eventLog: GameEvent[]
+  /** 外交关系表（可选）：处于 war/alliance 的势力无论近期互动都算 related */
+  relations?: Record<string, Relation>
 }): FactionClassification {
-  const { playerFaction, activeFactions, ownership, eventLog } = opts
+  const { playerFaction, activeFactions, ownership, eventLog, relations = {} } = opts
 
   // 如未选势力，全部视为 unrelated
   if (!playerFaction) {
@@ -79,6 +82,14 @@ export function classifyFactions(opts: {
         related.add(f)
       }
     }
+  }
+
+  // 外交关系感知：与玩家处于战争/同盟的势力，无论近期有无互动都算 related
+  // （宣战/结盟是强关联，即使本回合没交战也要唤起专属 AI 而非世界 AI 代打）
+  for (const f of activeFactions) {
+    if (f === playerFaction || f === Owner.NEUTRAL) continue
+    const status = readRelation(relations, playerFaction, f).status
+    if (status === 'war' || status === 'alliance') related.add(f)
   }
 
   const relatedList = [...related]

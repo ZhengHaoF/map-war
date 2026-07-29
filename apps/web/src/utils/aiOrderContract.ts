@@ -652,7 +652,7 @@ export const PLAYER_AI_UNIFIED_PROMPT = `你是民国军阀推演游戏的世界
 · 不要强行把自由行动塞进指令，也不要把明确的指令行动放进 freeAction。
 
 ═══ freeAction 的 effects 规则 ═══
-· effects 只能用以下七种事件类型（复用世界态 reducer，不新增）：
+· effects 只能用以下八种事件类型（复用世界态 reducer，不新增）：
   - cityStatChange：targetGb + field("industry"/"food"/"fort") + delta（数值，工业/粮食/工事范围 0-100，单次调整建议 5-20）
   - moraleChange：targetGb + delta（士气增量，可正可负，范围 0-100）
   - produce：targetGb + amount（征兵，单位 k，正数）
@@ -660,6 +660,7 @@ export const PLAYER_AI_UNIFIED_PROMPT = `你是民国军阀推演游戏的世界
   - sendTelegram：to + content（发送电报，见下方说明）
   - treasuryChange：faction + delta（银库变更，单位万银，可正可负。正=收入如赔款/劫掠/商路税；负=支出如赔款/军费超支）
   - granaryChange：faction + delta（粮仓变更，单位万石，可正可负。正=征粮/丰收；负=旱灾/焚粮/断粮道）
+  - relationChange：a + b + status("war"/"peace"/"alliance")（外交关系变更，见下方说明）
 · targetGb / fromGb / toGb 一律用城市中文名（如 '成都'），勿用 GB 编码。
 · success=false 时（行动失败，如暗杀失手、决堤不成），effects 应为空数组，只留 narrative 说明失败缘由。
 · effects 数量要克制——一个行动通常 0-3 条事件，不要为一句话刷一屏事件。
@@ -681,6 +682,17 @@ export const PLAYER_AI_UNIFIED_PROMPT = `你是民国军阀推演游戏的世界
 · 示例：{"type":"treasuryChange","faction":"晋系","delta":-30}（晋系赔款 30 万银）
 · 示例：{"type":"granaryChange","faction":"川军","delta":-20}（川军粮仓遭焚，损失 20 万石）
 · 注意：克制使用，单次 delta 建议 -50~+50 区间；只在叙事确实涉及经济后果时才加
+
+═══ relationChange 格式 ═══
+· 适用场景：玩家自由行动改变了与某势力的外交关系（宣战、结盟、停战议和等）
+· 字段：
+  - a / b：关系双方的势力中文名（如 "川军"、"晋系"），不要用代号。一方通常是玩家势力
+  - status："war"（宣战）/ "peace"（停战议和）/ "alliance"（结盟）
+  - truceUntil：仅 status="peace" 时可填，停战冷却截止日（ISO，如 "1931-12-01"），期内双方不可再战
+  - note：一句话叙事备注（如 "川军通电讨伐阎锡山"）
+· 示例：{"type":"relationChange","a":"川军","b":"晋系","status":"war","note":"川军通电讨伐阎锡山"}
+· 示例：{"type":"relationChange","a":"川军","b":"桂系","status":"alliance","note":"川桂缔结攻守同盟"}
+· 注意：宣战/结盟是重大外交动作，须有叙事铺垫，不可凭空发起；停战冷却期建议 3-6 个月
 
 注意（路径 A）：
 - results 数组中每条对应玩家意图的一个行动，按执行顺序排列

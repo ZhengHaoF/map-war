@@ -24,6 +24,7 @@ import {
   type WarVerdict,
 } from '@/utils/aiOrderContract'
 import { normalizeCommsFrom } from '@/utils/commsEntity'
+import { isInTruce, readRelation } from '@/utils/diplomacy'
 import {
   extractJson,
   extractPayloads,
@@ -37,6 +38,7 @@ import {
 import type { GameOrder } from '@/utils/gameOrders'
 import { sendTelegram } from '@/utils/ai'
 import { Owner, OWNER_DETAILS, OWNER_LABELS } from '@/data/owners'
+import { useToast } from '@/composables/useToast'
 
 export interface ExecResult {
   order: GameOrder
@@ -272,6 +274,18 @@ export function useAiOrchestrator(mode: AiMode = 'world') {
     }
   }
 
+  /** 外交结果 toast：宣战=朱砂、结盟=青绿、停战=褐。文案用势力中文名。 */
+  function pushDiplomacyToast(a: Owner, b: Owner, status: 'war' | 'peace' | 'alliance', note?: string): void {
+    const la = OWNER_LABELS[a] ?? a
+    const lb = OWNER_LABELS[b] ?? b
+    const cfg = {
+      war: { icon: 'sword', tone: 'cinnabar' as const, title: '宣战', text: note ?? `${la} 向 ${lb} 宣战` },
+      alliance: { icon: 'affiliate', tone: 'green' as const, title: '结盟', text: note ?? `${la} 与 ${lb} 缔结同盟` },
+      peace: { icon: 'player-stop', tone: 'neutral' as const, title: '停战', text: note ?? `${la} 与 ${lb} 罢兵言和` },
+    }[status]
+    useToast().push(cfg)
+  }
+
   /**
    * 自由行动管道：遍历 effects 逐个 applyEvent。
    *
@@ -281,6 +295,7 @@ export function useAiOrchestrator(mode: AiMode = 'world') {
    * - produce：征兵，如招募民夫、扩编军队等兵力增长行动
    * - moveTroops：调兵，如军队转移、撤退、换防等兵力调动行动
    * - sendTelegram：发送电报，如求助、威胁、求和、离间等外交行动
+   * - relationChange：外交关系变更（宣战/结盟/停战），改写对称关系表 + toast
    */
   async function runExecuteFreeAction(payload: FreeActionPayload): Promise<void> {
     for (const eff of payload.effects) {
@@ -389,6 +404,34 @@ export function useAiOrchestrator(mode: AiMode = 'world') {
             })
           }
           break
+        // 外交关系变更：宣战/结盟/停战。a/b 中文名归一化后改写对称关系表。
+        case 'relationChange': {
+          if (!eff.a || !eff.b || !eff.status) break
+          const a = normalizeCommsFrom(eff.a) as Owner
+          const b = normalizeCommsFrom(eff.b) as Owner
+          if (!a || !b || a === b || a === Owner.NEUTRAL || b === Owner.NEUTRAL) break
+          // 战略校验：停战冷却期内禁止再次宣战
+          if (eff.status === 'war' && isInTruce(store.relations, a, b, store.currentDate)) {
+            const rel = readRelation(store.relations, a, b)
+            useToast().push({
+              icon: 'alert-triangle',
+              tone: 'error',
+              title: '宣战被拒',
+              text: `${OWNER_LABELS[a] ?? a} 与 ${OWNER_LABELS[b] ?? b} 尚在停战期（至 ${rel.truceUntil}）`,
+            })
+            break
+          }
+          const r = store.applyEvent({
+            type: 'relationChange',
+            a,
+            b,
+            status: eff.status,
+            truceUntil: eff.status === 'peace' ? eff.truceUntil : undefined,
+            note: eff.note,
+          })
+          if (r.ok) pushDiplomacyToast(a, b, eff.status, eff.note)
+          break
+        }
       }
     }
   }
