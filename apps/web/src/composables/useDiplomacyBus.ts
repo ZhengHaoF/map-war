@@ -213,7 +213,7 @@ export function useDiplomacyBus() {
           return { narrative: settle.narrative }
         }
 
-        store.applyEvent({
+        const r = store.applyEvent({
           type: 'relationChange',
           a: session.playerFaction,
           b: session.targetFaction,
@@ -221,13 +221,19 @@ export function useDiplomacyBus() {
           note: `${la}与${lb}经谈判达成${rs === 'alliance' ? '同盟' : rs === 'war' ? '宣战' : '停战'}协定`,
           recordId: session.id,
         })
-        // toast
-        const cfg = {
-          war: { icon: 'sword', tone: 'cinnabar' as const, title: '宣战', text: `${la} 向 ${lb} 宣战` },
-          alliance: { icon: 'affiliate', tone: 'green' as const, title: '结盟', text: `${la} 与 ${lb} 缔结同盟` },
-          peace: { icon: 'player-stop', tone: 'neutral' as const, title: '停战', text: `${la} 与 ${lb} 罢兵言和` },
-        }[rs]
-        toast.push(cfg)
+        if (!r.ok) {
+          // eslint-disable-next-line no-console
+          console.warn(`[forceSettle] relationChange apply 失败: ${r.reason ?? '未知原因'}`, { a: session.playerFaction, b: session.targetFaction, status: rs })
+          toast.push({ icon: 'flag', tone: 'error' as const, title: '关系改写失败', text: r.reason ?? '请重试或联系开发者' })
+        } else {
+          // toast
+          const cfg = {
+            war: { icon: 'sword', tone: 'cinnabar' as const, title: '宣战', text: `${la} 向 ${lb} 宣战` },
+            alliance: { icon: 'affiliate', tone: 'green' as const, title: '结盟', text: `${la} 与 ${lb} 缔结同盟` },
+            peace: { icon: 'player-stop', tone: 'neutral' as const, title: '停战', text: `${la} 与 ${lb} 罢兵言和` },
+          }[rs]
+          toast.push(cfg)
+        }
       }
     }
 
