@@ -126,7 +126,7 @@ export function buildFactionSystemPrompt(faction: Owner): string {
   决策约束
 ═══════════════════════════════════════
 
-- actor 必须是你自己（${faction}）；你只���指挥自己的军队和城市
+- actor 必须是你自己（${faction}）；你只能指挥自己的军队和城市
 - 严禁使用 setFactionAlive / setCurrentFaction / setCurrentDate（系统管理）
 - from 必须是你自己的城市；capture 必须是你攻下的城市
 - 所有地点用城市中文名
@@ -168,11 +168,20 @@ export function buildFactionSystemPrompt(faction: Owner): string {
     { "order": "battle", "from": "奉天", "to": "锦州", "deployAmount": 8 },
     { "order": "reinforce", "gb": "奉天", "amount": 5, "side": "attacker" }
   ],
-  "telegram": "（可选）给玩家的一封电报"
+  "telegram": "（可选）给玩家的一封电报",
+  "diplomaticProposal": {
+    "target": "目标势力代码（如 SCN/SHX/KMT/FNT，仅战败求和/求盟/通牒时填写）",
+    "intent": "peace",
+    "message": "阎锡山沉吟良久，遣使携信至玩家营中，言愿出饷50万求与贵军罢兵言和。",
+    "conditions": [
+      { "type": "transferSilver", "amount": 50 }
+    ]
+  }
 }
 
 注意：
 - 如果本回合无行动，orders 为空数组 []
+- diplomaticProposal 可选：仅在希望主动向目标势力发起求和、结盟或通谍时填写
 - battle 已自带出兵，**不再需要先 deploy 后 battle**；deploy 用于开战前精确控量、或已开战后从本城抽兵补前线
 - reinforce：attacker=增援前线（加外出兵力），defender=增援守城（加驻军）
 - msg 必须是一句自然中文叙事

@@ -15,8 +15,9 @@ import { extractPayloads } from '@/utils/aiParse'
 import { buildFactionContext } from '@/utils/aiContext'
 import { buildPlayerProfile } from './ai/prompts'
 import { Owner, OWNER_DETAILS, OWNER_LABELS } from '@/data/owners'
-import type { DiplomacyIntent, DiplomacyStance, DiplomacyRound } from '@/utils/diplomacy'
+import type { DiplomacyIntent, DiplomacyStance, DiplomacyRound, Condition } from '@/utils/diplomacy'
 import { INTENT_LABELS } from '@/utils/diplomacy'
+import { useGameStore } from '@/stores/game'
 
 // ════════════════════════════════════════════════════════════════
 //  共享工具
@@ -42,6 +43,18 @@ function formatRounds(rounds: DiplomacyRound[]): string {
         `[第${r.round}轮]\n  玩家：「${r.playerMessage}」\n  对方：${r.reply}${r.counterOffer ? `（反提议：${r.counterOffer}）` : ''}`,
     )
     .join('\n')
+}
+
+/** 生成玩家势力资源摘要（银库/粮仓/城市列表，供 AI 在开出条件时参考） */
+function buildPlayerResourceSummary(playerFaction: Owner): string {
+  const store = useGameStore()
+  const snap = store.getSnapshot()
+  const silver = snap.factionTreasury[playerFaction] ?? 0
+  const food = snap.factionGranary[playerFaction] ?? 0
+  const cityNames = Object.entries(snap.cities)
+    .filter(([, c]) => c.owner === playerFaction)
+    .map(([gb]) => store.cities[gb]?.name ?? gb)
+  return `银库 ${silver} 万银 | 粮仓 ${food} 万石 | 控制城市：[${cityNames.join('、')}]`
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -107,13 +120,14 @@ export interface DiplomacyReplyResult {
   stance: DiplomacyStance
   reply: string // 对方领袖回复（50-120 字半文言）
   counterOffer?: string
-  conditions?: string[]
+  conditions?: Condition[]
 }
 
 function buildReplySystemPrompt(
   targetFaction: Owner,
   playerFaction: Owner,
   intent: DiplomacyIntent,
+  playerResources: string,
 ): string {
   const detail = ownerDetail(targetFaction)
   const label = ownerLabel(targetFaction)
@@ -137,8 +151,36 @@ ${playerLabel}的使者来访，意图：${intentLabel}。
 - 立场应结合势力实力、当前粮饷、周边敌友——强则倨傲，弱则圆滑。
 - "婉言谢绝"即 reject，不必设拖延话术。
 
+═══════════════════════════════════════
+  可执行条件（conditions 数组，对方同意后系统自动执行）
+═══════════════════════════════════════
+
+你可以在 accept 或 counter 的 conditions 数组中附带可执行条件，格式如下：
+- 割让城池：{"type":"cedeCity","city":"汉中"}
+- 赔银（万银）：{"type":"transferSilver","amount":50}
+- 赔粮（万石）：{"type":"transferFood","amount":30}
+- 口头声明（不执行，仅叙事）：{"type":"verbal","text":"川军须通电全国承认晋系辖权"}
+
+⚠ accept 或 counter 时，必须在 conditions 中重述所有当前达成的条件。
+⚠ 对方不允许同意对自己不利的条件——割城只能让对方割给你，赔款只能让对方赔给你。
+⚠ 条件数量克制，0-3 条即可；留白也是策略。
+
+═══════════════════════════════════════
+  对方（${playerLabel}）当前实力
+═══════════════════════════════════════
+${playerResources}
+
 返回纯 JSON（不含 markdown）：
-{"stance":"counter","reply":"阎锡山阅罢来信…","counterOffer":"川军须先让出汉中三城","conditions":["割让汉中"]}`
+{
+  "stance":"counter",
+  "reply":"阎锡山阅罢来信，良久言曰：若川军肯割汉中，再助银五十万，方可共图大事。",
+  "counterOffer":"川军割让汉中，另助饷五十万银",
+  "conditions":[
+    {"type":"cedeCity","city":"汉中"},
+    {"type":"transferSilver","amount":50},
+    {"type":"verbal","text":"川军须通电全国承认晋系辖权"}
+  ]
+}`
 }
 
 async function invokeDiplomacyReply(
@@ -152,7 +194,7 @@ async function invokeDiplomacyReply(
   const history = rounds.length > 0 ? `此前协商：\n${formatRounds(rounds)}` : ''
 
   const messages: { role: string; content: string }[] = [
-    { role: 'system', content: buildReplySystemPrompt(targetFaction, playerFaction, intent) },
+    { role: 'system', content: buildReplySystemPrompt(targetFaction, playerFaction, intent, buildPlayerResourceSummary(playerFaction)) },
     { role: 'system', content: `${ownerLabel(targetFaction)}当前局势：\n${context}` },
   ]
   if (history) {
@@ -177,11 +219,40 @@ async function invokeDiplomacyReply(
       stance,
       reply: (obj.reply as string) || '……',
       counterOffer: obj.counterOffer as string | undefined,
-      conditions: Array.isArray(obj.conditions) ? (obj.conditions as string[]) : undefined,
+      conditions: parseConditions(obj.conditions),
     }
   } catch {
     return { stance: 'reject', reply: '（密使未得召见，悻悻而返。）' }
   }
+}
+
+/**
+ * 解析 AI 返回的 conditions：兼容新旧格式。
+ * - 新格式：[{type:'cedeCity',city:'汉中'}, ...]
+ * - 旧格式纯文本：["割让汉中", ...] → 全部转为 verbal
+ * - 格式错误 / 非数组 → undefined
+ */
+function parseConditions(raw: unknown): Condition[] | undefined {
+  if (!Array.isArray(raw)) return undefined
+  const result: Condition[] = []
+  for (const item of raw) {
+    if (typeof item === 'string') {
+      // 旧格式兼容：纯文本视为 verbal
+      result.push({ type: 'verbal', text: item })
+    } else if (item && typeof item === 'object') {
+      const c = item as Record<string, unknown>
+      const type = c.type as string
+      if (type === 'cedeCity' || type === 'transferSilver' || type === 'transferFood' || type === 'verbal') {
+        result.push({
+          type,
+          city: typeof c.city === 'string' ? c.city : undefined,
+          amount: typeof c.amount === 'number' ? c.amount : undefined,
+          text: typeof c.text === 'string' ? c.text : undefined,
+        })
+      }
+    }
+  }
+  return result.length > 0 ? result : undefined
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -234,4 +305,4 @@ async function invokeDiplomacySettle(
 //  公开接口
 // ════════════════════════════════════════════════════════════════
 
-export { invokeDiplomacyRoute, invokeDiplomacyReply, invokeDiplomacySettle }
+export { invokeDiplomacyRoute, invokeDiplomacyReply, invokeDiplomacySettle, parseConditions }

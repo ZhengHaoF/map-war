@@ -32,6 +32,9 @@ import { useToast } from '@/composables/useToast'
 import { computeFactionEconomy } from '@/utils/economy'
 import type { EconomyTickEntry } from '@/stores/game'
 
+import { useDiplomacyBus } from '@/composables/useDiplomacyBus'
+import type { DiplomaticProposal } from '@/utils/ai/factionAi'
+
 // ─── 模块级单例 ───
 const loading = ref(false)
 const phase = ref<'idle' | 'classifying' | 'ai' | 'advancing' | 'settling' | 'done' | 'error'>('idle')
@@ -39,13 +42,12 @@ const progress = ref('')
 const lastError = ref('')
 const { push: pushToast } = useToast()
 
-/** 调用专属政权 AI，返回通过结构 + 战略校验的 GameOrder[] + 可选电报。 */
-async function invokeFactionAI(faction: Owner, context: string): Promise<{ orders: GameOrder[]; telegram?: string }> {
+/** 调用专属政权 AI，返回通过结构 + 战略校验的 GameOrder[] + 可选电报 + 可选外交提案。 */
+async function invokeFactionAI(
+  faction: Owner,
+  context: string,
+): Promise<{ orders: GameOrder[]; telegram?: string; diplomaticProposal?: DiplomaticProposal }> {
   const result = await decideFaction(faction, context)
-  // toast 逻辑保留在调用方（不在 AI 模块内）
-  if (!result.orders.length && !result.telegram) {
-    // decideFaction 内部 parseSucceeded=false 时静默返回空（已在模块内 catch）
-  }
   return result
 }
 
@@ -228,7 +230,7 @@ async function runWorldTurn(): Promise<void> {
 
   // 并行：related 各自独立 + unrelated 批量一次
   // invokeFactionAI 返回 { orders, telegram }；invokeWorldAIBatch 返回 GameOrder[]
-  const factionPromises: { faction: Owner; promise: Promise<{ orders: GameOrder[]; telegram?: string }> }[] = []
+  const factionPromises: { faction: Owner; promise: Promise<{ orders: GameOrder[]; telegram?: string; diplomaticProposal?: DiplomaticProposal }> }[] = []
   const batchPromises: Promise<GameOrder[]>[] = []
 
   for (const f of related) {
@@ -247,16 +249,19 @@ async function runWorldTurn(): Promise<void> {
     Promise.allSettled(batchPromises),
   ])
 
-  // 收集 related 势力的指令 + 电报
+  // 收集 related 势力的指令 + 电报 + 外交提案
   let telegramCount = 0
   const MAX_TELEGRAMS_PER_TURN = 2
+  let playerDiplomacyProposed = false
+  const diplomacyBus = useDiplomacyBus()
+
   factionResults.forEach((r, i) => {
     if (r.status !== 'fulfilled') return
-    const { orders, telegram } = r.value
+    const { orders, telegram, diplomaticProposal } = r.value
+    const faction = factionPromises[i].faction
     if (orders.length) allOrders.push(...orders)
     // 电报：软上限每回合 2 封
     if (telegram && telegramCount < MAX_TELEGRAMS_PER_TURN) {
-      const faction = factionPromises[i].faction
       store.pushTelegram({
         gameDate: snap.currentDate,
         from: faction,
@@ -267,6 +272,29 @@ async function runWorldTurn(): Promise<void> {
         leaderName: OWNER_DETAILS[faction]?.leader,
       })
       telegramCount++
+    }
+    // 外交提案
+    if (diplomaticProposal && diplomaticProposal.target) {
+      if (diplomaticProposal.target === snap.currentFaction) {
+        if (!playerDiplomacyProposed) {
+          diplomacyBus.startAiDiplomacy(
+            faction,
+            diplomaticProposal.target,
+            diplomaticProposal.intent,
+            diplomaticProposal.message,
+            diplomaticProposal.conditions,
+          )
+          playerDiplomacyProposed = true
+        }
+      } else {
+        diplomacyBus.startAiDiplomacy(
+          faction,
+          diplomaticProposal.target,
+          diplomaticProposal.intent,
+          diplomaticProposal.message,
+          diplomaticProposal.conditions,
+        )
+      }
     }
   })
 

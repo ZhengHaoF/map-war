@@ -2,7 +2,7 @@
   <GameModal
     :visible="visible"
     title="遣使"
-    width="720px"
+    width="480px"
     variant="parchment"
     @close="$emit('close')"
   >
@@ -52,7 +52,7 @@
               :key="r.round"
               class="dp-round"
             >
-              <div class="dp-msg dp-msg--player">
+              <div v-if="r.playerMessage" class="dp-msg dp-msg--player">
                 <div class="dp-msg-label">我</div>
                 <div class="dp-bubble dp-bubble--player">{{ r.playerMessage }}</div>
               </div>
@@ -60,12 +60,12 @@
                 <div class="dp-msg-label">{{ targetLabel }}</div>
                 <div class="dp-bubble dp-bubble--target">
                   <div class="dp-stance" :class="`dp-stance--${r.stance}`">
-                    {{ r.stance === 'accept' ? '✓ 应允' : r.stance === 'reject' ? '✗ 婉拒' : '↺ 还价' }}
+                    {{ r.stance === 'accept' ? '✓ 应允' : r.stance === 'reject' ? '✗ 婉拒' : '↺ 提议/还价' }}
                   </div>
                   <p>{{ r.reply }}</p>
                   <div v-if="r.counterOffer" class="dp-counter">反提议：{{ r.counterOffer }}</div>
                   <div v-if="r.conditions?.length" class="dp-conds">
-                    <span v-for="(c, i) in r.conditions" :key="i" class="dp-cond-tag">{{ c }}</span>
+                    <span v-for="(c, i) in r.conditions" :key="i" class="dp-cond-tag">{{ formatCond(c) }}</span>
                   </div>
                 </div>
               </div>
@@ -77,22 +77,22 @@
             <textarea
               v-model="replyText"
               class="dp-textarea"
-              placeholder="继续陈情……"
+              placeholder="还价/陈情……（如：愿结盟，但须再赔银20万）"
               rows="2"
               :disabled="loading"
             ></textarea>
             <div class="dp-act-row">
-              <GameButton parchment :disabled="!replyText.trim() || loading" @click="onContinue">
-                <component :is="IconSend" :size="14" />
-                {{ loading ? '发报中…' : '回话' }}
-              </GameButton>
               <GameButton parchment active @click="onForceSettle" :disabled="loading">
                 <component :is="IconCheck" :size="14" />
-                收口
+                同意协定
               </GameButton>
-              <GameButton parchment danger @click="onCancel" :disabled="loading">
+              <GameButton parchment :disabled="!replyText.trim() || loading" @click="onContinue">
+                <component :is="IconSend" :size="14" />
+                {{ loading ? '发报中…' : '还价反提议' }}
+              </GameButton>
+              <GameButton parchment danger @click="onReject" :disabled="loading">
                 <component :is="IconX" :size="14" />
-                搁置
+                严词拒绝
               </GameButton>
             </div>
           </div>
@@ -145,6 +145,7 @@ import { ref, computed } from 'vue'
 import { useGameStore } from '@/stores/game'
 import { Owner, OWNER_LABELS } from '@/data/owners'
 import { INTENT_LABELS } from '@/utils/diplomacy'
+import type { Condition } from '@/utils/diplomacy'
 import { useDiplomacyBus } from '@/composables/useDiplomacyBus'
 import GameModal from '@/components/ui/GameModal.vue'
 import GameButton from '@/components/ui/GameButton.vue'
@@ -187,6 +188,14 @@ const canContinue = computed(() => {
   return last?.stance === 'counter'
 })
 
+function formatCond(c: Condition): string {
+  if (c.type === 'cedeCity') return `割让 ${c.city ?? '?'}`
+  if (c.type === 'transferSilver') return `赔银 ${c.amount ?? '?'} 万`
+  if (c.type === 'transferFood') return `赔粮 ${c.amount ?? '?'} 万石`
+  if (c.type === 'verbal') return c.text ?? ''
+  return String(c)
+}
+
 // ── 操作 ─────────────────────────────────────────────────
 
 async function onStart() {
@@ -221,6 +230,19 @@ async function onForceSettle() {
   }
 }
 
+async function onReject() {
+  if (!session.value) return
+  loading.value = true
+  try {
+    const last = session.value.rounds[session.value.rounds.length - 1]
+    if (last) last.stance = 'reject'
+    await bus.forceSettle()
+    tab.value = 'history'
+  } finally {
+    loading.value = false
+  }
+}
+
 function onCancel() {
   bus.cancelDiplomacy()
   tab.value = 'history'
@@ -232,7 +254,7 @@ function onCancel() {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  max-height: 580px;
+  max-height: 82vh;
   padding: 14px;
 }
 

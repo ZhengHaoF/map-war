@@ -118,7 +118,7 @@ export async function sendTelegram(opts: TelegramOpts): Promise<TelegramReply[]>
   try {
     const raw = await callLlm({
       messages,
-      ...(opts.llmOpts ?? {}),
+      ...opts.llmOpts,
     })
     const payloads = extractPayloads(raw)
     const obj = payloads[0]

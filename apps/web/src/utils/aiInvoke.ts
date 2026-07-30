@@ -30,7 +30,7 @@ export async function invokeAgentDecision(opts: InvokeAgentDecisionOpts): Promis
       { role: 'system', content: opts.systemPrompt },
       { role: 'system', content: opts.userContext },
     ],
-    ...(opts.llmOpts ?? {}),
+    ...opts.llmOpts,
   })
   const payloads = extractPayloads(raw)
   if (!payloads.length) {

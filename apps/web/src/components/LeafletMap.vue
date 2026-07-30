@@ -44,6 +44,7 @@
       <GameButton tooltip="遣使外交" :active="diplomacyVisible" @click="diplomacyVisible = !diplomacyVisible">
         <component :is="ICONS['affiliate']" :size="16" />
         遣使
+        <span v-if="hasDiplomatPending" class="tg-nav-badge">使者</span>
       </GameButton>
       <GameButton tooltip="查看世界事件日志" :active="eventLogPanelVisible" @click="eventLogPanelVisible = !eventLogPanelVisible">
         <component :is="ICONS['clipboard-text']" :size="16" />
@@ -657,6 +658,11 @@ const saveModalVisible = ref(false)
 const loadModalVisible = ref(false)
 const battleList = computed(() => useGameStore().battles)
 const unreadCount = computed(() => useGameStore().unreadCount)
+const diplomacyBus = useDiplomacyBus()
+const hasDiplomatPending = computed(() => {
+  const s = diplomacyBus.currentSession.value
+  return s && s.status === 'negotiating'
+})
 const disclaimerVisible = ref(false)
 const ownerColorEnabled = ref(true)
 const labelsVisible = ref(true)

@@ -105,6 +105,14 @@ export function intentToRelationStatus(intent: DiplomacyIntent): RelationStatus 
   return null // passage / custom 不改关系矩阵
 }
 
+/** 外交谈判中的可执行条件 */
+export interface Condition {
+  type: 'cedeCity' | 'transferSilver' | 'transferFood' | 'verbal'
+  city?: string    // cedeCity：城市中文名
+  amount?: number  // transferSilver / transferFood：数额（万银 / 万石）
+  text?: string    // verbal：口头声明文本（不执行）
+}
+
 /** 协商单轮记录（玩家发言 + 对方回应） */
 export interface DiplomacyRound {
   round: number // 从 1 开始
@@ -112,7 +120,7 @@ export interface DiplomacyRound {
   stance: DiplomacyStance
   reply: string // 对方领袖回复文本
   counterOffer?: string // stance='counter' 时的反提议
-  conditions?: string[] // 接受/反提议附带的条件
+  conditions?: Condition[] // 接受/反提议附带的条件（可执行 + 口头声明）
 }
 
 /**
@@ -126,6 +134,7 @@ export interface DiplomacyRecord {
   id: string // 'diplo_' + 时间戳
   playerFaction: Owner
   targetFaction: Owner
+  initiator?: Owner // 外交发起方（缺省为 playerFaction）
   intent: DiplomacyIntent
   rounds: DiplomacyRound[] // 全程对话
   finalStance?: DiplomacyStance // 收口时的最终立场

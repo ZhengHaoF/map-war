@@ -26,8 +26,10 @@ import type {
   DiplomacyStance,
   DiplomacyRound,
   DiplomacyRecord,
+  Condition,
 } from '@/utils/diplomacy'
-import { intentToRelationStatus, isInTruce } from '@/utils/diplomacy'
+import { intentToRelationStatus, isInTruce, INTENT_LABELS } from '@/utils/diplomacy'
+import { resolveLocationId } from '@/utils/locationResolver'
 
 // ═══════════════════════════════════════════════════════════
 //  模块级单例
@@ -35,6 +37,53 @@ import { intentToRelationStatus, isInTruce } from '@/utils/diplomacy'
 
 /** 当前进行中的协商 session（全局唯一） */
 const currentSession = ref<DiplomacyRecord | null>(null)
+
+/**
+ * 执行外交条件（割城/赔银/赔粮）。
+ * 先校验后执行：任意一条校验失败则整体失败，不回滚已执行的条件（applyEvent 无回滚）。
+ * @returns true=全部成功，false=某条件未达成
+ */
+function executeConditions(
+  conditions: Condition[],
+  playerFaction: Owner,
+  targetFaction: Owner,
+): boolean {
+  const store = useGameStore()
+
+  // 阶段一：预校验
+  for (const c of conditions) {
+    if (c.type === 'verbal') continue
+    if (c.type === 'cedeCity') {
+      if (!c.city) return false
+      const gb = resolveLocationId(c.city)
+      if (!gb) return false
+      const city = store.cities[gb]
+      if (!city || city.owner !== playerFaction) return false
+    }
+    if (c.type === 'transferSilver' || c.type === 'transferFood') {
+      if (typeof c.amount !== 'number' || c.amount <= 0) return false
+    }
+  }
+
+  // 阶段二：执行
+  for (const c of conditions) {
+    if (c.type === 'verbal') continue
+    if (c.type === 'cedeCity') {
+      const gb = resolveLocationId(c.city!)!
+      store.applyEvent({ type: 'capture', targetGb: gb, actor: targetFaction })
+    }
+    if (c.type === 'transferSilver') {
+      store.applyEvent({ type: 'treasuryChange', faction: playerFaction, delta: -c.amount!, reason: `外交条约：向${OWNER_LABELS[targetFaction] ?? targetFaction}赔款` })
+      store.applyEvent({ type: 'treasuryChange', faction: targetFaction, delta: c.amount!, reason: `外交条约：${OWNER_LABELS[playerFaction] ?? playerFaction}赔款` })
+    }
+    if (c.type === 'transferFood') {
+      store.applyEvent({ type: 'granaryChange', faction: playerFaction, delta: -c.amount!, reason: `外交条约：向${OWNER_LABELS[targetFaction] ?? targetFaction}赔粮` })
+      store.applyEvent({ type: 'granaryChange', faction: targetFaction, delta: c.amount!, reason: `外交条约：${OWNER_LABELS[playerFaction] ?? playerFaction}赔粮` })
+    }
+  }
+
+  return true
+}
 
 /** 暴露给面板的 reactive 引用 */
 export function useDiplomacyBus() {
@@ -123,6 +172,75 @@ export function useDiplomacyBus() {
     return { narrative: route.narrative, ok: true }
   }
 
+  /**
+   * AI 势力主动发起外交请求。
+   * 当目标为玩家势力时：创建以 AI 为 initiator 的 DiplomacyRecord（status: 'negotiating'），推 Toast + 挂载使者到来。
+   * 当目标为其他 AI 势力时：后台自动执行关系变更并记录。
+   */
+  function startAiDiplomacy(
+    fromFaction: Owner,
+    targetFaction: Owner,
+    intent: DiplomacyIntent,
+    message: string,
+    conditions?: Condition[],
+  ): DiplomacyRecord | null {
+    if (fromFaction === targetFaction) return null
+
+    const round: DiplomacyRound = {
+      round: 1,
+      playerMessage: '', // 玩家未发声，由 AI 主动发起
+      stance: conditions && conditions.length > 0 ? 'counter' : 'accept',
+      reply: message,
+      conditions,
+    }
+
+    // 统一以当前玩家势力为 playerFaction 视角（若目标是玩家，playerFaction=玩家，targetFaction=AI；若目标是其他AI，playerFaction=targetFaction）
+    const isTargetPlayer = targetFaction === store.currentFaction
+    const record: DiplomacyRecord = {
+      id: `diplo_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      playerFaction: isTargetPlayer ? targetFaction : fromFaction,
+      targetFaction: isTargetPlayer ? fromFaction : targetFaction,
+      initiator: fromFaction,
+      intent,
+      rounds: [round],
+      status: 'negotiating' as const,
+      createdAt: store.currentDate,
+    }
+
+    // 若目标是玩家势力，拉起 session 并推送 Toast 提醒
+    if (isTargetPlayer) {
+      currentSession.value = record
+      store.upsertDiplomacyRecord(record)
+      const fromLabel = OWNER_LABELS[fromFaction] ?? fromFaction
+      const intentLabel = INTENT_LABELS[intent] ?? intent
+      toast.push({
+        icon: 'affiliate',
+        tone: 'amber',
+        title: '【使者来访】',
+        text: `${fromLabel}派遣密使致信，提出「${intentLabel}」意向`,
+      })
+      return record
+    }
+
+    // 若目标是其他 AI 势力，静默改写关系并归档
+    const rs = intentToRelationStatus(intent)
+    if (rs) {
+      store.applyEvent({
+        type: 'relationChange',
+        a: fromFaction,
+        b: targetFaction,
+        status: rs,
+        note: `${OWNER_LABELS[fromFaction] ?? fromFaction} 与 ${OWNER_LABELS[targetFaction] ?? targetFaction} 达成${rs === 'alliance' ? '同盟' : rs === 'war' ? '宣战' : '停战'}协定`,
+        recordId: record.id,
+      })
+      record.status = 'settled'
+      record.finalStance = 'accept'
+      store.upsertDiplomacyRecord(record)
+    }
+
+    return record
+  }
+
   // ── 第二段多轮：继续协商 ──────────────────────────────────
 
   /**
@@ -196,6 +314,22 @@ export function useDiplomacyBus() {
 
     // 关系改写（仅 accept + 可映射意图）
     if (finalStance === 'accept') {
+      // ── 可执行条件（割城/赔银/赔粮）──
+      const conditions = lastRound?.conditions
+      if (conditions && conditions.length > 0) {
+        const condOk = executeConditions(conditions, session.playerFaction, session.targetFaction)
+        if (!condOk) {
+          // 条件执行失败，整笔交易作废（不改关系）
+          toast.push({ icon: 'flag', tone: 'cinnabar' as const, title: '条约无法履行', text: '谈判条件未能执行，协定作废' })
+          session.status = 'settled'
+          session.finalStance = finalStance
+          session.settleNarrative = settle.narrative
+          persist()
+          currentSession.value = null
+          return { narrative: settle.narrative }
+        }
+      }
+
       const rs = intentToRelationStatus(session.intent)
       if (rs) {
         const la = OWNER_LABELS[session.playerFaction] ?? session.playerFaction
@@ -282,6 +416,7 @@ export function useDiplomacyBus() {
   return {
     currentSession,
     startDiplomacy,
+    startAiDiplomacy,
     continueNegotiation,
     forceSettle,
     cancelDiplomacy,
