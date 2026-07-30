@@ -13,7 +13,7 @@
     <div ref="listRef" class="log-list">
       <div v-for="(e, i) in events" :key="i" class="log-row" :class="`row--${e.type}`">
         <span class="row-index">{{ i + 1 }}</span>
-        <span class="row-badge">{{ badge(e) }}</span>
+        <span class="row-badge">{{ eventBadge(e) }}</span>
         <span class="row-text">{{ describe(e) }}</span>
       </div>
     </div>
@@ -24,8 +24,7 @@
 import { ref, computed, watch, nextTick } from 'vue'
 import { useGameStore } from '@/stores/game'
 import type { GameEvent } from '@/stores/game'
-import { Owner, OWNER_LABELS } from '@/data/owners'
-import { round1 } from '@/utils/format'
+import { eventBadge, describeEvent } from '@/utils/eventDescribe'
 
 const store = useGameStore()
 const listRef = ref<HTMLElement | null>(null)
@@ -47,84 +46,9 @@ watch(
   },
 )
 
-/** 事件类型 → 标签 */
-function badge(e: GameEvent): string {
-  const map: Record<GameEvent['type'], string> = {
-    capture: '占领',
-    attack: '进攻',
-    deploy: '出兵',
-    reinforce: '增援',
-    moraleChange: '士气',
-    cityStatChange: '建设',
-    produce: '征兵',
-    moveTroops: '调兵',
-    dateAdvance: '日期',
-    setFactionAlive: '存亡',
-    battleStart: '开战',
-    battleEnd: '停战',
-    selectFaction: '择势',
-    narrative: '叙事',
-    treasuryChange: '银库',
-    granaryChange: '粮仓',
-    economicTick: '经济',
-    relationChange: '外交',
-  }
-  return map[e.type]
-}
-
-/** 势力名（中文） */
-function fname(o: Owner): string {
-  return (OWNER_LABELS as Record<string, string>)[o] ?? o
-}
-
-/** 城市名（从 store cities 实时查） */
-function cname(gb: string): string {
-  return store.cities[gb]?.name ?? gb
-}
-
 /** 事件 → 一行可读文本 */
 function describe(e: GameEvent): string {
-  switch (e.type) {
-    case 'capture':
-      return `${cname(e.targetGb)} → ${fname(e.actor)}${e.resultTroops != null ? ` (驻军 ${e.resultTroops}k)` : ''}`
-    case 'attack':
-      return `${cname(e.fromGb)} ⇢ ${cname(e.targetGb)} 攻损 ${e.attackerLoss}k / 守损 ${e.defenderLoss}k`
-    case 'deploy':
-      return `${cname(e.fromGb)} 出兵 ${e.amount}k`
-    case 'reinforce':
-      return `${cname(e.gb)} ${e.side === 'defender' ? '守城' : '前线'}增援 ${e.amount}k`
-    case 'moraleChange':
-      return `${cname(e.targetGb)} 士气 ${e.delta > 0 ? '+' : ''}${e.delta}`
-    case 'produce':
-      return `${cname(e.targetGb)} 征兵 +${e.amount}k`
-    case 'moveTroops':
-      return `${cname(e.fromGb)} ⇢ ${cname(e.toGb)} 调兵 ${e.amount}k`
-    case 'dateAdvance':
-      return `📅 日期推进至 ${e.date}`
-    case 'setFactionAlive':
-      return e.alive ? `${fname(e.faction)} 参战` : `${fname(e.faction)} 覆灭`
-    case 'battleStart':
-      return `${e.fromName} ⚔ ${e.toName}`
-    case 'battleEnd':
-      return '战斗结束'
-    case 'selectFaction':
-      return `${e.playerName || '主公'} 择 ${fname(e.faction)}`
-    case 'narrative':
-      return `${e.playerInput} ← ${e.aiMessage}`
-    case 'treasuryChange':
-      return `${fname(e.faction)} 银库 ${e.delta > 0 ? '+' : ''}${round1(e.delta)} 万银${e.reason ? `（${e.reason}）` : ''}`
-    case 'granaryChange':
-      return `${fname(e.faction)} 粮仓 ${e.delta > 0 ? '+' : ''}${round1(e.delta)} 万石${e.reason ? `（${e.reason}）` : ''}`
-    case 'economicTick': {
-      const parts = e.entries.map((it) => `${fname(it.faction)}${it.silverDelta >= 0 ? '+' : ''}${round1(it.silverDelta)}`)
-      return `经济结算：${parts.join('，')}`
-    }
-    case 'relationChange': {
-      const verb = e.status === 'war' ? '宣战' : e.status === 'alliance' ? '结盟' : '停战'
-      return `${fname(e.a)} ⇄ ${fname(e.b)} ${verb}${e.note ? `（${e.note}）` : ''}`
-    }
-  }
-  return ''
+  return describeEvent(e, store.cities)
 }
 </script>
 

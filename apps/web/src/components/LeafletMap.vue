@@ -136,6 +136,9 @@
         <GameButton danger @click="() => executeOrder({ order: 'stopBattles' })"
           ><component :is="ICONS['circle-x']" :size="16" />结束战斗</GameButton
         >
+        <GameButton @click="factionDebugVisible = true"
+          ><component :is="ICONS.building" :size="16" />政权面板</GameButton
+        >
         <GameButton v-if="isDev" @click="aiPanelVisible = true"
           ><component :is="ICONS.brain" :size="16" />世界AI调试</GameButton
         >
@@ -147,6 +150,10 @@
         >
       </div>
     </GameModal>
+    <FactionDebugPanel
+      :visible="factionDebugVisible"
+      @close="factionDebugVisible = false"
+    />
     <GameModal v-if="isDev" class="map-ui"
       :visible="aiPanelVisible"
       title="世界AI调试"
@@ -344,6 +351,12 @@
         </template>
       </div>
     </GameModal>
+    <!-- 回合摘要弹窗 -->
+    <TurnSummaryModal
+      :visible="turnSummaryVisible && !!turnEvents.length"
+      :events="turnEvents"
+      @close="turnSummaryVisible = false"
+    />
     <LegendPanel v-if="ownerColorEnabled" class="map-ui" :items="legendItems" />
     <!-- 战况浮层：每场进行中战斗一张可折叠卡片，锚定守方城、跟随相机 -->
     <div class="battle-overlay map-ui">
@@ -418,7 +431,7 @@ import { getDisplayName } from '@/data/displayNames'
 import { init as initGameOrders, executeOrder, restoreActiveAnimations, resetBattleRuntime } from '@/utils/gameOrders'
 import type { GameOrder, CameraTarget } from '@/utils/gameOrders'
 import { useGameStore } from '@/stores/game'
-import type { BattleInfo } from '@/stores/game'
+import type { BattleInfo, GameEvent } from '@/stores/game'
 import {
   geoToScreen,
   calculateCentroid,
@@ -435,7 +448,9 @@ import PlayerAiPanel from '@/components/PlayerAiPanel.vue'
 import AdvisorPanel from '@/components/AdvisorPanel.vue'
 import TelegramPanel from '@/components/TelegramPanel.vue'
 import DiplomacyPanel from '@/components/DiplomacyPanel.vue'
+import TurnSummaryModal from '@/components/TurnSummaryModal.vue'
 import PlayerStatusPanel from '@/components/PlayerStatusPanel.vue'
+import FactionDebugPanel from '@/components/FactionDebugPanel.vue'
 import InfoTable from '@/components/ui/InfoTable.vue'
 import LegendPanel from '@/components/ui/LegendPanel.vue'
 import PaperTexture from '@/components/ui/PaperTexture.vue'
@@ -473,6 +488,7 @@ import { judgeRetreat, negotiatePeace, type PeaceResult } from '@/utils/ai'
 import { useSaveGame } from '@/composables/useSaveGame'
 import { useToast } from '@/composables/useToast'
 import { useDiplomacyBus } from '@/composables/useDiplomacyBus'
+import { useAgentKernel } from '@/composables/useAgentKernel'
 
 /** 开发构建标志：AI 调试面板仅在 dev 下挂载，不进生产包。 */
 const isDev = import.meta.env.DEV
@@ -644,6 +660,7 @@ const infoCityData = computed<CityData | null>(() => {
 const infoCountryData = ref<CountryData | Record<string, unknown> | null>(null)
 const testPanelVisible = ref(false)
 const aiPanelVisible = ref(false)
+const factionDebugVisible = ref(false)
 /** 领土总览弹窗是否打开 */
 const overviewVisible = ref(false)
 /** 玩家 AI 操作台弹窗是否打开 */
@@ -1140,6 +1157,24 @@ const retreatingId = ref<string | null>(null)
 const retreatVerdictVisible = ref(false)
 const retreatVerdictText = ref('')
 const retreatVerdictOrder = ref<{ id: string; retreatLoss: number; narrative: string } | null>(null)
+
+// ── 回合摘要弹窗 ──
+const { turnSummary } = useAgentKernel()
+const turnSummaryVisible = ref(false)
+const turnEvents = ref<GameEvent[]>([])
+
+// 监听回合摘要：AI 跑完后自动弹出
+watch(
+  () => turnSummary.value,
+  (events) => {
+    if (events && events.length > 0) {
+      turnEvents.value = events
+      turnSummaryVisible.value = true
+    } else {
+      turnSummaryVisible.value = false
+    }
+  },
+)
 
 /** 撤退请求：AI 裁定追击 → 弹窗展示叙事 → 玩家确认后 executeOrder 落地 */
 async function requestRetreat(b: BattleInfo): Promise<void> {

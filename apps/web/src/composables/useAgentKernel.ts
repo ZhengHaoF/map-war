@@ -11,7 +11,7 @@
  */
 
 import { ref, watch } from 'vue'
-import { useGameStore, type Telegram } from '@/stores/game'
+import { useGameStore, type Telegram, type GameEvent } from '@/stores/game'
 import { normalizeCommsFrom } from '@/utils/commsEntity'
 import { useGameScheduler } from '@/composables/useGameScheduler'
 import { classifyFactions } from '@/utils/aiClassify'
@@ -41,6 +41,9 @@ const phase = ref<'idle' | 'classifying' | 'ai' | 'advancing' | 'settling' | 'do
 const progress = ref('')
 const lastError = ref('')
 const { push: pushToast } = useToast()
+
+/** 回合摘要：本轮新增的 GameEvent 数组，弹窗用；null 表示没有待展示的摘要 */
+const turnSummary = ref<GameEvent[] | null>(null)
 
 /** 调用专属政权 AI，返回通过结构 + 战略校验的 GameOrder[] + 可选电报 + 可选外交提案。 */
 async function invokeFactionAI(
@@ -204,6 +207,9 @@ async function runWorldTurn(): Promise<void> {
   const store = useGameStore()
   const scheduler = useGameScheduler()
 
+  // 记录本回合开始前的事件日志长度，结束后取增量作为回合摘要
+  const turnStartIdx = store.eventLog.length
+
   // ── P0: 经济结算（每回合开局先收税扣养兵，AI 据新国库决策）──
   runEconomicTick()
 
@@ -355,6 +361,15 @@ async function runWorldTurn(): Promise<void> {
   phase.value = 'done'
   progress.value = '新回合开始'
 
+  // 提取本回合新增事件作为摘要（排除回合开始前的历史事件）
+  const newEvents = store.eventLog.slice(turnStartIdx)
+  // 只有存在"有意义的事件"（非 routine）时才弹摘要
+  const hasMeaningful = newEvents.some((e) => {
+    // 使用内联判断替代 isRoutineEvent，避免额外引入导入
+    return e.type !== 'narrative' && e.type !== 'dateAdvance' && e.type !== 'battleEnd'
+  })
+  turnSummary.value = hasMeaningful ? newEvents : null
+
   pushToast({ icon: 'check', tone: 'green', title: '回合结束', text: `日期推进至 ${newDate}` })
 }
 
@@ -364,6 +379,7 @@ export function useAgentKernel() {
     phase,
     progress,
     lastError,
+    turnSummary,
     endPlayerTurn,
     runWorldTurn,
   }
