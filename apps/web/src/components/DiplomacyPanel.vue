@@ -233,6 +233,7 @@ function onCancel() {
   flex-direction: column;
   gap: 12px;
   max-height: 580px;
+  padding: 14px;
 }
 
 .dp-tabs {
