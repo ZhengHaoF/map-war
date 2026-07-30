@@ -41,6 +41,10 @@
         电报
         <span v-if="unreadCount > 0" class="tg-nav-badge">{{ unreadCount > 9 ? '9+' : unreadCount }}</span>
       </GameButton>
+      <GameButton tooltip="遣使外交" :active="diplomacyVisible" @click="diplomacyVisible = !diplomacyVisible">
+        <component :is="ICONS['affiliate']" :size="16" />
+        遣使
+      </GameButton>
       <GameButton tooltip="查看世界事件日志" :active="eventLogPanelVisible" @click="eventLogPanelVisible = !eventLogPanelVisible">
         <component :is="ICONS['clipboard-text']" :size="16" />
         事件日志
@@ -390,6 +394,7 @@
     <PlayerAiPanel :visible="commandVisible" @close="commandVisible = false" />
     <AdvisorPanel :visible="advisorVisible" @close="advisorVisible = false" />
     <TelegramPanel :visible="telegramVisible" @close="telegramVisible = false" />
+    <DiplomacyPanel :visible="diplomacyVisible" @close="diplomacyVisible = false" />
     <PlayerStatusPanel :visible="overviewVisible" @close="overviewVisible = false" />
     <div class="disclaimer-bar map-ui" @click="disclaimerVisible = true">
       ⚠
@@ -428,6 +433,7 @@ import GameModal from '@/components/ui/GameModal.vue'
 import PlayerAiPanel from '@/components/PlayerAiPanel.vue'
 import AdvisorPanel from '@/components/AdvisorPanel.vue'
 import TelegramPanel from '@/components/TelegramPanel.vue'
+import DiplomacyPanel from '@/components/DiplomacyPanel.vue'
 import PlayerStatusPanel from '@/components/PlayerStatusPanel.vue'
 import InfoTable from '@/components/ui/InfoTable.vue'
 import LegendPanel from '@/components/ui/LegendPanel.vue'
@@ -465,6 +471,7 @@ import { playCloudTransition, disposeCloudTransition } from '@/utils/cloudTransi
 import { judgeRetreat, negotiatePeace, type PeaceResult } from '@/utils/ai'
 import { useSaveGame } from '@/composables/useSaveGame'
 import { useToast } from '@/composables/useToast'
+import { useDiplomacyBus } from '@/composables/useDiplomacyBus'
 
 /** 开发构建标志：AI 调试面板仅在 dev 下挂载，不进生产包。 */
 const isDev = import.meta.env.DEV
@@ -643,6 +650,7 @@ const commandVisible = ref(false)
 /** 战略顾问弹窗是否打开 */
 const advisorVisible = ref(false)
 const telegramVisible = ref(false)
+const diplomacyVisible = ref(false)
 const battleListVisible = ref(false)
 const eventLogPanelVisible = ref(false)
 const saveModalVisible = ref(false)
@@ -1331,6 +1339,9 @@ function onPeaceReject(): void {
 function onLoadGame(slot: string): void {
   loadGame(slot)
   loadModalVisible.value = false
+  // 读档后恢复进行中的外交协商 session（若存在）
+  const bus = useDiplomacyBus()
+  bus.recoverSession()
 }
 
 // ─── 战况面板辅助（实时读取 store 城市态，随每回合结算自动刷新）───

@@ -6,6 +6,7 @@ import { resetBattleRuntime } from '@/utils/gameOrders'
 import { resolveLocationId } from '@/utils/locationResolver'
 import { useToast } from '@/composables/useToast'
 import { relationKey, readRelation, type Relation, type RelationStatus } from '@/utils/diplomacy'
+import type { DiplomacyRecord } from '@/utils/diplomacy'
 import {
   computeFactionEconomy,
   computeInitialFunds,
@@ -146,7 +147,7 @@ export type GameEvent =
   | { type: 'granaryChange'; faction: Owner; delta: number; reason?: string }
   | { type: 'economicTick'; entries: EconomyTickEntry[] }
   // ── 外交系统 ──
-  | { type: 'relationChange'; a: Owner; b: Owner; status: RelationStatus; truceUntil?: string; note?: string }
+  | { type: 'relationChange'; a: Owner; b: Owner; status: RelationStatus; truceUntil?: string; note?: string; recordId?: string }
 
 // ── 存档 / 持久化 ──
 
@@ -166,6 +167,8 @@ interface SaveData {
   telegrams?: Telegram[]
   /** 回合计数（v1 新增，老存档兼容缺省 0） */
   turnCount?: number
+  /** 外交协商记录（Phase2 新增，电报孪生；老存档兼容缺省 []。不进 eventLog、不改世界态） */
+  diplomacyRecords?: DiplomacyRecord[]
 }
 
 /** 存档摘要（供选择界面用，不入存档文件） */
@@ -249,6 +252,9 @@ export const useGameStore = defineStore('game', () => {
   // ── 电报（AI 自主生成，不进 eventLog，单独持久化）──
   const telegrams = ref<Telegram[]>([])
   const turnCount = ref(0) // 当前回合序号（dateAdvance 时 +1）
+
+  // ── 外交协商记录（Phase2，电报孪生：不进 eventLog、不改世界态，单独持久化）──
+  const diplomacyRecords = ref<DiplomacyRecord[]>([])
   let _tgSeq = 0 // 模块内自增 id，无需持久化（id 已含时间戳）
 
   // ── 派生（不存）──
@@ -417,6 +423,7 @@ export const useGameStore = defineStore('game', () => {
     eventLog.value = [] // 重置事件日志
     battles.value = []   // 重置战斗列表（否则重复读档会叠加）
     telegrams.value = [] // 重置电报
+    diplomacyRecords.value = [] // 重置外交协商记录（读档时由 load 覆盖）
     relations.value = buildInitialRelations() // 外交种子（蒋阎/蒋桂停战冷却、国共内战）；读档时由 eventLog 重放覆盖
     turnCount.value = 0
   }
@@ -795,6 +802,7 @@ export const useGameStore = defineStore('game', () => {
       eventLog: eventLog.value,
       telegrams: telegrams.value,
       turnCount: turnCount.value,
+      diplomacyRecords: diplomacyRecords.value,
     }
     try {
       localStorage.setItem(`${SAVE_PREFIX}${slot}`, JSON.stringify(data))
@@ -835,6 +843,7 @@ export const useGameStore = defineStore('game', () => {
       eventLog.value = data.eventLog
       telegrams.value = data.telegrams ?? []
       turnCount.value = data.turnCount ?? 0
+      diplomacyRecords.value = data.diplomacyRecords ?? []
 
       return true
     } catch {
@@ -910,6 +919,19 @@ export const useGameStore = defineStore('game', () => {
     return m
   })
 
+  // ── 外交协商记录（Phase2，电报孪生：不进 eventLog、不改世界态）──
+
+  /**
+   * 写入/更新一条协商记录（按 id upsert）。
+   * id 由 useDiplomacyBus 生成（'diplo_'+时间戳）；进行中 session 每轮更新、
+   * 收口/放弃时改 status 后再次 upsert 归档。
+   */
+  function upsertDiplomacyRecord(record: DiplomacyRecord): void {
+    const i = diplomacyRecords.value.findIndex((r) => r.id === record.id)
+    if (i >= 0) diplomacyRecords.value[i] = record
+    else diplomacyRecords.value.push(record)
+  }
+
   return {
     cities,
     ownership,
@@ -956,5 +978,7 @@ export const useGameStore = defineStore('game', () => {
     // 外交
     relations,
     relationBetween,
+    diplomacyRecords,
+    upsertDiplomacyRecord,
   }
 })
