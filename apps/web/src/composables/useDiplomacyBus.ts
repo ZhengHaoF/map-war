@@ -254,6 +254,10 @@ export function useDiplomacyBus() {
     session.settleNarrative = settle.narrative
     persist()
 
+    // 外交收口后立即存档——relationChange 事件必须进 eventLog，
+    // 否则下次读档 replay 重建 relations 时会丢失本次协定。
+    store.save('auto', { label: `外交收口 ${store.currentDate}` })
+
     currentSession.value = null
     return { narrative: settle.narrative }
   }
@@ -266,6 +270,7 @@ export function useDiplomacyBus() {
     const targetLabel = OWNER_LABELS[session.targetFaction] ?? session.targetFaction
     session.status = 'abandoned'
     persist()
+    store.save('auto', { label: `搁置外交 ${store.currentDate}` })
     currentSession.value = null
     toast.push({ icon: 'flag', tone: 'neutral', title: '谈判搁置', text: `与${targetLabel}的协商被搁置` })
   }
