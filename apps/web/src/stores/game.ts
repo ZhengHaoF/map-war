@@ -13,6 +13,7 @@ import {
   ARREAR_MORALE_PENALTY,
   FAMINE_TROOP_LOSS_RATE,
 } from '@/utils/economy'
+import { round1 } from '@/utils/format'
 
 // 战斗元数据（PixiJS 句柄不进 store，由 gameOrders 模块本地持有）
 export interface BattleInfo {
@@ -358,8 +359,8 @@ export const useGameStore = defineStore('game', () => {
       avgFort,
       levelDistribution,
       cities: stats,
-      treasury: f ? getTreasury(f) : 0,
-      granary: f ? getGranary(f) : 0,
+      treasury: f ? round1(getTreasury(f)) : 0,
+      granary: f ? round1(getGranary(f)) : 0,
       hasEconomy: f ? !!lastEconomy.value[f] : false,
       silverTax: f ? (lastEconomy.value[f]?.silverTax ?? 0) : 0,
       silverUpkeep: f ? (lastEconomy.value[f]?.silverUpkeep ?? 0) : 0,
@@ -369,6 +370,48 @@ export const useGameStore = defineStore('game', () => {
       foodNet: f ? (lastEconomy.value[f]?.foodNet ?? 0) : 0,
     }
   })
+
+  function getFactionStats(f: Owner): MyStats {
+    const stats: MyCityStat[] = []
+    for (const c of Object.values(cities.value)) {
+      if (c.owner !== f) continue
+      stats.push({
+        gb: c.gb,
+        name: c.name,
+        cityLevel: c.cityLevel,
+        industry: c.industry,
+        food: c.food,
+        fort: c.fort,
+      })
+    }
+    stats.sort((a, b) => b.cityLevel - a.cityLevel || a.name.localeCompare(b.name))
+    const totalIndustry = stats.reduce((s, c) => s + c.industry, 0)
+    const totalFood = stats.reduce((s, c) => s + c.food, 0)
+    const avgFort = stats.length
+      ? Math.round((stats.reduce((s, c) => s + c.fort, 0) / stats.length) * 10) / 10
+      : 0
+    const levelDistribution: Record<number, number> = {}
+    for (const c of stats) {
+      levelDistribution[c.cityLevel] = (levelDistribution[c.cityLevel] ?? 0) + 1
+    }
+    return {
+      cityCount: stats.length,
+      totalIndustry,
+      totalFood,
+      avgFort,
+      levelDistribution,
+      cities: stats,
+      treasury: round1(getTreasury(f)),
+      granary: round1(getGranary(f)),
+      hasEconomy: !!lastEconomy.value[f],
+      silverTax: lastEconomy.value[f]?.silverTax ?? 0,
+      silverUpkeep: lastEconomy.value[f]?.silverUpkeep ?? 0,
+      foodProduce: lastEconomy.value[f]?.foodProduce ?? 0,
+      foodUpkeep: lastEconomy.value[f]?.foodUpkeep ?? 0,
+      silverNet: lastEconomy.value[f]?.silverNet ?? 0,
+      foodNet: lastEconomy.value[f]?.foodNet ?? 0,
+    }
+  }
 
   const myBattles = computed(() => {
     const f = currentFaction.value
@@ -650,12 +693,12 @@ export const useGameStore = defineStore('game', () => {
     // ── 经济事件 ──
     // 银库单次增减（征兵/建设扣款、AI 叙事经济事件等）
     if (e.type === 'treasuryChange') {
-      treasury.value[e.faction] = (treasury.value[e.faction] ?? 0) + e.delta
+      treasury.value[e.faction] = round1((treasury.value[e.faction] ?? 0) + e.delta)
       return { ok: true }
     }
     // 粮仓单次增减
     if (e.type === 'granaryChange') {
-      granary.value[e.faction] = (granary.value[e.faction] ?? 0) + e.delta
+      granary.value[e.faction] = round1((granary.value[e.faction] ?? 0) + e.delta)
       return { ok: true }
     }
     // 每回合经济结算：应用各势力银粮净收支 + 欠饷/缺粮惩罚
@@ -664,8 +707,8 @@ export const useGameStore = defineStore('game', () => {
       const nextLast: Record<string, FactionEconomyBreakdown> = {}
       for (const ent of e.entries) {
         const f = ent.faction
-        treasury.value[f] = (treasury.value[f] ?? 0) + ent.silverDelta
-        granary.value[f] = (granary.value[f] ?? 0) + ent.foodDelta
+        treasury.value[f] = round1((treasury.value[f] ?? 0) + ent.silverDelta)
+        granary.value[f] = round1((granary.value[f] ?? 0) + ent.foodDelta)
         nextLast[f] = {
           silverTax: ent.silverTax,
           silverUpkeep: ent.silverUpkeep,
@@ -941,6 +984,8 @@ export const useGameStore = defineStore('game', () => {
     activeFactions,
     battles,
     eventLog,
+    myStats,
+    getFactionStats,
     isReplaying,
     reloadToken,
     myCities,
@@ -956,7 +1001,6 @@ export const useGameStore = defineStore('game', () => {
     requestFocus,
     telegramRequest,
     openTelegramTo,
-    myStats,
     myBattles,
     initWorld,
     selectFaction,

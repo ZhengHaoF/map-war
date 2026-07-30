@@ -64,12 +64,12 @@
           <h3><component :is="ICONS.coins" :size="15" /> 府库</h3>
           <div class="stat-grid">
             <div class="stat" :class="{ 'stat--deficit': myStats.treasury < 0 }">
-              <span class="stat-num">{{ myStats.treasury }}</span>
+              <span class="stat-num">{{ round1(myStats.treasury) }}</span>
               <span class="stat-label">银库（万银）</span>
               <span class="stat-delta" :class="deltaCls(myStats.silverNet)">{{ deltaText(myStats.silverNet) }}</span>
             </div>
             <div class="stat" :class="{ 'stat--deficit': myStats.granary < 0 }">
-              <span class="stat-num">{{ myStats.granary }}</span>
+              <span class="stat-num">{{ round1(myStats.granary) }}</span>
               <span class="stat-label">粮仓（万石）</span>
               <span class="stat-delta" :class="deltaCls(myStats.foodNet)">{{ deltaText(myStats.foodNet) }}</span>
             </div>
@@ -126,6 +126,7 @@
 import { ref, computed } from 'vue'
 import { useGameStore } from '@/stores/game'
 import { OWNER_LABELS, OWNER_COLORS, OWNER_DETAILS } from '@/data/owners'
+import { round1 } from '@/utils/format'
 import type { Component } from 'vue'
 import GameModal from '@/components/ui/GameModal.vue'
 import IconChevronUp from '~icons/tabler/chevron-up'
@@ -183,7 +184,8 @@ function focusBattle(id: string): void {
 
 /** 净收支展示文案（带正负号） */
 function deltaText(v: number): string {
-  return `${v >= 0 ? '+' : ''}${v}/回合`
+  const r = round1(v)
+  return `${r >= 0 ? '+' : ''}${r}/回合`
 }
 /** 净收支配色：正=绿、零=灰、负=朱砂 */
 function deltaCls(v: number): string {

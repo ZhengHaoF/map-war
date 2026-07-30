@@ -25,6 +25,7 @@ import { ref, computed, watch, nextTick } from 'vue'
 import { useGameStore } from '@/stores/game'
 import type { GameEvent } from '@/stores/game'
 import { Owner, OWNER_LABELS } from '@/data/owners'
+import { round1 } from '@/utils/format'
 
 const store = useGameStore()
 const listRef = ref<HTMLElement | null>(null)
@@ -111,11 +112,11 @@ function describe(e: GameEvent): string {
     case 'narrative':
       return `${e.playerInput} ← ${e.aiMessage}`
     case 'treasuryChange':
-      return `${fname(e.faction)} 银库 ${e.delta > 0 ? '+' : ''}${e.delta} 万银${e.reason ? `（${e.reason}）` : ''}`
+      return `${fname(e.faction)} 银库 ${e.delta > 0 ? '+' : ''}${round1(e.delta)} 万银${e.reason ? `（${e.reason}）` : ''}`
     case 'granaryChange':
-      return `${fname(e.faction)} 粮仓 ${e.delta > 0 ? '+' : ''}${e.delta} 万石${e.reason ? `（${e.reason}）` : ''}`
+      return `${fname(e.faction)} 粮仓 ${e.delta > 0 ? '+' : ''}${round1(e.delta)} 万石${e.reason ? `（${e.reason}）` : ''}`
     case 'economicTick': {
-      const parts = e.entries.map((it) => `${fname(it.faction)}${it.silverDelta >= 0 ? '+' : ''}${it.silverDelta}`)
+      const parts = e.entries.map((it) => `${fname(it.faction)}${it.silverDelta >= 0 ? '+' : ''}${round1(it.silverDelta)}`)
       return `经济结算：${parts.join('，')}`
     }
     case 'relationChange': {
