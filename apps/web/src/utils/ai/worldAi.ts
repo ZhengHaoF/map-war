@@ -104,7 +104,7 @@ export async function runWorldSettle(currentDate: string): Promise<WorldSettleRe
   const raw = await callLlm({
     messages: [
       { role: 'system', content: SETTLE_PROMPT },
-      { role: 'user', content: buildSettleContext(currentDate) },
+      { role: 'system', content: buildSettleContext(currentDate) },
     ],
   })
   const payloads = extractPayloads(raw)

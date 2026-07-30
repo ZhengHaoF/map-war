@@ -28,7 +28,7 @@ export async function invokeAgentDecision(opts: InvokeAgentDecisionOpts): Promis
   const raw = await callLlm({
     messages: [
       { role: 'system', content: opts.systemPrompt },
-      { role: 'user', content: opts.userContext },
+      { role: 'system', content: opts.userContext },
     ],
     ...(opts.llmOpts ?? {}),
   })
