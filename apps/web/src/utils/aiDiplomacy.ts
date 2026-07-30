@@ -18,8 +18,6 @@ import { Owner, OWNER_DETAILS, OWNER_LABELS } from '@/data/owners'
 import type { DiplomacyIntent, DiplomacyStance, DiplomacyRound } from '@/utils/diplomacy'
 import { INTENT_LABELS } from '@/utils/diplomacy'
 
-const PLAYER_PROFILE = buildPlayerProfile()
-
 // ════════════════════════════════════════════════════════════════
 //  共享工具
 // ════════════════════════════════════════════════════════════════
@@ -82,7 +80,7 @@ async function invokeDiplomacyRoute(
   const context = buildFactionContext(playerFaction)
   const messages = [
     { role: 'system' as const, content: ROUTE_SYSTEM },
-    { role: 'system' as const, content: `玩家信息：${PLAYER_PROFILE}\n玩家势力局势：\n${context}` },
+    { role: 'system' as const, content: `玩家信息：${buildPlayerProfile()}\n玩家势力局势：\n${context}` },
     { role: 'user' as const, content: `玩家向「${ownerLabel(targetFaction)}」（${targetFaction}）发起外交，原文：「${playerMessage}」` },
   ]
 
