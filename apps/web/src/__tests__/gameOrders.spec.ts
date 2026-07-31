@@ -69,6 +69,7 @@ vi.mock('@/composables/useToast', () => ({
 const mockResolveLocationId = vi.fn((id: string): string | null => id)
 vi.mock('../utils/locationResolver', () => ({
   resolveLocationId: (id: string) => mockResolveLocationId(id),
+  distanceBetween: () => 100,
 }))
 
 // ── Mock displayNames ──

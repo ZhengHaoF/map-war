@@ -20,6 +20,8 @@ const mockStore = {
     activeFactions: ['KMT', 'CCP', 'JPN'],
     cities: mockCities,
     factionTroops: { KMT: 10, CCP: 5, JPN: 0 },
+    factionTreasury: { KMT: 100, CCP: 50, JPN: 0 },
+    factionGranary: { KMT: 80, CCP: 40, JPN: 0 },
   }),
 }
 
