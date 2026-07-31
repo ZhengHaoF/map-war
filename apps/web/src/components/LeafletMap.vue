@@ -148,6 +148,9 @@
         <GameButton @click="captureTest"
           ><component :is="ICONS['tag']" :size="16" />占领测试</GameButton
         >
+        <GameButton @click="recruitTest"
+          ><component :is="ICONS['sword']" :size="16" />广元增兵</GameButton
+        >
       </div>
     </GameModal>
     <FactionDebugPanel
@@ -1137,6 +1140,29 @@ async function playCloudTest(): Promise<void> {
 /** 调试：占领测试——把宝鸡（gb=156610300）划给川军（SCC） */
 async function captureTest(): Promise<void> {
   await executeOrder({ order: 'capture', gb: '156610300', owner: Owner.SCC })
+}
+
+/**
+ * 调试：广元增兵——用 AI 实际返回的原始 order 直跑 executeOrder，
+ * 绕开调度/校验链，直接看 recruit 在哪一步落地或失败。
+ * 原始 order（amount 单位 k，1 = 1k 兵）：{ order:'recruit', gb:'广元市', amount:1 }
+ */
+async function recruitTest(): Promise<void> {
+  const store = useGameStore()
+  const before = store.cities['156510800']?.troops
+  console.log('[广元增兵] 执行前 广元驻军 =', before, 'k')
+  const r = await executeOrder({ order: 'recruit', gb: '广元市', amount: 1 })
+  const after = store.cities['156510800']?.troops
+  console.log('[广元增兵] executeOrder 返回 =', r, '执行后 广元驻军 =', after, 'k')
+  useToast().push({
+    icon: r.ok ? 'sword' : 'alert-triangle',
+    tone: r.ok ? 'cinnabar' : 'error',
+    title: r.ok ? '增兵成功' : '增兵失败',
+    text: r.ok
+      ? `广元驻军 ${before}k → ${after}k`
+      : (r as { reason?: string }).reason || '未知原因（见控制台）',
+    duration: 4000,
+  })
 }
 
 /** 玩家是否为攻方（撤退仅攻方玩家可发起） */
