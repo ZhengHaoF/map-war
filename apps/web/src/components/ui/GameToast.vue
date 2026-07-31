@@ -31,6 +31,7 @@ import IconDeviceFloppy from '~icons/tabler/device-floppy'
 import IconFileImport from '~icons/tabler/file-import'
 import IconTrash from '~icons/tabler/trash'
 import IconAffiliate from '~icons/tabler/affiliate'
+import IconRoute from '~icons/tabler/route'
 
 const props = defineProps<{ toast: ToastItem }>()
 const emit = defineEmits<{ dismiss: [id: number] }>()
@@ -51,6 +52,7 @@ const ICONS: Record<string, unknown> = {
   'file-import': IconFileImport,
   trash: IconTrash,
   affiliate: IconAffiliate,
+  route: IconRoute,
 }
 
 const iconComp = computed(() => (props.toast.icon ? (ICONS[props.toast.icon] ?? null) : null))

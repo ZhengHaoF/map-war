@@ -25,6 +25,9 @@ import type { BattleEndReason, CityState } from '@/stores/game'
 import { flavorBattles } from '@/utils/ai'
 import { computeBaseBattle, clampFlavor, checkMoraleCollapse } from '@/utils/battleFormula'
 import type { BaseResult, FlavorResult, FlavorEvent } from '@/utils/battleFormula'
+import { distanceBetween } from '@/utils/locationResolver'
+import { expeditionFactor } from '@/utils/economy'
+import { BATTLE_MIN_ATTRITION_PER_ROUND } from '@/data/gameConfig'
 
 export type AdvanceStatus = 'idle' | 'running' | 'done' | 'stopped'
 
@@ -90,6 +93,9 @@ async function settleActiveBattles(): Promise<void> {
     }
 
     // 本地公式：确定性基础减员 + 士气变化
+    // 远征战力衰减：从 fromGb/targetGb 重算距离，传入 distanceFactor
+    const dist = distanceBetween(b.from, b.to)
+    const distFactor = dist !== null ? expeditionFactor(dist) : 1.0
     baseResults.set(
       b.id,
       computeBaseBattle({
@@ -99,6 +105,7 @@ async function settleActiveBattles(): Promise<void> {
         defMorale: to.morale,
         fort: to.fort ?? 0,
         terrain: to.terrain,
+        distanceFactor: distFactor,
       }),
     )
     validBattles.push(b)
@@ -130,11 +137,11 @@ async function settleActiveBattles(): Promise<void> {
       }
     }
     const finalAttackerLoss = Math.min(
-      Math.max(1, base.attackerLoss + attackerShock),
+      Math.max(BATTLE_MIN_ATTRITION_PER_ROUND, base.attackerLoss + attackerShock),
       from.fieldForce,
     )
     const finalDefenderLoss = Math.min(
-      Math.max(1, base.defenderLoss + defenderShock),
+      Math.max(BATTLE_MIN_ATTRITION_PER_ROUND, base.defenderLoss + defenderShock),
       to.troops,
     )
 

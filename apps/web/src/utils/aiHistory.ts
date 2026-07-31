@@ -15,6 +15,7 @@
 import { useGameStore } from '@/stores/game'
 import type { GameEvent } from '@/stores/game'
 import type { Owner } from '@/data/owners'
+import { SETTLE_NARRATIVE_SNIPPET, PLAYER_INPUT_SNIPPET, AI_REPLY_SNIPPET, EVENT_HISTORY_MAX_EVENTS, EVENT_HISTORY_MAX_TURNS, EVENT_HISTORY_MAX_CHARS } from '@/data/gameConfig'
 import { getDisplayName } from '@/data/displayNames'
 
 export type HistoryMode = 'recent' | 'sinceDateAdvance' | 'byActor'
@@ -39,9 +40,9 @@ interface ResolvedHistoryOpts {
   actor?: Owner
 }
 
-const DEFAULT_MAX_EVENTS = 30
-const DEFAULT_MAX_TURNS = 2
-const DEFAULT_MAX_CHARS = 1200
+const DEFAULT_MAX_EVENTS = EVENT_HISTORY_MAX_EVENTS
+const DEFAULT_MAX_TURNS = EVENT_HISTORY_MAX_TURNS
+const DEFAULT_MAX_CHARS = EVENT_HISTORY_MAX_CHARS
 
 function cityName(store: ReturnType<typeof useGameStore>, gb?: string): string {
   if (!gb) return '?'
@@ -66,12 +67,12 @@ function eventLine(store: ReturnType<typeof useGameStore>, e: GameEvent): string
     case 'narrative': {
       // kind === 'settlement'：系统结算叙事（世界AI P4 产出），不带"玩家："前缀
       if (e.kind === 'settlement') {
-        const a = (e.aiMessage || '').slice(0, 80)
+        const a = (e.aiMessage || '').slice(0, SETTLE_NARRATIVE_SNIPPET)
         return a ? `📜 ${a}` : null
       }
       // 玩家对话记录：保留旧版"玩家：…→ AI：…"
-      const p = (e.playerInput || '').slice(0, 40)
-      const a = (e.aiMessage || '').slice(0, 60)
+      const p = (e.playerInput || '').slice(0, PLAYER_INPUT_SNIPPET)
+      const a = (e.aiMessage || '').slice(0, AI_REPLY_SNIPPET)
       return `玩家：「${p}」→ AI：「${a}」`
     }
     default:

@@ -40,7 +40,7 @@ export interface PeaceResult {
   final: boolean
 }
 
-const PEACE_INDEMNITY_CAP = 500
+import { PEACE_INDEMNITY_CAP } from '@/data/gameConfig'
 
 const SYSTEM_PROMPT = `你是「{{foeTag}}」的{{foeLeader}}，性格{{personality}}。
 {{playerIdentity}}

@@ -200,6 +200,39 @@ export function getFeatureScreenCenter(feature: GeoJSON.Feature): Point | null {
   return geoToScreen(c.lng, c.lat)
 }
 
+// ─── 距离计算 ───
+
+/**
+ * Haversine 公式：计算两点间地表距离（公里）。
+ * 纯函数，零外部依赖。
+ */
+export function haversineKm(a: LatLng, b: LatLng): number {
+  const R = 6371
+  const dLat = (b.lat - a.lat) * Math.PI / 180
+  const dLng = (b.lng - a.lng) * Math.PI / 180
+  const sinLat = Math.sin(dLat / 2)
+  const sinLng = Math.sin(dLng / 2)
+  const s =
+    sinLat * sinLat +
+    Math.cos(a.lat * Math.PI / 180) * Math.cos(b.lat * Math.PI / 180) * sinLng * sinLng
+  return R * 2 * Math.atan2(Math.sqrt(s), Math.sqrt(1 - s))
+}
+
+/**
+ * 计算两个地点之间的地表距离（公里）。
+ * 复用 calculateCentroid + haversineKm，不依赖外部 GeoJSON 坐标库。
+ * 任一地点无几何数据或质心计算失败 → 返回 null。
+ */
+export function distanceBetween(id1: string, id2: string): number | null {
+  const f1 = featureById.get(id1)
+  const f2 = featureById.get(id2)
+  if (!f1?.geometry || !f2?.geometry) return null
+  const c1 = calculateCentroid(f1.geometry)
+  const c2 = calculateCentroid(f2.geometry)
+  if (!c1 || !c2) return null
+  return haversineKm(c1, c2)
+}
+
 // ─── 地点查找 ───
 
 /** 按 id 解析出 Feature（用于高亮） */

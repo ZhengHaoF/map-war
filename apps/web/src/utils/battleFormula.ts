@@ -11,25 +11,10 @@
 
 // ─── 配置 ───
 
-export const BATTLE_RULES = {
-  baseRate: 0.08,
-  moraleRef: 70,
-  moraleFactorFloor: 0.7,
-  moraleFactorCeil: 1.6,
-  moraleDamagePer10pct: 3,
-  fortMaxFactor: 2.0,
-  terrainFactor: { mountain: 1.5, hill: 1.2, plain: 1.0 } as Record<string, number>,
-  ratioClamp: [0.5, 3.0] as const,
-  collapse: {
-    enabled: true,
-    threshold: 20,
-    baseRate: 0.4,
-  },
-  flavor: {
-    shockCap: 0.5,
-    moraleCap: 20,
-  },
-}
+import { BATTLE as BATTLE_RULES } from '@/data/gameConfig'
+
+// 向后兼容：保留 BATTLE_RULES 导出（供给测试/调试脚本）
+export { BATTLE_RULES }
 
 // ─── 类型 ───
 
@@ -40,6 +25,8 @@ export interface BattleInput {
   defMorale: number
   fort: number
   terrain?: string
+  /** 远征战力衰减系数 [0.4, 1.0]，默认 1.0（无衰减） */
+  distanceFactor?: number
 }
 
 export interface BaseResult {
@@ -79,9 +66,11 @@ function moraleDeltaFromLoss(lossRate: number): number {
 
 export function computeBaseBattle(input: BattleInput): BaseResult {
   const r = BATTLE_RULES
+  const df = input.distanceFactor ?? 1.0
+  const effectiveAtk = input.atkForce * df
   const ratio = Math.min(
     r.ratioClamp[1],
-    Math.max(r.ratioClamp[0], input.atkForce / Math.max(input.defTroops, 1)),
+    Math.max(r.ratioClamp[0], effectiveAtk / Math.max(input.defTroops, 1)),
   )
   const fortF = 1 + (input.fort / 100) * (r.fortMaxFactor - 1)
   const terrainF = r.terrainFactor[input.terrain ?? 'plain'] ?? 1.0

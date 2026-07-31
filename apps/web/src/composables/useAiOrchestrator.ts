@@ -39,6 +39,7 @@ import type { GameOrder } from '@/utils/gameOrders'
 import { sendTelegram } from '@/utils/ai'
 import { Owner, OWNER_DETAILS, OWNER_LABELS } from '@/data/owners'
 import { useToast } from '@/composables/useToast'
+import { FACTION_AI_TELEGRAM_WINDOW } from '@/data/gameConfig'
 
 export interface ExecResult {
   order: GameOrder
@@ -353,7 +354,7 @@ export function useAiOrchestrator(mode: AiMode = 'world') {
               const leader = detail?.leader ?? label
               const history = store.telegrams
                 .filter((t) => t.channel === 'direct' && (t.from === toCode || t.to === toCode))
-                .slice(-6)
+                .slice(-FACTION_AI_TELEGRAM_WINDOW)
                 .map((t) => ({ from: t.from === 'PLAYER' ? 'player' as const : 'faction' as const, text: t.content }))
               const situation = `${label}，拥有${store.factionCities(toCode as Owner).length}城，兵力约${store.factionTroops(toCode as Owner)}k`
               const items = await sendTelegram({

@@ -27,14 +27,14 @@ import type { Container, Application } from 'pixi.js'
 import { playArcAnimation, playScoutAnimation, startBattleAnimation, playCaptureAnimation, playDevelopAnimation } from './troopAnimation'
 import type { BattleHandle } from './troopAnimation'
 import { playCloudTransition, type CloudOptions } from './cloudTransition'
-import { resolveLocation, resolveLocationId } from './locationResolver'
+import { resolveLocation, resolveLocationId, distanceBetween } from './locationResolver'
 import { useGameStore } from '@/stores/game'
 import type { BattleInfo, CityStatField } from '@/stores/game'
 import { DEVELOP_FIELDS } from '@/stores/game'
 import { Owner, OWNER_COLORS, OWNER_LABELS } from '@/data/owners'
 import { getDisplayName } from '@/data/displayNames'
 import { useToast } from '@/composables/useToast'
-import { computeActionCost } from '@/utils/economy'
+import { computeActionCost, marchCost } from '@/utils/economy'
 
 // ─── 类型定义 ───
 
@@ -688,6 +688,50 @@ function applyDomesticCost(
   return { ok: true }
 }
 
+/**
+ * 行军成本检查 + 扣除（远征消耗）。
+ * 先算距离 → 算银/粮成本 → 检查余额 → 扣款。
+ * 距离计算失败（如 locationResolver 未初始化）时静默放行，不阻塞行军。
+ */
+function applyMarchCost(
+  fromId: string,
+  toId: string,
+  troopsK: number,
+): OrderResult {
+  const dist = distanceBetween(fromId, toId)
+  if (dist === null) return { ok: true } // 容错放行
+  const cost = marchCost(dist, troopsK)
+  const store = useGameStore()
+  const fromCity = store.cities[fromId]
+  const faction = (fromCity?.owner as Owner) ?? Owner.NEUTRAL
+  if (cost.silver > 0 && store.getTreasury(faction) < cost.silver) {
+    return { ok: false, reason: `远征饷银不足（需 ${cost.silver} 万银，余 ${store.getTreasury(faction)} 万银）` }
+  }
+  if (cost.food > 0 && store.getGranary(faction) < cost.food) {
+    return { ok: false, reason: `远征粮草不足（需 ${cost.food} 万石，余 ${store.getGranary(faction)} 万石）` }
+  }
+  if (cost.silver > 0) {
+    store.applyEvent({ type: 'treasuryChange', faction, delta: -cost.silver })
+  }
+  if (cost.food > 0) {
+    store.applyEvent({ type: 'granaryChange', faction, delta: -cost.food })
+  }
+  // toast 提示（关键 cost > 0 才播，避免零成本噪音）
+  if (cost.silver > 0 || cost.food > 0) {
+    const parts: string[] = []
+    if (cost.silver > 0) parts.push(`${cost.silver} 万银`)
+    if (cost.food > 0) parts.push(`${cost.food} 万石`)
+    useToast().push({
+      icon: 'route',
+      tone: 'amber',
+      title: `行军消耗（${Math.round(dist!)} km）`,
+      text: parts.join(' · '),
+      duration: 3000,
+    })
+  }
+  return { ok: true }
+}
+
 // ─── AI JSON 协议解析器 ───
 
 /**
@@ -755,6 +799,9 @@ export async function executeOrder(
         result = { ok: false, reason: `${getLocationName(fromId)} 无可战之兵（驻军与外出均为 0），无法开战` }
         break
       }
+      // 行军成本：远征耗银/粮（不足则拒绝行军）
+      const marchChk = applyMarchCost(fromId, toId, autoDeploy || preFrom.fieldForce)
+      if (!marchChk.ok) { result = marchChk; break }
       const r = await battle(fromId, toId, json.text)
       if (!r.ok) { result = r; break }
       // 确定攻守双方（攻方 = 来源城 owner，守方 = 目标城 owner）
@@ -835,6 +882,9 @@ export async function executeOrder(
         result = { ok: false, reason: 'amount 必须是正数（单位 k）' }
         break
       }
+      // 行军成本：远征调兵耗银/粮
+      const marchChk = applyMarchCost(fromId, toId, json.amount)
+      if (!marchChk.ok) { result = marchChk; break }
       // 复用 arrowFly 行军演出（黄点弧线），演完再落地（与 capture 同构）
       await arrowFly(fromId, toId, json.text || '调兵！')
       const r = useGameStore().applyEvent({ type: 'moveTroops', fromGb: fromId, toGb: toId, amount: json.amount })

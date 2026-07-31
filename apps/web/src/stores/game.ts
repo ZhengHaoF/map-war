@@ -13,6 +13,7 @@ import {
   ARREAR_MORALE_PENALTY,
   FAMINE_TROOP_LOSS_RATE,
 } from '@/utils/economy'
+import { DEFAULT_MORALE, MORALE_MIN, MORALE_MAX, CITY_CAP_INDUSTRY, CITY_CAP_FOOD, CITY_CAP_FORT, CITY_CAP_LEVEL } from '@/data/gameConfig'
 import { round1 } from '@/utils/format'
 
 // 战斗元数据（PixiJS 句柄不进 store，由 gameOrders 模块本地持有）
@@ -79,10 +80,10 @@ export type CityStatField = 'industry' | 'food' | 'fort' | 'cityLevel'
 
 /** 各字段的上限（下限统一为 0），cityLevel 不设上限 */
 export const CITY_STAT_CAPS: Record<CityStatField, number> = {
-  industry: 100,
-  food: 100,
-  fort: 100,
-  cityLevel: 99,
+  industry: CITY_CAP_INDUSTRY,
+  food: CITY_CAP_FOOD,
+  fort: CITY_CAP_FORT,
+  cityLevel: CITY_CAP_LEVEL,
 }
 
 /** develop（建设）指令可调整的字段——仅经济与产出两项；fort 归 fortify，cityLevel 不开放给指令 */
@@ -445,7 +446,7 @@ export const useGameStore = defineStore('game', () => {
         fort: c.fort ?? 0,
         troops: c.troops ?? 0,
         fieldForce: (c as unknown as Record<string, unknown>).fieldForce as number ?? 0,
-        morale: c.morale ?? 70,
+        morale: c.morale ?? DEFAULT_MORALE,
       }
     }
     cities.value = seed // 一次替换，一次触发
@@ -722,7 +723,7 @@ export const useGameStore = defineStore('game', () => {
         if (!owed && !starved) continue
         for (const c of Object.values(cities.value)) {
           if (c.owner !== f) continue
-          if (owed) c.morale = clamp(c.morale + ARREAR_MORALE_PENALTY, 0, 100)
+          if (owed) c.morale = clamp(c.morale + ARREAR_MORALE_PENALTY, MORALE_MIN, MORALE_MAX)
           if (starved) c.troops = Math.max(0, Math.round(c.troops * (1 - FAMINE_TROOP_LOSS_RATE)))
         }
       }
@@ -801,7 +802,7 @@ export const useGameStore = defineStore('game', () => {
         break
       }
       case 'moraleChange': // 士气增减（胜升/败降/被孤立）
-        t.morale = clamp(t.morale + e.delta, 0, 100)
+        t.morale = clamp(t.morale + e.delta, MORALE_MIN, MORALE_MAX)
         break
       case 'cityStatChange': { // 通用城市数值增减（工业/粮食/工事/规模）
         const cap = CITY_STAT_CAPS[e.field]

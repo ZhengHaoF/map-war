@@ -34,6 +34,7 @@ import type { EconomyTickEntry } from '@/stores/game'
 
 import { useDiplomacyBus } from '@/composables/useDiplomacyBus'
 import type { DiplomaticProposal } from '@/utils/ai/factionAi'
+import { AI_TELEGRAMS_PER_TURN } from '@/data/gameConfig'
 
 // ─── 模块级单例 ───
 const loading = ref(false)
@@ -257,7 +258,7 @@ async function runWorldTurn(): Promise<void> {
 
   // 收集 related 势力的指令 + 电报 + 外交提案
   let telegramCount = 0
-  const MAX_TELEGRAMS_PER_TURN = 2
+  const MAX_TELEGRAMS_PER_TURN = AI_TELEGRAMS_PER_TURN
   let playerDiplomacyProposed = false
   const diplomacyBus = useDiplomacyBus()
 

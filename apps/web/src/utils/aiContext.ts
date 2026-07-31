@@ -17,6 +17,14 @@ import { buildBattleContext } from './aiPromptBuilder'
 import { readRelation, isInTruce } from './diplomacy'
 import type { CityDataWithAdjacent } from '@/data/chinaCitiesAdjacent'
 
+import {
+  FACTION_AI_HISTORY_MAX,
+  FACTION_AI_TELEGRAM_WINDOW,
+  MINOR_AI_HISTORY_MAX,
+  SETTLE_CONTEXT_MAX_EVENTS,
+  SETTLE_WORLD_TELEGRAM_WINDOW,
+} from '@/data/gameConfig'
+
 // ─── 邻接表（模块级只建一次）───
 const adjacentMap = new Map<string, string[]>()
 for (const c of chinaCitiesAdjacent as CityDataWithAdjacent[]) {
@@ -133,7 +141,7 @@ export function buildFactionContext(faction: Owner): string {
   }
 
   // byActor 历史
-  const history = buildEventHistory({ mode: 'recent', maxEvents: 20 })
+  const history = buildEventHistory({ mode: 'recent', maxEvents: FACTION_AI_HISTORY_MAX })
   if (history) {
     lines.push('')
     lines.push('近期世界动态：')
@@ -146,7 +154,7 @@ export function buildFactionContext(faction: Owner): string {
     (t) => t.channel === 'direct' && (t.from === faction || t.to === faction),
   )
   if (telegrams.length) {
-    const recent = telegrams.slice(-6)
+    const recent = telegrams.slice(-FACTION_AI_TELEGRAM_WINDOW)
     lines.push('')
     lines.push('你与玩家的近期电报往来（记住这些对话，它们影响你的态度）：')
     for (const t of recent) {
@@ -200,7 +208,7 @@ export function buildMinorContext(factions: Owner[]): string {
   }
 
   // sinceDateAdvance 历史
-  const history = buildEventHistory({ mode: 'recent', maxEvents: 20 })
+  const history = buildEventHistory({ mode: 'recent', maxEvents: MINOR_AI_HISTORY_MAX })
   if (history) {
     lines.push('')
     lines.push('近期世界动态（本轮已发生的事）：')
@@ -255,13 +263,13 @@ export function buildSettleContext(currentDate: string): string {
   lines.push(`当前日期：${currentDate}`)
   lines.push('')
   lines.push('本回合各势力的行动已经执行完毕。请基于以下事件生成总结：')
-  const history = buildEventHistory({ mode: 'recent', maxEvents: 50 })
+  const history = buildEventHistory({ mode: 'recent', maxEvents: SETTLE_CONTEXT_MAX_EVENTS })
   lines.push(history || '（本回合无事件）')
 
   // 世界公屏电报（近期舆论，让叙事者知道各势力说了什么）
   const worldTelegrams = store.telegrams
     .filter((t) => t.channel === 'world')
-    .slice(-8)
+    .slice(-SETTLE_WORLD_TELEGRAM_WINDOW)
   if (worldTelegrams.length) {
     lines.push('')
     lines.push('近期各势力公屏发言（参考语气和立场）：')

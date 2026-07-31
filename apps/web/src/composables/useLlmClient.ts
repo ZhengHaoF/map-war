@@ -20,7 +20,9 @@ export interface LlmCallOpts {
   model?: string
 }
 
-const DEFAULT_MAX_RETRIES = 3
+import { LLM_RETRY_BASE_MS, LLM_MAX_RETRIES } from '@/data/gameConfig'
+
+const DEFAULT_MAX_RETRIES = LLM_MAX_RETRIES
 const DEFAULT_RESPONSE_FORMAT: LlmCallOpts['responseFormat'] = { type: 'json_object' }
 
 /**
@@ -80,7 +82,7 @@ export async function callLlm(opts: LlmCallOpts): Promise<unknown> {
       lastErr = err as Error
       if (attempt < maxRetries) {
         // 退避：1s / 2s / 3s ...
-        await new Promise((r) => setTimeout(r, 1000 * attempt))
+        await new Promise((r) => setTimeout(r, LLM_RETRY_BASE_MS * attempt))
       }
     }
   }

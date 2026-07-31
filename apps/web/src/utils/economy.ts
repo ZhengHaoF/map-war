@@ -11,68 +11,57 @@
  * - 粮仓 granary：万石
  * - 兵力：千（k），与 CityState.troops/fieldForce 一致
  *
- * 所有系数集中在本文件顶部常量区，改一个数全局生效。
+ * 所有系数统一定义在 src/data/gameConfig.ts，改一个数全局生效。
  */
 
 import type { CityState } from '@/stores/game'
 import { Owner } from '@/data/owners'
+import {
+  TAX_PER_CITY_LEVEL,
+  TAX_PER_INDUSTRY,
+  FOOD_PER_FOOD_POINT,
+  UPKEEP_SILVER_PER_K,
+  UPKEEP_FOOD_PER_K,
+  RECRUIT_SILVER_PER_K,
+  RECRUIT_FOOD_PER_K,
+  DEVELOP_SILVER_PER_POINT,
+  FORTIFY_SILVER_PER_POINT,
+  RALLY_SILVER_FLAT,
+  MARCH_SILVER_PER_KM_PER_K,
+  MARCH_FOOD_PER_KM_PER_K,
+  EXPEDITION_DECAY_REF_KM,
+  EXPEDITION_DECAY_FLOOR,
+  ARREAR_MORALE_PENALTY,
+  FAMINE_TROOP_LOSS_RATE,
+  INIT_TREASURY_UPKEEP_MULTIPLIER,
+  INIT_TREASURY_FLOOR,
+  INIT_GRANARY_UPKEEP_MULTIPLIER,
+  INIT_GRANARY_FLOOR,
+} from '@/data/gameConfig'
 
-// ═══════════════════════════════════════
-//  收入公式系数
-// ═══════════════════════════════════════
-
-/** 每级城市规模贡献税饷（万银/回合） */
-export const TAX_PER_CITY_LEVEL = 2
-/** 每点工业贡献税饷（万银/回合） */
-export const TAX_PER_INDUSTRY = 0.3
-/** 每点粮食产能贡献粮秣（万石/回合） */
-export const FOOD_PER_FOOD_POINT = 0.4
-
-// ═══════════════════════════════════════
-//  养兵消耗系数
-// ═══════════════════════════════════════
-
-/** 每千兵每回合银饷（万银/k/回合） */
-export const UPKEEP_SILVER_PER_K = 0.5
-/** 每千兵每回合粮秣（万石/k/回合） */
-export const UPKEEP_FOOD_PER_K = 0.3
-
-// ═══════════════════════════════════════
-//  动作成本（一次性）
-// ═══════════════════════════════════════
-
-/** 征兵：每千兵银饷（万银/k） */
-export const RECRUIT_SILVER_PER_K = 2
-/** 征兵：每千兵粮秣（万石/k） */
-export const RECRUIT_FOOD_PER_K = 1
-/** 建设（develop）：每点工业/粮食的银两（万银/点） */
-export const DEVELOP_SILVER_PER_POINT = 1.5
-/** 筑防（fortify）：每点工事的银两（万银/点） */
-export const FORTIFY_SILVER_PER_POINT = 1
-/** 整军（rally）：固定银两（万银/次，不论士气增量大小） */
-export const RALLY_SILVER_FLAT = 0.5
-
-// ═══════════════════════════════════════
-//  惩罚规则
-// ═══════════════════════════════════════
-
-/** 欠饷时全军士气惩罚（每回合） */
-export const ARREAR_MORALE_PENALTY = -5
-/** 缺粮时兵力损耗比例（每回合，如 0.02 = 2%） */
-export const FAMINE_TROOP_LOSS_RATE = 0.02
-
-// ═══════════════════════════════════════
-//  初始资金
-// ═══════════════════════════════════════
-
-/** 初始银库 = 养兵银 × 此倍数（保证开局 N 回合不挨打） */
-export const INIT_TREASURY_UPKEEP_MULTIPLIER = 8
-/** 初始银库下限（万银，防止无兵势力为零） */
-export const INIT_TREASURY_FLOOR = 100
-/** 初始粮仓 = 养兵粮 × 此倍数 */
-export const INIT_GRANARY_UPKEEP_MULTIPLIER = 8
-/** 初始粮仓下限（万石） */
-export const INIT_GRANARY_FLOOR = 50
+// 向后兼容：保留旧导出，避免外部 import 断链
+export {
+  TAX_PER_CITY_LEVEL,
+  TAX_PER_INDUSTRY,
+  FOOD_PER_FOOD_POINT,
+  UPKEEP_SILVER_PER_K,
+  UPKEEP_FOOD_PER_K,
+  RECRUIT_SILVER_PER_K,
+  RECRUIT_FOOD_PER_K,
+  DEVELOP_SILVER_PER_POINT,
+  FORTIFY_SILVER_PER_POINT,
+  RALLY_SILVER_FLAT,
+  MARCH_SILVER_PER_KM_PER_K,
+  MARCH_FOOD_PER_KM_PER_K,
+  EXPEDITION_DECAY_REF_KM,
+  EXPEDITION_DECAY_FLOOR,
+  ARREAR_MORALE_PENALTY,
+  FAMINE_TROOP_LOSS_RATE,
+  INIT_TREASURY_UPKEEP_MULTIPLIER,
+  INIT_TREASURY_FLOOR,
+  INIT_GRANARY_UPKEEP_MULTIPLIER,
+  INIT_GRANARY_FLOOR,
+}
 
 // ═══════════════════════════════════════
 //  派生类型
@@ -100,6 +89,31 @@ export interface FactionEconomy {
 export interface ActionCost {
   silver: number
   food: number
+}
+
+// ═══════════════════════════════════════
+//  远征消耗公式
+// ═══════════════════════════════════════
+
+/**
+ * 行军一次性成本（银 + 粮）。纯函数。
+ * @param distanceKm 行军距离（公里）
+ * @param troopsK 行军兵力（千）
+ */
+export function marchCost(distanceKm: number, troopsK: number): ActionCost {
+  return {
+    silver: Math.round(distanceKm * troopsK * MARCH_SILVER_PER_KM_PER_K * 10) / 10,
+    food: Math.round(distanceKm * troopsK * MARCH_FOOD_PER_KM_PER_K * 10) / 10,
+  }
+}
+
+/**
+ * 远征战力衰减系数。纯函数。
+ * 近程无影响（因子 ≈ 1.0），远程逼近衰减下限。
+ */
+export function expeditionFactor(distanceKm: number): number {
+  if (distanceKm <= 0) return 1.0
+  return Math.max(EXPEDITION_DECAY_FLOOR, 1 - distanceKm / EXPEDITION_DECAY_REF_KM)
 }
 
 // ═══════════════════════════════════════
