@@ -28,7 +28,7 @@
         <component :is="ICONS['map']" :size="16" />
         总览
       </GameButton>
-      <GameButton tooltip="调出玩家 AI 操作台" :active="commandVisible" @click="commandVisible = !commandVisible">
+      <GameButton tooltip="调出指挥面板" :active="commandVisible" @click="commandVisible = !commandVisible">
         <component :is="ICONS['brain']" :size="16" />
         指挥
       </GameButton>
@@ -663,7 +663,7 @@ const aiPanelVisible = ref(false)
 const factionDebugVisible = ref(false)
 /** 领土总览弹窗是否打开 */
 const overviewVisible = ref(false)
-/** 玩家 AI 操作台弹窗是否打开 */
+/** 指挥面板弹窗是否打开 */
 const commandVisible = ref(false)
 /** 战略顾问弹窗是否打开 */
 const advisorVisible = ref(false)

@@ -237,7 +237,7 @@ export function buildWorldOverview(): string {
     if (!factionCities.length) continue
     const troops = snap.factionTroops[f] ?? 0
     const label = OWNER_LABELS[f] ?? f
-    lines.push(`${label}：${factionCities.length} 座城，${troops}k 兵力`)
+    lines.push(`${label}：${factionCities.length} 座城，${troops}k 兵力，银库 ${snap.factionTreasury[f] ?? 0} 万银，粮仓 ${snap.factionGranary[f] ?? 0} 万石`)
     for (const [gb] of factionCities) {
       const full = store.cities[gb]
       if (!full) continue

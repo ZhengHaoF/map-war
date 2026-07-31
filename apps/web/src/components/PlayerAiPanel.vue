@@ -1,7 +1,7 @@
 <template>
   <GameModal
     :visible="visible"
-    title="玩家 AI 操作台"
+    title="指挥"
     width="380px"
     variant="parchment"
     :z-index="2000"
