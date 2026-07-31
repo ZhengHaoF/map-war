@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, shallowRef, computed, triggerRef } from 'vue'
+import { ref, shallowRef, computed } from 'vue'
 import { chinaCities } from '@/data/chinaCities'
 import { Owner, OWNER_LABELS, buildInitialRelations } from '@/data/owners'
 import { resetBattleRuntime } from '@/utils/gameOrders'
@@ -657,29 +657,34 @@ export const useGameStore = defineStore('game', () => {
       return { ok: true }
     }
     if (e.type === 'battleEnd') {
-      // 战斗结束，根据终止原因处理 fieldForce
+      // 战斗结束，根据终止原因处理 fieldForce（不可变更新：新建城对象 + 整体替换 cities.value）
       const bi = battles.value.find((b) => b.id === e.battleId)
       if (bi) {
         const from = cities.value[bi.from]
         if (from) {
+          let nextFieldForce = from.fieldForce
+          let nextTroops = from.troops
           if (e.reason === 'retreat') {
             // 撤退：AI 裁定追击减员后，剩余兵力转回驻军
             const loss = Math.min(e.retreatLoss ?? 0, from.fieldForce)
-            from.fieldForce = Math.max(0, from.fieldForce - loss)
-            from.troops += from.fieldForce
-            from.fieldForce = 0
+            nextFieldForce = Math.max(0, from.fieldForce - loss)
+            nextTroops = from.troops + nextFieldForce
+            nextFieldForce = 0
           } else if (e.reason === 'capture' || e.reason === 'attackerRouted' || e.reason === 'defenderCollapse' || e.reason === 'attackerCollapse') {
             // 占领：兵力已转入被占城；溃败：兵散了
-            from.fieldForce = 0
+            nextFieldForce = 0
           } else {
             // peace（求和停战）/ 无 reason（stopBattles 等）：各自收兵，攻方野战兵回城
-            from.troops += from.fieldForce
-            from.fieldForce = 0
+            nextTroops = from.troops + from.fieldForce
+            nextFieldForce = 0
+          }
+          cities.value = {
+            ...cities.value,
+            [bi.from]: { ...from, troops: nextTroops, fieldForce: nextFieldForce },
           }
         }
       }
       battles.value = battles.value.filter((b) => b.id !== e.battleId)
-      triggerRef(cities)
       return { ok: true }
     }
     // 玩家择势事件
@@ -706,6 +711,8 @@ export const useGameStore = defineStore('game', () => {
     // 明细（entries）随事件入日志，replay 重放时据当时余额重算惩罚，确定性一致
     if (e.type === 'economicTick') {
       const nextLast: Record<string, FactionEconomyBreakdown> = {}
+      // 收集本批次需调整的城（gb → 增量），循环结束后一次性不可变替换 cities.value
+      const cityPatches: Record<string, { morale?: number; troops?: number }> = {}
       for (const ent of e.entries) {
         const f = ent.faction
         treasury.value[f] = round1((treasury.value[f] ?? 0) + ent.silverDelta)
@@ -723,12 +730,26 @@ export const useGameStore = defineStore('game', () => {
         if (!owed && !starved) continue
         for (const c of Object.values(cities.value)) {
           if (c.owner !== f) continue
-          if (owed) c.morale = clamp(c.morale + ARREAR_MORALE_PENALTY, MORALE_MIN, MORALE_MAX)
-          if (starved) c.troops = Math.max(0, Math.round(c.troops * (1 - FAMINE_TROOP_LOSS_RATE)))
+          const patch = (cityPatches[c.gb] ??= {})
+          if (owed) {
+            const base = patch.morale ?? c.morale
+            patch.morale = clamp(base + ARREAR_MORALE_PENALTY, MORALE_MIN, MORALE_MAX)
+          }
+          if (starved) {
+            const base = patch.troops ?? c.troops
+            patch.troops = Math.max(0, Math.round(base * (1 - FAMINE_TROOP_LOSS_RATE)))
+          }
         }
       }
+      if (Object.keys(cityPatches).length) {
+        const nextCities: Record<string, CityState> = { ...cities.value }
+        for (const [gb, patch] of Object.entries(cityPatches)) {
+          const cur = nextCities[gb]
+          if (cur) nextCities[gb] = { ...cur, ...patch }
+        }
+        cities.value = nextCities
+      }
       lastEconomy.value = nextLast
-      triggerRef(cities)
       return { ok: true }
     }
 
@@ -746,47 +767,59 @@ export const useGameStore = defineStore('game', () => {
     // 调兵：己方两城间搬运驻军（from 扣、to 加，钳制 ≥0）
     // 必须用 fromGb/toGb，不能走下面的 targetGb 分支（本事件无 targetGb，会提前 return 丢失）
     if (e.type === 'moveTroops') {
-      // preCheck 已保证 from/to 存在
+      // preCheck 已保证 from/to 存在（不可变更新）
       const from = cities.value[e.fromGb]!
       const to = cities.value[e.toGb]!
-      from.troops = Math.max(0, from.troops - e.amount)
-      to.troops += e.amount
-      triggerRef(cities) // shallowRef 手动通知：城市态已变更
+      cities.value = {
+        ...cities.value,
+        [e.fromGb]: { ...from, troops: Math.max(0, from.troops - e.amount) },
+        [e.toGb]: { ...to, troops: to.troops + e.amount },
+      }
       return { ok: true }
     }
     // 出兵：驻军 → 外出兵力（人离��城市）
     if (e.type === 'deploy') {
       const from = cities.value[e.fromGb]!
-      from.troops -= e.amount
-      from.fieldForce += e.amount
-      triggerRef(cities)
+      cities.value = {
+        ...cities.value,
+        [e.fromGb]: { ...from, troops: from.troops - e.amount, fieldForce: from.fieldForce + e.amount },
+      }
       return { ok: true }
     }
     // 增援：向前线补充兵力
     if (e.type === 'reinforce') {
       const t = cities.value[e.gb]!
-      if (e.side === 'attacker') {
-        t.fieldForce += e.amount
-      } else {
-        t.troops += e.amount
+      cities.value = {
+        ...cities.value,
+        [e.gb]:
+          e.side === 'attacker'
+            ? { ...t, fieldForce: t.fieldForce + e.amount }
+            : { ...t, troops: t.troops + e.amount },
       }
-      triggerRef(cities)
       return { ok: true }
     }
-    // 以下均为城市态事件；preCheck 已保证 targetGb 存在
+    // 以下均为城市态事件；preCheck 已保证 targetGb 存在（统一不可变更新 cities.value）
     const t = cities.value[e.targetGb]!
     switch (e.type) {
       case 'capture': // 占领：易主 + 设定新驻军（若未指定则用攻方剩余 fieldForce）
-        t.owner = e.actor
-        if (e.resultTroops != null) {
-          t.troops = Math.max(0, e.resultTroops)
+        cities.value = {
+          ...cities.value,
+          [e.targetGb]: {
+            ...t,
+            owner: e.actor,
+            ...(e.resultTroops != null ? { troops: Math.max(0, e.resultTroops) } : {}),
+          },
         }
         break
       case 'attack': { // 战斗损耗：攻方扣 fieldForce（从来源城），守方扣 troops（目标城）
+        const next: Record<string, CityState> = {
+          ...cities.value,
+          [e.targetGb]: { ...t, troops: Math.max(0, t.troops - e.defenderLoss) },
+        }
         if (e.fromGb) {
           const from = cities.value[e.fromGb]!
-          from.fieldForce = Math.max(0, from.fieldForce - e.attackerLoss)
-          // 累计战斗统计（更新 battles 中的损耗计数器）
+          next[e.fromGb] = { ...from, fieldForce: Math.max(0, from.fieldForce - e.attackerLoss) }
+          // 累计战斗统计（battles 为深响应式 ref，原地更新即可）
           const bi = battles.value.find((b) => b.from === e.fromGb && b.to === e.targetGb && b.active)
           if (bi) {
             bi.totalAttackerLoss += e.attackerLoss
@@ -798,22 +831,30 @@ export const useGameStore = defineStore('game', () => {
             if (e.narrative) bi.lastNarrative = e.narrative
           }
         }
-        t.troops = Math.max(0, t.troops - e.defenderLoss)
+        cities.value = next
         break
       }
       case 'moraleChange': // 士气增减（胜升/败降/被孤立）
-        t.morale = clamp(t.morale + e.delta, MORALE_MIN, MORALE_MAX)
+        cities.value = {
+          ...cities.value,
+          [e.targetGb]: { ...t, morale: clamp(t.morale + e.delta, MORALE_MIN, MORALE_MAX) },
+        }
         break
       case 'cityStatChange': { // 通用城市数值增减（工业/粮食/工事/规模）
         const cap = CITY_STAT_CAPS[e.field]
-        t[e.field] = clamp(t[e.field] + e.delta, 0, cap)
+        cities.value = {
+          ...cities.value,
+          [e.targetGb]: { ...t, [e.field]: clamp(t[e.field] + e.delta, 0, cap) },
+        }
         break
       }
       case 'produce': // 生产/征兵
-        t.troops += e.amount
+        cities.value = {
+          ...cities.value,
+          [e.targetGb]: { ...t, troops: t.troops + e.amount },
+        }
         break
     }
-    triggerRef(cities) // shallowRef 手动通知：城市态已变更
     return { ok: true }
   }
 
