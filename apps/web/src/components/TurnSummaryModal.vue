@@ -8,45 +8,33 @@
     @close="$emit('close')"
   >
     <div class="tsm-body">
-      <!-- 空态保护 -->
-      <div v-if="groups.length === 0" class="tsm-empty">
-        无事发生，岁月静好。
-      </div>
+      <!-- 滚动区：事件多时只滚这里，底栏固定不动 -->
+      <div class="tsm-scroll">
+        <!-- 空态保护 -->
+        <div v-if="groups.length === 0" class="tsm-empty">
+          无事发生，岁月静好。
+        </div>
 
-      <!-- 事件分组 -->
-      <div v-for="g in groups" :key="g.key" class="tsm-group">
-        <h3 class="tsm-group-title">
-          <span class="tsm-group-label">{{ g.key }}</span>
-          <span class="tsm-group-count">{{ g.events.length }}</span>
-        </h3>
-        <div
-          v-for="(e, i) in g.events"
-          :key="i"
-          class="tsm-row"
-          :class="{ 'tsm-row--important': isImportantEvent(e) }"
-        >
-          <span class="tsm-row-badge">{{ eventBadge(e) }}</span>
-          <span class="tsm-row-text">{{ eventText(e) }}</span>
+        <!-- 事件分组 -->
+        <div v-for="g in groups" :key="g.key" class="tsm-group">
+          <h3 class="tsm-group-title">
+            <span class="tsm-group-label">{{ g.key }}</span>
+            <span class="tsm-group-count">{{ g.events.length }}</span>
+          </h3>
+          <div
+            v-for="(e, i) in g.events"
+            :key="i"
+            class="tsm-row"
+            :class="{ 'tsm-row--important': isImportantEvent(e) }"
+          >
+            <span class="tsm-row-badge">{{ eventBadge(e) }}</span>
+            <span class="tsm-row-text">{{ eventText(e) }}</span>
+          </div>
         </div>
       </div>
 
-      <!-- 经济结算：摘要模式下只显示玩家自身，其余缩略 -->
-      <div
-        v-if="economicTicks.length && !economicShown"
-        class="tsm-row tsm-row--muted"
-      >
-        <span class="tsm-row-badge">经济</span>
-        <span class="tsm-row-text">
-          共 {{ economicFactionCount }} 个势力完成经济结算
-        </span>
-      </div>
-
-      <!-- 底栏 -->
+      <!-- 底栏：固定在弹窗底部，不随内容滚动 -->
       <div class="tsm-footer">
-        <label class="tsm-never">
-          <input type="checkbox" v-model="neverAgain" />
-          <span>本局不再提示</span>
-        </label>
         <GameButton parchment @click="onConfirm">
           <component :is="ICONS.check" :size="14" />知道了
         </GameButton>
@@ -56,7 +44,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, type Component } from 'vue'
+import { computed, type Component } from 'vue'
 import { useGameStore, type GameEvent } from '@/stores/game'
 import GameModal from '@/components/ui/GameModal.vue'
 import GameButton from '@/components/ui/GameButton.vue'
@@ -85,11 +73,6 @@ const ICONS: Record<string, Component> = {
   check: IconCheck,
 }
 
-// ─── "不再提示" ───
-
-const SUPPRESS_KEY = 'mapwar_turn_summary_suppress'
-const neverAgain = ref(localStorage.getItem(SUPPRESS_KEY) === '1')
-
 // ─── 分组 ───
 
 /** 非例行事件（过滤掉叙事/日期推进/战斗结束） */
@@ -111,15 +94,6 @@ const groups = computed(() => {
   }))
 })
 
-// ─── 经济结算缩略（只展开玩家自身，其余势力一行概括）───
-
-/** economicTick 事件 */
-const economicTicks = computed(() => props.events.filter((e) => e.type === 'economicTick'))
-const economicShown = ref(false)
-const economicFactionCount = computed(() =>
-  economicTicks.value.reduce((s, e) => s + e.entries.length, 0),
-)
-
 // ─── 事件文本 ───
 
 function eventText(e: GameEvent): string {
@@ -129,23 +103,28 @@ function eventText(e: GameEvent): string {
 // ─── 确认 ───
 
 function onConfirm(): void {
-  if (neverAgain.value) {
-    localStorage.setItem(SUPPRESS_KEY, '1')
-  }
   emit('close')
 }
 </script>
 
 <style scoped>
+/* ── 整体布局：滚动区 + 固定底栏 ── */
 .tsm-body {
-  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  max-height: 55vh;
   color: var(--ink);
   font-size: 14px;
+}
+
+.tsm-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 16px 20px;
   display: flex;
   flex-direction: column;
   gap: 12px;
-  max-height: 55vh;
-  overflow-y: auto;
 }
 
 .tsm-empty {
@@ -230,32 +209,14 @@ function onConfirm(): void {
   font-weight: 600;
 }
 
-/* ── 底栏 ── */
+/* ── 底栏：固定在弹窗底部 ── */
 .tsm-footer {
+  flex-shrink: 0;
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
   border-top: 1px solid rgba(90, 70, 40, 0.2);
-  padding-top: 12px;
-  margin-top: 4px;
-}
-
-.tsm-never {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  color: var(--ink);
-  opacity: 0.5;
-  cursor: pointer;
-  user-select: none;
-}
-
-.tsm-never input {
-  accent-color: var(--cinnabar);
-}
-
-.tsm-never:hover {
-  opacity: 0.8;
+  padding: 12px 20px 16px;
+  background: var(--paper-deep);
 }
 </style>

@@ -157,9 +157,14 @@ ${playerLabel}的使者来访，意图：${intentLabel}。
 
 你可以在 accept 或 counter 的 conditions 数组中附带可执行条件，格式如下：
 - 割让城池：{"type":"cedeCity","city":"汉中"}
-- 赔银（万银）：{"type":"transferSilver","amount":50}
-- 赔粮（万石）：{"type":"transferFood","amount":30}
+- 要银/资助（万银）：{"type":"transferSilver","amount":50}
+- 要粮/资助（万石）：{"type":"transferFood","amount":30}
 - 口头声明（不执行，仅叙事）：{"type":"verbal","text":"川军须通电全国承认晋系辖权"}
+
+⚠ 数值格式强制约定：amount 必须填写以【万】为单位的纯数字，绝对等于 reply 文本中提到的“万”字前面的数字！
+  ✅ 正确：reply 中说“拨发十万银两”（10万），conditions 填 {"type":"transferSilver","amount":10}
+  ❌ 错误：reply 中说“拨发十万银两”，conditions 填 {"type":"transferSilver","amount":100000} （绝对禁止填100000！）
+  ✅ 正确：reply 中说“五万石粮草”（5万），conditions 填 {"type":"transferFood","amount":5}
 
 ⚠ accept 或 counter 时，必须在 conditions 中重述所有当前达成的条件。
 ⚠ 对方不允许同意对自己不利的条件——割城只能让对方割给你，赔款只能让对方赔给你。

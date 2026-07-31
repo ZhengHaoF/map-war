@@ -190,8 +190,8 @@ const canContinue = computed(() => {
 
 function formatCond(c: Condition): string {
   if (c.type === 'cedeCity') return `割让 ${c.city ?? '?'}`
-  if (c.type === 'transferSilver') return `赔银 ${c.amount ?? '?'} 万`
-  if (c.type === 'transferFood') return `赔粮 ${c.amount ?? '?'} 万石`
+  if (c.type === 'transferSilver') return `要银 ${c.amount ?? '?'} 万`
+  if (c.type === 'transferFood') return `要粮 ${c.amount ?? '?'} 万石`
   if (c.type === 'verbal') return c.text ?? ''
   return String(c)
 }

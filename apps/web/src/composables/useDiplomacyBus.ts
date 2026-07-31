@@ -73,12 +73,12 @@ function executeConditions(
       store.applyEvent({ type: 'capture', targetGb: gb, actor: targetFaction })
     }
     if (c.type === 'transferSilver') {
-      store.applyEvent({ type: 'treasuryChange', faction: playerFaction, delta: -c.amount!, reason: `外交条约：向${OWNER_LABELS[targetFaction] ?? targetFaction}赔款` })
-      store.applyEvent({ type: 'treasuryChange', faction: targetFaction, delta: c.amount!, reason: `外交条约：${OWNER_LABELS[playerFaction] ?? playerFaction}赔款` })
+      store.applyEvent({ type: 'treasuryChange', faction: playerFaction, delta: -c.amount!, reason: `外交条约：给付${OWNER_LABELS[targetFaction] ?? targetFaction}银两` })
+      store.applyEvent({ type: 'treasuryChange', faction: targetFaction, delta: c.amount!, reason: `外交条约：接收${OWNER_LABELS[playerFaction] ?? playerFaction}银两` })
     }
     if (c.type === 'transferFood') {
-      store.applyEvent({ type: 'granaryChange', faction: playerFaction, delta: -c.amount!, reason: `外交条约：向${OWNER_LABELS[targetFaction] ?? targetFaction}赔粮` })
-      store.applyEvent({ type: 'granaryChange', faction: targetFaction, delta: c.amount!, reason: `外交条约：${OWNER_LABELS[playerFaction] ?? playerFaction}赔粮` })
+      store.applyEvent({ type: 'granaryChange', faction: playerFaction, delta: -c.amount!, reason: `外交条约：给付${OWNER_LABELS[targetFaction] ?? targetFaction}粮草` })
+      store.applyEvent({ type: 'granaryChange', faction: targetFaction, delta: c.amount!, reason: `外交条约：接收${OWNER_LABELS[playerFaction] ?? playerFaction}粮草` })
     }
   }
 
