@@ -76,7 +76,7 @@ export function normalizeCommsFrom(input: unknown): string {
 
 export function resolveEntity(from: string): CommsEntity {
   // ── 系统实体 ──
-  if (from === 'WORLD') {
+  if (from === 'WORLD' || from === 'world') {
     return {
       kind: 'system', code: 'WORLD',
       name: '世界频道', label: '世界',

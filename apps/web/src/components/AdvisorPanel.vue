@@ -17,7 +17,7 @@
 
           <!-- 消息区 -->
           <div ref="logRef" class="chat-messages">
-            <div v-if="chatHistory.length === 0" class="chat-empty">输入问题咨询顾问…</div>
+            <div v-if="chatHistory.length === 0 && !busy" class="chat-empty">输入问题咨询顾问…</div>
 
             <div v-for="(entry, i) in chatHistory" :key="i" class="chat-turn">
               <!-- 玩家消息（右对齐） -->
@@ -30,6 +30,16 @@
                 <!-- 顾问回复 -->
                 <div v-if="entry.reply" class="chat-bubble chat-bubble--ai">
                   {{ entry.reply }}
+                </div>
+
+                <!-- 等待顾问回应的占位（最后一轮 + busy 中） -->
+                <div
+                  v-else-if="i === chatHistory.length - 1 && busy"
+                  class="chat-typing"
+                >
+                  <span class="chat-typing-dot"></span>
+                  <span class="chat-typing-dot"></span>
+                  <span class="chat-typing-dot"></span>
                 </div>
 
                 <!-- 指挥建议列表 -->
@@ -65,6 +75,14 @@
               </GameButton>
             </div>
           </div>
+
+          <!-- 进队栏：面板底部，展示当前顾问决策进度 -->
+          <WorldProgressBanner
+            :loading="busy"
+            mainText="战略顾问 · 决策中…"
+            subText="AI 顾问 推演中"
+            sealChar="策"
+          />
         </div>
       </Transition>
     </div>
@@ -76,6 +94,7 @@ import { ref, computed, nextTick } from 'vue'
 import { useAiOrchestrator } from '@/composables/useAiOrchestrator'
 import GameButton from '@/components/ui/GameButton.vue'
 import GameModal from '@/components/ui/GameModal.vue'
+import WorldProgressBanner from '@/components/WorldProgressBanner.vue'
 import IconSend from '~icons/tabler/send'
 
 const {
@@ -186,6 +205,106 @@ function sendToCommand(suggestion: string): void {
   color: var(--danger-ink, #b23a2e);
   font-size: 13px;
   flex-shrink: 0;
+}
+
+/* ===== 顾问决策中（与 WorldProgressBanner 风格一致） ===== */
+.chat-thinking {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  background: linear-gradient(to bottom, var(--paper-input, #fbf6ea), var(--paper-darker, #e8dcc0));
+  border: 1px solid rgba(138, 109, 75, 0.4);
+  border-radius: var(--radius-md);
+  box-shadow: 0 2px 6px rgba(60, 40, 15, 0.1);
+  font-family: var(--font-kai);
+  color: var(--ink, #3b2f1d);
+}
+.chat-thinking-seal {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 4px;
+  background: var(--cinnabar, #b04a3a);
+  color: var(--cinnabar-ink, #fbeee6);
+  font-size: 14px;
+  font-weight: 600;
+}
+.chat-thinking-text {
+  flex: 1;
+  min-width: 0;
+}
+.chat-thinking-main {
+  font-size: 14px;
+  letter-spacing: 1px;
+}
+.chat-thinking-sub {
+  font-size: 11px;
+  color: var(--ink-soft, #8a6d4b);
+  margin-top: 1px;
+}
+.chat-thinking-track {
+  position: relative;
+  width: 56px;
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(138, 109, 75, 0.25);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.chat-thinking-edge {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 40%;
+  border-radius: 2px;
+  background: var(--cinnabar, #b04a3a);
+}
+.seal-pulse {
+  animation: sealPulse 2.6s ease-in-out infinite;
+}
+.edge-slide {
+  animation: edgeSlide 1.8s ease-in-out infinite;
+}
+@keyframes sealPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(0.92); }
+}
+@keyframes edgeSlide {
+  0% { transform: translateX(-120%); }
+  100% { transform: translateX(280%); }
+}
+
+/* ===== 等待回应的打字占位 ===== */
+.chat-typing {
+  align-self: flex-start;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 12px;
+  background: var(--paper-faint, #e8dcc0);
+  color: var(--ink-soft, #8a6d4b);
+  border-left: 3px solid var(--cinnabar, #b04a3a);
+  border-top-left-radius: 4px;
+  border-radius: var(--radius-md);
+  max-width: 60px;
+}
+.chat-typing-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ink-soft, #8a6d4b);
+  animation: typingBounce 1.2s ease-in-out infinite;
+}
+.chat-typing-dot:nth-child(2) { animation-delay: 0.15s; }
+.chat-typing-dot:nth-child(3) { animation-delay: 0.3s; }
+@keyframes typingBounce {
+  0%, 60%, 100% { opacity: 0.3; transform: translateY(0); }
+  30% { opacity: 1; transform: translateY(-3px); }
 }
 
 /* ===== 消息滚动区 ===== */

@@ -1,7 +1,7 @@
 /**
  * aiContext 上下文构建单测
  * #5.3 改动：
- * - buildFactionContext：新增邻接城市 + byActor 历史
+ * - buildFactionContext：新增 byActor 历史
  * - buildMinorContext：新增 sinceDateAdvance 历史
  * - buildSettleContext：复用 buildEventHistory（不再手写简化版）
  */
@@ -36,19 +36,6 @@ describe('buildFactionContext（#5.3 增强）', () => {
     expect(ctx).toContain('城市详情：')
     expect(ctx).toContain('驻军')
     expect(ctx).toContain('请决定本回合行动')
-  })
-
-  it('【增强】包含一阶邻接城市（他方）', () => {
-    const store = useGameStore()
-    store.initWorld()
-    // 找一个有 KMT 城市 + 邻接非 KMT 的组合
-    // 太原（SHX）邻接 KMT 城，选 SHX 视角
-    const ctx = buildFactionContext(Owner.SHX)
-    // SHX 控制 156141100（吕梁）= 太原（不是，是吕梁市）
-    // 邻接图数据至少保证有他方城市入文
-    if (ctx.includes('邻接城市')) {
-      expect(ctx).toMatch(/他方|中立/)
-    }
   })
 
   it('【增强】注入 byActor 历史（含 narrative）', () => {

@@ -56,4 +56,4 @@ export { negotiatePeace } from './peaceAi'
 export type { PeaceOpts, PeaceResult } from './peaceAi'
 
 export { sendTelegram } from './telegramAi'
-export type { TelegramReply, TelegramOpts } from './telegramAi'
+export type { TelegramReply, TelegramSuggestion, TelegramOpts } from './telegramAi'

@@ -24,11 +24,18 @@ const FACTION_LABELS = [
   }),
 ].join(', ')
 
+/** 电报建议条目（仅 direct 模式） */
+export interface TelegramSuggestion {
+  type: 'reply' | 'envoy'
+  text: string
+}
+
 /** 电报回信条目 */
 export interface TelegramReply {
   name: string
   faction: string
   content: string
+  suggestions?: TelegramSuggestion[]
 }
 
 /** 电报回信输入 */
@@ -49,8 +56,13 @@ const DIRECT_PROMPT = `你是「{{factionTag}}」的{{factionName}}，性格{{pe
 {{playerIdentity}}
 你正和该玩家通过电报对话。结合现在局势和你的身份与性格回一句话（50-80字），半文言。
 
+同时给出1-2条建议供玩家选择：
+- type="reply"：建议玩家回复的内容（10-25字，半文言口吻）
+- type="envoy"：建议玩家正式遣使谈判的意图（如"提议结盟共御外敌"、"商谈停战条件"），仅当对话涉及正式外交意向时才给
+
 必须返回 JSON 数组（只含一条）：
-[{"name": "{{factionName}}", "faction": "{{code}}", "content": "你的回复内容"}]`
+[{"name": "{{factionName}}", "faction": "{{code}}", "content": "你的回复内容", "suggestions": [{"type": "reply", "text": "建议回复"}, {"type": "envoy", "text": "遣使意图"}]}]
+注意：suggestions 可为空数组[]，不必强凑。envoy 类型最多1条。`
 
 const WORLD_PROMPT = `你是民国军阀推演游戏的电报系统。玩家向天下喊话，1-3个势力听到后各自回应。
 {{situation}}

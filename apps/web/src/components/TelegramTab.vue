@@ -1,148 +1,151 @@
 <template>
-  <GameModal
-    :visible="visible"
-    title="电报"
-    width="680px"
-    variant="parchment"
-    :z-index="2000"
-    draggable
-    :overlay="false"
-    @close="$emit('close')"
-  >
-    <div class="tg-root">
-      <!-- 左侧列表 -->
-      <div class="tg-sidebar">
-        <div class="tg-sidebar-header">
-          <span class="tg-sidebar-title">电报</span>
-          <span v-if="unreadTotal > 0" class="tg-unread-total">{{ unreadTotal }} 封未读</span>
-        </div>
-        <div class="tg-list">
-          <!-- 世界公屏（置顶） -->
-          <div
-            class="tg-item"
-            :class="{ active: activeChannel === 'world' }"
-            @click="selectChannel('world')"
-          >
-            <div class="tg-avatar tg-avatar--world">世</div>
-            <div class="tg-item-body">
-              <div class="tg-item-top">
-                <span class="tg-item-name">世界频道</span>
-                <span class="tg-item-date">公共</span>
-              </div>
-              <div class="tg-item-last">诸势力时局短评</div>
-            </div>
-            <span v-if="unreadByChannel['world']" class="tg-badge">{{ unreadByChannel['world'] }}</span>
-          </div>
-
-          <div class="tg-section-label">往来势力</div>
-
-          <!-- 往来势力列表 -->
-          <div
-            v-for="ch in channelList"
-            :key="ch.from"
-            class="tg-item"
-            :class="{ active: activeChannel === ch.from }"
-            @click="selectChannel(ch.from)"
-          >
-            <div class="tg-avatar" :style="avatarStyle(ch.from)">{{ avatarChar(ch.from) }}</div>
-            <div class="tg-item-body">
-              <div class="tg-item-top">
-                <span class="tg-item-name">{{ factionName(ch.from) }}</span>
-                <span class="tg-item-date">{{ ch.lastDate }}</span>
-              </div>
-              <div class="tg-item-last">{{ ch.lastContent }}</div>
-            </div>
-            <span v-if="unreadByChannel[ch.from]" class="tg-badge">{{ unreadByChannel[ch.from] }}</span>
-          </div>
-
-          <div v-if="channelList.length === 0" class="tg-empty-hint">暂无往来电报</div>
-        </div>
+  <div class="tg-root">
+    <!-- 左侧列表 -->
+    <div class="tg-sidebar">
+      <div class="tg-sidebar-header">
+        <span class="tg-sidebar-title">电报</span>
+        <span v-if="unreadTotal > 0" class="tg-unread-total">{{ unreadTotal }} 封未读</span>
       </div>
-
-      <!-- 右侧对话 -->
-      <div class="tg-chat">
-        <!-- 头部 -->
-        <div class="tg-chat-header">
-          <template v-if="activeChannel === 'world'">
-            <div>
-              <div class="tg-chat-title">
-                <span>世界频道</span>
-                <span class="tg-tag tg-tag--world">世界</span>
-              </div>
-              <div class="tg-chat-sub">诸势力时局短评 · 每日结算后更新</div>
+      <div class="tg-list">
+        <!-- 世界公屏（置顶） -->
+        <div
+          class="tg-item"
+          :class="{ active: activeChannel === 'world' }"
+          @click="selectChannel('world')"
+        >
+          <div class="tg-avatar tg-avatar--world">世</div>
+          <div class="tg-item-body">
+            <div class="tg-item-top">
+              <span class="tg-item-name">世界频道</span>
+              <span class="tg-item-date">公共</span>
             </div>
-          </template>
-          <template v-else>
-            <div>
-              <div class="tg-chat-title">
-                <span>{{ factionName(activeChannel) }}</span>
-                <span class="tg-tag" :style="tagStyle(activeChannel)">{{ factionLabel(activeChannel) }}</span>
-                <span
-                  v-if="relationBadge(activeChannel)"
-                  class="tg-rel-badge"
-                  :class="`tg-rel-badge--${relationBadge(activeChannel)!.cls}`"
-                >{{ relationBadge(activeChannel)!.label }}</span>
-              </div>
-              <div class="tg-chat-sub">{{ factionStatus(activeChannel) }}</div>
-            </div>
-          </template>
-          <div class="tg-line-status">
-            <span class="tg-line-dot" :class="{ dead: isDead(activeChannel) }"></span>
-            {{ isDead(activeChannel) ? '线路中断' : '线路畅通' }}
+            <div class="tg-item-last">诸势力时局短评</div>
           </div>
+          <span v-if="unreadByChannel['world']" class="tg-badge">{{ unreadByChannel['world'] }}</span>
         </div>
 
-        <!-- 消息区 -->
-        <div ref="msgRef" class="tg-messages">
-          <template v-for="(m, i) in activeMessages" :key="i">
-            <!-- 日期分隔 -->
-            <div v-if="m.type === 'sep'" class="tg-sep">—— {{ m.text }} ——</div>
+        <div class="tg-section-label">往来势力</div>
 
-            <!-- 玩家消息（右对齐） -->
-            <div v-else-if="m.me" class="tg-msg tg-msg--me">
-              <div class="tg-msg-to" v-if="m.toLabel">{{ m.toLabel }}</div>
-              <div class="tg-bubble tg-bubble--me">{{ m.text }}</div>
+        <!-- 往来势力列表 -->
+        <div
+          v-for="ch in channelList"
+          :key="ch.from"
+          class="tg-item"
+          :class="{ active: activeChannel === ch.from }"
+          @click="selectChannel(ch.from)"
+        >
+          <div class="tg-avatar" :style="avatarStyle(ch.from)">{{ avatarChar(ch.from) }}</div>
+          <div class="tg-item-body">
+            <div class="tg-item-top">
+              <span class="tg-item-name">{{ factionName(ch.from) }}</span>
+              <span class="tg-item-date">{{ ch.lastDate }}</span>
             </div>
-
-            <!-- 对方消息（左对齐） -->
-            <div v-else class="tg-msg tg-msg--other">
-              <div class="tg-msg-avatar" :style="avatarStyle(m.from ?? '')">{{ avatarChar(m.from ?? '') }}</div>
-              <div class="tg-msg-body">
-                <div class="tg-msg-name" :style="{ color: factionHexColor(m.from ?? '') }">{{ m.leaderName || factionName(m.from ?? '') }}</div>
-                <div class="tg-bubble tg-bubble--other">{{ m.text }}</div>
-              </div>
-            </div>
-          </template>
-
-          <!-- 对方正在输入 -->
-          <div v-if="typing" class="tg-msg tg-msg--other">
-            <div class="tg-msg-avatar" :style="avatarStyle(activeChannel)">
-              {{ activeChannel === 'world' ? '议' : avatarChar(activeChannel) }}
-            </div>
-            <div class="tg-typing">
-              <span class="tg-dot"></span><span class="tg-dot"></span><span class="tg-dot"></span>
-            </div>
+            <div class="tg-item-last">{{ ch.lastContent }}</div>
           </div>
-
-          <div v-if="activeMessages.length === 0 && !typing" class="tg-empty-hint">暂无电报</div>
+          <span v-if="unreadByChannel[ch.from]" class="tg-badge">{{ unreadByChannel[ch.from] }}</span>
         </div>
 
-        <!-- 输入区 -->
-        <div class="tg-input-area">
-          <input
-            v-model="inputText"
-            class="tg-input"
-            :placeholder="busy ? '发报中…' : (activeChannel === 'world' ? '向天下喊话……' : `回复${factionName(activeChannel)}……`)"
-            :disabled="busy"
-            @keydown.enter.prevent="onSend"
-          />
-          <GameButton parchment :disabled="!inputText.trim() || busy" @click="onSend">
-            <IconSend :size="14" />发报
-          </GameButton>
-        </div>
+        <div v-if="channelList.length === 0" class="tg-empty-hint">暂无往来电报</div>
       </div>
     </div>
-  </GameModal>
+
+    <!-- 右侧对话 -->
+    <div class="tg-chat">
+      <!-- 头部 -->
+      <div class="tg-chat-header">
+        <template v-if="activeChannel === 'world'">
+          <div>
+            <div class="tg-chat-title">
+              <span>世界频道</span>
+              <span class="tg-tag tg-tag--world">世界</span>
+            </div>
+            <div class="tg-chat-sub">诸势力时局短评 · 每日结算后更新</div>
+          </div>
+        </template>
+        <template v-else>
+          <div>
+            <div class="tg-chat-title">
+              <span>{{ factionName(activeChannel) }}</span>
+              <span class="tg-tag" :style="tagStyle(activeChannel)">{{ factionLabel(activeChannel) }}</span>
+              <span
+                v-if="relationBadge(activeChannel)"
+                class="tg-rel-badge"
+                :class="`tg-rel-badge--${relationBadge(activeChannel)!.cls}`"
+              >{{ relationBadge(activeChannel)!.label }}</span>
+            </div>
+            <div class="tg-chat-sub">{{ factionStatus(activeChannel) }}</div>
+          </div>
+        </template>
+        <div class="tg-line-status">
+          <span class="tg-line-dot" :class="{ dead: isDead(activeChannel) }"></span>
+          {{ isDead(activeChannel) ? '线路中断' : '线路畅通' }}
+        </div>
+      </div>
+
+      <!-- 消息区 -->
+      <div ref="msgRef" class="tg-messages">
+        <template v-for="(m, i) in activeMessages" :key="i">
+          <!-- 日期分隔 -->
+          <div v-if="m.type === 'sep'" class="tg-sep">—— {{ m.text }} ——</div>
+
+          <!-- 玩家消息（右对齐） -->
+          <div v-else-if="m.me" class="tg-msg tg-msg--me">
+            <div class="tg-msg-to" v-if="m.toLabel">{{ m.toLabel }}</div>
+            <div class="tg-bubble tg-bubble--me">{{ m.text }}</div>
+          </div>
+
+          <!-- 对方消息（左对齐） -->
+          <div v-else class="tg-msg tg-msg--other">
+            <div class="tg-msg-avatar" :style="avatarStyle(m.from ?? '')">{{ avatarChar(m.from ?? '') }}</div>
+            <div class="tg-msg-body">
+              <div class="tg-msg-name" :style="{ color: factionHexColor(m.from ?? '') }">{{ m.leaderName || factionName(m.from ?? '') }}</div>
+              <div class="tg-bubble tg-bubble--other">{{ m.text }}</div>
+            </div>
+          </div>
+        </template>
+
+        <!-- 对方正在输入 -->
+        <div v-if="typing" class="tg-msg tg-msg--other">
+          <div class="tg-msg-avatar" :style="avatarStyle(activeChannel)">
+            {{ activeChannel === 'world' ? '议' : avatarChar(activeChannel) }}
+          </div>
+          <div class="tg-typing">
+            <span class="tg-dot"></span><span class="tg-dot"></span><span class="tg-dot"></span>
+          </div>
+        </div>
+
+        <!-- 建议列表（仅私聊、非输入中） -->
+        <div v-if="lastSuggestions.length && activeChannel !== 'world' && !typing" class="tg-suggestions">
+          <div class="tg-sug-header">💡 建议：</div>
+          <div
+            v-for="(s, j) in lastSuggestions"
+            :key="j"
+            class="tg-sug-item"
+            @click="s.type === 'reply' ? onSuggestionReply(s.text) : onSuggestionEnvoy(s.text)"
+          >
+            <span class="tg-sug-text">{{ s.text }}</span>
+            <span class="tg-sug-action">{{ s.type === 'reply' ? '回复' : '遣使' }}</span>
+          </div>
+        </div>
+
+        <div v-if="activeMessages.length === 0 && !typing" class="tg-empty-hint">暂无电报</div>
+      </div>
+
+      <!-- 输入区 -->
+      <div class="tg-input-area">
+        <input
+          v-model="inputText"
+          class="tg-input"
+          :placeholder="busy ? '发报中…' : (activeChannel === 'world' ? '向天下喊话……' : `回复${factionName(activeChannel)}……`)"
+          :disabled="busy"
+          @keydown.enter.prevent="onSend"
+        />
+        <GameButton parchment :disabled="!inputText.trim() || busy" @click="onSend">
+          <IconSend :size="14" />发报
+        </GameButton>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -152,13 +155,11 @@ import { Owner, OWNER_LABELS } from '@/data/owners'
 import { COUNTRY_COMMS, worldCountries } from '@/data/worldCountries'
 import { resolveEntity, normalizeCommsFrom } from '@/utils/commsEntity'
 import { isInTruce } from '@/utils/diplomacy'
-import { sendTelegram, type TelegramReply } from '@/utils/ai'
+import { sendTelegram, type TelegramReply, type TelegramSuggestion } from '@/utils/ai'
 import GameButton from '@/components/ui/GameButton.vue'
-import GameModal from '@/components/ui/GameModal.vue'
 import IconSend from '~icons/tabler/send'
 
-defineProps<{ visible: boolean }>()
-defineEmits<{ close: [] }>()
+const emit = defineEmits<{ envoy: [{ targetFaction: string; intentText: string }] }>()
 
 const store = useGameStore()
 const activeChannel = ref<string>('world')
@@ -166,6 +167,7 @@ const inputText = ref('')
 const typing = ref(false)
 const busy = computed(() => typing.value)
 const msgRef = ref<HTMLElement | null>(null)
+const lastSuggestions = ref<TelegramSuggestion[]>([])
 
 // ── 未读 ──
 const unreadByChannel = computed(() => store.unreadByChannel)
@@ -242,8 +244,20 @@ const activeMessages = computed<DisplayMsg[]>(() => {
 // ── 选中频道 ──
 function selectChannel(ch: string): void {
   activeChannel.value = ch
+  lastSuggestions.value = []
   store.markChannelRead(ch)
   nextTick(scrollBottom)
+}
+
+// ── 建议点击 ──
+function onSuggestionReply(text: string): void {
+  inputText.value = text
+  lastSuggestions.value = []
+}
+
+function onSuggestionEnvoy(text: string): void {
+  lastSuggestions.value = []
+  emit('envoy', { targetFaction: activeChannel.value, intentText: text })
 }
 
 // ── 发送电报 ──
@@ -251,6 +265,7 @@ async function onSend(): Promise<void> {
   const text = inputText.value.trim()
   if (!text || typing.value) return
   inputText.value = ''
+  lastSuggestions.value = []
 
   const channel = activeChannel.value
 
@@ -297,7 +312,10 @@ async function onSend(): Promise<void> {
         turn: store.turnCount,
         leaderName: reply.leaderName,
       })
+      lastSuggestions.value = reply.suggestions
     }
+    // 当前频道的新回复标记已读，避免发送后出现未读角标
+    store.markChannelRead(activeChannel.value)
   } catch {
     // 静默失败，不影响玩家体验
   } finally {
@@ -307,8 +325,8 @@ async function onSend(): Promise<void> {
   }
 }
 
-/** 私信回信（返回 AI 名字和内容），支持势力与国家 */
-async function invokeDirectReply(faction: string, playerMsg: string): Promise<{ content: string; leaderName: string }> {
+/** 私信回信（返回 AI 名字、内容和建议），支持势力与国家 */
+async function invokeDirectReply(faction: string, playerMsg: string): Promise<{ content: string; leaderName: string; suggestions: TelegramSuggestion[] }> {
   const entity = resolveEntity(faction)
 
   const history = store.telegrams
@@ -326,7 +344,11 @@ async function invokeDirectReply(faction: string, playerMsg: string): Promise<{ 
     playerMessage: playerMsg,
     mode: 'direct',
   })
-  return { content: items[0]?.content ?? '……', leaderName: items[0]?.name ?? entity.name }
+  const first = items[0]
+  const suggestions = (first?.suggestions ?? []).filter(
+    (s) => s && (s.type === 'reply' || s.type === 'envoy') && typeof s.text === 'string' && s.text.trim(),
+  )
+  return { content: first?.content ?? '……', leaderName: first?.name ?? entity.name, suggestions }
 }
 
 /** 世界公屏回信：多势力各自回应 */
@@ -461,7 +483,7 @@ watch(
 /* ===== 根布局：左右分栏 ===== */
 .tg-root {
   display: flex;
-  height: 480px;
+  height: 100%;
   overflow: hidden;
 }
 
@@ -834,5 +856,50 @@ watch(
 .tg-messages::-webkit-scrollbar-thumb {
   background: rgba(138, 109, 75, 0.4);
   border-radius: var(--radius-sm);
+}
+
+/* ===== 建议列表 ===== */
+.tg-suggestions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px 0 4px 38px;
+}
+
+.tg-sug-header {
+  font-size: 12px;
+  color: var(--ink-muted, #9c8a6a);
+  font-weight: 600;
+}
+
+.tg-sug-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--paper-faint, #e8dcc0);
+  border: 1px solid var(--brown-line, #b8a07a);
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tg-sug-item:hover {
+  background: var(--paper-dark, #d6c3a0);
+  border-color: var(--cinnabar, #b04a3a);
+}
+
+.tg-sug-text {
+  flex: 1;
+  color: var(--ink, #3b2f1d);
+}
+
+.tg-sug-action {
+  font-size: 11px;
+  color: var(--cinnabar, #b04a3a);
+  margin-left: 8px;
+  font-weight: 600;
+  flex-shrink: 0;
 }
 </style>

@@ -36,15 +36,10 @@
         <component :is="ICONS['user']" :size="16" />
         顾问
       </GameButton>
-      <GameButton tooltip="军机电报" :active="telegramVisible" @click="telegramVisible = !telegramVisible">
-        <component :is="ICONS['mail']" :size="16" />
-        电报
-        <span v-if="unreadCount > 0" class="tg-nav-badge">{{ unreadCount > 9 ? '9+' : unreadCount }}</span>
-      </GameButton>
-      <GameButton tooltip="遣使外交" :active="diplomacyVisible" @click="diplomacyVisible = !diplomacyVisible">
+      <GameButton tooltip="外交（电报·遣使）" :active="diplomacyVisible" @click="diplomacyVisible = !diplomacyVisible">
         <component :is="ICONS['affiliate']" :size="16" />
-        遣使
-        <span v-if="hasDiplomatPending" class="tg-nav-badge">使者</span>
+        外交
+        <span v-if="unreadCount > 0 || hasDiplomatPending" class="tg-nav-badge">{{ unreadCount > 9 ? '9+' : unreadCount || '!' }}</span>
       </GameButton>
       <GameButton tooltip="查看世界事件日志" :active="eventLogPanelVisible" @click="eventLogPanelVisible = !eventLogPanelVisible">
         <component :is="ICONS['clipboard-text']" :size="16" />
@@ -410,7 +405,6 @@
     </div>
     <PlayerAiPanel :visible="commandVisible" @close="commandVisible = false" />
     <AdvisorPanel :visible="advisorVisible" @close="advisorVisible = false" />
-    <TelegramPanel :visible="telegramVisible" @close="telegramVisible = false" />
     <DiplomacyPanel :visible="diplomacyVisible" @close="diplomacyVisible = false" />
     <PlayerStatusPanel :visible="overviewVisible" @close="overviewVisible = false" />
     <div class="disclaimer-bar map-ui" @click="disclaimerVisible = true">
@@ -449,7 +443,6 @@ import GameContextMenu from '@/components/ui/GameContextMenu.vue'
 import GameModal from '@/components/ui/GameModal.vue'
 import PlayerAiPanel from '@/components/PlayerAiPanel.vue'
 import AdvisorPanel from '@/components/AdvisorPanel.vue'
-import TelegramPanel from '@/components/TelegramPanel.vue'
 import DiplomacyPanel from '@/components/DiplomacyPanel.vue'
 import TurnSummaryModal from '@/components/TurnSummaryModal.vue'
 import PlayerStatusPanel from '@/components/PlayerStatusPanel.vue'
@@ -670,7 +663,6 @@ const overviewVisible = ref(false)
 const commandVisible = ref(false)
 /** 战略顾问弹窗是否打开 */
 const advisorVisible = ref(false)
-const telegramVisible = ref(false)
 const diplomacyVisible = ref(false)
 const battleListVisible = ref(false)
 const eventLogPanelVisible = ref(false)
@@ -1094,7 +1086,7 @@ function onMenuAction(action: string): void {
       const gameIso = isoA3 ? (GEO_TO_GAME_ISO[isoA3] ?? isoA3) : ''
       if (gameIso) useGameStore().openTelegramTo(`country:${gameIso}`)
     }
-    telegramVisible.value = true
+    diplomacyVisible.value = true
     closeContextMenu()
     return
   }

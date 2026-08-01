@@ -54,7 +54,7 @@ function buildPlayerResourceSummary(playerFaction: Owner): string {
   const cityNames = Object.entries(snap.cities)
     .filter(([, c]) => c.owner === playerFaction)
     .map(([gb]) => store.cities[gb]?.name ?? gb)
-  return `银库 ${silver} 万银 | 粮仓 ${food} 万石 | 控制城市：[${cityNames.join('、')}]`
+  return `银库 ${silver} 万银 | 粮仓 ${food} 万石 | 控制城市（仅限以下，其他城市均不属于对方）：[${cityNames.join('、')}]`
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -174,6 +174,8 @@ ${playerLabel}的使者来访，意图：${intentLabel}。
   对方（${playerLabel}）当前实力
 ═══════════════════════════════════════
 ${playerResources}
+
+⚠ 重要：以上城市列表是对方的全部领土。下方局势中"近期世界动态"里出现的其他城池属于第三方势力，绝对不属于对方，不要在回复中将其归为对方的行动。
 
 返回纯 JSON（不含 markdown）：
 {

@@ -1,10 +1,10 @@
 <template>
   <Transition name="wpb">
     <div v-if="visible" class="world-progress-banner">
-      <span class="wpb-seal seal-pulse">{{ sealChar }}</span>
+      <span class="wpb-seal seal-pulse">{{ displaySealChar }}</span>
       <div class="wpb-text">
-        <div class="wpb-main">{{ mainText }}</div>
-        <div class="wpb-sub">{{ subText }}</div>
+        <div class="wpb-main">{{ displayMainText }}</div>
+        <div class="wpb-sub">{{ displaySubText }}</div>
       </div>
       <span class="wpb-track"><span class="wpb-edge edge-slide"></span></span>
 
@@ -29,11 +29,35 @@ import { useGameScheduler } from '@/composables/useGameScheduler'
 import type { GameOrder } from '@/utils/gameOrders'
 import { describeOrder } from '@/utils/orderText'
 
+interface Props {
+  /** 外部传入的 loading 状态（可选） */
+  loading?: boolean
+  /** 自定义主文案（可选） */
+  mainText?: string
+  /** 自定义副文案（可选） */
+  subText?: string
+  /** 自定义钤印字（可选） */
+  sealChar?: string
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  loading: undefined,
+  mainText: undefined,
+  subText: undefined,
+  sealChar: undefined,
+})
+
 const { loading: kernelLoading, phase: kernelPhase, progress: kernelProgress } = useAgentKernel()
 const { queue, status: schedStatus } = useGameScheduler()
 
-/** 可见条件：世界推演进行中，或玩家指令正在调度推进中 */
-const visible = computed(() => kernelLoading.value || schedStatus.value === 'running')
+/** 是否使用外部传入的自定义状态 */
+const useCustomProps = computed(() => props.loading !== undefined)
+
+/** 可见条件：使用自定义 props 时看 loading，否则使用全局状态 */
+const visible = computed(() => {
+  if (useCustomProps.value) return props.loading
+  return kernelLoading.value || schedStatus.value === 'running'
+})
 
 /** 英文内核阶段 → 中文展示文案 */
 function phaseLabel(phase: string): string {
@@ -49,20 +73,23 @@ function phaseLabel(phase: string): string {
   return map[phase] ?? phase
 }
 
-const mainText = computed(() => {
+const displayMainText = computed(() => {
+  if (useCustomProps.value) return props.mainText || ''
   if (kernelLoading.value) return kernelProgress.value || phaseLabel(kernelPhase.value)
   if (schedStatus.value === 'running') return `执行指令中…（剩余 ${queue.value.length}）`
   return ''
 })
 
-const subText = computed(() => {
+const displaySubText = computed(() => {
+  if (useCustomProps.value) return props.subText || ''
   if (kernelLoading.value) return `世界推演 · ${phaseLabel(kernelPhase.value)}`
   if (schedStatus.value === 'running') return '玩家指令 · 推进中'
   return ''
 })
 
 /** 钤印单字（随阶段变化） */
-const sealChar = computed(() => {
+const displaySealChar = computed(() => {
+  if (useCustomProps.value) return props.sealChar || '流'
   const m: Record<string, string> = {
     classifying: '析',
     ai: '策',
