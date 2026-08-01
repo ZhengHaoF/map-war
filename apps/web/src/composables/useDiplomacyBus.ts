@@ -291,17 +291,20 @@ export function useDiplomacyBus() {
    * 强制收口（第三段落入世界AI 叙事 + 关系改写）。
    *
    * 规则：
-   * - finalStance = accept 且 intent→关系态非 null → applyEvent relationChange（带 recordId 回链）
-   * - finalStance = reject / counter 强制收口 → 只叙事，不改关系
+   * - playerAccepts=true（玩家点"同意协定"/"收口定论"且AI未拒绝）→ 视为双方达成，执行条件 + 改关系
+   * - playerAccepts=false 或 AI 已 reject → 只叙事，不改关系
    * - 若 settle 产出 worldTelegram → 推 world 频道
    * - record.status → 'settled'，upsert 归档
    */
-  async function forceSettle(): Promise<{ narrative: string }> {
+  async function forceSettle(playerAccepts: boolean = true): Promise<{ narrative: string }> {
     const session = currentSession.value
     if (!session) return { narrative: '' }
 
     const lastRound = session.rounds[session.rounds.length - 1]
-    const finalStance: DiplomacyStance = lastRound?.stance ?? 'reject'
+    const aiStance: DiplomacyStance = lastRound?.stance ?? 'reject'
+
+    // 有效立场：玩家同意 + AI 未拒绝 → accept；AI 已拒绝 → reject
+    const finalStance: DiplomacyStance = (playerAccepts && aiStance !== 'reject') ? 'accept' : aiStance
 
     // 第三段：世界AI 收口叙事
     const settle = await invokeDiplomacySettle(
