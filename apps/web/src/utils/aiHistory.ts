@@ -106,8 +106,9 @@ function selectWindow(
     const f = opts.actor
     if (f === undefined) return []
     return log.filter((e) => {
-      if (e.type === 'capture') return e.actor === f
-      if (e.type === 'attack') return store.cities[e.fromGb]?.owner === f
+      if (e.type === 'dateAdvance') return true
+      if (e.type === 'capture') return e.actor === f || store.cities[e.targetGb]?.owner === f
+      if (e.type === 'attack') return store.cities[e.fromGb]?.owner === f || store.cities[e.targetGb]?.owner === f
       if (e.type === 'produce' || e.type === 'moraleChange') return store.cities[e.targetGb]?.owner === f
       if (e.type === 'narrative') return store.currentFaction === f
       return false

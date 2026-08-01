@@ -99,7 +99,7 @@ export function buildFactionContext(faction: Owner): string {
   }
 
   // byActor 历史
-  const history = buildEventHistory({ mode: 'recent', maxEvents: FACTION_AI_HISTORY_MAX })
+  const history = buildEventHistory({ mode: 'byActor', actor: faction, maxEvents: FACTION_AI_HISTORY_MAX })
   if (history) {
     lines.push('')
     lines.push('近期世界动态：')
