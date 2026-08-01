@@ -28,7 +28,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onUnmounted } from 'vue'
+import { ref, computed, watch, onUnmounted } from 'vue'
 import { useZIndex } from '@/composables/useZIndex'
 
 const props = withDefaults(
@@ -61,10 +61,23 @@ const emit = defineEmits<{
 }>()
 
 // 层级管理：draggable 面板自动获取递增 z-index，支持点击置顶
-const { zIndex: managedZ, bringToFront } = useZIndex(props.zIndex)
+// draggable 面板忽略外部传入的 zIndex，强制走 counter 递增，确保新面板始终高于旧面板
+const { zIndex: managedZ, bringToFront, offsetX, offsetY } = useZIndex(
+  props.draggable ? undefined : props.zIndex,
+)
 
-const posX = ref(props.initX ?? 160)
-const posY = ref(props.initY ?? 160)
+const posX = ref((props.initX ?? 160) + offsetX)
+const posY = ref((props.initY ?? 160) + offsetY)
+
+// 面板打开时重新获取最高 z-index，确保新打开的面板始终覆盖在旧面板上方
+watch(
+  () => props.visible,
+  (v) => {
+    if (v && props.draggable) {
+      bringToFront()
+    }
+  },
+)
 let dragStartX = 0
 let dragStartY = 0
 let dragOrigX = 0
