@@ -38,6 +38,7 @@ export function createLLMClient(): OpenAI | null {
   return new OpenAI({
     apiKey: process.env.LLM_API_KEY,
     baseURL: process.env.LLM_BASE_URL,
+    timeout: 5 * 60 * 1000, // 5 分钟超时
   });
 }
 
