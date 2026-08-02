@@ -41,6 +41,8 @@ import { computeActionCost, marchCost } from '@/utils/economy'
 export interface OrderResult {
   ok: boolean
   reason?: string
+  /** 内政指令的实际消耗（用于 toast 展示；与 applyDomesticCost 扣款同源） */
+  cost?: { silver: number; food: number }
 }
 
 export interface BattleOrderResult extends OrderResult {
@@ -825,12 +827,38 @@ export async function executeOrder(
     }
 
     case 'stopBattle': {
-      const r = stopBattle(json.id!)
-      if (!r.ok) { result = r; break }
+      // 调试日志：排查 AI 返回不存在的战斗 ID
+      const store = useGameStore()
+      const requestedId = json.id!
+      const existsInActiveBattles = activeBattles.has(requestedId)
+      const existsInStoreBattles = store.battles.some(b => b.id === requestedId)
+      const activeBattleIds = Array.from(activeBattles.keys())
+      const storeBattleIds = store.battles.map(b => b.id)
+      // eslint-disable-next-line no-console
+      console.log('[stopBattle] AI请求停止战斗:', {
+        requestedId,
+        existsInActiveBattles,
+        existsInStoreBattles,
+        activeBattleIds,
+        storeBattleIds,
+        reason: json.reason,
+      })
+      if (!existsInActiveBattles) {
+        // eslint-disable-next-line no-console
+        console.warn('[stopBattle] 战斗不在 activeBattles 注册表中，可能已被其他路径结束')
+      }
+
+      const r = stopBattle(requestedId)
+      if (!r.ok) {
+        // eslint-disable-next-line no-console
+        console.warn('[stopBattle] 执行失败，跳过 applyEvent:', r.reason)
+        result = r
+        break
+      }
       // 灭光束后，由唯一写者结束战斗（battleEnd），携带 reason + 撤退追击减员
-      useGameStore().applyEvent({
+      store.applyEvent({
         type: 'battleEnd',
-        battleId: json.id!,
+        battleId: requestedId,
         reason: (json.reason as 'retreat' | 'peace' | undefined),
         retreatLoss: json.retreatLoss,
       })
@@ -942,7 +970,7 @@ export async function executeOrder(
       await developCity(gbId, DEVELOP_COLORS.recruit, `+${json.amount}k 兵`)
       const r = useGameStore().applyEvent({ type: 'produce', targetGb: gbId, amount: json.amount })
       if (!r.ok) { result = { ok: false, reason: r.reason! }; break }
-      result = { ok: true }
+      result = { ok: true, cost: computeActionCost('recruit', json.amount) }
       break
     }
 
@@ -965,7 +993,7 @@ export async function executeOrder(
       await developCity(gbId, DEVELOP_COLORS.develop, `+${json.amount} ${FIELD_LABELS[field]}`)
       const r = useGameStore().applyEvent({ type: 'cityStatChange', targetGb: gbId, field, delta: json.amount })
       if (!r.ok) { result = { ok: false, reason: r.reason! }; break }
-      result = { ok: true }
+      result = { ok: true, cost: computeActionCost('develop', json.amount) }
       break
     }
 
@@ -983,7 +1011,7 @@ export async function executeOrder(
       await developCity(gbId, DEVELOP_COLORS.fortify, `+${json.amount} 工事`)
       const r = useGameStore().applyEvent({ type: 'cityStatChange', targetGb: gbId, field: 'fort', delta: json.amount })
       if (!r.ok) { result = { ok: false, reason: r.reason! }; break }
-      result = { ok: true }
+      result = { ok: true, cost: computeActionCost('fortify', json.amount) }
       break
     }
 
@@ -1002,7 +1030,7 @@ export async function executeOrder(
       await developCity(gbId, DEVELOP_COLORS.rally, `${sign}${json.amount} 士气`)
       const r = useGameStore().applyEvent({ type: 'moraleChange', targetGb: gbId, delta: json.amount })
       if (!r.ok) { result = { ok: false, reason: r.reason! }; break }
-      result = { ok: true }
+      result = { ok: true, cost: computeActionCost('rally', Math.abs(json.amount)) }
       break
     }
 
@@ -1056,6 +1084,16 @@ function popToast(
 
   const fname = (o?: Owner): string =>
     o != null ? ((OWNER_LABELS as Record<string, string>)[o] ?? o) : ''
+
+  // 内政指令成本后缀（仅在 result.cost 存在且有消耗时追加）
+  const costSuffix = (() => {
+    const c = result.cost
+    if (!c) return ''
+    const parts: string[] = []
+    if (c.silver > 0) parts.push(`耗银${c.silver}万`)
+    if (c.food > 0) parts.push(`耗粮${c.food}万石`)
+    return parts.length ? `（${parts.join(' · ')}）` : ''
+  })()
 
   switch (json.order) {
     case 'arrowFly': {
@@ -1118,24 +1156,24 @@ function popToast(
       break
     }
     case 'recruit': {
-      const t = `${getLocationName(json.gb!)} 征兵 ${json.amount ?? 0}k`
+      const t = `${getLocationName(json.gb!)} 征兵 ${json.amount ?? 0}k${costSuffix}`
       push({ icon: 'sword', tone: 'cinnabar', title: '征兵', text: json.text ? `${json.text} · ${t}` : t })
       break
     }
     case 'develop': {
       const fieldLabel = json.field ? FIELD_LABELS[json.field] : ''
-      const t = `${getLocationName(json.gb!)} ${fieldLabel} +${json.amount ?? 0}`
+      const t = `${getLocationName(json.gb!)} ${fieldLabel} +${json.amount ?? 0}${costSuffix}`
       push({ icon: 'crown', tone: 'amber', title: '建设', text: json.text ? `${json.text} · ${t}` : t })
       break
     }
     case 'fortify': {
-      const t = `${getLocationName(json.gb!)} 修筑工事 +${json.amount ?? 0}`
+      const t = `${getLocationName(json.gb!)} 修筑工事 +${json.amount ?? 0}${costSuffix}`
       push({ icon: 'flag', tone: 'neutral', title: '筑防', text: json.text ? `${json.text} · ${t}` : t })
       break
     }
     case 'rally': {
       const sign = (json.amount ?? 0) > 0 ? '+' : ''
-      const t = `${getLocationName(json.gb!)} 士气 ${sign}${json.amount ?? 0}`
+      const t = `${getLocationName(json.gb!)} 士气 ${sign}${json.amount ?? 0}${costSuffix}`
       push({ icon: 'check', tone: 'green', title: '整军', text: json.text ? `${json.text} · ${t}` : t })
       break
     }

@@ -209,7 +209,8 @@ ${usableOrders.join(' / ')}
  */
 export function buildBattleContext(faction: Owner): string {
   const store = useGameStore()
-  const myBattles = store.myBattles
+  // 直接按传入的 faction 过滤，而非 store.myBattles（后者依赖 currentFaction，即玩家视角）
+  const myBattles = store.battles.filter((b) => b.attacker === faction || b.defender === faction)
   if (!myBattles.length) return ''
 
   const lines: string[] = [`你当前有 ${myBattles.length} 场进行中的战斗：`]
