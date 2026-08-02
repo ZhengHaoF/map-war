@@ -74,6 +74,20 @@
                     <div v-if="r.suggestion" class="chat-impossible-suggestion">💡 {{ r.suggestion }}</div>
                   </div>
                 </div>
+
+                <!-- AI 后续行动建议 -->
+                <div v-if="entry.suggestions?.length" class="chat-suggestions">
+                  <div class="chat-suggestions-header">💡 后续建议：</div>
+                  <div
+                    v-for="(suggestion, j) in entry.suggestions"
+                    :key="j"
+                    class="chat-suggestion-item"
+                    @click="fillSuggestion(suggestion)"
+                  >
+                    <span class="chat-suggestion-text">{{ suggestion }}</span>
+                    <span class="chat-suggestion-copy">填入</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -139,6 +153,7 @@ const {
   worldValidation,
   worldImpossible,
   freeActionResult,
+  playerSuggestions,
   chatTurns,
   runSend,
   applyStrategicRules,
@@ -167,6 +182,11 @@ function handleAdvisorSuggestion(event: CustomEvent): void {
   }
 }
 
+// 点击建议项，填入输入框
+function fillSuggestion(suggestion: string): void {
+  userMessage.value = suggestion
+}
+
 onMounted(() => {
   window.addEventListener('advisor-suggestion', handleAdvisorSuggestion as EventListener)
 })
@@ -187,6 +207,8 @@ interface ChatEntry {
   validationSummary?: string
   /** 自由行动：叙事已由 useAiOrchestrator 落库，此处只存 effects 摘要供 UI 展示 */
   freeAction?: { narrative: string; success: boolean; effectCount: number }
+  /** AI 返回的后续行动建议 */
+  suggestions?: string[]
 }
 
 async function onSend(): Promise<void> {
@@ -260,6 +282,7 @@ async function onSend(): Promise<void> {
     rejected: rejectedItems.length ? rejectedItems : undefined,
     impossible: impossibleItems.length ? impossibleItems : undefined,
     validationSummary: worldValidation.value?.summary || undefined,
+    suggestions: playerSuggestions.value?.length ? playerSuggestions.value : undefined,
   })
 
   userMessage.value = ''
@@ -558,6 +581,49 @@ async function onSend(): Promise<void> {
   display: flex;
   justify-content: flex-end;
   gap: 6px;
+}
+
+/* ===== 建议列表 ===== */
+.chat-suggestions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.chat-suggestions-header {
+  font-size: 13px;
+  color: var(--ink-muted, #9c8a6a);
+  font-weight: 600;
+}
+
+.chat-suggestion-item {
+  background: var(--paper-faint, #e8dcc0);
+  border: 1px solid var(--brown-line, #b8a07a);
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.chat-suggestion-item:hover {
+  background: var(--paper-dark, #d6c3a0);
+  border-color: var(--cinnabar, #b04a3a);
+}
+
+.chat-suggestion-text {
+  flex: 1;
+  color: var(--ink, #3b2f1d);
+}
+
+.chat-suggestion-copy {
+  font-size: 11px;
+  color: var(--ink-muted, #9c8a6a);
+  margin-left: 8px;
 }
 
 /* ===== 滚动条 ===== */

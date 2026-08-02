@@ -82,6 +82,8 @@ export function useAiOrchestrator(mode: AiMode = 'world') {
   const execResults = ref<ExecResult[]>([])
   // 顾问模式专属：存储完整顾问响应
   const advisorResponse = ref<{ reply?: string; suggestions?: string[] } | null>(null)
+  // 玩家模式专属：存储 AI 返回的后续行动建议
+  const playerSuggestions = ref<string[] | null>(null)
 
   // 多轮对话：最近 N 轮的 user/assistant 对（仅 user 模式，由调用方在 runSend 前设置）
   const chatTurns = ref<{ userText: string; assistantText: string }[]>([])
@@ -164,6 +166,7 @@ export function useAiOrchestrator(mode: AiMode = 'world') {
     aiMessage.value = null
     worldValidation.value = null
     freeActionResult.value = null
+    playerSuggestions.value = null
     execResults.value = []
 
     // 本轮历史取「此前」的 eventLog（当前回合尚未落 narrative），不含自己。
@@ -224,9 +227,9 @@ export function useAiOrchestrator(mode: AiMode = 'world') {
       return
     }
 
-    // ── user 模式：统一格式 {msg, results: [{order, verdict, reason, suggestion}]} ──
+    // ── user 模式：统一格式 {msg, results: [{order, verdict, reason, suggestion}], suggestions?: string[]} ──
     if (mode === 'user' && isUnifiedResult(merged)) {
-      const unified = merged as UnifiedAiResponse
+      const unified = merged as UnifiedAiResponse & { suggestions?: string[] }
       aiMessage.value = unified.msg ?? null
       // 落 narrative 到 eventLog（玩家模式），使对话历史经 eventLog 持久化、被后续回合读取。
       // 唯一落库点：视图层（PlayerAiPanel）不再重复写，避免历史被记两次。
@@ -258,6 +261,13 @@ export function useAiOrchestrator(mode: AiMode = 'world') {
       }
       const summary = `${counts.feasible} 条可行，${counts.impossible} 条不可行`
       worldValidation.value = { validations, summary }
+
+      // 提取后续行动建议（可选字段）
+      if (Array.isArray(unified.suggestions) && unified.suggestions.length > 0) {
+        playerSuggestions.value = unified.suggestions.filter(
+          (s) => typeof s === 'string' && s.trim()
+        )
+      }
       return
     }
 
@@ -513,6 +523,8 @@ export function useAiOrchestrator(mode: AiMode = 'world') {
     freeActionResult,
     // 顾问模式
     advisorResponse,
+    // 玩家模式
+    playerSuggestions,
     // 多轮对话
     chatTurns,
     // 动作

@@ -79,6 +79,12 @@
       variant="parchment"
       @close="closeInfoModal"
     >
+      <template #title>
+        <span class="modal-title">{{ infoTitle }}</span>
+        <button class="title-copy-btn" @click="copyInfoTitle" title="复制名称">
+          <component :is="ICONS['copy']" :size="14" />
+        </button>
+      </template>
       <InfoTable v-if="infoCityData" :rows="infoRows" />
       <InfoTable v-else-if="infoCountryData" :rows="countryInfoRows" />
     </GameModal>
@@ -202,56 +208,66 @@
     >
       <div class="battle-list-body">
       <div v-if="battleList.length === 0" class="empty-hint">当前没有进行中的战斗</div>
-      <div v-for="b in battleList" :key="b.id" class="battle-item" :class="{ 'battle-stale': !b.active }">
-        <div class="battle-main">
-          <!-- 标题行：出发城 → 目标城 · 回合数 -->
-          <div class="battle-title">
-            <span v-if="b.active" class="battle-live" title="交战中"></span>
-            <span class="battle-route">
-              <span class="battle-city atk">{{ b.fromName }}</span>
-              <span class="battle-arrow">→</span>
-              <span class="battle-city def">{{ b.toName }}</span>
-            </span>
-            <span class="battle-turns">第 {{ b.turns }} 回合</span>
-            <span v-if="!b.active" class="inactive">(已停止)</span>
-          </div>
-          <!-- 对阵行：攻方野战兵力 vs 守方驻军 -->
-          <div class="battle-vs">
-            <div class="battle-side side-atk">
-              <span class="side-tag">攻</span>
-              <span class="side-faction">{{ ownerLabel(b.attacker) }}</span>
-              <span class="side-troops" :class="{ warn: atkForce(b) <= 0 }">
-                {{ atkForce(b) }}k
-                <span class="side-sub">外出</span>
-              </span>
-            </div>
-            <span class="vs-mark">对</span>
-            <div class="battle-side side-def">
-              <span class="side-tag tag-def">守</span>
-              <span class="side-faction">{{ ownerLabel(b.defender) }}</span>
-              <span class="side-troops" :class="{ warn: defForce(b) <= 0 }">
-                {{ defForce(b) }}k
-                <span class="side-sub">驻军</span>
-              </span>
-            </div>
-          </div>
-          <!-- 兵力条：攻守双方当前兵力对比 -->
-          <div class="force-bar">
-            <div class="force-seg seg-atk" :style="{ width: forceShare(b) + '%' }"></div>
-            <div class="force-seg seg-def" :style="{ width: 100 - forceShare(b) + '%' }"></div>
-          </div>
-          <!-- 统计行：累计损耗 + 上回合战况 + 走势 -->
-          <div class="battle-stats">
-            <span class="stat">累计 攻损 <b class="loss-atk">{{ b.totalAttackerLoss }}k</b></span>
-            <span class="stat">守损 <b class="loss-def">{{ b.totalDefenderLoss }}k</b></span>
-            <span v-if="b.turns > 0" class="stat last-turn">上回合 攻-{{ b.lastAttackerLoss }}k / 守-{{ b.lastDefenderLoss }}k</span>
-            <span class="trend" :class="trend(b).cls">{{ trend(b).label }}</span>
-          </div>
+      <!-- 按守方城市分组展示 -->
+      <div v-for="g in groupedBattles" :key="g.key" class="battle-group" :class="{ 'battle-stale': !g.battles.some(b => b.active) }">
+        <!-- 分组标题：守方城市名 -->
+        <div class="group-header">
+          <span class="group-city">{{ g.toName }}</span>
+          <span class="group-defender">守方：{{ ownerLabel(g.defender) }}</span>
+          <span class="group-turns">第 {{ maxTurns(g) }} 回合</span>
         </div>
-        <GameButton v-if="canRetreat(b)" danger size="small" class="battle-end-btn" :disabled="retreatingId === b.id" @click="requestRetreat(b)">
-          <component :is="ICONS['x']" :size="14" />
-          {{ retreatingId === b.id ? '对方思考中…' : '撤退' }}
-        </GameButton>
+        <!-- 各攻方路线 -->
+        <div v-for="b in g.battles" :key="b.id" class="battle-item" :class="{ 'battle-stale': !b.active }">
+          <div class="battle-main">
+            <!-- 标题行：出发城 → 目标城 · 回合数 -->
+            <div class="battle-title">
+              <span v-if="b.active" class="battle-live" title="交战中"></span>
+              <span class="battle-route">
+                <span class="battle-city atk">{{ b.fromName }}</span>
+                <span class="battle-arrow">→</span>
+                <span class="battle-city def">{{ b.toName }}</span>
+              </span>
+              <span class="battle-turns">第 {{ b.turns }} 回合</span>
+              <span v-if="!b.active" class="inactive">(已停止)</span>
+            </div>
+            <!-- 对阵行：攻方野战兵力 vs 守方驻军 -->
+            <div class="battle-vs">
+              <div class="battle-side side-atk">
+                <span class="side-tag">攻</span>
+                <span class="side-faction">{{ ownerLabel(b.attacker) }}</span>
+                <span class="side-troops" :class="{ warn: atkForce(b) <= 0 }">
+                  {{ atkForce(b) }}k
+                  <span class="side-sub">外出</span>
+                </span>
+              </div>
+              <span class="vs-mark">对</span>
+              <div class="battle-side side-def">
+                <span class="side-tag tag-def">守</span>
+                <span class="side-faction">{{ ownerLabel(b.defender) }}</span>
+                <span class="side-troops" :class="{ warn: defForce(b) <= 0 }">
+                  {{ defForce(b) }}k
+                  <span class="side-sub">驻军</span>
+                </span>
+              </div>
+            </div>
+            <!-- 兵力条：攻守双方当前兵力对比 -->
+            <div class="force-bar">
+              <div class="force-seg seg-atk" :style="{ width: forceShare(b) + '%' }"></div>
+              <div class="force-seg seg-def" :style="{ width: 100 - forceShare(b) + '%' }"></div>
+            </div>
+            <!-- 统计行：累计损耗 + 上回合战况 + 走势 -->
+            <div class="battle-stats">
+              <span class="stat">累计 攻损 <b class="loss-atk">{{ b.totalAttackerLoss }}k</b></span>
+              <span class="stat">守损 <b class="loss-def">{{ b.totalDefenderLoss }}k</b></span>
+              <span v-if="b.turns > 0" class="stat last-turn">上回合 攻-{{ b.lastAttackerLoss }}k / 守-{{ b.lastDefenderLoss }}k</span>
+              <span class="trend" :class="trend(b).cls">{{ trend(b).label }}</span>
+            </div>
+          </div>
+          <GameButton v-if="canRetreat(b)" danger size="small" class="battle-end-btn" :disabled="retreatingId === b.id" @click="requestRetreat(b)">
+            <component :is="ICONS['x']" :size="14" />
+            {{ retreatingId === b.id ? '对方思考中…' : '撤退' }}
+          </GameButton>
+        </div>
       </div>
       </div>
     </GameModal>
@@ -356,45 +372,48 @@
       @close="turnSummaryVisible = false"
     />
     <LegendPanel v-if="ownerColorEnabled" class="map-ui" :items="legendItems" />
-    <!-- 战况浮层：每场进行中战斗一张可折叠卡片，锚定守方城、跟随相机 -->
+    <!-- 战况浮层：按守方城市分组，每城一张可折叠卡片，锚定守方城、跟随相机 -->
     <div class="battle-overlay map-ui">
       <div
-        v-for="b in battleList"
-        v-show="battleCardPos[b.id]"
-        :key="b.id"
+        v-for="g in groupedBattles"
+        v-show="battleCardPos[g.key]"
+        :key="g.key"
         class="battle-card"
-        :class="{ collapsed: !battleCardExpanded[b.id] }"
-        :style="battleCardPos[b.id] ? { transform: battleCardPos[b.id] } : undefined"
+        :class="{ collapsed: !battleCardExpanded[g.key] }"
+        :style="battleCardPos[g.key] ? { transform: battleCardPos[g.key] } : undefined"
       >
         <!-- 折叠态：精简标题条 -->
-        <div class="bc-head" @click="toggleBattleCard(b.id)">
+        <div class="bc-head" @click="toggleBattleCard(g.key)">
           <span class="bc-live" title="交战中"></span>
-          <span class="bc-route">{{ b.fromName }} ⇢ {{ b.toName }}</span>
-          <span class="bc-turns">{{ b.turns }} 回合</span>
-          <component :is="ICONS[battleCardExpanded[b.id] ? 'chevron-up' : 'chevron-down']" :size="13" class="bc-toggle" />
+          <span class="bc-route">{{ g.toName }}（守）</span>
+          <span class="bc-turns">{{ maxTurns(g) }} 回合</span>
+          <component :is="ICONS[battleCardExpanded[g.key] ? 'chevron-up' : 'chevron-down']" :size="13" class="bc-toggle" />
         </div>
-        <!-- 展开态：兵力 / 战报 / 操作 -->
-        <div v-show="battleCardExpanded[b.id]" class="bc-body">
-          <div class="bc-vs">
-            <span class="bc-side bc-atk">{{ ownerLabel(b.attacker) }} {{ atkForce(b) }}k</span>
-            <span class="bc-vs-mark">对</span>
-            <span class="bc-side bc-def">{{ defForce(b) }}k {{ ownerLabel(b.defender) }}</span>
+        <!-- 展开态：各攻方路线 / 战报 / 操作 -->
+        <div v-show="battleCardExpanded[g.key]" class="bc-body">
+          <!-- 各攻方路线 -->
+          <div v-for="b in g.battles" :key="b.id" class="bc-route-row">
+            <span class="bc-route-name">{{ b.fromName }} ⇢ {{ b.toName }}</span>
+            <span class="bc-route-vs">
+              <span class="bc-side bc-atk">{{ ownerLabel(b.attacker) }} {{ atkForce(b) }}k</span>
+              <span class="bc-vs-mark">对</span>
+              <span class="bc-side bc-def">{{ defForce(b) }}k</span>
+            </span>
           </div>
-          <div class="bc-force">
-            <div class="bc-force-atk" :style="{ width: forceShare(b) + '%' }"></div>
+          <!-- 守方驻军 -->
+          <div class="bc-def-total">
+            守方 {{ ownerLabel(g.defender) }} 驻军 {{ defForce(g.battles[0]) }}k
           </div>
-          <div v-if="b.turns > 0" class="bc-loss">
-            上回合 攻-{{ b.lastAttackerLoss }}k / 守-{{ b.lastDefenderLoss }}k
-            <span class="bc-trend" :class="trend(b).cls">{{ trend(b).label }}</span>
-          </div>
-          <div v-if="b.lastNarrative" class="bc-report">「{{ b.lastNarrative }}」</div>
+          <!-- 战报叙事（取最近一场有叙事的） -->
+          <div v-if="latestNarrative(g)" class="bc-report">「{{ latestNarrative(g) }}」</div>
+          <!-- 操作按钮（聚合到卡片底部） -->
           <div class="bc-actions">
-            <button v-if="canPeace(b)" class="bc-btn" @click.stop="requestPeace(b)">
+            <button v-if="canPeaceGroup(g)" class="bc-btn" @click.stop="requestPeaceGroup(g)">
               <component :is="ICONS['affiliate']" :size="13" /> 求和
             </button>
-            <button v-if="canRetreat(b)" class="bc-btn bc-btn-danger" :disabled="retreatingId === b.id" @click.stop="requestRetreat(b)">
+            <button v-if="canRetreatGroup(g)" class="bc-btn bc-btn-danger" :disabled="retreatingGroupId === g.key" @click.stop="requestRetreatGroup(g)">
               <component :is="ICONS['x']" :size="13" />
-              {{ retreatingId === b.id ? '对方思考中…' : '撤退' }}
+              {{ retreatingGroupId === g.key ? '对方思考中…' : '撤退' }}
             </button>
           </div>
         </div>
@@ -475,6 +494,7 @@ import IconChevronDown from '~icons/tabler/chevron-down'
 import IconChevronUp from '~icons/tabler/chevron-up'
 import IconRefresh from '~icons/tabler/refresh'
 import IconAffiliate from '~icons/tabler/affiliate'
+import IconCopy from '~icons/tabler/copy'
 import AiDebugPanel from '@/components/AiDebugPanel.vue'
 import EventLogPanel from '@/components/EventLogPanel.vue'
 import SaveSelectorModal from '@/components/SaveSelectorModal.vue'
@@ -515,6 +535,7 @@ const ICONS: Record<string, Component> = {
   'chevron-up': IconChevronUp,
   refresh: IconRefresh,
   affiliate: IconAffiliate,
+  copy: IconCopy,
 }
 
 // ─── 类型定义 ───
@@ -669,6 +690,29 @@ const eventLogPanelVisible = ref(false)
 const saveModalVisible = ref(false)
 const loadModalVisible = ref(false)
 const battleList = computed(() => useGameStore().battles)
+
+/** 按守方城市分组的战斗列表（同一守方城市的多场攻方合并为一张卡片） */
+interface BattleGroup {
+  key: string        // `${defender}_${toGb}` 唯一键
+  toGb: string       // 守方城市 id
+  toName: string     // 守方城市名
+  defender: Owner    // 守方势力
+  battles: BattleInfo[]
+}
+const groupedBattles = computed<BattleGroup[]>(() => {
+  const map = new Map<string, BattleGroup>()
+  for (const b of battleList.value) {
+    const k = `${b.defender}_${b.to}`
+    let g = map.get(k)
+    if (!g) {
+      g = { key: k, toGb: b.to, toName: b.toName, defender: b.defender, battles: [] }
+      map.set(k, g)
+    }
+    g.battles.push(b)
+  }
+  return [...map.values()]
+})
+
 const unreadCount = computed(() => useGameStore().unreadCount)
 const diplomacyBus = useDiplomacyBus()
 const hasDiplomatPending = computed(() => {
@@ -1071,6 +1115,23 @@ function closeInfoModal(): void {
   console.log('[LeafletMap] closeInfoModal done, new value:', infoModalVisible.value)
 }
 
+/** 复制弹窗标题（城市/国家名称）到剪贴板 */
+function copyInfoTitle(): void {
+  const text = infoTitle.value
+  if (!text) return
+  navigator.clipboard.writeText(text).then(() => {
+    useToast().push({ icon: 'check', tone: 'success', title: '已复制', text })
+  }).catch(() => {
+    const ta = document.createElement('textarea')
+    ta.value = text
+    document.body.appendChild(ta)
+    ta.select()
+    document.execCommand('copy')
+    document.body.removeChild(ta)
+    useToast().push({ icon: 'check', tone: 'success', title: '已复制', text })
+  })
+}
+
 function onMenuAction(action: string): void {
   if (action === 'telegram') {
     if (selectedFeature) {
@@ -1157,24 +1218,28 @@ async function recruitTest(): Promise<void> {
   })
 }
 
-/** 玩家是否为攻方（撤退仅攻方玩家可发起） */
+/** 玩家是否为攻方（撤退仅攻方玩家可发起）—— 保留兼容战斗管理弹窗 */
 function canRetreat(b: BattleInfo): boolean {
   const me = useGameStore().currentFaction
   return me != null && b.attacker === me
 }
 
-/** 玩家是否为参战方（攻方或守方均可求和） */
+/** 玩家是否为参战方（攻方或守方均可求和）—— 保留兼容战斗管理弹窗 */
 function canPeace(b: BattleInfo): boolean {
   const me = useGameStore().currentFaction
   return me != null && (b.attacker === me || b.defender === me)
 }
 
+/** 分组撤退锁定键（替代原 retreatingId，按分组锁定） */
+const retreatingGroupId = ref<string | null>(null)
+/** 兼容：战斗管理弹窗仍用单 battle 撤退 */
 const retreatingId = ref<string | null>(null)
 
 // ── 撤退裁决弹窗 ──
 const retreatVerdictVisible = ref(false)
 const retreatVerdictText = ref('')
-const retreatVerdictOrder = ref<{ id: string; retreatLoss: number; narrative: string } | null>(null)
+/** 撤退裁决结果（支持多 battle 批量停止） */
+const retreatVerdictOrder = ref<{ ids: string[]; retreatLoss: number; narrative: string } | null>(null)
 
 // ── 回合摘要弹窗 ──
 const { turnSummary } = useAgentKernel()
@@ -1216,7 +1281,7 @@ async function requestRetreat(b: BattleInfo): Promise<void> {
     })
     // 暂存裁决结果，先弹窗让玩家看叙事，关闭后再落地
     retreatVerdictOrder.value = {
-      id: b.id,
+      ids: [b.id],
       retreatLoss: outcome.pursuitLoss,
       narrative: outcome.narrative,
     }
@@ -1227,18 +1292,63 @@ async function requestRetreat(b: BattleInfo): Promise<void> {
   }
 }
 
-/** 撤退弹窗关闭 → 执行真正的停战 */
+/** 分组撤退请求：聚合所有攻方数据 → AI 裁决 → 批量停战 */
+async function requestRetreatGroup(g: BattleGroup): Promise<void> {
+  if (retreatingGroupId.value) return
+  retreatingGroupId.value = g.key
+  try {
+    const store = useGameStore()
+    const me = store.currentFaction
+    if (!me) return
+    const defDetail = OWNER_DETAILS[g.defender]
+    // 聚合我方攻方数据
+    const myBattles = g.battles.filter((b) => b.attacker === me)
+    if (!myBattles.length) return
+    const totalAtkForce = myBattles.reduce((sum, b) => sum + atkForce(b), 0)
+    const defForceVal = defForce(myBattles[0])
+    const maxTurnsVal = Math.max(...myBattles.map((b) => b.turns))
+    const totalAtkLoss = myBattles.reduce((sum, b) => sum + b.lastAttackerLoss, 0)
+    const defLastLoss = myBattles[0].lastDefenderLoss
+    const routeNames = myBattles.map((b) => `${b.fromName}→${b.toName}`).join('、')
+    const outcome = await judgeRetreat({
+      defenderTag: (OWNER_LABELS as Record<string, string>)[g.defender] ?? g.defender,
+      defenderLeader: defDetail?.leader ?? (OWNER_LABELS as Record<string, string>)[g.defender] ?? g.defender,
+      personality: defDetail?.personality ?? '沉稳',
+      attackerTag: (OWNER_LABELS as Record<string, string>)[me] ?? me,
+      fromName: routeNames,
+      toName: g.toName,
+      atkForce: totalAtkForce,
+      defForce: defForceVal,
+      turns: maxTurnsVal,
+      lastAtkLoss: totalAtkLoss,
+      lastDefLoss: defLastLoss,
+    })
+    retreatVerdictOrder.value = {
+      ids: myBattles.map((b) => b.id),
+      retreatLoss: outcome.pursuitLoss,
+      narrative: outcome.narrative,
+    }
+    retreatVerdictText.value = outcome.narrative
+    retreatVerdictVisible.value = true
+  } finally {
+    retreatingGroupId.value = null
+  }
+}
+
+/** 撤退弹窗关闭 → 批量执行停战 */
 function onRetreatVerdictConfirm(): void {
   const o = retreatVerdictOrder.value
   if (!o) return
   retreatVerdictVisible.value = false
-  executeOrder({
-    order: 'stopBattle',
-    id: o.id,
-    reason: 'retreat',
-    retreatLoss: o.retreatLoss,
-    text: o.narrative,
-  })
+  for (const id of o.ids) {
+    executeOrder({
+      order: 'stopBattle',
+      id,
+      reason: 'retreat',
+      retreatLoss: o.retreatLoss,
+      text: o.narrative,
+    })
+  }
   retreatVerdictOrder.value = null
 }
 
@@ -1247,6 +1357,8 @@ const PEACE_MAX_ROUNDS = 3
 
 interface PeaceState {
   battle: BattleInfo
+  battleIds: string[]   // 该分组下所有战斗 id（用于批量停战）
+  groupKey: string      // 分组 key
   foe: Owner            // 对方势力
   playerSide: 'attacker' | 'defender'
   round: number
@@ -1286,7 +1398,7 @@ async function requestPeace(b: BattleInfo): Promise<void> {
   const myForce = side === 'attacker' ? atkForce(b) : defForce(b)
   const foeForce = side === 'attacker' ? defForce(b) : atkForce(b)
   const foeDetail = OWNER_DETAILS[foe]
-  peaceState.value = { battle: b, foe, playerSide: side, round: 1, busy: true, outcome: null }
+  peaceState.value = { battle: b, battleIds: [b.id], groupKey: '', foe, playerSide: side, round: 1, busy: true, outcome: null }
   peaceVisible.value = true
   counterInput.value = ''
   try {
@@ -1309,6 +1421,76 @@ async function requestPeace(b: BattleInfo): Promise<void> {
     })
     // AI 返回时战斗可能已结束，丢弃结果
     if (!peaceState.value || peaceState.value.battle.id !== b.id) return
+    peaceState.value.outcome = outcome
+    peaceState.value.busy = false
+  } catch {
+    if (peaceState.value) {
+      peaceState.value.outcome = { accept: false, indemnity: 0, narrative: '和议未成。', final: false }
+      peaceState.value.busy = false
+    }
+  }
+}
+
+/** 分组求和请求：聚合我方数据 → AI 谈判 → 批量停战 */
+async function requestPeaceGroup(g: BattleGroup): Promise<void> {
+  const store = useGameStore()
+  const me = store.currentFaction
+  if (!me) return
+  // 确定我方在该分组中的角色和对应战斗
+  const isDefender = g.defender === me
+  const myBattles = isDefender
+    ? g.battles  // 守方：所有攻方打我方，全部算我方参战
+    : g.battles.filter((b) => b.attacker === me)
+  if (!myBattles.length) return
+  const foe = isDefender ? g.defender : g.battles.find((b) => b.attacker === me)?.defender ?? g.defender
+  // 若守方是我方，敌方是攻方（可能多个势力），取第一个攻方势力作为谈判对手
+  const foeFaction = isDefender
+    ? (g.battles.find((b) => b.attacker !== me)?.attacker ?? g.battles[0].attacker)
+    : foe
+  const side: 'attacker' | 'defender' = isDefender ? 'defender' : 'attacker'
+  // 聚合我方兵力/损耗
+  const myTotalForce = myBattles.reduce((sum, b) => sum + (side === 'attacker' ? atkForce(b) : defForce(b)), 0)
+  const foeTotalForce = isDefender
+    ? myBattles.reduce((sum, b) => sum + atkForce(b), 0)
+    : defForce(myBattles[0])
+  const maxTurnsVal = Math.max(...myBattles.map((b) => b.turns))
+  const myTotalLoss = myBattles.reduce((sum, b) => sum + (side === 'attacker' ? b.lastAttackerLoss : b.lastDefenderLoss), 0)
+  const foeTotalLoss = isDefender
+    ? myBattles.reduce((sum, b) => sum + b.lastAttackerLoss, 0)
+    : myBattles[0].lastDefenderLoss
+  const routeNames = myBattles.map((b) => `${b.fromName}→${b.toName}`).join('、')
+  const foeDetail = OWNER_DETAILS[foeFaction]
+  peaceState.value = {
+    battle: myBattles[0],
+    battleIds: myBattles.map((b) => b.id),
+    groupKey: g.key,
+    foe: foeFaction,
+    playerSide: side,
+    round: 1,
+    busy: true,
+    outcome: null,
+  }
+  peaceVisible.value = true
+  counterInput.value = ''
+  try {
+    const outcome = await negotiatePeace({
+      foeTag: (OWNER_LABELS as Record<string, string>)[foeFaction] ?? foeFaction,
+      foeLeader: foeDetail?.leader ?? ((OWNER_LABELS as Record<string, string>)[foeFaction] ?? foeFaction),
+      personality: foeDetail?.personality ?? '沉稳',
+      playerTag: (OWNER_LABELS as Record<string, string>)[me] ?? me,
+      playerSide: side,
+      fromName: routeNames,
+      toName: g.toName,
+      myForce: myTotalForce,
+      foeForce: foeTotalForce,
+      turns: maxTurnsVal,
+      myLastLoss: myTotalLoss,
+      foeLastLoss: foeTotalLoss,
+      myTreasury: store.getTreasury(me),
+      foeTreasury: store.getTreasury(foeFaction),
+      round: 1,
+    })
+    if (!peaceState.value || peaceState.value.groupKey !== g.key) return
     peaceState.value.outcome = outcome
     peaceState.value.busy = false
   } catch {
@@ -1369,13 +1551,12 @@ async function onPeaceCounter(): Promise<void> {
   }
 }
 
-/** 接受当前条件：转移赔款 + 停战 */
+/** 接受当前条件：转移赔款 + 批量停战 */
 function onPeaceAccept(): void {
   const s = peaceState.value
   const store = useGameStore()
   const me = store.currentFaction
   if (!s || !s.outcome || !me) return
-  const b = s.battle
   const ind = s.outcome.indemnity
   // 赔款双向转移（正=玩家付出；扣成负数由经济系统欠饷机制承接，不阻断议和）
   if (ind !== 0) {
@@ -1383,7 +1564,9 @@ function onPeaceAccept(): void {
     store.applyEvent({ type: 'treasuryChange', faction: s.foe, delta: ind, reason: '议和受款' })
   }
   peaceVisible.value = false
-  executeOrder({ order: 'stopBattle', id: b.id, reason: 'peace', text: s.outcome.narrative })
+  for (const id of s.battleIds) {
+    executeOrder({ order: 'stopBattle', id, reason: 'peace', text: s.outcome.narrative })
+  }
   peaceState.value = null
 }
 
@@ -1434,6 +1617,36 @@ function trend(b: BattleInfo): { label: string; cls: string } {
   return { label: '— 僵持', cls: 'trend-even' }
 }
 
+// ─── 分组战斗卡片辅助函数 ───
+/** 分组内最大回合数（折叠态标题显示） */
+function maxTurns(g: BattleGroup): number {
+  return Math.max(...g.battles.map((b) => b.turns), 0)
+}
+
+/** 分组内最近一场有叙事的战报 */
+function latestNarrative(g: BattleGroup): string {
+  for (const b of g.battles) {
+    if (b.lastNarrative) return b.lastNarrative
+  }
+  return ''
+}
+
+/** 玩家是否为该分组参战方（攻方或守方均可求和） */
+function canPeaceGroup(g: BattleGroup): boolean {
+  const me = useGameStore().currentFaction
+  if (!me) return false
+  // 守方是我方，或任意攻方是我方
+  if (g.defender === me) return true
+  return g.battles.some((b) => b.attacker === me)
+}
+
+/** 玩家是否为该分组攻方（撤退仅攻方可发起） */
+function canRetreatGroup(g: BattleGroup): boolean {
+  const me = useGameStore().currentFaction
+  if (!me) return false
+  return g.battles.some((b) => b.attacker === me)
+}
+
 // ─── 战况浮层（DOM 卡片锚定守方城，跟随相机）───
 /** 每场战斗卡片的屏幕 transform（缺省即出屏/隐藏） */
 const battleCardPos = ref<Record<string, string>>({})
@@ -1445,30 +1658,25 @@ function toggleBattleCard(id: string): void {
 }
 
 /**
- * 把每场进行中战斗的锚点（守方城）投影到屏幕坐标，写入 transform。
- * 由 applyCamera() 每帧调用（拖拽/缩放/镜头演出统一收口于此），天然跟手。
- * 锚点出屏则不生成条目 → v-show 隐藏；锚点过近的卡片逐张上移错开。
+ * 按守方城市分组投影卡片屏幕坐标。
+ * 由 applyCamera() 每帧调用，天然跟手。
+ * 锚点出屏则不生成条目 → v-show 隐藏。
  */
 function syncBattleCards(): void {
   const w = mapContainer.value?.clientWidth ?? 0
   const h = mapContainer.value?.clientHeight ?? 0
   const next: Record<string, string> = {}
-  const placed: Array<{ sx: number; sy: number }> = []
-  for (const b of battleList.value) {
-    if (!b.active) continue
-    const local = resolveLocationXY(b.to)
+  for (const g of groupedBattles.value) {
+    // 有任意一场 active 即显示卡片
+    if (!g.battles.some((b) => b.active)) continue
+    const local = resolveLocationXY(g.toGb)
     if (!local) continue
     const sx = local.x * mapScale + mapX
-    let sy = local.y * mapScale + mapY
-    // 锚点出屏（预留卡片上抬高度）→ 隐藏
+    const sy = local.y * mapScale + mapY
+    // 锚点出屏 → 隐藏
     if (sx < -40 || sx > w + 40 || sy < 140 || sy > h + 40) continue
-    // 与已放置卡片过近时逐张上移（按折叠态高度错开）
-    for (const p of placed) {
-      if (Math.abs(sx - p.sx) < 160 && Math.abs(sy - p.sy) < 48) sy = p.sy - 48
-    }
-    placed.push({ sx, sy })
     // 卡片浮在城池上方：锚点再抬 26px，translate(-50%,-100%) 使尖角指向城
-    next[b.id] = `translate3d(${sx}px, ${sy - 26}px, 0) translate(-50%, -100%)`
+    next[g.key] = `translate3d(${sx}px, ${sy - 26}px, 0) translate(-50%, -100%)`
   }
   battleCardPos.value = next
 }
@@ -2131,6 +2339,25 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+/* 弹窗标题旁的复制按钮 */
+.title-copy-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 4px;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  cursor: pointer;
+  color: var(--ink-muted, #888);
+  transition: all 0.15s ease;
+}
+
+.title-copy-btn:hover {
+  color: var(--ink-strong, #333);
+  border-color: rgba(138, 109, 75, 0.3);
+  background: rgba(138, 109, 75, 0.08);
+}
+
 .tg-nav-badge {
   position: absolute;
   top: -4px;
@@ -2570,7 +2797,7 @@ body.cloud-active .battle-card {
   position: absolute;
   top: 0;
   left: 0;
-  width: 224px;
+  width: 240px;
   pointer-events: auto;
   font-family: var(--font-kai);
   background: linear-gradient(to bottom, var(--paper-panel), var(--paper-darker));
@@ -2739,6 +2966,82 @@ body.cloud-active .battle-card {
   background: linear-gradient(to bottom, var(--danger-bg), var(--danger-bg2));
   color: var(--danger-ink);
   border-color: var(--cinnabar);
+}
+
+/* 分组卡片内各攻方路线行 */
+.bc-route-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 4px 0;
+  border-bottom: 1px dashed rgba(138, 109, 75, 0.2);
+}
+
+.bc-route-row:last-child {
+  border-bottom: none;
+}
+
+.bc-route-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-strong);
+  white-space: nowrap;
+}
+
+.bc-route-vs {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+  font-size: 11px;
+}
+
+/* 守方驻军汇总行 */
+.bc-def-total {
+  margin-top: 6px;
+  padding-top: 5px;
+  border-top: 1px solid rgba(138, 109, 75, 0.25);
+  font-size: 11px;
+  color: var(--ink-muted);
+  text-align: center;
+}
+
+/* ── 战斗管理弹窗分组样式 ── */
+.battle-group {
+  margin-bottom: 12px;
+  border: 1px solid rgba(138, 109, 75, 0.2);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.group-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: rgba(138, 109, 75, 0.08);
+  border-bottom: 1px solid rgba(138, 109, 75, 0.2);
+  font-family: var(--font-song);
+}
+
+.group-city {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink-strong);
+}
+
+.group-defender {
+  font-size: 12px;
+  color: var(--ink-muted);
+  margin-left: auto;
+}
+
+.group-turns {
+  font-size: 11px;
+  color: var(--ink-muted);
+  border: 1px solid rgba(138, 109, 75, 0.3);
+  border-radius: 3px;
+  padding: 1px 6px;
 }
 
 /* 指向守方城的锚点尖角（卡片底部居中） */

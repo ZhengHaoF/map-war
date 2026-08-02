@@ -629,7 +629,8 @@ export const PLAYER_AI_UNIFIED_PROMPT = `你是民国军阀推演游戏的世界
       "reason": "成都与汉中邻接，进攻可直接发起",
       "suggestion": null
     }
-  ]
+  ],
+  "suggestions": ["从成都出兵进攻汉中", "从重庆调兵至武汉"]
 }
 
 【路径 B：自由行动】（无法映射到任何指令的开放行动，如办学、通电、暗杀、决堤、外交斡旋、宣传、整肃、谈判等）
@@ -700,6 +701,7 @@ export const PLAYER_AI_UNIFIED_PROMPT = `你是民国军阀推演游戏的世界
 - reason 必须是自然中文叙事，不是模板化规则语言
 - suggestion 仅在 impossible 时必须填写，feasible 时填 null
 - 每条 order 必须遵循下文的指令一览格式
+- suggestions（可选）：2-4 条后续行动建议，用自然中文描述（如"从成都出兵进攻汉中"），供玩家快速选择
 
 ═══════════════════════════════════════
   指令一览（玩家可用）

@@ -149,7 +149,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, nextTick } from 'vue'
+import { ref, computed, watch, nextTick, onMounted } from 'vue'
 import { useGameStore, type Telegram } from '@/stores/game'
 import { Owner, OWNER_LABELS } from '@/data/owners'
 import { COUNTRY_COMMS, worldCountries } from '@/data/worldCountries'
@@ -477,6 +477,11 @@ watch(
     nextTick(scrollBottom)
   },
 )
+
+// 面板打开时，自动标记当前频道已读（消除红点）
+onMounted(() => {
+  store.markChannelRead(activeChannel.value)
+})
 </script>
 
 <style scoped>

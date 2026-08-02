@@ -15,7 +15,11 @@
           @mousedown="onModalMouseDown"
         >
           <div class="modal-header" :class="{ draggable }" @mousedown.prevent="onDragStart">
-            <span class="modal-title">{{ title }}</span>
+            <div class="modal-title-wrapper">
+              <slot name="title">
+                <span class="modal-title">{{ title }}</span>
+              </slot>
+            </div>
             <span v-if="closable" class="modal-close" @click="onCloseClick">&times;</span>
           </div>
           <div class="modal-body">
@@ -228,6 +232,12 @@ function onCloseClick(): void {
     radial-gradient(circle at 20% 30%, rgba(120, 80, 40, 0.04) 0%, transparent 40%),
     radial-gradient(circle at 80% 70%, rgba(120, 80, 40, 0.04) 0%, transparent 40%),
     var(--paper-deep);
+}
+
+.modal-title-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .modal-title {
