@@ -250,7 +250,7 @@ async function send(body: AiChatRequest) {
 **12 条 `ORDER_TYPES`**（旧方案只规划了 7 条，现已扩充）：
 ```
 arrowFly  radarPulse  orbBurst        // 纯视觉演出，不改世界态
-battle  stopBattle  stopBattles  listBattles   // 战斗控制
+battle  stopBattle  listBattles               // 战斗控制
 fogCover                              // 云雾蒙太奇（时间流逝演出）
 capture  setFactionAlive  setCurrentDate  setCurrentFaction  // 世界态写回（god-mode）
 ```

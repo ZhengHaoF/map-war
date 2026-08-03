@@ -17,7 +17,6 @@ const VERB: Record<string, string> = {
   orbBurst: '宣战',
   battle: '战斗',
   stopBattle: '停战',
-  stopBattles: '停战',
   listBattles: '列阵',
   fogCover: '时移',
   capture: '占领',

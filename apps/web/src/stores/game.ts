@@ -674,7 +674,7 @@ export const useGameStore = defineStore('game', () => {
             // 占领：兵力已转入被占城；溃败：兵散了
             nextFieldForce = 0
           } else {
-            // peace（求和停战）/ 无 reason（stopBattles 等）：各自收兵，攻方野战兵回城
+            // peace（求和停战）/ 无 reason：各自收兵，攻方野战兵回城
             nextTroops = from.troops + from.fieldForce
             nextFieldForce = 0
           }

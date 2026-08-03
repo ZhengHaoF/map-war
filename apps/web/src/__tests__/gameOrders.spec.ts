@@ -296,25 +296,6 @@ describe('popToast 提示', () => {
 })
 
 describe('executeOrder 遗漏指令补充', () => {
-  it('stopBattles：无战斗时也成功（幂等）', async () => {
-    const r = await executeOrder({ order: 'stopBattles' } as any)
-    expect(r.ok).toBe(true)
-  })
-
-  it('stopBattles：有战斗时清空 battleRegistry 并 applyEvent battleEnd', async () => {
-    // 先执行 battle 指令注册一个战斗到 battleRegistry
-    mockStartBattleAnimation.mockReturnValue({ graphics: {} as any, stop: vi.fn() })
-    await executeOrder({ order: 'battle', from: '111', to: '333' } as any)
-    expect(mockApplyEvent).toHaveBeenCalledWith(expect.objectContaining({ type: 'battleStart' }))
-    mockApplyEvent.mockClear()
-
-    const r = await executeOrder({ order: 'stopBattles' } as any)
-    expect(r.ok).toBe(true)
-    // stopBattles 会为每个 id 发 battleEnd
-    expect(mockApplyEvent).toHaveBeenCalledTimes(1)
-    expect(mockApplyEvent).toHaveBeenCalledWith(expect.objectContaining({ type: 'battleEnd' }))
-  })
-
   it('listBattles：返回当前战斗列表', async () => {
     mockBattles.push({ id: 'b1', active: true, from: '111', to: '222', attacker: Owner.KMT, defender: Owner.CCP, fromName: 'A', toName: 'B' } as any)
     const r = await executeOrder({ order: 'listBattles' } as any)
@@ -363,7 +344,6 @@ describe('ORDER_TYPES 导出', () => {
     expect(ORDER_TYPES).toContain('fortify')
     expect(ORDER_TYPES).toContain('rally')
     expect(ORDER_TYPES).toContain('stopBattle')
-    expect(ORDER_TYPES).toContain('stopBattles')
     expect(ORDER_TYPES).toContain('listBattles')
     expect(ORDER_TYPES).toContain('fogCover')
     expect(ORDER_TYPES).toContain('setFactionAlive')

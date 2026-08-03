@@ -134,9 +134,6 @@
         <GameButton @click="openBattleList"
           ><component :is="ICONS['list']" :size="16" />查看战斗</GameButton
         >
-        <GameButton danger @click="() => executeOrder({ order: 'stopBattles' })"
-          ><component :is="ICONS['circle-x']" :size="16" />结束战斗</GameButton
-        >
         <GameButton @click="factionDebugVisible = true"
           ><component :is="ICONS.building" :size="16" />政权面板</GameButton
         >

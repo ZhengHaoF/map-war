@@ -468,9 +468,7 @@ export const CONTRACT_SCHEMA_TEXT = `你是民国军阀推演游戏的最高权�
 5. stopBattle — 停止指定战斗
    - id（必填）：战斗 id（listBattles 返回的 id，如 "battle_1"）
 
-6. stopBattles — 停止所有进行中的战斗（无参数）
-
-7. listBattles — 查询进行中战斗列表（无参数，返回 battles 数组）
+6. listBattles — 查询进行中战斗列表（无参数，返回 battles 数组）
 
 8. fogCover — 云雾遮罩动画（全屏云雾盖屏→停顿→揭开，纯视觉演出，不改世界态）
    （无参数）
@@ -727,9 +725,7 @@ export const PLAYER_AI_UNIFIED_PROMPT = `你是民国军阀推演游戏的世界
 5. stopBattle — 停止指定战斗
    id(必填)
 
-6. stopBattles — 停止所有战斗（无参数）
-
-7. listBattles — 查询战斗列表（无参数）
+6. listBattles — 查询战斗列表（无参数）
 
 8. fogCover — 云雾遮罩动画（纯视觉，无参数）
 

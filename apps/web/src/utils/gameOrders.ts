@@ -71,7 +71,6 @@ export const ORDER_TYPES = [
   'orbBurst',
   'battle',
   'stopBattle',
-  'stopBattles',
   'listBattles',
   'fogCover',
   // 世界态写回（god-mode 调试 / 真实 agent 共用统一契约）
@@ -513,21 +512,6 @@ export function stopBattleVisual(id: string): void {
   battleRegistry.delete(id)
 }
 
-/**
- * 停止全部进行中的战斗动画并清空战斗注册表（灭全部光束）。
- * 世界态（battleEnd 事件）由 executeOrder 在调用本函数后统一 applyEvent。
- * @returns 始终成功
- */
-function stopBattles(): OrderResult {
-  for (const [, entry] of activeBattles) {
-    entry.battle.stop()
-  }
-  activeBattles.clear()
-  battleRegistry.clear()
-  // 世界态（battleEnd 事件）由 executeOrder 在灭光束后统一 applyEvent
-  return { ok: true }
-}
-
 /** 重置战斗运行时状态（读档/初始化时调用）。停止所有动画并清空模块级映射。 */
 export function resetBattleRuntime(): void {
   for (const [, entry] of activeBattles) {
@@ -866,15 +850,6 @@ export async function executeOrder(
       break
     }
 
-    case 'stopBattles': {
-      const ids = [...battleRegistry.keys()]
-      const r = stopBattles()
-      // 灭全部光束后，为每个被清的战斗补 battleEnd 事件
-      for (const id of ids) useGameStore().applyEvent({ type: 'battleEnd', battleId: id })
-      result = r
-      break
-    }
-
     case 'listBattles':
       result = { ok: true, battles: listBattles() }
       break
@@ -1124,9 +1099,6 @@ function popToast(
       } else {
         push({ icon: 'player-stop', tone: 'neutral', title: '停战', text: '战斗结束' })
       }
-      break
-    case 'stopBattles':
-      push({ icon: 'player-stop', tone: 'neutral', title: '停战', text: '全线停战' })
       break
     case 'capture': {
       const ownerName = fname(json.owner)
