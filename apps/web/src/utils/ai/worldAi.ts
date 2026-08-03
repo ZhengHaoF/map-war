@@ -36,7 +36,7 @@ const BATCH_PROMPT = `你是民国军阀推演游戏的「世界 AI」。你负�
 - fortify:    gb(己方城) amount(正数) actor — 筑防（提升工事）
 
 ⚠ 调兵就是 moveTroops——系统里没有名为 move 的指令，写了 move 会被直接丢弃。
-⚠ 严禁使用 capture / deploy / reinforce / stopBattle / 任何系统指令（setCurrentDate / setFactionAlive 等）。
+⚠ 严禁使用 capture / deploy / stopBattle / 任何系统指令（setCurrentDate / setFactionAlive 等）。
 
 返回 JSON 格式：
 {

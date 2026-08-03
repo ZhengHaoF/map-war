@@ -31,7 +31,6 @@ export function eventBadge(e: GameEvent): string {
     capture: '占领',
     attack: '进攻',
     deploy: '出兵',
-    reinforce: '增援',
     moraleChange: '士气',
     cityStatChange: '建设',
     produce: '征兵',
@@ -77,8 +76,6 @@ export function describeEvent(e: GameEvent, cities: Record<string, { name: strin
       return `${cn(e.fromGb)} ⇢ ${cn(e.targetGb)} 攻损 ${e.attackerLoss}k / 守损 ${e.defenderLoss}k`
     case 'deploy':
       return `${cn(e.fromGb)} 出兵 ${e.amount}k`
-    case 'reinforce':
-      return `${cn(e.gb)} ${e.side === 'defender' ? '守城' : '前线'}增援 ${e.amount}k`
     case 'moraleChange':
       return `${cn(e.targetGb)} 士气 ${e.delta > 0 ? '+' : ''}${e.delta}`
     case 'cityStatChange':
@@ -144,7 +141,6 @@ export function eventSummaryGroup(e: GameEvent): SummaryGroup {
     case 'capture':
     case 'attack':
     case 'deploy':
-    case 'reinforce':
     case 'battleStart':
     case 'battleEnd':
       return '军事'

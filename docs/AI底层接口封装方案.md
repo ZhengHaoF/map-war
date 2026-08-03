@@ -15,7 +15,7 @@
 | 2 | 后端框架 | NestJS | **NestJS 10** ✓（`apps/server`，独立 package） | 一致 |
 | 3 | 输出方式 | tool calling → `Order` | **JSON Mode**：前端对 LLM 传 `response_format: { type: 'json_object' }`，回包按 JSON 解析 | 没用 tool calling |
 | 4 | 流式协议 | 后端手写 SSE（`thinking`/`order`/`done`） | **无 SSE**，普通 JSON `POST` + `res.json()`，回包即完整 completion | 大幅简化 |
-| 5 | 提示词/契约 | 后端拼 System Prompt + 注册 7 个 tools | **前端** `aiPromptBuilder.ts` + `aiOrderContract.ts` 组装与定义；12 条指令 | 逻辑上移 |
+| 5 | 提示词/契约 | 后端拼 System Prompt + 注册 7 个 tools | **前端** `aiPromptBuilder.ts` + `aiOrderContract.ts` 组装与定义；17 条指令 | 逻辑上移 |
 | 6 | 数据库 | TypeORM + SQLite（`UsageLog`/`Faction` 实体，用量审计） | **依赖已装（`typeorm`/`@nestjs/typeorm`/`better-sqlite3`），但代码未接线**（`game.db` 为空文件，无 `TypeOrmModule`） | 暂为 stateless；审计层待补 |
 | 7 | 跨轮记忆 | 本期跳过，后端 stateless | stateless ✓ | 一致 |
 | 8 | 端点 | `POST /api/ai/decide` | **`POST /api/ai/chat`** | 控制器路径变了 |
@@ -213,7 +213,7 @@ LLM_MODEL=deepseek-chat
 |------|------|
 | `composables/useAiChat.ts` | **薄 HTTP 封装**：`POST /api/ai/chat`，发完整请求体、收原始 JSON、处理非 2xx 错误。 |
 | `utils/aiPromptBuilder.ts` | **提示词/上下文装配**：`buildSystemPrompt(kind)`、`buildMessages`、`buildWorldContext`（按需世界态）。 |
-| `utils/aiOrderContract.ts` | **唯一指令契约**（真相源）：12 条 `ORDER_TYPES`、结构校验、玩家战略校验、世界 AI 可行性判定、两份 system prompt 文案。 |
+| `utils/aiOrderContract.ts` | **唯一指令契约**（真相源）：17 条 `ORDER_TYPES`、结构校验、玩家战略校验、世界 AI 可行性判定、两份 system prompt 文案。 |
 | `composables/useAiOrchestrator.ts` | **编排**：`runSend()`（组装→发→解析→校验）、`runExecute()`（逐条 `executeOrder`），支持单步撤销/重置。 |
 | `components/AiDebugPanel.vue` | god-mode 调试面板（`useAiOrchestrator('world')`）。 |
 | `components/PlayerAiPanel.vue` | 玩家军师面板（`useAiOrchestrator('user')`）。 |
@@ -247,12 +247,12 @@ async function send(body: AiChatRequest) {
 
 ### 4.3 `aiOrderContract` —— 唯一指令契约
 
-**12 条 `ORDER_TYPES`**（旧方案只规划了 7 条，现已扩充）：
+**17 条 `ORDER_TYPES`**（旧方案只规划了 7 条，现已扩充）：
 ```
-arrowFly  radarPulse  orbBurst        // 纯视觉演出，不改世界态
-battle  stopBattle  listBattles               // 战斗控制
-fogCover                              // 云雾蒙太奇（时间流逝演出）
+arrowFly  radarPulse  orbBurst                              // 纯视觉演出，不改世界态
+battle  stopBattle  listBattles  fogCover                    // 战斗控制 + 时间流逝演出
 capture  setFactionAlive  setCurrentDate  setCurrentFaction  // 世界态写回（god-mode）
+moveTroops  deploy  recruit  develop  fortify  rally         // 军事/内政玩家指令
 ```
 
 **三层校验**：
@@ -353,7 +353,7 @@ apps/web/src/
     useAiOrchestrator.ts                         # 编排：组装→发送→解析→校验→执行（god/user 双模式）
   utils/
     aiPromptBuilder.ts                    # 提示词/上下文装配
-    aiOrderContract.ts                    # 指令契约（12 条）+ 校验 + 两份 system prompt
+    aiOrderContract.ts                    # 指令契约（17 条）+ 校验 + 两份 system prompt
     locationResolver.ts                   # 中文城市名 ↔ 内部 gb 编码
   components/
     AiDebugPanel.vue                      # god-mode 调试（useAiOrchestrator('world')）

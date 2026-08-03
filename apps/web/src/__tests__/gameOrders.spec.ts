@@ -180,12 +180,6 @@ describe('executeOrder 世界态写回指令', () => {
     expect(mockApplyEvent).toHaveBeenCalledWith({ type: 'deploy', fromGb: '111', amount: 5 })
   })
 
-  it('reinforce：side 非法返回错误', async () => {
-    const r = await executeOrder({ order: 'reinforce', gb: '111', amount: 3, side: 'bad' } as any)
-    expect(r.ok).toBe(false)
-    expect(r.reason).toContain('side 必须是')
-  })
-
   it('setFactionAlive：直接 applyEvent', async () => {
     const r = await executeOrder({ order: 'setFactionAlive', faction: Owner.SHX, alive: false } as any)
     expect(r.ok).toBe(true)
@@ -338,7 +332,6 @@ describe('ORDER_TYPES 导出', () => {
     expect(ORDER_TYPES).toContain('capture')
     expect(ORDER_TYPES).toContain('moveTroops')
     expect(ORDER_TYPES).toContain('deploy')
-    expect(ORDER_TYPES).toContain('reinforce')
     expect(ORDER_TYPES).toContain('recruit')
     expect(ORDER_TYPES).toContain('develop')
     expect(ORDER_TYPES).toContain('fortify')

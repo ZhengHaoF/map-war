@@ -81,7 +81,6 @@ export const ORDER_TYPES = [
   'moveTroops',
   // 战斗生命周期
   'deploy',
-  'reinforce',
   // 内政 / 建设（生产、筑防、整军——世界态写回）
   'recruit',
   'develop',
@@ -108,8 +107,7 @@ export interface GameOrder {
   needsPlayerDecision?: boolean
   // 调兵：从 from 搬运到 to 的兵力（单位 k），须为正数
   amount?: number
-  // 战斗：增援/出兵/撤退相关
-  side?: 'attacker' | 'defender' // reinforce 指定补攻方还是守方
+  // 战斗：撤退相关
   reason?: string // stopBattle 结束原因（retreat/peace/surrender）
   retreatLoss?: number // stopBattle(reason:'retreat') 时追击减员（k）
   deployAmount?: number // battle 时同时 deploy 的兵力
@@ -896,7 +894,7 @@ export async function executeOrder(
       break
     }
 
-    // ── 战斗生命周期：deploy（出兵）+ reinforce（增援）──
+    // ── 战斗生命周期：deploy（出兵）──
     case 'deploy': {
       const fromId = resolveLocationId(json.from!)
       if (!fromId) { result = { ok: false, reason: `出发城市不存在: ${json.from}` }; break }
@@ -906,25 +904,6 @@ export async function executeOrder(
       }
       // 出兵：直接 apply（演出由调用方/上下文覆盖，本地只记录 toast）
       const r = useGameStore().applyEvent({ type: 'deploy', fromGb: fromId, amount: json.amount })
-      if (!r.ok) { result = { ok: false, reason: r.reason! }; break }
-      result = { ok: true }
-      break
-    }
-
-    case 'reinforce': {
-      const gbId = resolveLocationId(json.gb!)
-      if (!gbId) { result = { ok: false, reason: `目标城市不存在: ${json.gb}` }; break }
-      if (typeof json.amount !== 'number' || json.amount <= 0) {
-        result = { ok: false, reason: 'amount 必须是正数（单位 k）' }
-        break
-      }
-      const side = json.side || 'attacker'
-      if (side !== 'attacker' && side !== 'defender') {
-        result = { ok: false, reason: 'side 必须是 attacker 或 defender' }
-        break
-      }
-      // 增援：直接 apply（无独立演出，toast 提示即可）
-      const r = useGameStore().applyEvent({ type: 'reinforce', gb: gbId, amount: json.amount, side })
       if (!r.ok) { result = { ok: false, reason: r.reason! }; break }
       result = { ok: true }
       break
@@ -1119,12 +1098,6 @@ function popToast(
     case 'deploy': {
       const t = `${getLocationName(json.from!)} 出兵 ${json.amount ?? 0}k`
       push({ icon: 'sword', tone: 'cinnabar', title: '出兵', text: json.text ? `${json.text} · ${t}` : t })
-      break
-    }
-    case 'reinforce': {
-      const sideLabel = json.side === 'defender' ? '守城' : '前线'
-      const t = `${getLocationName(json.gb!)} ${sideLabel}增援 ${json.amount ?? 0}k`
-      push({ icon: 'sword', tone: 'blue', title: '增援', text: json.text ? `${json.text} · ${t}` : t })
       break
     }
     case 'recruit': {

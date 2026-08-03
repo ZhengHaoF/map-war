@@ -25,7 +25,6 @@ const VERB: Record<string, string> = {
   setCurrentFaction: '择主',
   moveTroops: '调兵',
   deploy: '出兵',
-  reinforce: '增援',
   recruit: '募兵',
   develop: '兴业',
   fortify: '筑防',

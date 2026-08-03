@@ -133,7 +133,6 @@ export type GameEvent =
   | { type: 'capture'; targetGb: string; actor: Owner; resultTroops?: number }
   | { type: 'moveTroops'; fromGb: string; toGb: string; amount: number }
   | { type: 'deploy'; fromGb: string; amount: number }
-  | { type: 'reinforce'; gb: string; amount: number; side: 'attacker' | 'defender' }
   | { type: 'attack'; fromGb: string; targetGb: string; attackerLoss: number; defenderLoss: number; narrative?: string }
   | { type: 'moraleChange'; targetGb: string; delta: number }
   | { type: 'cityStatChange'; targetGb: string; field: CityStatField; delta: number }
@@ -555,12 +554,6 @@ export const useGameStore = defineStore('game', () => {
         if (e.amount > from.troops) return { ok: false, reason: `出兵量 ${e.amount}k 超过驻军 ${from.troops}k` }
         return { ok: true }
       }
-      case 'reinforce': {
-        const gb = resolveLocationId(e.gb) ?? e.gb
-        if (!cities.value[gb]) return { ok: false, reason: `增援目标城不存在: ${e.gb}` }
-        if (e.amount <= 0) return { ok: false, reason: `增援量必须为正: ${e.amount}` }
-        return { ok: true }
-      }
       case 'capture':
       case 'moraleChange':
       case 'cityStatChange':
@@ -783,18 +776,6 @@ export const useGameStore = defineStore('game', () => {
       cities.value = {
         ...cities.value,
         [e.fromGb]: { ...from, troops: from.troops - e.amount, fieldForce: from.fieldForce + e.amount },
-      }
-      return { ok: true }
-    }
-    // 增援：向前线补充兵力
-    if (e.type === 'reinforce') {
-      const t = cities.value[e.gb]!
-      cities.value = {
-        ...cities.value,
-        [e.gb]:
-          e.side === 'attacker'
-            ? { ...t, fieldForce: t.fieldForce + e.amount }
-            : { ...t, troops: t.troops + e.amount },
       }
       return { ok: true }
     }

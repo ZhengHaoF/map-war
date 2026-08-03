@@ -98,10 +98,10 @@ export function validateGameOrder(json: unknown): ValidationResult {
     }
   }
 
-  // ── 内政 / 建设指令 + deploy / reinforce：gb 城市存在 + amount 校验 ──
-  const NEED_GB_AMOUNT: OrderType[] = ['recruit', 'develop', 'fortify', 'rally', 'deploy', 'reinforce']
+  // ── 内政 / 建设指令 + deploy：gb 城市存在 + amount 校验 ──
+  const NEED_GB_AMOUNT: OrderType[] = ['recruit', 'develop', 'fortify', 'rally', 'deploy']
   if (NEED_GB_AMOUNT.includes(order as OrderType)) {
-    // deploy 用 from，reinforce 和 内政 用 gb
+    // deploy 用 from，内政 用 gb
     const locId = order === 'deploy' ? resolveLocationId(String(o.from ?? '')) : resolveLocationId(String(o.gb ?? ''))
     const locField = order === 'deploy' ? 'from' : 'gb'
     if (!locId) {
@@ -116,9 +116,6 @@ export function validateGameOrder(json: unknown): ValidationResult {
     }
     if (order === 'develop' && !(DEVELOP_FIELDS as readonly string[]).includes(String(o.field))) {
       errors.push(`field 必须是 ${DEVELOP_FIELDS.join(' / ')}（收到: ${String(o.field)}）`)
-    }
-    if (order === 'reinforce' && o.side !== undefined && o.side !== 'attacker' && o.side !== 'defender') {
-      errors.push(`side 必须是 attacker 或 defender（收到: ${String(o.side)}）`)
     }
   }
 
@@ -238,8 +235,8 @@ function validateOwnedOrder(
     }
   }
 
-  // 2.5 内政 / 建设 / deploy / reinforce：目标城市必须是己方——不能给敌方搞建设/增援
-  const NEED_OWN_CITY: OrderType[] = ['recruit', 'develop', 'fortify', 'rally', 'deploy', 'reinforce']
+  // 2.5 内政 / 建设 / deploy：目标城市必须是己方——不能给敌方搞建设
+  const NEED_OWN_CITY: OrderType[] = ['recruit', 'develop', 'fortify', 'rally', 'deploy']
   if (NEED_OWN_CITY.includes(order.order as OrderType)) {
     const locId = order.order === 'deploy' ? resolveLocationId(order.from!) : resolveLocationId(order.gb!)
     const locField = order.order === 'deploy' ? order.from : order.gb
@@ -443,7 +440,7 @@ export const CONTRACT_SCHEMA_TEXT = `你是民国军阀推演游戏的最高权�
 【地点参数说明】所有城市地点参数（arrowFly / radarPulse / orbBurst / battle 的 from / to，以及 capture 的 gb）请直接填城市中文名（如 "北京"、"上海"、"日本"），系统会自动转换为内部编码。支持简称/简写（如 "重庆"、"咸阳"），也兼容直接填 gb 编码，但优先用中文名。
 
 ═══════════════════════════════════════
-  指令一览（共 19 条）
+  指令一览（共 17 条）
 ═══════════════════════════════════════
 
 1. arrowFly — 箭头飞行动画（黄点弧线从 A 飞 B，纯视觉演出，不改世界态）
@@ -470,54 +467,49 @@ export const CONTRACT_SCHEMA_TEXT = `你是民国军阀推演游戏的最高权�
 
 6. listBattles — 查询进行中战斗列表（无参数，返回 battles 数组）
 
-8. fogCover — 云雾遮罩动画（全屏云雾盖屏→停顿→揭开，纯视觉演出，不改世界态）
+7. fogCover — 云雾遮罩动画（全屏云雾盖屏→停顿→揭开，纯视觉演出，不改世界态）
    （无参数）
 
-9. capture — 占领/接收城市（演出：城池点亮 + 冲击波；动画播完后变更归属）
+8. capture — 占领/接收城市（演出：城池点亮 + 冲击波；动画播完后变更归属）
    - gb     （必填）：目标城市中文名，如 "上海"
    - owner  （必填）：新控制势力，填中文名如 "国民政府"（见下方势力一览）
    - resultTroops（可选）：占领后新驻军数量，单位 k；不传则仅易主、驻军保持不变
 
-10. moveTroops — 调兵（从 A 城搬运 N 千兵到 B 城，演出：黄点弧线行军；动画播完后落地：A 减 N、B 加 N）
+9. moveTroops — 调兵（从 A 城搬运 N 千兵到 B 城，演出：黄点弧线行军；动画播完后落地：A 减 N、B 加 N）
    - from  （必填）：出发城市中文名
    - to    （必填）：目标城市中文名（god-mode 可任意两城；玩家模式限己方城）
    - amount（必填）：搬运兵力，单位 k，须为正数
 
-11. recruit — 征兵（目标城驻军增加，演出：红色飘字 +N k 兵）
+10. recruit — 征兵（目标城驻军增加，演出：红色飘字 +N k 兵）
    - gb    （必填）：目标城市中文名
    - amount（必填）：征兵数量，单位 k，须为正数
 
-12. develop — 建设（提升目标城工业或粮食产出，演出：金色飘字 +N 工业/粮食）
+11. develop — 建设（提升目标城工业或粮食产出，演出：金色飘字 +N 工业/粮食）
    - gb    （必填）：目标城市中文名
    - field （必填）：调整字段，只能是 "industry"（工业）或 "food"（粮食）
    - amount（必填）：提升量，须为正数
 
-13. fortify — 筑防（提升目标城工事等级，演出：灰色飘字 +N 工事）
+12. fortify — 筑防（提升目标城工事等级，演出：灰色飘字 +N 工事）
    - gb    （必填）：目标城市中文名
    - amount（必填）：工事提升量，须为正数
 
-14. rally — 整军（调整目标城士气，演出：绿色飘字 ±N 士气）
+13. rally — 整军（调整目标城士气，演出：绿色飘字 ±N 士气）
    - gb    （必填）：目标城市中文名
    - amount（必填）：士气增量，可正可负（正=鼓舞，负=挫败），不能为 0
 
-15. setFactionAlive — 设置势力存活状态
+14. setFactionAlive — 设置势力存活状态
     - faction（必填）：目标势力中文名（见下方势力一览）
     - alive   （必填）：true = 加入存活列表；false = 移除（灭亡）
 
-16. setCurrentDate — 推进全局日期（必须放 orders 数组最后一项）
+15. setCurrentDate — 推进全局日期（必须放 orders 数组最后一项）
     - date（必填）：ISO 日期字符串，如 "1937-07-07"
 
-17. setCurrentFaction — 切换玩家操控势力
+16. setCurrentFaction — 切换玩家操控势力
     - faction（必填）：势力中文名（见下方势力一览）
 
-18. deploy — 出兵（将驻军调拨为外出兵力，离开城市对外作战）
+17. deploy — 出兵（将驻军调拨为外出兵力，离开城市对外作战）
    - from  （必填）：出发城市中文名（己方城）
    - amount（必填）：出兵数量，单位 k，须为正数
-
-19. reinforce — 增援（向已开战的攻方或守方前线/城内补充兵力）
-   - gb    （必填）：城市中文名
-   - amount（必填）：增援数量，单位 k，须为正数
-   - side  （必填）：attacker（补攻方前线兵力）或 defender（补守方城内驻军）
 
 ═══════════════════════════════════════
   势力一览（全部用中文名）
@@ -727,27 +719,27 @@ export const PLAYER_AI_UNIFIED_PROMPT = `你是民国军阀推演游戏的世界
 
 6. listBattles — 查询战斗列表（无参数）
 
-8. fogCover — 云雾遮罩动画（纯视觉，无参数）
+7. fogCover — 云雾遮罩动画（纯视觉，无参数）
 
-9. capture — 占领城市（⚠ 需前置 battle）
+8. capture — 占领城市（⚠ 需前置 battle）
    gb(必填) owner(必填,己方势力中文名) resultTroops(可选,k)
 
-10. moveTroops — 调兵（己方两城间搬运驻军）
+9. moveTroops — 调兵（己方两城间搬运驻军）
    from(必填,己方城) to(必填,己方城) amount(必填,k，不超过源城驻军)
 
-11. recruit — 征兵（目标城驻军增加）
+10. recruit — 征兵（目标城驻军增加）
    gb(必填,己方城) amount(必填,k，正数)
 
-12. develop — 建设（提升工业或粮食产出）
+11. develop — 建设（提升工业或粮食产出）
    gb(必填,己方城) field(必填,"industry"或"food") amount(必填,正数)
 
-13. fortify — 筑防（提升工事等级）
+12. fortify — 筑防（提升工事等级）
    gb(必填,己方城) amount(必填,正数)
 
-14. rally — 整军（调整士气，正=鼓舞 负=挫败）
+13. rally — 整军（调整士气，正=鼓舞 负=挫败）
    gb(必填,己方城) amount(必填,非零，可正可负)
 
-15. deploy — 出兵（将驻军调拨为外出兵力；用于开战前精确控制出兵量 / 战斗中从本城抽兵补前线兜底不足）
+14. deploy — 出兵（将驻军调拨为外出兵力；用于开战前精确控制出兵量 / 战斗中从本城抽兵补前线兜底不足）
    from(必填,己方城) amount(必填,k，不超过驻军)
 
 ═══════════════════════════════════════

@@ -165,7 +165,7 @@ export function buildFactionSystemPrompt(faction: Owner): string {
   "msg": "一句叙事总结（如'晋军从太原出发，逼近洛阳'或'东北军按兵不动，静观其变'）",
   "orders": [
     { "order": "battle", "from": "奉天", "to": "锦州", "deployAmount": 8 },
-    { "order": "reinforce", "gb": "奉天", "amount": 5, "side": "attacker" }
+    { "order": "moveTroops", "from": "辽阳", "to": "奉天", "amount": 5 }
   ],
   "telegram": "（可选）给玩家的一封电报",
   "diplomaticProposal": {
@@ -182,7 +182,6 @@ export function buildFactionSystemPrompt(faction: Owner): string {
 - 如果本回合无行动，orders 为空数组 []
 - diplomaticProposal 可选：仅在希望主动向目标势力发起求和、结盟或通谍时填写
 - battle 已自带出兵，**不再需要先 deploy 后 battle**；deploy 用于开战前精确控量、或已开战后从本城抽兵补前线
-- reinforce：attacker=增援前线（加外出兵力），defender=增援守城（加驻军）
 - msg 必须是一句自然中文叙事
 - telegram 可选，50-80字半文言
 
@@ -193,14 +192,13 @@ export function buildFactionSystemPrompt(faction: Owner): string {
 ${usableOrders.join(' / ')}
 - battle: from(己方城) to(目标城) [deployAmount] — 发起攻城战（自动出兵兜底）
 - deploy: from(己方城) amount(正数,千) — 出兵（精确控制出兵量 / 战中从本城抽兵补前线）
-- reinforce: gb(城名) amount(正数,千) side(attacker/defender) — 增援前线或守城
 - capture: gb(城名) owner(${OWNER_LABELS[faction]}) [resultTroops] — 占领
 - moveTroops: from(己方源城) to(己方目标城) amount(正数,千) — 调兵
 - stopBattle: id(战斗id) [reason:retreat/surrender] — 终止战斗
 - recruit / develop / fortify / rally — 内政建设
 - arrowFly / radarPulse / orbBurst / fogCover — 纯视觉演出
 
-有进行中的战斗：可选 deploy 从本城抽兵、reinforce 增援、stopBattle 撤退、或不下指令继续打。`
+有进行中的战斗：可选 deploy 从本城抽兵、moveTroops 调兵增援、stopBattle 撤退、或不下指令继续打。`
 }
 
 /**
@@ -229,7 +227,7 @@ export function buildBattleContext(faction: Owner): string {
     }
   }
   lines.push('')
-  lines.push('你可选择：reinforce 增援 / stopBattle 撤退 / 不下指令继续打。')
+  lines.push('你可选择：moveTroops 调兵增援 / deploy 从本城抽兵 / stopBattle 撤退 / 不下指令继续打。')
   return lines.join('\n')
 }
 
