@@ -204,6 +204,8 @@ const owners = [
   Owner.MA,
   Owner.XJ,
   Owner.TIB,
+  Owner.YUN,
+  Owner.GUI,
 ]
 
 const name = ref('')

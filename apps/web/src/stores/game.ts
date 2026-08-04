@@ -238,6 +238,8 @@ export const useGameStore = defineStore('game', () => {
     Owner.MA,
     Owner.XJ,
     Owner.TIB,
+    Owner.YUN,
+    Owner.GUI,
   ])
   const battles = ref<BattleInfo[]>([])
 
@@ -430,6 +432,7 @@ export const useGameStore = defineStore('game', () => {
     activeFactions.value = [
       Owner.KMT, Owner.CCP, Owner.JPN, Owner.NEA,
       Owner.SHX, Owner.GXC, Owner.SCC, Owner.MA, Owner.XJ, Owner.TIB,
+      Owner.YUN, Owner.GUI,
     ]
     const seed: Record<string, CityState> = {}
     for (const c of chinaCities) {

@@ -7,7 +7,7 @@
  *   其余事件类型均为整数类型（兵力/士气/工事等），不需要。
  */
 
-import type { GameEvent, CityStatField } from '@/stores/game'
+import type { GameEvent, CityStatField, BattleEndReason } from '@/stores/game'
 import { Owner, OWNER_LABELS } from '@/data/owners'
 import { round1 } from '@/utils/format'
 
@@ -72,8 +72,10 @@ export function describeEvent(e: GameEvent, cities: Record<string, { name: strin
   switch (e.type) {
     case 'capture':
       return `${cn(e.targetGb)} → ${fn(e.actor)}${e.resultTroops != null ? ` (驻军 ${e.resultTroops}k)` : ''}`
-    case 'attack':
-      return `${cn(e.fromGb)} ⇢ ${cn(e.targetGb)} 攻损 ${e.attackerLoss}k / 守损 ${e.defenderLoss}k`
+    case 'attack': {
+      const base = `${cn(e.fromGb)} ⇢ ${cn(e.targetGb)} 攻损 ${e.attackerLoss}k / 守损 ${e.defenderLoss}k`
+      return e.narrative ? `${base} ${e.narrative}` : base
+    }
     case 'deploy':
       return `${cn(e.fromGb)} 出兵 ${e.amount}k`
     case 'moraleChange':
@@ -90,8 +92,18 @@ export function describeEvent(e: GameEvent, cities: Record<string, { name: strin
       return e.alive ? `${fn(e.faction)} 参战` : `${fn(e.faction)} 覆灭`
     case 'battleStart':
       return `${e.fromName} ⚔ ${e.toName}`
-    case 'battleEnd':
-      return '战斗结束'
+    case 'battleEnd': {
+      const reasonLabels: Record<BattleEndReason, string> = {
+        capture: '被占领',
+        attackerRouted: '攻方溃散',
+        retreat: '撤退',
+        defenderCollapse: '守方崩溃',
+        attackerCollapse: '攻方崩溃',
+        peace: '停战',
+      }
+      const label = e.reason ? reasonLabels[e.reason] : '战斗结束'
+      return e.reason === 'retreat' && e.retreatLoss != null ? `${label}（追击 ${e.retreatLoss}k）` : label
+    }
     case 'selectFaction':
       return `${e.playerName || '主公'} 择 ${fn(e.faction)}`
     case 'narrative':
@@ -120,7 +132,7 @@ export function describeEvent(e: GameEvent, cities: Record<string, { name: strin
 
 /** 事件是否属于"回合例行事务"（不构成值得展示的摘要内容） */
 export function isRoutineEvent(e: GameEvent): boolean {
-  return e.type === 'narrative' || e.type === 'dateAdvance' || e.type === 'battleEnd'
+  return e.type === 'narrative' || e.type === 'dateAdvance'
 }
 
 /** 事件是否属于"重要"事件（应在摘要中高亮） */
@@ -129,7 +141,8 @@ export function isImportantEvent(e: GameEvent): boolean {
     e.type === 'setFactionAlive' ||
     e.type === 'capture' ||
     (e.type === 'relationChange' && e.status === 'war') ||
-    e.type === 'battleStart'
+    e.type === 'battleStart' ||
+    (e.type === 'battleEnd' && e.reason === 'capture')
   )
 }
 

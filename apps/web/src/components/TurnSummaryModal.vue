@@ -75,9 +75,9 @@ const ICONS: Record<string, Component> = {
 
 // ─── 分组 ───
 
-/** 非例行事件（过滤掉叙事/日期推进/战斗结束） */
+/** 非例行事件（过滤掉叙事/日期推进） */
 const meaningful = computed(() =>
-  props.events.filter((e) => e.type !== 'narrative' && e.type !== 'dateAdvance' && e.type !== 'battleEnd'),
+  props.events.filter((e) => e.type !== 'narrative' && e.type !== 'dateAdvance'),
 )
 
 /** 按 SummaryGroup 分组 */

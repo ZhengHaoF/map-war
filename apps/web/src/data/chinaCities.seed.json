@@ -98,14 +98,14 @@
   {
     "name": "六盘水市",
     "gb": "156520200",
-    "owner": "KMT",
+    "owner": "GUI",
     "terrain": "MOUNTAIN",
     "cityLevel": 2,
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 5,
-    "morale": 55
+    "troops": 2,
+    "morale": 42
   },
   {
     "name": "深圳市",
@@ -146,26 +146,26 @@
   {
     "name": "楚雄彝族自治州",
     "gb": "156532300",
-    "owner": "KMT",
+    "owner": "YUN",
     "terrain": "MOUNTAIN",
     "cityLevel": 2,
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 5,
-    "morale": 55
+    "troops": 2,
+    "morale": 57
   },
   {
     "name": "大连市",
     "gb": "156210200",
-    "owner": "NEA",
+    "owner": "JPN",
     "terrain": "PLAIN",
     "cityLevel": 2,
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
-    "morale": 47
+    "troops": 5,
+    "morale": 85
   },
   {
     "name": "攀枝花市",
@@ -200,7 +200,7 @@
     "industry": 30,
     "food": 30,
     "fort": 80,
-    "troops": 26,
+    "troops": 27,
     "morale": 61
   },
   {
@@ -242,7 +242,7 @@
     "industry": 40,
     "food": 60,
     "fort": 60,
-    "troops": 26,
+    "troops": 27,
     "morale": 58
   },
   {
@@ -284,14 +284,14 @@
   {
     "name": "迪庆藏族自治州",
     "gb": "156533400",
-    "owner": "KMT",
+    "owner": "YUN",
     "terrain": "MOUNTAIN",
     "cityLevel": 2,
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 5,
-    "morale": 55
+    "troops": 2,
+    "morale": 57
   },
   {
     "name": "宜宾市",
@@ -326,20 +326,20 @@
     "industry": 50,
     "food": 60,
     "fort": 60,
-    "troops": 42,
+    "troops": 46,
     "morale": 61
   },
   {
     "name": "贵阳市",
     "gb": "156520100",
-    "owner": "KMT",
+    "owner": "GUI",
     "terrain": "MOUNTAIN",
     "cityLevel": 3,
     "industry": 20,
     "food": 30,
     "fort": 40,
-    "troops": 13,
-    "morale": 58
+    "troops": 9,
+    "morale": 53
   },
   {
     "name": "珠海市",
@@ -362,7 +362,7 @@
     "industry": 30,
     "food": 50,
     "fort": 20,
-    "troops": 17,
+    "troops": 18,
     "morale": 50
   },
   {
@@ -452,14 +452,14 @@
   {
     "name": "鞍山市",
     "gb": "156210300",
-    "owner": "NEA",
+    "owner": "JPN",
     "terrain": "PLAIN",
     "cityLevel": 2,
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
-    "morale": 47
+    "troops": 3,
+    "morale": 77
   },
   {
     "name": "铜陵市",
@@ -626,26 +626,26 @@
   {
     "name": "安顺市",
     "gb": "156520400",
-    "owner": "KMT",
+    "owner": "GUI",
     "terrain": "MOUNTAIN",
     "cityLevel": 2,
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 5,
-    "morale": 55
+    "troops": 2,
+    "morale": 42
   },
   {
     "name": "黔南布依族苗族自治州",
     "gb": "156522700",
-    "owner": "KMT",
+    "owner": "GUI",
     "terrain": "MOUNTAIN",
     "cityLevel": 2,
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 5,
-    "morale": 55
+    "troops": 2,
+    "morale": 42
   },
   {
     "name": "厦门市",
@@ -686,14 +686,14 @@
   {
     "name": "红河哈尼族彝族自治州",
     "gb": "156532500",
-    "owner": "KMT",
+    "owner": "YUN",
     "terrain": "MOUNTAIN",
     "cityLevel": 2,
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 5,
-    "morale": 55
+    "troops": 2,
+    "morale": 57
   },
   {
     "name": "甘南藏族自治州",
@@ -812,7 +812,7 @@
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
+    "troops": 5,
     "morale": 55
   },
   {
@@ -848,7 +848,7 @@
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
+    "troops": 5,
     "morale": 55
   },
   {
@@ -860,32 +860,32 @@
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
+    "troops": 5,
     "morale": 55
   },
   {
     "name": "遵义市",
     "gb": "156520300",
-    "owner": "KMT",
+    "owner": "GUI",
     "terrain": "MOUNTAIN",
     "cityLevel": 2,
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
-    "morale": 55
+    "troops": 1,
+    "morale": 42
   },
   {
     "name": "黔东南苗族侗族自治州",
     "gb": "156522600",
-    "owner": "KMT",
+    "owner": "GUI",
     "terrain": "MOUNTAIN",
     "cityLevel": 2,
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
-    "morale": 55
+    "troops": 1,
+    "morale": 42
   },
   {
     "name": "莆田市",
@@ -896,7 +896,7 @@
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
+    "troops": 5,
     "morale": 55
   },
   {
@@ -920,7 +920,7 @@
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
+    "troops": 5,
     "morale": 55
   },
   {
@@ -938,14 +938,14 @@
   {
     "name": "昆明市",
     "gb": "156530100",
-    "owner": "KMT",
+    "owner": "YUN",
     "terrain": "MOUNTAIN",
     "cityLevel": 4,
     "industry": 30,
     "food": 40,
     "fort": 60,
-    "troops": 26,
-    "morale": 61
+    "troops": 18,
+    "morale": 71
   },
   {
     "name": "张家界市",
@@ -956,7 +956,7 @@
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
+    "troops": 5,
     "morale": 55
   },
   {
@@ -980,7 +980,7 @@
     "industry": 80,
     "food": 50,
     "fort": 40,
-    "troops": 120,
+    "troops": 129,
     "morale": 61
   },
   {
@@ -992,7 +992,7 @@
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
+    "troops": 5,
     "morale": 55
   },
   {
@@ -1004,7 +1004,7 @@
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
+    "troops": 5,
     "morale": 55
   },
   {
@@ -1016,7 +1016,7 @@
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
+    "troops": 5,
     "morale": 55
   },
   {
@@ -1028,7 +1028,7 @@
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
+    "troops": 5,
     "morale": 55
   },
   {
@@ -1040,8 +1040,8 @@
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 20,
-    "morale": 85
+    "troops": 3,
+    "morale": 77
   },
   {
     "name": "十堰市",
@@ -1052,7 +1052,7 @@
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
+    "troops": 5,
     "morale": 55
   },
   {
@@ -1064,20 +1064,20 @@
     "industry": 20,
     "food": 30,
     "fort": 20,
-    "troops": 13,
+    "troops": 14,
     "morale": 58
   },
   {
     "name": "德宏傣族景颇族自治州",
     "gb": "156533100",
-    "owner": "KMT",
+    "owner": "YUN",
     "terrain": "MOUNTAIN",
     "cityLevel": 2,
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
-    "morale": 55
+    "troops": 2,
+    "morale": 57
   },
   {
     "name": "梧州市",
@@ -1100,7 +1100,7 @@
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
+    "troops": 5,
     "morale": 55
   },
   {
@@ -1112,7 +1112,7 @@
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
+    "troops": 5,
     "morale": 55
   },
   {
@@ -1124,7 +1124,7 @@
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
+    "troops": 5,
     "morale": 55
   },
   {
@@ -1148,7 +1148,7 @@
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
+    "troops": 5,
     "morale": 55
   },
   {
@@ -1184,7 +1184,7 @@
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
+    "troops": 5,
     "morale": 55
   },
   {
@@ -1208,7 +1208,7 @@
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
+    "troops": 5,
     "morale": 55
   },
   {
@@ -1256,7 +1256,7 @@
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
+    "troops": 5,
     "morale": 55
   },
   {
@@ -1268,7 +1268,7 @@
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
+    "troops": 5,
     "morale": 55
   },
   {
@@ -1280,7 +1280,7 @@
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
+    "troops": 5,
     "morale": 55
   },
   {
@@ -1292,7 +1292,7 @@
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
+    "troops": 5,
     "morale": 55
   },
   {
@@ -1328,7 +1328,7 @@
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
+    "troops": 5,
     "morale": 55
   },
   {
@@ -1340,7 +1340,7 @@
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
+    "troops": 5,
     "morale": 55
   },
   {
@@ -1352,7 +1352,7 @@
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
+    "troops": 5,
     "morale": 55
   },
   {
@@ -1364,7 +1364,7 @@
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
+    "troops": 5,
     "morale": 55
   },
   {
@@ -1376,7 +1376,7 @@
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
+    "troops": 5,
     "morale": 55
   },
   {
@@ -1388,7 +1388,7 @@
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
+    "troops": 5,
     "morale": 55
   },
   {
@@ -1412,7 +1412,7 @@
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
+    "troops": 5,
     "morale": 55
   },
   {
@@ -1424,7 +1424,7 @@
     "industry": 40,
     "food": 70,
     "fort": 80,
-    "troops": 34,
+    "troops": 37,
     "morale": 61
   },
   {
@@ -1436,7 +1436,7 @@
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
+    "troops": 5,
     "morale": 55
   },
   {
@@ -1448,7 +1448,7 @@
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
+    "troops": 5,
     "morale": 55
   },
   {
@@ -1460,7 +1460,7 @@
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
+    "troops": 5,
     "morale": 55
   },
   {
@@ -1508,7 +1508,7 @@
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
+    "troops": 5,
     "morale": 55
   },
   {
@@ -1520,7 +1520,7 @@
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
+    "troops": 5,
     "morale": 55
   },
   {
@@ -1532,7 +1532,7 @@
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
+    "troops": 5,
     "morale": 55
   },
   {
@@ -1544,7 +1544,7 @@
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
+    "troops": 5,
     "morale": 55
   },
   {
@@ -1556,7 +1556,7 @@
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
+    "troops": 5,
     "morale": 55
   },
   {
@@ -1568,7 +1568,7 @@
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
+    "troops": 5,
     "morale": 55
   },
   {
@@ -1640,7 +1640,7 @@
     "industry": 100,
     "food": 20,
     "fort": 40,
-    "troops": 106,
+    "troops": 114,
     "morale": 64
   },
   {
@@ -1664,7 +1664,7 @@
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
+    "troops": 5,
     "morale": 55
   },
   {
@@ -1676,7 +1676,7 @@
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
+    "troops": 5,
     "morale": 55
   },
   {
@@ -1688,7 +1688,7 @@
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
+    "troops": 5,
     "morale": 55
   },
   {
@@ -1724,7 +1724,7 @@
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
+    "troops": 5,
     "morale": 55
   },
   {
@@ -1736,7 +1736,7 @@
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
+    "troops": 5,
     "morale": 55
   },
   {
@@ -1760,7 +1760,7 @@
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
+    "troops": 5,
     "morale": 55
   },
   {
@@ -1784,7 +1784,7 @@
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
+    "troops": 5,
     "morale": 55
   },
   {
@@ -1796,7 +1796,7 @@
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
+    "troops": 5,
     "morale": 55
   },
   {
@@ -1808,20 +1808,20 @@
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
+    "troops": 5,
     "morale": 55
   },
   {
     "name": "怒江傈僳族自治州",
     "gb": "156533300",
-    "owner": "KMT",
+    "owner": "YUN",
     "terrain": "MOUNTAIN",
     "cityLevel": 2,
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
-    "morale": 55
+    "troops": 2,
+    "morale": 57
   },
   {
     "name": "柳州市",
@@ -1868,7 +1868,7 @@
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
+    "troops": 5,
     "morale": 55
   },
   {
@@ -1880,7 +1880,7 @@
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
+    "troops": 5,
     "morale": 55
   },
   {
@@ -1892,20 +1892,20 @@
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
+    "troops": 5,
     "morale": 55
   },
   {
     "name": "黔西南布依族苗族自治州",
     "gb": "156522300",
-    "owner": "KMT",
+    "owner": "GUI",
     "terrain": "MOUNTAIN",
     "cityLevel": 2,
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
-    "morale": 55
+    "troops": 1,
+    "morale": 42
   },
   {
     "name": "晋城市",
@@ -1928,7 +1928,7 @@
     "industry": 60,
     "food": 60,
     "fort": 60,
-    "troops": 64,
+    "troops": 69,
     "morale": 64
   },
   {
@@ -1970,7 +1970,7 @@
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
+    "troops": 5,
     "morale": 55
   },
   {
@@ -1994,7 +1994,7 @@
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
+    "troops": 5,
     "morale": 55
   },
   {
@@ -2006,7 +2006,7 @@
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
+    "troops": 5,
     "morale": 55
   },
   {
@@ -2036,14 +2036,14 @@
   {
     "name": "抚顺市",
     "gb": "156210400",
-    "owner": "NEA",
+    "owner": "JPN",
     "terrain": "PLAIN",
     "cityLevel": 2,
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
-    "morale": 47
+    "troops": 3,
+    "morale": 77
   },
   {
     "name": "安庆市",
@@ -2054,7 +2054,7 @@
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
+    "troops": 5,
     "morale": 55
   },
   {
@@ -2102,7 +2102,7 @@
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
+    "troops": 5,
     "morale": 55
   },
   {
@@ -2126,7 +2126,7 @@
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
+    "troops": 5,
     "morale": 55
   },
   {
@@ -2150,7 +2150,7 @@
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
+    "troops": 5,
     "morale": 55
   },
   {
@@ -2198,7 +2198,7 @@
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
+    "troops": 5,
     "morale": 55
   },
   {
@@ -2234,7 +2234,7 @@
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
+    "troops": 5,
     "morale": 55
   },
   {
@@ -2258,7 +2258,7 @@
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
+    "troops": 5,
     "morale": 55
   },
   {
@@ -2318,7 +2318,7 @@
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
+    "troops": 5,
     "morale": 55
   },
   {
@@ -2372,7 +2372,7 @@
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
+    "troops": 5,
     "morale": 55
   },
   {
@@ -2384,7 +2384,7 @@
     "industry": 50,
     "food": 50,
     "fort": 40,
-    "troops": 37,
+    "troops": 41,
     "morale": 53
   },
   {
@@ -2444,7 +2444,7 @@
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
+    "troops": 5,
     "morale": 55
   },
   {
@@ -2456,7 +2456,7 @@
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
+    "troops": 5,
     "morale": 55
   },
   {
@@ -2468,7 +2468,7 @@
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
+    "troops": 5,
     "morale": 55
   },
   {
@@ -2480,7 +2480,7 @@
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
+    "troops": 5,
     "morale": 55
   },
   {
@@ -2492,7 +2492,7 @@
     "industry": 40,
     "food": 70,
     "fort": 60,
-    "troops": 34,
+    "troops": 37,
     "morale": 61
   },
   {
@@ -2540,7 +2540,7 @@
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
+    "troops": 5,
     "morale": 55
   },
   {
@@ -2552,7 +2552,7 @@
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
+    "troops": 5,
     "morale": 55
   },
   {
@@ -2564,7 +2564,7 @@
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
+    "troops": 5,
     "morale": 55
   },
   {
@@ -2576,7 +2576,7 @@
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
+    "troops": 5,
     "morale": 55
   },
   {
@@ -2600,7 +2600,7 @@
     "industry": 50,
     "food": 60,
     "fort": 40,
-    "troops": 42,
+    "troops": 46,
     "morale": 61
   },
   {
@@ -2612,7 +2612,7 @@
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
+    "troops": 5,
     "morale": 55
   },
   {
@@ -2678,14 +2678,14 @@
   {
     "name": "普洱市",
     "gb": "156530800",
-    "owner": "KMT",
+    "owner": "YUN",
     "terrain": "MOUNTAIN",
     "cityLevel": 2,
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
-    "morale": 55
+    "troops": 2,
+    "morale": 57
   },
   {
     "name": "白城市",
@@ -2906,7 +2906,7 @@
     "industry": 40,
     "food": 50,
     "fort": 100,
-    "troops": 42,
+    "troops": 46,
     "morale": 64
   },
   {
@@ -2960,14 +2960,14 @@
   {
     "name": "丽江市",
     "gb": "156530700",
-    "owner": "KMT",
+    "owner": "YUN",
     "terrain": "MOUNTAIN",
     "cityLevel": 2,
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
-    "morale": 55
+    "troops": 2,
+    "morale": 57
   },
   {
     "name": "黄冈市",
@@ -3062,7 +3062,7 @@
     "industry": 70,
     "food": 90,
     "fort": 80,
-    "troops": 74,
+    "troops": 80,
     "morale": 64
   },
   {
@@ -3122,7 +3122,7 @@
     "industry": 60,
     "food": 80,
     "fort": 60,
-    "troops": 127,
+    "troops": 137,
     "morale": 72
   },
   {
@@ -3182,7 +3182,7 @@
     "industry": 60,
     "food": 50,
     "fort": 60,
-    "troops": 64,
+    "troops": 69,
     "morale": 64
   },
   {
@@ -3332,14 +3332,14 @@
   {
     "name": "营口市",
     "gb": "156210800",
-    "owner": "NEA",
+    "owner": "JPN",
     "terrain": "PLAIN",
     "cityLevel": 2,
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
-    "morale": 47
+    "troops": 3,
+    "morale": 77
   },
   {
     "name": "商丘市",
@@ -3554,20 +3554,20 @@
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 3,
+    "troops": 4,
     "morale": 47
   },
   {
     "name": "临沧市",
     "gb": "156530900",
-    "owner": "KMT",
+    "owner": "YUN",
     "terrain": "MOUNTAIN",
     "cityLevel": 2,
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
-    "morale": 55
+    "troops": 1,
+    "morale": 57
   },
   {
     "name": "松原市",
@@ -3578,7 +3578,7 @@
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 3,
+    "troops": 4,
     "morale": 47
   },
   {
@@ -3650,7 +3650,7 @@
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 3,
+    "troops": 4,
     "morale": 47
   },
   {
@@ -3746,7 +3746,7 @@
     "industry": 80,
     "food": 50,
     "fort": 40,
-    "troops": 85,
+    "troops": 92,
     "morale": 64
   },
   {
@@ -3836,26 +3836,26 @@
   {
     "name": "铜仁市",
     "gb": "156520600",
-    "owner": "KMT",
+    "owner": "GUI",
     "terrain": "MOUNTAIN",
     "cityLevel": 2,
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
-    "morale": 55
+    "troops": 1,
+    "morale": 42
   },
   {
     "name": "玉溪市",
     "gb": "156530400",
-    "owner": "KMT",
+    "owner": "YUN",
     "terrain": "MOUNTAIN",
     "cityLevel": 2,
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
-    "morale": 55
+    "troops": 1,
+    "morale": 57
   },
   {
     "name": "江门市",
@@ -3980,14 +3980,14 @@
   {
     "name": "辽阳市",
     "gb": "156211000",
-    "owner": "NEA",
+    "owner": "JPN",
     "terrain": "PLAIN",
     "cityLevel": 2,
     "industry": 10,
     "food": 30,
     "fort": 20,
     "troops": 3,
-    "morale": 47
+    "morale": 77
   },
   {
     "name": "巴中市",
@@ -4076,14 +4076,14 @@
   {
     "name": "毕节市",
     "gb": "156520500",
-    "owner": "KMT",
+    "owner": "GUI",
     "terrain": "MOUNTAIN",
     "cityLevel": 2,
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
-    "morale": 55
+    "troops": 1,
+    "morale": 42
   },
   {
     "name": "福州市",
@@ -4094,7 +4094,7 @@
     "industry": 40,
     "food": 40,
     "fort": 40,
-    "troops": 34,
+    "troops": 37,
     "morale": 61
   },
   {
@@ -4112,14 +4112,14 @@
   {
     "name": "文山壮族苗族自治州",
     "gb": "156532600",
-    "owner": "KMT",
+    "owner": "YUN",
     "terrain": "MOUNTAIN",
     "cityLevel": 2,
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
-    "morale": 55
+    "troops": 1,
+    "morale": 57
   },
   {
     "name": "湛江市",
@@ -4136,14 +4136,14 @@
   {
     "name": "曲靖市",
     "gb": "156530300",
-    "owner": "KMT",
+    "owner": "YUN",
     "terrain": "MOUNTAIN",
     "cityLevel": 2,
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
-    "morale": 55
+    "troops": 1,
+    "morale": 57
   },
   {
     "name": "蚌埠市",
@@ -4250,7 +4250,7 @@
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 3,
+    "troops": 4,
     "morale": 47
   },
   {
@@ -4268,26 +4268,26 @@
   {
     "name": "昭通市",
     "gb": "156530600",
-    "owner": "KMT",
+    "owner": "YUN",
     "terrain": "MOUNTAIN",
     "cityLevel": 2,
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
-    "morale": 55
+    "troops": 1,
+    "morale": 57
   },
   {
     "name": "大理白族自治州",
     "gb": "156532900",
-    "owner": "KMT",
+    "owner": "YUN",
     "terrain": "MOUNTAIN",
     "cityLevel": 2,
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
-    "morale": 55
+    "troops": 1,
+    "morale": 57
   },
   {
     "name": "定西市",
@@ -4454,20 +4454,20 @@
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 3,
+    "troops": 4,
     "morale": 47
   },
   {
     "name": "西双版纳傣族自治州",
     "gb": "156532800",
-    "owner": "KMT",
+    "owner": "YUN",
     "terrain": "MOUNTAIN",
     "cityLevel": 2,
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
-    "morale": 55
+    "troops": 1,
+    "morale": 57
   },
   {
     "name": "陇南市",
@@ -4484,14 +4484,14 @@
   {
     "name": "保山市",
     "gb": "156530500",
-    "owner": "KMT",
+    "owner": "YUN",
     "terrain": "MOUNTAIN",
     "cityLevel": 2,
     "industry": 10,
     "food": 30,
     "fort": 20,
-    "troops": 4,
-    "morale": 55
+    "troops": 1,
+    "morale": 57
   },
   {
     "name": "遂宁市",
@@ -4514,7 +4514,7 @@
     "industry": 30,
     "food": 80,
     "fort": 40,
-    "troops": 19,
+    "troops": 21,
     "morale": 58
   },
   {

@@ -367,7 +367,7 @@ async function runWorldTurn(): Promise<void> {
   // 只有存在"有意义的事件"（非 routine）时才弹摘要
   const hasMeaningful = newEvents.some((e) => {
     // 使用内联判断替代 isRoutineEvent，避免额外引入导入
-    return e.type !== 'narrative' && e.type !== 'dateAdvance' && e.type !== 'battleEnd'
+    return e.type !== 'narrative' && e.type !== 'dateAdvance'
   })
   turnSummary.value = hasMeaningful ? newEvents : null
 

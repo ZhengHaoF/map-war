@@ -12,6 +12,8 @@ export enum Owner {
   MA = 'MA', // 马家军
   XJ = 'XJ', // 新疆
   TIB = 'TIB', // 西藏
+  YUN = 'YUN', // 滇系（云南）
+  GUI = 'GUI', // 黔系（贵州）
   NEUTRAL = 'NEUTRAL', // 中立/无主
 }
 
@@ -52,6 +54,8 @@ export const OWNER_COLORS: Record<Owner, number> = {
   [Owner.MA]: 0x54939c, // 青瓷 - 马家军
   [Owner.XJ]: 0x96603a, // 焦褐 - 新疆
   [Owner.TIB]: 0xc3a43e, // 秋香金 - 西藏
+  [Owner.YUN]: 0x4a7f96, // 鹭青 - 滇系
+  [Owner.GUI]: 0x8a6a4a, // 枯褐 - 黔系
   [Owner.NEUTRAL]: 0xa99a7e, // 纸灰 - 中立
 }
 
@@ -67,6 +71,8 @@ export const OWNER_LABELS: Record<Owner, string> = {
   [Owner.MA]: '马家军',
   [Owner.XJ]: '新疆',
   [Owner.TIB]: '西藏',
+  [Owner.YUN]: '滇系',
+  [Owner.GUI]: '黔系',
   [Owner.NEUTRAL]: '中立',
 }
 
@@ -169,5 +175,23 @@ export const OWNER_DETAILS: Record<string, OwnerDetail> = {
     personality: '凭险自守·与世无争',
     description:
       '雪域高原上的政教合一政权，东有川军觊觎、南有英印渗透。十三世达赖喇嘛圆寂在即，权力暗流涌动。是回归清廷旧约还是独立自主？站在世界屋脊上，风往何处吹？',
+  },
+  [Owner.YUN]: {
+    fullName: '云南省（滇军）',
+    capital: '昆明',
+    leader: '龙云',
+    strength: '滇军约 4 万，据守西南边陲',
+    personality: '权谋沉稳·割据自保',
+    description:
+      '龙云在云南立稳脚跟，滇军装备一般但山地作战娴熟，凭金沙江天险与滇越铁路自成一统。名义归附国民政府，实则自成王国。左顾川黔、右盼桂藏，是就地割据还是出滇图强？',
+  },
+  [Owner.GUI]: {
+    fullName: '贵州省（黔军）',
+    capital: '贵阳',
+    leader: '王家烈',
+    strength: '黔军约 2 万，山地贫瘠军饷匮乏',
+    personality: '守成乏力·摇摆自保',
+    description:
+      '贵州地瘠民贫、派系倾轧，王家烈在蒋桂川各方夹缝中苦苦支撑。黔军粮饷两缺、士气低落，却扼西南咽喉要道。是依附强邻苟存，还是趁中央势力未至迅速扩张？',
   },
 }
