@@ -13,6 +13,7 @@ import { callLlm } from './client'
 import { invokeAgentDecision } from './invoke'
 import { buildSettleContext } from './context'
 import { extractPayloads } from '@/utils/aiParse'
+import { buildScenarioBrief } from '@/data/scenarioBrief'
 import type { GameOrder } from '@/utils/gameOrders'
 
 const BATCH_PROMPT = `你是民国军阀推演游戏的「世界 AI」。你负责为次要势力生成本回合的行动。
@@ -81,7 +82,7 @@ export interface WorldBatchResult {
 
 export async function runWorldBatch(context: string): Promise<WorldBatchResult> {
   const result = await invokeAgentDecision({
-    systemPrompt: BATCH_PROMPT,
+    systemPrompt: BATCH_PROMPT + '\n\n' + buildScenarioBrief(),
     userContext: context,
   })
   if (!result.parseSucceeded) {
@@ -103,7 +104,7 @@ export interface WorldSettleResult {
 export async function runWorldSettle(currentDate: string): Promise<WorldSettleResult> {
   const raw = await callLlm({
     messages: [
-      { role: 'system', content: SETTLE_PROMPT },
+      { role: 'system', content: SETTLE_PROMPT + '\n\n' + buildScenarioBrief() },
       { role: 'system', content: buildSettleContext(currentDate) },
     ],
   })

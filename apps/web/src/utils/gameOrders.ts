@@ -804,6 +804,22 @@ export async function executeOrder(
         attacker: attacker ?? Owner.NEUTRAL,
         defender: defender ?? Owner.NEUTRAL,
       })
+      // 开战自动宣战：双方均非中立时，将外交关系置为 war（战争来自实际战斗，非开局注入）
+      if (
+        attacker &&
+        defender &&
+        attacker !== Owner.NEUTRAL &&
+        defender !== Owner.NEUTRAL &&
+        attacker !== defender
+      ) {
+        store.applyEvent({
+          type: 'relationChange',
+          a: attacker,
+          b: defender,
+          status: 'war',
+          note: `${getLocationName(fromId)}攻${getLocationName(toId)}，兵戈再起`,
+        })
+      }
       result = r
       break
     }
@@ -838,11 +854,14 @@ export async function executeOrder(
         break
       }
       // 灭光束后，由唯一写者结束战斗（battleEnd），携带 reason + 撤退追击减员
+      const battleForEnd = store.battles.find(b => b.id === requestedId)
       store.applyEvent({
         type: 'battleEnd',
         battleId: requestedId,
         reason: (json.reason as 'retreat' | 'peace' | undefined),
         retreatLoss: json.retreatLoss,
+        fromName: battleForEnd?.fromName,
+        toName: battleForEnd?.toName,
       })
       result = r
       break

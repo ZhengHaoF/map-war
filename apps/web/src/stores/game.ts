@@ -140,7 +140,7 @@ export type GameEvent =
   | { type: 'dateAdvance'; date: string }
   | { type: 'setFactionAlive'; faction: Owner; alive: boolean }
   | { type: 'battleStart'; battleId: string; fromGb: string; targetGb: string; fromName: string; toName: string; attacker: Owner; defender: Owner }
-  | { type: 'battleEnd'; battleId: string; reason?: BattleEndReason; retreatLoss?: number }
+  | { type: 'battleEnd'; battleId: string; reason?: BattleEndReason; retreatLoss?: number; fromName?: string; toName?: string }
   | { type: 'selectFaction'; faction: Owner; playerName: string }
   | { type: 'narrative'; playerInput: string; aiMessage: string; kind?: 'player' | 'settlement' }
   // ── 经济系统 ──

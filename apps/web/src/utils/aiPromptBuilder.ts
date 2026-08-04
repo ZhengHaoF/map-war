@@ -14,6 +14,7 @@
 import { useGameStore } from '@/stores/game'
 import { Owner, OWNER_DETAILS, OWNER_LABELS } from '@/data/owners'
 import { TERRAIN_LABEL } from './aiContext'
+import { buildScenarioBrief, buildFactionBrief } from '@/data/scenarioBrief'
 import { CONTRACT_SCHEMA_TEXT, PLAYER_AI_UNIFIED_PROMPT, ADVISOR_SYSTEM_PROMPT } from './aiOrderContract'
 import { ORDER_TYPES } from './gameOrders'
 import { BATTLE_TREND_THRESHOLD } from '@/data/gameConfig'
@@ -71,6 +72,9 @@ export function buildMessages(opts: BuildMessagesOpts): { role: string; content:
   const messages: { role: string; content: string }[] = [
     { role: 'system', content: buildSystemPrompt() },
   ]
+
+  // 注入历史剧本参考（全局时代背景 + 叙事基调），贴合 1931 历史处境
+  messages.push({ role: 'system', content: buildScenarioBrief() })
 
   if (opts.injectWorldOverview) {
     messages.push({ role: 'system', content: '世界全景：\n' + buildWorldOverview() })
@@ -198,7 +202,15 @@ ${usableOrders.join(' / ')}
 - recruit / develop / fortify / rally — 内政建设
 - arrowFly / radarPulse / orbBurst / fogCover — 纯视觉演出
 
-有进行中的战斗：可选 deploy 从本城抽兵、moveTroops 调兵增援、stopBattle 撤退、或不下指令继续打。`
+有进行中的战斗：可选 deploy 从本城抽兵、moveTroops 调兵增援、stopBattle 撤退、或不下指令继续打。
+
+═══════════════════════════════════════
+  剧本参考（历史处境，供你贴合角色）
+═══════════════════════════════════════
+
+${buildScenarioBrief()}
+
+${buildFactionBrief(faction)}`
 }
 
 /**

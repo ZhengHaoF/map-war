@@ -80,10 +80,11 @@ describe('buildPlayerProfile', () => {
 })
 
 describe('buildMessages', () => {
-  it('最小调用：仅 system + user', () => {
+  it('最小调用：仅 system + 剧本参考 + user', () => {
     const msgs = buildMessages({ userText: 'hello' })
-    expect(msgs.length).toBe(2)
+    expect(msgs.length).toBe(3)
     expect(msgs[0]).toEqual({ role: 'system', content: expect.any(String) })
+    expect(msgs[1]).toEqual({ role: 'system', content: expect.stringContaining('剧本参考') })
     expect(msgs[msgs.length - 1]).toEqual({ role: 'user', content: 'hello' })
   })
 
@@ -118,11 +119,11 @@ describe('buildMessages', () => {
         { userText: '上轮用户', assistantText: '上轮AI' },
       ],
     })
-    // system + 历史 user/assistant 对 + 当前 user
-    expect(msgs).toHaveLength(4)
-    expect(msgs[1]).toEqual({ role: 'user', content: '上轮用户' })
-    expect(msgs[2]).toEqual({ role: 'assistant', content: '上轮AI' })
-    expect(msgs[3]).toEqual({ role: 'user', content: '新消息' })
+    // brief + 历史 user/assistant 对 + 当前 user
+    expect(msgs).toHaveLength(5)
+    expect(msgs[2]).toEqual({ role: 'user', content: '上轮用户' })
+    expect(msgs[3]).toEqual({ role: 'assistant', content: '上轮AI' })
+    expect(msgs[4]).toEqual({ role: 'user', content: '新消息' })
   })
 
   it('多轮 chatTurns 按序插入', () => {
@@ -133,11 +134,11 @@ describe('buildMessages', () => {
         { userText: 'U2', assistantText: 'A2' },
       ],
     })
-    expect(msgs).toHaveLength(6)
-    expect(msgs[1]).toEqual({ role: 'user', content: 'U1' })
-    expect(msgs[2]).toEqual({ role: 'assistant', content: 'A1' })
-    expect(msgs[3]).toEqual({ role: 'user', content: 'U2' })
-    expect(msgs[4]).toEqual({ role: 'assistant', content: 'A2' })
-    expect(msgs[5]).toEqual({ role: 'user', content: '第三轮' })
+    expect(msgs).toHaveLength(7)
+    expect(msgs[2]).toEqual({ role: 'user', content: 'U1' })
+    expect(msgs[3]).toEqual({ role: 'assistant', content: 'A1' })
+    expect(msgs[4]).toEqual({ role: 'user', content: 'U2' })
+    expect(msgs[5]).toEqual({ role: 'assistant', content: 'A2' })
+    expect(msgs[6]).toEqual({ role: 'user', content: '第三轮' })
   })
 })

@@ -56,7 +56,14 @@ async function settleActiveBattles(): Promise<void> {
   // 本地 helper：灭光柱 + applyEvent 同步收口，避免光柱残留 bug
   const endBattle = (id: string, reason: BattleEndReason) => {
     stopBattleVisual(id)
-    store.applyEvent({ type: 'battleEnd', battleId: id, reason })
+    const b = store.battles.find((x) => x.id === id)
+    store.applyEvent({
+      type: 'battleEnd',
+      battleId: id,
+      reason,
+      fromName: b?.fromName,
+      toName: b?.toName,
+    })
   }
 
   // ── 第一阶段：前置检查 + 本地公式（不展示） ──

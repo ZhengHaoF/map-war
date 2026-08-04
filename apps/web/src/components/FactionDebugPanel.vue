@@ -1,7 +1,7 @@
 <template>
   <GameModal
     :visible="visible"
-    title="全政权调试总览"
+    title="政权总览"
     width="680px"
     variant="parchment"
     :z-index="4200"

@@ -45,6 +45,10 @@
         <component :is="ICONS['clipboard-text']" :size="16" />
         事件日志
       </GameButton>
+      <GameButton tooltip="查看各政权总览" :active="factionDebugVisible" @click="factionDebugVisible = !factionDebugVisible">
+        <component :is="ICONS.building" :size="16" />
+        政权总览
+      </GameButton>
       <GameButton tooltip="保存当前进度" @click="saveModalVisible = true">
         <component :is="ICONS['device-floppy']" :size="16" />
         保存
@@ -133,9 +137,6 @@
         >
         <GameButton @click="openBattleList"
           ><component :is="ICONS['list']" :size="16" />查看战斗</GameButton
-        >
-        <GameButton @click="factionDebugVisible = true"
-          ><component :is="ICONS.building" :size="16" />政权面板</GameButton
         >
         <GameButton v-if="isDev" @click="aiPanelVisible = true"
           ><component :is="ICONS.brain" :size="16" />世界AI调试</GameButton

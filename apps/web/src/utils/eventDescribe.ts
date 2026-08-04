@@ -46,6 +46,18 @@ export function eventBadge(e: GameEvent): string {
     economicTick: '经济',
     relationChange: '外交',
   }
+  // battleEnd 徽章按 reason 细分，避免统一"停战"对撤退/崩溃/溃散表述不准
+  if (e.type === 'battleEnd') {
+    const reasonBadge: Record<string, string> = {
+      capture: '占领',
+      attackerRouted: '溃散',
+      retreat: '撤退',
+      defenderCollapse: '崩溃',
+      attackerCollapse: '崩溃',
+      peace: '议和',
+    }
+    return (e.reason && reasonBadge[e.reason]) || '停战'
+  }
   return map[e.type]
 }
 
@@ -94,15 +106,18 @@ export function describeEvent(e: GameEvent, cities: Record<string, { name: strin
       return `${e.fromName} ⚔ ${e.toName}`
     case 'battleEnd': {
       const reasonLabels: Record<BattleEndReason, string> = {
-        capture: '被占领',
+        capture: '守方被占领',
         attackerRouted: '攻方溃散',
-        retreat: '撤退',
+        retreat: '攻方撤退',
         defenderCollapse: '守方崩溃',
         attackerCollapse: '攻方崩溃',
-        peace: '停战',
+        peace: '议和停战',
       }
       const label = e.reason ? reasonLabels[e.reason] : '战斗结束'
-      return e.reason === 'retreat' && e.retreatLoss != null ? `${label}（追击 ${e.retreatLoss}k）` : label
+      const who = e.fromName && e.toName ? `${e.fromName} ⚔ ${e.toName} — ` : ''
+      const loss =
+        e.reason === 'retreat' && e.retreatLoss != null ? `（追击 ${e.retreatLoss}k）` : ''
+      return `${who}${label}${loss}`
     }
     case 'selectFaction':
       return `${e.playerName || '主公'} 择 ${fn(e.faction)}`
