@@ -1118,7 +1118,7 @@ function copyInfoTitle(): void {
   const text = infoTitle.value
   if (!text) return
   navigator.clipboard.writeText(text).then(() => {
-    useToast().push({ icon: 'check', tone: 'success', title: '已复制', text })
+    useToast().push({ icon: 'check', tone: 'green', title: '已复制', text })
   }).catch(() => {
     const ta = document.createElement('textarea')
     ta.value = text
@@ -1126,7 +1126,7 @@ function copyInfoTitle(): void {
     ta.select()
     document.execCommand('copy')
     document.body.removeChild(ta)
-    useToast().push({ icon: 'check', tone: 'success', title: '已复制', text })
+    useToast().push({ icon: 'check', tone: 'green', title: '已复制', text })
   })
 }
 

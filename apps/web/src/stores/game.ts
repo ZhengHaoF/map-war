@@ -13,7 +13,7 @@ import {
   ARREAR_MORALE_PENALTY,
   FAMINE_TROOP_LOSS_RATE,
 } from '@/utils/economy'
-import { DEFAULT_MORALE, MORALE_MIN, MORALE_MAX, CITY_CAP_INDUSTRY, CITY_CAP_FOOD, CITY_CAP_FORT, CITY_CAP_LEVEL } from '@/data/gameConfig'
+import { DEFAULT_MORALE, MORALE_MIN, MORALE_MAX, CITY_CAP_INDUSTRY, CITY_CAP_FOOD, CITY_CAP_FORT, CITY_CAP_LEVEL, CAPTURE_MORALE_BONUS } from '@/data/gameConfig'
 import { round1 } from '@/utils/format'
 
 // 战斗元数据（PixiJS 句柄不进 store，由 gameOrders 模块本地持有）
@@ -33,6 +33,18 @@ export interface BattleInfo {
   lastDefenderLoss: number
   /** AI 战斗裁决官最近一次战报叙事（每回合结算时更新；开局为空） */
   lastNarrative?: string
+}
+
+/** 游戏结束状态 */
+export interface GameOverState {
+  /** 游戏是否已结束 */
+  ended: boolean
+  /** 胜利势力（null = 玩家灭亡） */
+  winner: Owner | null
+  /** 结束时的游戏日期 */
+  endedAt: string
+  /** 结束原因 */
+  reason: 'playerDefeated' | 'allEnemiesDefeated'
 }
 
 /** 电报（AI 自主生成，非世界态事件，不进 eventLog） */
@@ -260,6 +272,9 @@ export const useGameStore = defineStore('game', () => {
   const diplomacyRecords = ref<DiplomacyRecord[]>([])
   let _tgSeq = 0 // 模块内自增 id，无需持久化（id 已含时间戳）
 
+  // ── 游戏结束状态 ──
+  const gameOver = ref<GameOverState | null>(null)
+
   // ── 派生（不存）──
   const myCities = computed(() =>
     Object.entries(ownership.value)
@@ -472,6 +487,7 @@ export const useGameStore = defineStore('game', () => {
     diplomacyRecords.value = [] // 重置外交协商记录（读档时由 load 覆盖）
     relations.value = buildInitialRelations() // 外交种子（蒋阎/蒋桂停战冷却、国共内战）；读档时由 eventLog 重放覆盖
     turnCount.value = 0
+    gameOver.value = null // 重置游戏结束状态
   }
 
   function selectFaction(f: Owner): void {
@@ -785,15 +801,18 @@ export const useGameStore = defineStore('game', () => {
     // 以下均为城市态事件；preCheck 已保证 targetGb 存在（统一不可变更新 cities.value）
     const t = cities.value[e.targetGb]!
     switch (e.type) {
-      case 'capture': // 占领：易主 + 设定新驻军（若未指定则用攻方剩余 fieldForce）
+      case 'capture': // 占领：易主 + 设定新驻军（若未指定则用攻方剩余 fieldForce）+ 士气奖励
         cities.value = {
           ...cities.value,
           [e.targetGb]: {
             ...t,
             owner: e.actor,
             ...(e.resultTroops != null ? { troops: Math.max(0, e.resultTroops) } : {}),
+            morale: clamp(t.morale + CAPTURE_MORALE_BONUS, MORALE_MIN, MORALE_MAX),
           },
         }
+        // 占领后自动检查势力存亡
+        auditFactionSurvival()
         break
       case 'attack': { // 战斗损耗：攻方扣 fieldForce（从来源城），守方扣 troops（目标城）
         const next: Record<string, CityState> = {
@@ -1001,6 +1020,80 @@ export const useGameStore = defineStore('game', () => {
     else diplomacyRecords.value.push(record)
   }
 
+  // ── 势力存亡审计（capture 后自动判定）──
+
+  /**
+   * 检查所有势力是否还拥有城市，无城则自动判死。
+   * 在 capture 事件处理后调用，确保"打光最后一座城"立即触发灭亡。
+   * 同时检测玩家灭亡 / 全敌灭亡，设置 gameOver 状态。
+   */
+  function auditFactionSurvival(): void {
+    if (gameOver.value?.ended) return // 已终局，不再审计
+
+    const playerFaction = currentFaction.value
+
+    for (const f of [...activeFactions.value]) {
+      if (f === Owner.NEUTRAL) continue
+      if (gameOver.value?.ended) break // 终局后跳出
+
+      const hasCity = Object.values(cities.value).some(c => c.owner === f)
+      if (hasCity) continue
+
+      // 势力覆灭：从存活列表移除
+      applyEvent({ type: 'setFactionAlive', faction: f, alive: false })
+
+      // 非 replay 时弹 toast
+      if (!isReplaying.value) {
+        const label = (OWNER_LABELS as Record<string, string>)[f] ?? f
+        useToast().push({
+          icon: 'skull',
+          tone: 'error',
+          title: '势力覆灭',
+          text: `${label} 已无寸土，彻底灭亡`,
+        })
+      }
+
+      // 玩家覆灭 → 游戏结束
+      if (f === playerFaction) {
+        gameOver.value = {
+          ended: true,
+          winner: null,
+          endedAt: currentDate.value,
+          reason: 'playerDefeated',
+        }
+      }
+    }
+
+    // 检查是否所有敌人都灭亡（玩家胜利）
+    if (playerFaction && !gameOver.value?.ended) {
+      const enemiesAlive = activeFactions.value.filter(
+        x => x !== playerFaction && x !== Owner.NEUTRAL,
+      )
+      if (enemiesAlive.length === 0) {
+        gameOver.value = {
+          ended: true,
+          winner: playerFaction,
+          endedAt: currentDate.value,
+          reason: 'allEnemiesDefeated',
+        }
+        if (!isReplaying.value) {
+          const label = (OWNER_LABELS as Record<string, string>)[playerFaction] ?? playerFaction
+          useToast().push({
+            icon: 'crown',
+            tone: 'cinnabar',
+            title: '天下一统',
+            text: `${label} 扫平群雄，一统江山！`,
+          })
+        }
+      }
+    }
+  }
+
+  /** 重置游戏结束状态（读档 / 重开时调用） */
+  function resetGameOver(): void {
+    gameOver.value = null
+  }
+
   return {
     cities,
     ownership,
@@ -1050,5 +1143,9 @@ export const useGameStore = defineStore('game', () => {
     relationBetween,
     diplomacyRecords,
     upsertDiplomacyRecord,
+    // 游戏结束
+    gameOver,
+    auditFactionSurvival,
+    resetGameOver,
   }
 })

@@ -6,6 +6,7 @@ import GameModal from '@/components/ui/GameModal.vue'
 import OnboardingView from '@/views/OnboardingView.vue'
 import SaveSelectorModal from '@/components/SaveSelectorModal.vue'
 import ToastStack from '@/components/ui/ToastStack.vue'
+import GameOverModal from '@/components/GameOverModal.vue'
 
 const gameStore = useGameStore()
 const { loadGame } = useSaveGame()
@@ -59,6 +60,9 @@ function onBackToSelector(): void {
 
   <!-- 轻量提示层：Teleport 到 body，独立渲染，不受地图演出/模态遮挡影响 -->
   <ToastStack />
+
+  <!-- 游戏结束结算画面 -->
+  <GameOverModal />
 </template>
 
 <style>

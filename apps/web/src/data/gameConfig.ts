@@ -74,6 +74,9 @@ export const ARREAR_MORALE_PENALTY = -5
 /** 缺粮时兵力损耗比例（每回合）。调大 → 断粮死更快 */
 export const FAMINE_TROOP_LOSS_RATE = 0.02
 
+/** 占领城市后，新占领城市的士气奖励。调大 → 占领后稳定控制更快 */
+export const CAPTURE_MORALE_BONUS = 12
+
 // ── 初始资金 ──
 
 /** 初始银库 = 养兵银 × 此倍数。调大 → 开局更富，AI 侵略性更强 */
