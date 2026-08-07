@@ -112,10 +112,78 @@
           </ul>
         </section>
 
-        <!-- 占位模块（数据系统接入中） -->
-        <section v-for="ph in placeholders" :key="ph.title" class="psp-section pending">
-          <h3><component :is="ph.icon" :size="15" /> {{ ph.title }}</h3>
-          <div class="pending-note">待建 · 数据系统接入中</div>
+        <!-- 军事力量 -->
+        <section class="psp-section">
+          <h3><component :is="ICONS.sword" :size="15" /> 军事力量</h3>
+          <div class="stat-grid">
+            <div class="stat">
+              <span class="stat-num">{{ military.totalTroops }}</span>
+              <span class="stat-label">总兵力（k）</span>
+            </div>
+            <div class="stat">
+              <span class="stat-num">{{ military.morale }}</span>
+              <span class="stat-label">士气</span>
+            </div>
+            <div class="stat">
+              <span class="stat-num">{{ military.avgFort }}</span>
+              <span class="stat-label">平均城防</span>
+            </div>
+          </div>
+          <div class="army-split">
+            <span class="split-item">驻军 <b>{{ military.garrisonTroops }}k</b></span>
+            <span class="split-item">野战 <b>{{ military.fieldForce }}k</b></span>
+            <span class="split-hint">野战为可出击之兵</span>
+          </div>
+          <button class="city-list-toggle" @click="showArmyCities = !showArmyCities">
+            <span>兵力分布（{{ military.cities.length }}）</span>
+            <component :is="showArmyCities ? ICONS['chevron-up'] : ICONS['chevron-down']" :size="14" />
+          </button>
+          <ul v-if="showArmyCities" class="city-list">
+            <li v-for="c in military.cities" :key="c.gb" @click="focusCity(c.gb)">
+              <span class="city-name">{{ c.name }}</span>
+              <span class="city-badges">
+                <span class="badge lvl">L{{ c.cityLevel }}</span>
+                <span class="badge">驻{{ c.troops }}k</span>
+                <span v-if="c.fieldForce" class="badge field">野{{ c.fieldForce }}k</span>
+                <span class="badge morale">气{{ c.morale }}</span>
+              </span>
+            </li>
+          </ul>
+        </section>
+
+        <!-- 外交态势 -->
+        <section class="psp-section">
+          <h3><component :is="ICONS.affiliate" :size="15" /> 外交态势</h3>
+          <div class="stat-grid">
+            <div class="stat" :class="{ 'stat--war': diplo.atWar > 0 }">
+              <span class="stat-num">{{ diplo.atWar }}</span>
+              <span class="stat-label">交战</span>
+            </div>
+            <div class="stat">
+              <span class="stat-num">{{ diplo.allied }}</span>
+              <span class="stat-label">同盟</span>
+            </div>
+            <div class="stat">
+              <span class="stat-num">{{ diplo.atPeace }}</span>
+              <span class="stat-label">和平</span>
+            </div>
+          </div>
+          <ul v-if="diplo.entries.length" class="diplo-list">
+            <li v-for="d in diplo.entries" :key="d.faction" class="diplo-row">
+              <span class="diplo-dot" :style="{ background: factionDot(d.faction) }" />
+              <span class="diplo-name">{{ d.label }}</span>
+              <span class="diplo-troops">{{ d.troops }}k</span>
+              <span class="diplo-status" :class="`diplo-status--${d.status}`">{{ statusText(d) }}</span>
+              <span v-if="d.status === 'peace' && d.truceUntil" class="diplo-truce">停战至 {{ d.truceUntil }}</span>
+            </li>
+          </ul>
+          <div v-else class="empty">未择势</div>
+        </section>
+
+        <!-- 事件日志（最近 12 条，全量见地图面板） -->
+        <section class="psp-section">
+          <h3><component :is="ICONS.history" :size="15" /> 事件日志</h3>
+          <EventLogPanel :limit="12" />
         </section>
       </div>
     </div>
@@ -125,17 +193,17 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useGameStore } from '@/stores/game'
-import { OWNER_LABELS, OWNER_COLORS, OWNER_DETAILS } from '@/data/owners'
+import { Owner, OWNER_LABELS, OWNER_COLORS, OWNER_DETAILS } from '@/data/owners'
 import { round1 } from '@/utils/format'
 import type { Component } from 'vue'
 import GameModal from '@/components/ui/GameModal.vue'
+import EventLogPanel from '@/components/EventLogPanel.vue'
 import IconChevronUp from '~icons/tabler/chevron-up'
 import IconChevronDown from '~icons/tabler/chevron-down'
 import IconBuilding from '~icons/tabler/building'
 import IconCrosshair from '~icons/tabler/crosshair'
 import IconSword from '~icons/tabler/sword'
 import IconAffiliate from '~icons/tabler/affiliate'
-import IconAlertTriangle from '~icons/tabler/alert-triangle'
 import IconHistory from '~icons/tabler/history'
 import IconCoins from '~icons/tabler/coins'
 
@@ -149,7 +217,6 @@ const ICONS: Record<string, Component> = {
   crosshair: IconCrosshair,
   sword: IconSword,
   affiliate: IconAffiliate,
-  'alert-triangle': IconAlertTriangle,
   history: IconHistory,
   coins: IconCoins,
 }
@@ -157,6 +224,7 @@ const ICONS: Record<string, Component> = {
 const gameStore = useGameStore()
 
 const showCities = ref(false)
+const showArmyCities = ref(false)
 
 const faction = computed(() => gameStore.currentFaction)
 const factionLabel = computed(() => (faction.value ? OWNER_LABELS[faction.value] : ''))
@@ -167,13 +235,21 @@ const capital = computed(() => (faction.value ? OWNER_DETAILS[faction.value]?.ca
 const playerName = computed(() => gameStore.playerName)
 const myStats = computed(() => gameStore.myStats)
 const myBattles = computed(() => gameStore.myBattles)
+const military = computed(() => gameStore.myMilitary)
+const diplo = computed(() => gameStore.myDiplomacy)
 
-const placeholders = [
-  { title: '军事力量', icon: ICONS.sword },
-  { title: '外交态势', icon: ICONS.affiliate },
-  { title: '周边威胁', icon: ICONS['alert-triangle'] },
-  { title: '事件日志', icon: ICONS.history },
-]
+/** 势力色点（hex） */
+function factionDot(f: Owner): string {
+  const c = OWNER_COLORS[f]
+  return c != null ? '#' + c.toString(16).padStart(6, '0') : '#888888'
+}
+
+/** 关系状态 → 徽章文案 */
+function statusText(d: { status: string; truceUntil?: string }): string {
+  if (d.status === 'war') return '交战'
+  if (d.status === 'alliance') return '同盟'
+  return d.truceUntil ? '停战' : '和平'
+}
 
 function focusCity(gb: string): void {
   gameStore.requestFocus('city', gb)
@@ -492,25 +568,94 @@ function deltaCls(v: number): string {
   padding: 10px 0;
 }
 
-/* 占位模块 */
-.psp-section.pending {
-  opacity: 0.72;
+/* ── 军事力量 ── */
+.army-split {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--ink-soft);
+  margin-bottom: 8px;
+  padding: 0 2px;
+}
+.split-item b {
+  font-size: 14px;
+  color: var(--ink-strong);
+  font-variant-numeric: tabular-nums;
+}
+.split-hint {
+  margin-left: auto;
+  font-size: 10px;
+  color: var(--ink-muted);
+}
+.badge.field {
+  color: #2e6b8a;
+  border-color: rgba(46, 107, 138, 0.35);
+}
+.badge.morale {
+  color: var(--cinnabar-ink);
 }
 
-.pending-note {
-  font-size: 12px;
-  color: var(--ink-muted);
-  letter-spacing: 1px;
-  background: repeating-linear-gradient(
-    45deg,
-    transparent,
-    transparent 6px,
-    rgba(138, 109, 75, 0.07) 6px,
-    rgba(138, 109, 75, 0.07) 12px
-  );
-  border: 1px dashed rgba(138, 109, 75, 0.4);
+/* ── 外交态势 ── */
+.diplo-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.diplo-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 6px;
   border-radius: var(--radius-md);
-  padding: 8px 10px;
+  font-size: 12px;
+  line-height: 1.8;
+  border-bottom: 1px dashed rgba(138, 109, 75, 0.18);
+}
+.diplo-row:last-child {
+  border-bottom: none;
+}
+.diplo-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.15) inset;
+}
+.diplo-name {
+  color: var(--ink);
+  letter-spacing: 1px;
+  flex-shrink: 0;
+}
+.diplo-troops {
+  color: var(--ink-muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+.diplo-status {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  flex-shrink: 0;
+}
+.diplo-status--war {
+  color: var(--cinnabar);
+}
+.diplo-status--alliance {
+  color: #4a8020;
+}
+.diplo-status--peace {
+  color: var(--ink-soft);
+}
+.diplo-truce {
+  font-size: 10px;
+  color: var(--ink-muted);
+  flex-shrink: 0;
+}
+.stat--war .stat-num {
+  color: var(--cinnabar);
 }
 
 /* 滚动条 */

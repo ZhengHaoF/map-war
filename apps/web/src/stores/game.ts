@@ -322,7 +322,7 @@ export const useGameStore = defineStore('game', () => {
   }
 
   // ── 我方聚合（派生，不存）──
-  type MyCityStat = Pick<CityState, 'gb' | 'name' | 'cityLevel' | 'industry' | 'food' | 'fort'>
+  type MyCityStat = Pick<CityState, 'gb' | 'name' | 'cityLevel' | 'industry' | 'food' | 'fort' | 'troops' | 'fieldForce' | 'morale'>
   interface MyStats {
     cityCount: number
     totalIndustry: number
@@ -356,6 +356,9 @@ export const useGameStore = defineStore('game', () => {
           industry: c.industry,
           food: c.food,
           fort: c.fort,
+          troops: c.troops,
+          fieldForce: c.fieldForce,
+          morale: c.morale,
         })
       }
       stats.sort((a, b) => b.cityLevel - a.cityLevel || a.name.localeCompare(b.name))
@@ -399,6 +402,9 @@ export const useGameStore = defineStore('game', () => {
         industry: c.industry,
         food: c.food,
         fort: c.fort,
+        troops: c.troops,
+        fieldForce: c.fieldForce,
+        morale: c.morale,
       })
     }
     stats.sort((a, b) => b.cityLevel - a.cityLevel || a.name.localeCompare(b.name))
@@ -434,6 +440,83 @@ export const useGameStore = defineStore('game', () => {
     const f = currentFaction.value
     if (!f) return []
     return battles.value.filter((b) => b.attacker === f || b.defender === f)
+  })
+
+  // ── 我方军事聚合（派生，不存）──
+  interface MyMilitary {
+    /** 总兵力（驻军 + 野战），单位 k */
+    totalTroops: number
+    /** 驻军（守城），单位 k */
+    garrisonTroops: number
+    /** 野战（外出机动），单位 k */
+    fieldForce: number
+    /** 兵力加权平均士气 0-100 */
+    morale: number
+    /** 平均城防 */
+    avgFort: number
+    /** 城市兵力榜（按总兵力降序） */
+    cities: MyCityStat[]
+  }
+  const myMilitary = computed<MyMilitary>(() => {
+    const cs = [...myStats.value.cities]
+    const totalTroops = cs.reduce((s, c) => s + c.troops + c.fieldForce, 0)
+    const garrisonTroops = cs.reduce((s, c) => s + c.troops, 0)
+    const fieldForce = cs.reduce((s, c) => s + c.fieldForce, 0)
+    const weightedMorale = cs.reduce((s, c) => s + c.morale * (c.troops + c.fieldForce), 0)
+    const morale = totalTroops ? Math.round(weightedMorale / totalTroops) : 0
+    cs.sort((a, b) => b.troops + b.fieldForce - (a.troops + a.fieldForce))
+    return {
+      totalTroops,
+      garrisonTroops,
+      fieldForce,
+      morale,
+      avgFort: myStats.value.avgFort,
+      cities: cs,
+    }
+  })
+
+  // ── 我方外交聚合（派生，不存；遍历存活势力读对称关系表）──
+  interface MyDiplomacyEntry {
+    faction: Owner
+    label: string
+    status: RelationStatus
+    truceUntil?: string
+    note?: string
+    /** 对方总兵力（衡量威胁） */
+    troops: number
+  }
+  interface MyDiplomacy {
+    atWar: number
+    allied: number
+    atPeace: number
+    entries: MyDiplomacyEntry[]
+  }
+  const myDiplomacy = computed<MyDiplomacy>(() => {
+    const me = currentFaction.value
+    const entries: MyDiplomacyEntry[] = []
+    if (me) {
+      for (const f of activeFactions.value) {
+        if (f === me || f === Owner.NEUTRAL) continue
+        const rel = readRelation(relations.value, me, f)
+        entries.push({
+          faction: f,
+          label: OWNER_LABELS[f],
+          status: rel.status,
+          truceUntil: rel.truceUntil,
+          note: rel.note,
+          troops: factionTroops(f),
+        })
+      }
+      // 交战在前（威胁感优先），同盟次之，和平垫底
+      const order: Record<RelationStatus, number> = { war: 0, alliance: 1, peace: 2 }
+      entries.sort((a, b) => order[a.status] - order[b.status])
+    }
+    return {
+      atWar: entries.filter((e) => e.status === 'war').length,
+      allied: entries.filter((e) => e.status === 'alliance').length,
+      atPeace: entries.filter((e) => e.status === 'peace').length,
+      entries,
+    }
   })
 
   /** 读取两势力间关系（未记录默认 peace）。供面板/校验层便捷调用。 */
@@ -1105,6 +1188,8 @@ export const useGameStore = defineStore('game', () => {
     eventLog,
     myStats,
     getFactionStats,
+    myMilitary,
+    myDiplomacy,
     isReplaying,
     reloadToken,
     myCities,

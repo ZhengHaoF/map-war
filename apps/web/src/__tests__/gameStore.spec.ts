@@ -219,3 +219,49 @@ describe('useGameStore / setFactionAlive 等非城市态事件不依赖 preCheck
     expect(store.battles.length).toBe(0)
   })
 })
+
+describe('useGameStore / myMilitary 与 myDiplomacy 派生聚合', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  it('myMilitary：总兵力=Σ(驻军+野战)，士气为兵力加权均值，城市榜按兵力降序，含军事字段', () => {
+    const store = useGameStore()
+    store.initWorld()
+    store.applyEvent({ type: 'selectFaction', faction: Owner.KMT, playerName: '测试' })
+    const owned = Object.values(store.cities).filter((c) => c.owner === Owner.KMT)
+    expect(owned.length).toBeGreaterThan(0)
+    const expectTotal = owned.reduce((s, c) => s + c.troops + c.fieldForce, 0)
+    const expectGarrison = owned.reduce((s, c) => s + c.troops, 0)
+    const expectField = owned.reduce((s, c) => s + c.fieldForce, 0)
+    const m = store.myMilitary
+    expect(m.totalTroops).toBe(expectTotal)
+    expect(m.garrisonTroops).toBe(expectGarrison)
+    expect(m.fieldForce).toBe(expectField)
+    const weighted = owned.reduce((s, c) => s + c.morale * (c.troops + c.fieldForce), 0)
+    expect(m.morale).toBe(expectTotal ? Math.round(weighted / expectTotal) : 0)
+    const ts = m.cities.map((c) => c.troops + c.fieldForce)
+    for (let i = 1; i < ts.length; i++) {
+      expect(ts[i - 1]).toBeGreaterThanOrEqual(ts[i])
+    }
+    expect(m.cities[0]).toHaveProperty('troops')
+    expect(m.cities[0]).toHaveProperty('fieldForce')
+    expect(m.cities[0]).toHaveProperty('morale')
+  })
+
+  it('myDiplomacy：开局 KMT 与晋系/桂系停战（带冷却），其余默认和平，交战数 0；未择势为空', () => {
+    const store = useGameStore()
+    store.initWorld()
+    store.applyEvent({ type: 'selectFaction', faction: Owner.KMT, playerName: '测试' })
+    const d = store.myDiplomacy
+    expect(d.atWar).toBe(0)
+    expect(d.allied).toBe(0)
+    expect(d.entries.length).toBe(store.activeFactions.length - 1)
+    const shx = d.entries.find((e) => e.faction === Owner.SHX)
+    expect(shx?.status).toBe('peace')
+    expect(shx?.truceUntil).toBe('1931-10-01')
+    // 未选势力：entries 为空
+    store.initWorld()
+    expect(store.myDiplomacy.entries.length).toBe(0)
+  })
+})

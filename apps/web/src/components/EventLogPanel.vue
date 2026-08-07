@@ -6,7 +6,7 @@
     </div>
 
     <div v-else class="log-header">
-      <span class="log-count">共 {{ events.length }} 条事件</span>
+      <span class="log-count">共 {{ store.eventLog.length }} 条事件</span>
       <span class="log-latest">{{ latestDate }}</span>
     </div>
 
@@ -29,7 +29,14 @@ import { eventBadge, describeEvent } from '@/utils/eventDescribe'
 const store = useGameStore()
 const listRef = ref<HTMLElement | null>(null)
 
-const events = computed(() => store.eventLog)
+/** 可选：只渲染最近 N 条（缺省全量）。仅截取展示，不改 store.eventLog。 */
+const props = defineProps<{ limit?: number }>()
+
+const events = computed(() => {
+  const all = store.eventLog
+  const n = props.limit
+  return n && n > 0 && all.length > n ? all.slice(-n) : all
+})
 
 const latestDate = computed(() => {
   const tail = events.value.filter((e) => e.type === 'dateAdvance').pop()
