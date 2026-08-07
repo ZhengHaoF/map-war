@@ -46,3 +46,11 @@ export const COUNTRY_COMMS: Record<string, CountryComms> = {
   DEU: { leader: '兴登堡', personality: '威严持重·凡尔赛怨恨', color: 0x7a7a72 },
   ITA: { leader: '墨索里尼', personality: '狂妄自信·地中海野心', color: 0x6f9468 },
 }
+
+/** iso_a3 → 中文国名（如 SUN → 苏联）；未知回传原值 */
+export function countryName(iso: string): string {
+  return worldCountries.find((c) => c.iso_a3 === iso)?.name ?? iso
+}
+
+/** 可遣使的列强国家 iso 列表（COUNTRY_COMMS 有领袖人设者） */
+export const COUNTRY_OPTIONS = Object.keys(COUNTRY_COMMS)

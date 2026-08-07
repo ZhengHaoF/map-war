@@ -68,6 +68,7 @@ export function isInTruce(
 /**
  * 外交意图分类（第一段世界AI路由识别）。
  * v1 仅军事外交：结盟/停战/宣战/解除结盟/借道；custom 兜底。
+ * v2（2026-08-08）新增 aid（向列强国家求援）——不改关系矩阵。
  */
 export type DiplomacyIntent =
   | 'alliance' // 结盟
@@ -75,6 +76,7 @@ export type DiplomacyIntent =
   | 'war' // 宣战
   | 'breakAlliance' // 解除结盟
   | 'passage' // 请求借道/通行
+  | 'aid' // 向列强国家求援（军援/财援/粮援/建设）
   | 'custom' // 其他自定义请求
 
 /**
@@ -90,19 +92,20 @@ export const INTENT_LABELS: Record<DiplomacyIntent, string> = {
   war: '宣战',
   breakAlliance: '解除结盟',
   passage: '借道通行',
+  aid: '求援',
   custom: '交涉',
 }
 
 /**
  * 意图 → 收口 accept 时对应的关系态。
- * peace/war/alliance 直接映射；breakAlliance → peace；passage/custom 不改关系（null）。
+ * peace/war/alliance 直接映射；breakAlliance → peace；passage/aid/custom 不改关系（null）。
  */
 export function intentToRelationStatus(intent: DiplomacyIntent): RelationStatus | null {
   if (intent === 'alliance') return 'alliance'
   if (intent === 'peace') return 'peace'
   if (intent === 'war') return 'war'
   if (intent === 'breakAlliance') return 'peace'
-  return null // passage / custom 不改关系矩阵
+  return null // passage / aid / custom 不改关系矩阵
 }
 
 /** 外交谈判中的可执行条件 */
@@ -113,6 +116,23 @@ export interface Condition {
   text?: string    // verbal：口头声明文本（不执行）
 }
 
+/**
+ * 国家援助清单（国家 → 玩家方向，收口 accept 后系统自动执行）。
+ * 仅列强国家遣使（intent='aid'）时出现；amount 单位纪律与 Condition 一致：
+ * military=千人（k）、silver=万银、food=万石。
+ */
+export interface AidOffer {
+  type: 'military' | 'silver' | 'food'
+  amount: number    // 军援=千人；财援=万银；粮援=万石
+  targetCity?: string // military 时必填：增兵城市中文名（须属玩家势力）
+  note?: string     // 风味叙事（如"苏方援建川陕公路"），仅展示用
+}
+
+/** 判断外交记录是否以国家为目标（targetCountry 存在即为国家，否则为势力） */
+export function isCountryTarget(r: { targetFaction?: Owner; targetCountry?: string }): boolean {
+  return Boolean(r.targetCountry)
+}
+
 /** 协商单轮记录（玩家发言 + 对方回应） */
 export interface DiplomacyRound {
   round: number // 从 1 开始
@@ -121,6 +141,7 @@ export interface DiplomacyRound {
   reply: string // 对方领袖回复文本
   counterOffer?: string // stance='counter' 时的反提议
   conditions?: Condition[] // 接受/反提议附带的条件（可执行 + 口头声明）
+  aidOffer?: AidOffer[] // 国家回应附带的援助清单（仅 targetCountry 会话）
 }
 
 /**
@@ -129,11 +150,14 @@ export interface DiplomacyRound {
  * 生命周期：negotiating（进行中，唯一）→ settled（达成/被拒收口）/ abandoned（玩家放弃）。
  * 进行中 session 存 useDiplomacyBus 模块级 ref；存档时连进行中一并写入，
  * 读档时 status==='negotiating' 的捞回 currentSession 续谈。
+ *
+ * 目标二选一：targetFaction（中国势力）或 targetCountry（列强国家 iso_a3）。
  */
 export interface DiplomacyRecord {
   id: string // 'diplo_' + 时间戳
   playerFaction: Owner
-  targetFaction: Owner
+  targetFaction?: Owner // 势力目标（与 targetCountry 二选一）
+  targetCountry?: string // 国家目标（iso_a3，与 targetFaction 二选一）
   initiator?: Owner // 外交发起方（缺省为 playerFaction）
   intent: DiplomacyIntent
   rounds: DiplomacyRound[] // 全程对话

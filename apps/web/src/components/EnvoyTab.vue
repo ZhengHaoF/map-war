@@ -12,11 +12,18 @@
     <template v-if="tab === 'new'">
       <div v-if="!session" class="dp-new">
         <label class="dp-label">遣使何方</label>
-        <select v-model="targetFaction" class="dp-select">
-          <option :value="null" disabled>—— 择一势力 ——</option>
-          <option v-for="f in targetOptions" :key="f" :value="f">
-            {{ OWNER_LABELS[f] ?? f }}
-          </option>
+        <select v-model="targetSel" class="dp-select">
+          <option :value="null" disabled>—— 择一目标 ——</option>
+          <optgroup label="中国势力">
+            <option v-for="f in targetOptions" :key="f" :value="`f:${f}`">
+              {{ OWNER_LABELS[f] ?? f }}
+            </option>
+          </optgroup>
+          <optgroup label="列强国家">
+            <option v-for="iso in countryOptions" :key="iso" :value="`c:${iso}`">
+              {{ countryName(iso) }}
+            </option>
+          </optgroup>
         </select>
 
         <label class="dp-label">使团缘起</label>
@@ -59,6 +66,9 @@
                 <div v-if="r.counterOffer" class="dp-counter">反提议：{{ r.counterOffer }}</div>
                 <div v-if="r.conditions?.length" class="dp-conds">
                   <span v-for="(c, i) in r.conditions" :key="i" class="dp-cond-tag">{{ formatCond(c) }}</span>
+                </div>
+                <div v-if="r.aidOffer?.length" class="dp-conds">
+                  <span v-for="(a, i) in r.aidOffer" :key="`a${i}`" class="dp-aid-tag">{{ formatAid(a) }}</span>
                 </div>
               </div>
             </div>
@@ -115,7 +125,7 @@
           class="dp-hist-item"
         >
           <div class="dp-hist-head">
-            <span class="dp-hist-target">{{ OWNER_LABELS[r.targetFaction] ?? r.targetFaction }}</span>
+            <span class="dp-hist-target">{{ targetLabelOf(r) }}</span>
             <span class="dp-hist-badge" :class="`dp-hist-badge--${r.status}`">
               {{ r.status === 'settled' ? (r.finalStance === 'accept' ? '达成' : r.finalStance === 'reject' ? '破裂' : '收口') : '搁置' }}
             </span>
@@ -145,7 +155,8 @@ import { ref, computed, watch } from 'vue'
 import { useGameStore } from '@/stores/game'
 import { Owner, OWNER_LABELS } from '@/data/owners'
 import { INTENT_LABELS } from '@/utils/diplomacy'
-import type { Condition } from '@/utils/diplomacy'
+import type { Condition, AidOffer, DiplomacyRecord } from '@/utils/diplomacy'
+import { COUNTRY_COMMS, countryName } from '@/data/worldCountries'
 import { useDiplomacyBus } from '@/composables/useDiplomacyBus'
 import GameButton from '@/components/ui/GameButton.vue'
 import WorldProgressBanner from '@/components/WorldProgressBanner.vue'
@@ -161,7 +172,8 @@ const store = useGameStore()
 const bus = useDiplomacyBus()
 
 const tab = ref<'new' | 'history'>('new')
-const targetFaction = ref<Owner | null>(null)
+/** 统一目标选择：`f:${Owner}`（势力）或 `c:${iso}`（列强国家） */
+const targetSel = ref<string | null>(null)
 const intentText = ref('')
 const replyText = ref('')
 const loading = ref(false)
@@ -171,7 +183,7 @@ watch(
   (val) => {
     if (!val) return
     tab.value = 'new'
-    targetFaction.value = val.targetFaction as Owner
+    targetSel.value = `f:${val.targetFaction}`
     intentText.value = val.intentText
   },
 )
@@ -187,11 +199,16 @@ const targetOptions = computed(() =>
   ),
 )
 
-const targetLabel = computed(() =>
-  session.value ? (OWNER_LABELS[session.value.targetFaction] ?? session.value.targetFaction) : '',
-)
+const countryOptions = computed(() => Object.keys(COUNTRY_COMMS))
 
-const canSend = computed(() => targetFaction.value && intentText.value.trim())
+/** 会话/记录目标中文名（势力或国家） */
+function targetLabelOf(r: { targetFaction?: Owner; targetCountry?: string }): string {
+  return r.targetCountry ? countryName(r.targetCountry) : (r.targetFaction ? (OWNER_LABELS[r.targetFaction] ?? r.targetFaction) : '?')
+}
+
+const targetLabel = computed(() => (session.value ? targetLabelOf(session.value) : ''))
+
+const canSend = computed(() => targetSel.value && intentText.value.trim())
 
 const canContinue = computed(() => {
   if (!session.value) return false
@@ -207,13 +224,24 @@ function formatCond(c: Condition): string {
   return String(c)
 }
 
+function formatAid(a: AidOffer): string {
+  const note = a.note ? `（${a.note}）` : ''
+  if (a.type === 'military') return `援军 ${a.amount} 千于 ${a.targetCity ?? '?'}${note}`
+  if (a.type === 'silver') return `助饷 ${a.amount} 万银${note}`
+  return `济粮 ${a.amount} 万石${note}`
+}
+
 // ── 操作 ─────────────────────────────────────────────────
 
 async function onStart() {
-  if (!targetFaction.value || !intentText.value.trim()) return
+  if (!targetSel.value || !intentText.value.trim()) return
   loading.value = true
   try {
-    await bus.startDiplomacy(intentText.value.trim(), targetFaction.value)
+    if (targetSel.value.startsWith('c:')) {
+      await bus.startDiplomacy(intentText.value.trim(), null, targetSel.value.slice(2))
+    } else {
+      await bus.startDiplomacy(intentText.value.trim(), targetSel.value.slice(2) as Owner)
+    }
   } finally {
     loading.value = false
     intentText.value = ''
@@ -401,6 +429,13 @@ function onCancel() {
   border-radius: 999px;
   background: rgba(176, 74, 58, 0.10);
   color: var(--cinnabar-ink, #7a2a1a);
+}
+.dp-aid-tag {
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(74, 128, 32, 0.12);
+  color: #4a8020;
 }
 
 /* 操作区 */
