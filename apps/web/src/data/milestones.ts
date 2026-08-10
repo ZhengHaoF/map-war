@@ -31,6 +31,12 @@ export interface MilestoneContext {
   treasury: number
   /** 粮仓（万石） */
   granary: number
+  /** 玩家胜仗总数 */
+  victories: number
+  /** 玩家会战胜场数（turns ≥ 3） */
+  majorVictories: number
+  /** 玩家鏖战胜场数（turns ≥ 5 或 歼敌 ≥ 10k） */
+  bloodyVictories: number
 }
 
 export interface MilestoneDef {
@@ -68,6 +74,22 @@ export const MILESTONES: MilestoneDef[] = [
     check: (ctx) => ctx.captures >= 1,
   },
   {
+    id: 'first-victory',
+    title: '胜绩初成',
+    flavor: '兵芒初试，捷报频传',
+    sealChar: '胜',
+    tier: 1,
+    check: (ctx) => ctx.victories >= 1,
+  },
+  {
+    id: 'first-major-victory',
+    title: '首胜会战',
+    flavor: '阵云压垒，会战大捷',
+    sealChar: '会',
+    tier: 1,
+    check: (ctx) => ctx.majorVictories >= 1,
+  },
+  {
     id: 'ten-cities',
     title: '十城之基',
     flavor: '十城连横，基业初成',
@@ -99,6 +121,14 @@ export const MILESTONES: MilestoneDef[] = [
     sealChar: '东',
     tier: 2,
     check: northeastReclaimed,
+  },
+  {
+    id: 'bloody-battle',
+    title: '鏖战决胜',
+    flavor: '血战坚城，一役破敌',
+    sealChar: '鏖',
+    tier: 2,
+    check: (ctx) => ctx.bloodyVictories >= 1,
   },
   {
     id: 'quarter-realm',

@@ -17,6 +17,9 @@ function baseCtx(over: Partial<MilestoneContext> = {}): MilestoneContext {
     morale: 50,
     treasury: 0,
     granary: 0,
+    victories: 0,
+    majorVictories: 0,
+    bloodyVictories: 0,
     ...over,
   }
 }
@@ -25,6 +28,12 @@ describe('evaluateMilestones', () => {
   it('新达成返回 id 列表，未达成返回空', () => {
     expect(evaluateMilestones(baseCtx({ captures: 5 }), {})).toContain('first-capture')
     expect(evaluateMilestones(baseCtx(), {})).toEqual([])
+  })
+
+  it('战斗类里程碑：胜绩初成 / 首胜会战 / 鏖战决胜', () => {
+    expect(evaluateMilestones(baseCtx({ victories: 1 }), {})).toContain('first-victory')
+    expect(evaluateMilestones(baseCtx({ majorVictories: 1 }), {})).toContain('first-major-victory')
+    expect(evaluateMilestones(baseCtx({ bloodyVictories: 1 }), {})).toContain('bloody-battle')
   })
 
   it('已解锁的不重复返回', () => {

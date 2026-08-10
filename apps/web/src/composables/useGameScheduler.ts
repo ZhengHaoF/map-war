@@ -27,9 +27,16 @@ import { computeBaseBattle, clampFlavor, checkMoraleCollapse } from '@/utils/bat
 import type { BaseResult, FlavorResult, FlavorEvent } from '@/utils/battleFormula'
 import { distanceBetween } from '@/utils/locationResolver'
 import { expeditionFactor } from '@/utils/economy'
-import { BATTLE_MIN_ATTRITION_PER_ROUND } from '@/data/gameConfig'
+import {
+  BATTLE_MIN_ATTRITION_PER_ROUND,
+  BATTLE_VICTORY_MORALE_ATTACKER,
+  BATTLE_VICTORY_MORALE_DEFENDER,
+  BATTLE_DEFEAT_MORALE_ATTACKER,
+  BATTLE_DETERRENT_MORALE,
+  BATTLE_DETERRENT_RADIUS_KM,
+} from '@/data/gameConfig'
 import { battleSummaryText } from '@/utils/battleTrend'
-import { OWNER_LABELS } from '@/data/owners'
+import { Owner, OWNER_LABELS } from '@/data/owners'
 
 export type AdvanceStatus = 'idle' | 'running' | 'done' | 'stopped'
 
@@ -56,6 +63,59 @@ async function settleActiveBattles(): Promise<void> {
   if (!active.length) return
 
   /**
+   * 威慑扩散：计算 150km 范围内的指定势力城池，扣减士气
+   */
+  const applyDeterrentDiffusion = (centerGb: string, targetOwner: Owner, excludeGbs: string[]) => {
+    if (!targetOwner || targetOwner === Owner.NEUTRAL) return
+    const excludeSet = new Set(excludeGbs)
+    for (const c of Object.values(store.cities as Record<string, CityState>)) {
+      if (c.owner !== targetOwner || excludeSet.has(c.gb)) continue
+      const dist = distanceBetween(centerGb, c.gb)
+      if (dist !== null && dist <= BATTLE_DETERRENT_RADIUS_KM) {
+        store.applyEvent({
+          type: 'moraleChange',
+          targetGb: c.gb,
+          delta: BATTLE_DETERRENT_MORALE,
+        })
+      }
+    }
+  }
+
+  /**
+   * 结算单胜奖励与威慑扩散
+   */
+  const applySingleVictoryAndDeterrent = (
+    snap: { from: string; to: string; attacker: Owner; defender: Owner },
+    reason: BattleEndReason,
+  ) => {
+    if (reason === 'capture' || reason === 'defenderCollapse') {
+      // 攻方胜：攻方来源城士气 +10
+      store.applyEvent({
+        type: 'moraleChange',
+        targetGb: snap.from,
+        delta: BATTLE_VICTORY_MORALE_ATTACKER,
+      })
+      // 败方（原守方）周边 150km 友城士气 -5
+      applyDeterrentDiffusion(snap.to, snap.defender, [snap.to])
+    } else if (reason === 'attackerRouted' || reason === 'attackerCollapse') {
+      // 守方胜：守方城士气 +5
+      store.applyEvent({
+        type: 'moraleChange',
+        targetGb: snap.to,
+        delta: BATTLE_VICTORY_MORALE_DEFENDER,
+      })
+      // 攻方来源城溃败打击士气 -10
+      store.applyEvent({
+        type: 'moraleChange',
+        targetGb: snap.from,
+        delta: BATTLE_DEFEAT_MORALE_ATTACKER,
+      })
+      // 败方（攻方）周边 150km 友城士气 -5（排除交战城 snap.to 与来源城 snap.from）
+      applyDeterrentDiffusion(snap.to, snap.attacker, [snap.to, snap.from])
+    }
+  }
+
+  /**
    * 本地 helper：灭光柱 → applyEvent → toast（带战果摘要）。
    * 关键：快照必须在 applyEvent 之前取（reducer 处理 battleEnd 后会 filter 掉 BattleInfo）。
    */
@@ -76,10 +136,15 @@ async function settleActiveBattles(): Promise<void> {
       fromName: snap?.fromName,
       toName: snap?.toName,
     })
+    // 触发单胜奖励与威慑扩散
+    if (snap) {
+      applySingleVictoryAndDeterrent(snap, reason)
+    }
     // toast 文案：标题 + 摘要 + 可选后缀（如进驻兵力）
     const parts = [summary, toast.suffix].filter(Boolean)
     pushToast({ icon: toast.icon, tone: toast.tone, title: toast.title, text: parts.join(' · ') })
   }
+
 
   // ── 第一阶段：前置检查 + 本地公式（不展示） ──
   const baseResults = new Map<string, BaseResult>()
@@ -203,8 +268,9 @@ async function settleActiveBattles(): Promise<void> {
     }
 
     // ── 第四阶段：终局复检 ──
-    const finalFrom = cities[b.from]
-    const finalTo = cities[b.to]
+    const currentCities = store.cities as unknown as Record<string, CityState>
+    const finalFrom = currentCities[b.from]
+    const finalTo = currentCities[b.to]
     if (!finalFrom || !finalTo) continue
 
     // ② 士气崩溃（优先于归零，守方优先判定）

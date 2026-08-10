@@ -13,7 +13,7 @@ import {
   ARREAR_MORALE_PENALTY,
   FAMINE_TROOP_LOSS_RATE,
 } from '@/utils/economy'
-import { DEFAULT_MORALE, MORALE_MIN, MORALE_MAX, CITY_CAP_INDUSTRY, CITY_CAP_FOOD, CITY_CAP_FORT, CITY_CAP_LEVEL, CAPTURE_MORALE_BONUS } from '@/data/gameConfig'
+import { DEFAULT_MORALE, MORALE_MIN, MORALE_MAX, CITY_CAP_INDUSTRY, CITY_CAP_FOOD, CITY_CAP_FORT, CITY_CAP_LEVEL, CAPTURE_MORALE_BONUS, BATTLE_ROUT_SURVIVOR_RATE } from '@/data/gameConfig'
 import { round1 } from '@/utils/format'
 import { GAME_START_DATE, countOwnedByProvince } from '@/utils/chronicle'
 import { evaluateMilestones, MILESTONES, type MilestoneContext } from '@/data/milestones'
@@ -306,6 +306,10 @@ export const useGameStore = defineStore('game', () => {
   const milestonesUnlocked = ref<Record<string, MilestoneRecord>>({})
   /** 玩家累计占城数（capture 分支计数，重放自动重建） */
   const playerCaptures = ref(0)
+  /** 玩家胜仗数 / 会战胜场数 / 鏖战胜场数（battleEnd 分支计数，重放自动重建） */
+  const playerVictories = ref(0)
+  const playerMajorVictories = ref(0)
+  const playerBloodyVictories = ref(0)
 
   // ── 游戏结束状态 ──
   const gameOver = ref<GameOverState | null>(null)
@@ -590,6 +594,9 @@ export const useGameStore = defineStore('game', () => {
       morale: factionMorale(f),
       treasury: round1(getTreasury(f)),
       granary: round1(getGranary(f)),
+      victories: playerVictories.value,
+      majorVictories: playerMajorVictories.value,
+      bloodyVictories: playerBloodyVictories.value,
     }
     const fresh = evaluateMilestones(ctx, milestonesUnlocked.value)
     if (!fresh.length) return
@@ -656,10 +663,13 @@ export const useGameStore = defineStore('game', () => {
     relations.value = buildInitialRelations() // 外交种子（蒋阎/蒋桂停战冷却、国共内战）；读档时由 eventLog 重放覆盖
     turnCount.value = 0
     gameOver.value = null // 重置游戏结束状态
-    // 战纪派生态清零（读档重放时由 dateAdvance/capture 分支重建）
+    // 战纪派生态清零（读档重放时由 dateAdvance/capture/battleEnd 分支重建）
     turnSnapshots.value = []
     milestonesUnlocked.value = {}
     playerCaptures.value = 0
+    playerVictories.value = 0
+    playerMajorVictories.value = 0
+    playerBloodyVictories.value = 0
   }
 
   function selectFaction(f: Owner): void {
@@ -857,10 +867,17 @@ export const useGameStore = defineStore('game', () => {
             nextFieldForce = Math.max(0, from.fieldForce - loss)
             nextTroops = from.troops + nextFieldForce
             nextFieldForce = 0
-          } else if (e.reason === 'capture' || e.reason === 'attackerRouted' || e.reason === 'defenderCollapse' || e.reason === 'attackerCollapse') {
-            // 占领：兵力已转入被占城；溃败：兵散了
+          } else if (e.reason === 'capture' || e.reason === 'defenderCollapse') {
+            // 占领/防守方崩溃：兵力已进驻被占城
+            nextFieldForce = 0
+          } else if (e.reason === 'attackerRouted' || e.reason === 'attackerCollapse') {
+            // 攻方溃败：若来源城依然归属攻方，保留残部逃回（按 40%），其余散失；若已易主则全散
+            const isStillOwner = from.owner === bi.attacker
+            const survivors = isStillOwner ? round1(from.fieldForce * BATTLE_ROUT_SURVIVOR_RATE) : 0
+            nextTroops = from.troops + survivors
             nextFieldForce = 0
           } else {
+
             // peace（求和停战）/ 无 reason：各自收兵，攻方野战兵回城
             nextTroops = from.troops + from.fieldForce
             nextFieldForce = 0
@@ -868,6 +885,26 @@ export const useGameStore = defineStore('game', () => {
           cities.value = {
             ...cities.value,
             [bi.from]: { ...from, troops: nextTroops, fieldForce: nextFieldForce },
+          }
+        }
+
+        // 判定玩家战斗胜负与会战统计
+        const pf = currentFaction.value
+        if (pf && (bi.attacker === pf || bi.defender === pf)) {
+          const isAtk = bi.attacker === pf
+          const isDef = bi.defender === pf
+          const winAtk = isAtk && (e.reason === 'capture' || e.reason === 'defenderCollapse')
+          const winDef = isDef && (e.reason === 'attackerRouted' || e.reason === 'attackerCollapse')
+          if (winAtk || winDef) {
+            playerVictories.value++
+            const enemyLoss = isAtk ? bi.totalDefenderLoss : bi.totalAttackerLoss
+            if (bi.turns >= 3) {
+              playerMajorVictories.value++
+            }
+            if (bi.turns >= 5 || enemyLoss >= 10) {
+              playerBloodyVictories.value++
+            }
+            evaluateMilestonesForPlayer()
           }
         }
       }
@@ -1326,6 +1363,9 @@ export const useGameStore = defineStore('game', () => {
     turnSnapshots,
     milestonesUnlocked,
     playerCaptures,
+    playerVictories,
+    playerMajorVictories,
+    playerBloodyVictories,
     // 游戏结束
     gameOver,
     auditFactionSurvival,

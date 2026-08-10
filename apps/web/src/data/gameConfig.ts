@@ -148,6 +148,27 @@ export const BATTLE = {
 /** 战斗趋势判断阈值。攻损/守损比超过此值判定占优。调大 → 趋势判定更迟钝 */
 export const BATTLE_TREND_THRESHOLD = 1.2
 
+// ── 单胜奖励与溃兵/威慑 ──
+
+/** 攻方胜利：攻方来源城士气提振。调大 → 远征胜利连胜势头更强 */
+export const BATTLE_VICTORY_MORALE_ATTACKER = 10
+
+/** 守方胜利：守方城士气提振。调大 → 守城大捷防守更稳定 */
+export const BATTLE_VICTORY_MORALE_DEFENDER = 5
+
+/** 攻方溃败：攻方来源城士气惩罚。调大（更负）→ 溃败代价更沉重 */
+export const BATTLE_DEFEAT_MORALE_ATTACKER = -10
+
+/** 威慑扩散：会战败方周边友城士气降低。调大（更负）→ 连锁震慑更强 */
+export const BATTLE_DETERRENT_MORALE = -5
+
+/** 威慑扩散辐射半径（公里）。调大 → 震慑覆盖更广周边城市 */
+export const BATTLE_DETERRENT_RADIUS_KM = 150
+
+/** 攻方溃败残部逃回率（比例 0-1）。调大 → 溃兵保留更多 */
+export const BATTLE_ROUT_SURVIVOR_RATE = 0.4
+
+
 
 // ═══════════════════════════════════════════════════════════
 //  三、AI 上下文窗口

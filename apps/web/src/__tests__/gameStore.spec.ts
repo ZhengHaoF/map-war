@@ -218,7 +218,101 @@ describe('useGameStore / setFactionAlive 等非城市态事件不依赖 preCheck
     expect(r2.ok).toBe(true)
     expect(store.battles.length).toBe(0)
   })
+
+  it('battleEnd：玩家在 3+ 回合会战胜利触发首胜会战里程碑与战报计数', () => {
+    const store = useGameStore()
+    store.initWorld()
+    store.applyEvent({ type: 'selectFaction', faction: Owner.KMT, playerName: '蒋中正' })
+    store.applyEvent({
+      type: 'battleStart',
+      battleId: 'battle_test_major',
+      fromGb: '156500001',
+      targetGb: '156500002',
+      fromName: 'A',
+      toName: 'B',
+      attacker: Owner.KMT,
+      defender: Owner.NEA,
+    })
+    const bi = store.battles.find((b) => b.id === 'battle_test_major')!
+    bi.turns = 3
+    bi.totalDefenderLoss = 12.0
+    store.applyEvent({ type: 'battleEnd', battleId: 'battle_test_major', reason: 'capture' })
+
+    expect(store.playerVictories).toBe(1)
+    expect(store.playerMajorVictories).toBe(1)
+    expect(store.playerBloodyVictories).toBe(1)
+    expect(store.milestonesUnlocked['first-victory']).toBeDefined()
+    expect(store.milestonesUnlocked['first-major-victory']).toBeDefined()
+    expect(store.milestonesUnlocked['bloody-battle']).toBeDefined()
+  })
+
+  it('battleEnd：攻方溃败 (attackerRouted) 时来源城归还 40% 残部且 fieldForce 清零', () => {
+    const store = useGameStore()
+    store.initWorld()
+    const fromGb = '156110000' // 北京，属 KMT
+    store.applyEvent({
+      type: 'deploy',
+      fromGb,
+      amount: 10,
+    })
+    const cityBefore = store.cities[fromGb]!
+    const initialTroops = cityBefore.troops
+    expect(cityBefore.fieldForce).toBe(10)
+
+    store.applyEvent({
+      type: 'battleStart',
+      battleId: 'battle_rout_test',
+      fromGb,
+      targetGb: '156120000',
+      fromName: 'A',
+      toName: 'B',
+      attacker: Owner.KMT,
+      defender: Owner.CCP,
+    })
+
+    store.applyEvent({ type: 'battleEnd', battleId: 'battle_rout_test', reason: 'attackerRouted' })
+    const cityAfter = store.cities[fromGb]!
+    expect(cityAfter.fieldForce).toBe(0)
+    expect(cityAfter.troops).toBe(initialTroops + 4) // 10 * 0.4 = 4
+  })
+
+  it('battleEnd：攻方溃败时来源城若已易主，残部散失（不加进新守军）', () => {
+    const store = useGameStore()
+    store.initWorld()
+    const fromGb = '156110000' // 北京
+    store.applyEvent({
+      type: 'deploy',
+      fromGb,
+      amount: 10,
+    })
+
+    store.applyEvent({
+      type: 'battleStart',
+      battleId: 'battle_stolen_test',
+      fromGb,
+      targetGb: '156120000',
+      fromName: 'A',
+      toName: 'B',
+      attacker: Owner.KMT,
+      defender: Owner.CCP,
+    })
+
+    // 来源城易主给 CCP
+    store.applyEvent({
+      type: 'capture',
+      targetGb: fromGb,
+      actor: Owner.CCP,
+      resultTroops: 5,
+    })
+
+    store.applyEvent({ type: 'battleEnd', battleId: 'battle_stolen_test', reason: 'attackerRouted' })
+    const cityAfter = store.cities[fromGb]!
+    expect(cityAfter.fieldForce).toBe(0)
+    expect(cityAfter.troops).toBe(5) // 不再增加 KMT 的 4k 残部
+  })
 })
+
+
 
 describe('useGameStore / myMilitary 与 myDiplomacy 派生聚合', () => {
   beforeEach(() => {
