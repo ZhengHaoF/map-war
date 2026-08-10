@@ -35,6 +35,7 @@ import { Owner, OWNER_COLORS, OWNER_LABELS } from '@/data/owners'
 import { getDisplayName } from '@/data/displayNames'
 import { useToast } from '@/composables/useToast'
 import { computeActionCost, marchCost } from '@/utils/economy'
+import { battleSummaryText } from '@/utils/battleTrend'
 
 // ─── 类型定义 ───
 
@@ -855,14 +856,24 @@ export async function executeOrder(
       }
       // 灭光束后，由唯一写者结束战斗（battleEnd），携带 reason + 撤退追击减员
       const battleForEnd = store.battles.find(b => b.id === requestedId)
+      const summary = battleForEnd ? battleSummaryText(battleForEnd) : ''
+      const endReason = (json.reason as 'retreat' | 'peace' | undefined)
       store.applyEvent({
         type: 'battleEnd',
         battleId: requestedId,
-        reason: (json.reason as 'retreat' | 'peace' | undefined),
+        reason: endReason,
         retreatLoss: json.retreatLoss,
         fromName: battleForEnd?.fromName,
         toName: battleForEnd?.toName,
       })
+      // 战果摘要 toast（仅撤退/求和有此入口，retreatLoss 并入文案）
+      if (summary) {
+        const suffix = endReason === 'retreat' && json.retreatLoss
+          ? `撤退追击减员 ${json.retreatLoss}k`
+          : endReason === 'peace' ? '求和停战' : undefined
+        const parts = [summary, suffix].filter(Boolean)
+        useToast().push({ icon: 'player-stop', tone: 'neutral', title: '战斗收兵', text: parts.join(' · ') })
+      }
       result = r
       break
     }
