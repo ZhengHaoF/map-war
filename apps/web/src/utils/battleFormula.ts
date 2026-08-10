@@ -73,7 +73,8 @@ export function computeBaseBattle(input: BattleInput): BaseResult {
     Math.max(r.ratioClamp[0], effectiveAtk / Math.max(input.defTroops, 1)),
   )
   const fortF = 1 + (input.fort / 100) * (r.fortMaxFactor - 1)
-  const terrainF = r.terrainFactor[input.terrain ?? 'plain'] ?? 1.0
+  // terrain 键大小写归一：store/seed 存大写（MOUNTAIN/HILL/PLAIN/FOREST），config 键为小写
+  const terrainF = r.terrainFactor[(input.terrain ?? 'plain').toLowerCase()] ?? 1.0
 
   const atkLossRate = r.baseRate * terrainF * moraleFactor(input.atkMorale)
   const defLossRate = r.baseRate * ratio / fortF * moraleFactor(input.defMorale)

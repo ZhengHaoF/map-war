@@ -116,10 +116,11 @@ export const BATTLE = {
   /** 工事满（100）时攻方损耗乘数上限。调大 → 坚城更难啃 */
   fortMaxFactor: 2.0,
 
-  /** 守方地形对攻方的损耗加成 */
+  /** 守方地形对攻方的损耗加成（键为小写；公式层查找时会做 toLowerCase 归一） */
   terrainFactor: {
     mountain: 1.5,
     hill: 1.2,
+    forest: 1.3,
     plain: 1.0,
   } as Record<string, number>,
 

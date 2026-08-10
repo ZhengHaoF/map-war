@@ -45,6 +45,29 @@ describe('computeBaseBattle', () => {
     expect(hill.attackerLoss).toBeGreaterThanOrEqual(plain.attackerLoss)
   })
 
+  it('地形因子：大写入参（store/seed 实际格式）与 config 小写键命中一致', () => {
+    // 回归：seed/store 的 terrain 存大写（MOUNTAIN/HILL/PLAIN/FOREST），
+    // 公式层必须归一化查找，否则永远回退 1.0（此 bug 曾使地形加成不生效）
+    const upperPlain = computeBaseBattle({ atkForce: 100, defTroops: 100, atkMorale: 70, defMorale: 70, fort: 0, terrain: 'PLAIN' })
+    const lowerPlain = computeBaseBattle({ atkForce: 100, defTroops: 100, atkMorale: 70, defMorale: 70, fort: 0, terrain: 'plain' })
+    expect(upperPlain.attackerLoss).toBe(lowerPlain.attackerLoss)
+
+    const upperMountain = computeBaseBattle({ atkForce: 100, defTroops: 100, atkMorale: 70, defMorale: 70, fort: 0, terrain: 'MOUNTAIN' })
+    const lowerMountain = computeBaseBattle({ atkForce: 100, defTroops: 100, atkMorale: 70, defMorale: 70, fort: 0, terrain: 'mountain' })
+    expect(upperMountain.attackerLoss).toBe(lowerMountain.attackerLoss)
+    // 大写山地必须比大写平原更伤攻方（修复后生效）
+    expect(upperMountain.attackerLoss).toBeGreaterThan(upperPlain.attackerLoss)
+  })
+
+  it('地形因子：forest 有独立系数且介于 hill 与 mountain 之间', () => {
+    // 用 1000 兵力放大差异，避免小兵力下 round 抹平 1.2/1.3 的差别
+    const hill = computeBaseBattle({ atkForce: 1000, defTroops: 1000, atkMorale: 70, defMorale: 70, fort: 0, terrain: 'HILL' })
+    const forest = computeBaseBattle({ atkForce: 1000, defTroops: 1000, atkMorale: 70, defMorale: 70, fort: 0, terrain: 'FOREST' })
+    const mountain = computeBaseBattle({ atkForce: 1000, defTroops: 1000, atkMorale: 70, defMorale: 70, fort: 0, terrain: 'MOUNTAIN' })
+    expect(forest.attackerLoss).toBeGreaterThan(hill.attackerLoss)
+    expect(forest.attackerLoss).toBeLessThanOrEqual(mountain.attackerLoss)
+  })
+
   it('士气低于 moraleRef 时 moraleFactor > 1（debuff）', () => {
     const lowMorale = computeBaseBattle({ atkForce: 100, defTroops: 100, atkMorale: 30, defMorale: 70, fort: 0 })
     const highMorale = computeBaseBattle({ atkForce: 100, defTroops: 100, atkMorale: 90, defMorale: 70, fort: 0 })
