@@ -451,6 +451,7 @@ import { init as initGameOrders, executeOrder, restoreActiveAnimations, resetBat
 import type { GameOrder, CameraTarget } from '@/utils/gameOrders'
 import { useGameStore } from '@/stores/game'
 import type { BattleInfo, GameEvent } from '@/stores/game'
+import { battleTrend, battleForceShare } from '@/utils/battleTrend'
 import {
   geoToScreen,
   calculateCentroid,
@@ -1608,21 +1609,13 @@ function atkForce(b: BattleInfo): number {
 function defForce(b: BattleInfo): number {
   return (useGameStore().cities as Record<string, CityData>)[b.to]?.troops ?? 0
 }
-/** 攻方野战兵力占双方合计的百分比（兵力条） */
+/** 攻方野战兵力占双方合计的百分比（兵力条），委托共享 util */
 function forceShare(b: BattleInfo): number {
-  const atk = atkForce(b)
-  const total = atk + defForce(b)
-  if (total <= 0) return 50
-  return Math.min(96, Math.max(4, Math.round((atk / total) * 100)))
+  return battleForceShare(atkForce(b), defForce(b))
 }
-/** 走势：按上回合双方损耗判定，损耗低的一方占优 */
+/** 走势：按上回合双方损耗判定，委托共享 util */
 function trend(b: BattleInfo): { label: string; cls: string } {
-  if (b.turns <= 0) return { label: '初次交锋', cls: 'trend-even' }
-  const a = b.lastAttackerLoss
-  const d = b.lastDefenderLoss
-  if (a < d * 0.7) return { label: '▲ 攻方占优', cls: 'trend-atk' }
-  if (d < a * 0.7) return { label: '▼ 守方占优', cls: 'trend-def' }
-  return { label: '— 僵持', cls: 'trend-even' }
+  return battleTrend(b, 'lastTurn')
 }
 
 // ─── 分组战斗卡片辅助函数 ───

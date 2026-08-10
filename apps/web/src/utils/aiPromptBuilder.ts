@@ -17,7 +17,7 @@ import { TERRAIN_LABEL } from './aiContext'
 import { buildScenarioBrief, buildFactionBrief } from '@/data/scenarioBrief'
 import { CONTRACT_SCHEMA_TEXT, PLAYER_AI_UNIFIED_PROMPT, ADVISOR_SYSTEM_PROMPT } from './aiOrderContract'
 import { ORDER_TYPES } from './gameOrders'
-import { BATTLE_TREND_THRESHOLD } from '@/data/gameConfig'
+import { battleTrend } from './battleTrend'
 import { buildWorldOverview } from './aiContext'
 import type { BaseResult } from './battleFormula'
 import type { BattleInfo } from '@/stores/game'
@@ -258,8 +258,7 @@ export function buildBattleFlavorSummary(
     const from = (store.cities as unknown as Record<string, { name: string; troops: number; fieldForce: number; morale: number }>)[b.from]
     const to = (store.cities as unknown as Record<string, { name: string; troops: number; fieldForce: number; morale: number; fort: number; terrain: string }>)[b.to]
     const base = baseResults.get(b.id)
-    const t = BATTLE_TREND_THRESHOLD
-    const trend = b.totalAttackerLoss > b.totalDefenderLoss * t ? '守方占优' : b.totalDefenderLoss > b.totalAttackerLoss * t ? '攻方占优' : '僵持'
+    const { label: trend } = battleTrend(b, 'total')
     const last = b.turns > 0 && b.lastAttackerLoss > 0
       ? ` lastTurn: 攻损${b.lastAttackerLoss}k/守损${b.lastDefenderLoss}k`
       : ''
