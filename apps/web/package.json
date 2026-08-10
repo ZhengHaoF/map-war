@@ -8,7 +8,7 @@
     "build": "vue-tsc --noEmit && vite build",
     "build:skip-check": "vite build",
     "preview": "vite preview",
-    "test:unit": "vitest",
+    "test:unit": "vitest --pool=threads",
     "lint": "run-s \"lint:*\"",
     "lint:oxlint": "oxlint . --fix",
     "lint:eslint": "eslint . --fix --cache",
