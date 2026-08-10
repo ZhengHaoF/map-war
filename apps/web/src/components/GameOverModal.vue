@@ -4,7 +4,7 @@
     :title="isVictory ? '天下一统' : '势力覆灭'"
     variant="parchment"
     :closable="false"
-    width="420px"
+    width="520px"
     :z-index="20000"
   >
     <div class="gom-body">
@@ -37,6 +37,24 @@
         </div>
       </div>
 
+      <!-- 终局回顾：城池趋势 + 功业印章 -->
+      <div class="gom-review">
+        <div class="gom-review-title">本局回顾</div>
+        <div v-if="cityTrend.length > 1" class="gom-review-chart">
+          <TrendChart :points="cityTrend" color="var(--cinnabar)" unit="城" metric="统治城池" />
+        </div>
+        <div v-else class="gom-review-empty">征程过短，暂无趋势可绘。</div>
+        <div v-if="unlockedSeals.length" class="gom-review-seals">
+          <span
+            v-for="m in unlockedSeals"
+            :key="m.id"
+            class="gom-seal gom-seal--unlocked"
+            :title="`${m.title} · ${m.flavor}`"
+          >{{ m.sealChar }}</span>
+        </div>
+        <div v-else class="gom-review-empty">尚未立下功业。</div>
+      </div>
+
       <div class="gom-footer">
         <GameButton parchment @click="onRestart">
           <component :is="ICONS.refresh" :size="14" />重新开始
@@ -51,6 +69,8 @@ import { computed, type Component } from 'vue'
 import { useGameStore } from '@/stores/game'
 import GameModal from '@/components/ui/GameModal.vue'
 import GameButton from '@/components/ui/GameButton.vue'
+import TrendChart from '@/components/ui/TrendChart.vue'
+import { MILESTONES } from '@/data/milestones'
 import IconRefresh from '~icons/tabler/refresh'
 
 const ICONS: Record<string, Component> = {
@@ -75,6 +95,16 @@ const playerTroops = computed(() => {
     .filter(c => c.owner === f)
     .reduce((s, c) => s + c.troops + c.fieldForce, 0)
 })
+
+/** 城池数趋势（回合采样，终端回首可回顾全局沉浮） */
+const cityTrend = computed(() =>
+  store.turnSnapshots.map((s) => ({ x: s.date, y: s.cityCount })),
+)
+
+/** 已达成功业（按定义顺序展示印章） */
+const unlockedSeals = computed(() =>
+  MILESTONES.filter((m) => store.milestonesUnlocked[m.id]),
+)
 
 function onRestart(): void {
   store.resetGameOver()
@@ -151,6 +181,62 @@ function onRestart(): void {
 .gom-stat-value {
   font-weight: 600;
   color: var(--ink-panel);
+}
+
+.gom-review {
+  width: 100%;
+  border-top: 1px dashed rgba(90, 70, 40, 0.25);
+  padding: 12px 8px 4px;
+  margin-bottom: 12px;
+}
+
+.gom-review-title {
+  font-family: var(--font-song);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 3px;
+  color: var(--ink-panel);
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+.gom-review-chart {
+  margin-bottom: 12px;
+}
+
+.gom-review-empty {
+  font-size: 12px;
+  color: var(--ink);
+  opacity: 0.55;
+  text-align: center;
+  padding: 10px 0;
+}
+
+.gom-review-seals {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 2px 0 8px;
+}
+
+.gom-seal {
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-song);
+  font-size: 22px;
+  font-weight: 700;
+  border-radius: 6px;
+  user-select: none;
+}
+
+.gom-seal--unlocked {
+  background: var(--cinnabar);
+  color: var(--paper);
+  box-shadow: 0 1px 4px rgba(140, 40, 30, 0.35);
 }
 
 .gom-footer {

@@ -32,6 +32,7 @@ import IconFileImport from '~icons/tabler/file-import'
 import IconTrash from '~icons/tabler/trash'
 import IconAffiliate from '~icons/tabler/affiliate'
 import IconRoute from '~icons/tabler/route'
+import IconRosette from '~icons/tabler/rosette'
 
 const props = defineProps<{ toast: ToastItem }>()
 const emit = defineEmits<{ dismiss: [id: number] }>()
@@ -53,6 +54,7 @@ const ICONS: Record<string, unknown> = {
   trash: IconTrash,
   affiliate: IconAffiliate,
   route: IconRoute,
+  rosette: IconRosette,
 }
 
 const iconComp = computed(() => (props.toast.icon ? (ICONS[props.toast.icon] ?? null) : null))

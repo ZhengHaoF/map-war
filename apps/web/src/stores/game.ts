@@ -15,6 +15,8 @@ import {
 } from '@/utils/economy'
 import { DEFAULT_MORALE, MORALE_MIN, MORALE_MAX, CITY_CAP_INDUSTRY, CITY_CAP_FOOD, CITY_CAP_FORT, CITY_CAP_LEVEL, CAPTURE_MORALE_BONUS } from '@/data/gameConfig'
 import { round1 } from '@/utils/format'
+import { GAME_START_DATE, countOwnedByProvince } from '@/utils/chronicle'
+import { evaluateMilestones, MILESTONES, type MilestoneContext } from '@/data/milestones'
 
 // 战斗元数据（PixiJS 句柄不进 store，由 gameOrders 模块本地持有）
 export interface BattleInfo {
@@ -139,6 +141,31 @@ export interface FactionEconomyBreakdown {
   foodUpkeep: number
   silverNet: number
   foodNet: number
+}
+
+/**
+ * 回合末快照（战纪·势力沉浮的数据源）。
+ * 派生态：不落存档，由 dateAdvance 分支逐回合采样，读档重放自动重建。
+ */
+export interface TurnSnapshot {
+  turn: number
+  /** 推进后的日期 */
+  date: string
+  cityCount: number
+  /** 玩家总兵力（k） */
+  troops: number
+  /** 玩家加权士气 0-100 */
+  morale: number
+  /** 银库（万银） */
+  treasury: number
+  /** 粮仓（万石） */
+  granary: number
+}
+
+/** 已解锁里程碑记录：id → 首次达成时的日期与回合 */
+export interface MilestoneRecord {
+  date: string
+  turn: number
 }
 
 export type GameEvent =
@@ -271,6 +298,14 @@ export const useGameStore = defineStore('game', () => {
   // ── 外交协商记录（Phase2，电报孪生：不进 eventLog、不改世界态，单独持久化）──
   const diplomacyRecords = ref<DiplomacyRecord[]>([])
   let _tgSeq = 0 // 模块内自增 id，无需持久化（id 已含时间戳）
+
+  // ── 战纪（成长轨迹）：全派生态，不落存档，读档重放自动重建 ──
+  /** 每回合末采样（dateAdvance 分支追加） */
+  const turnSnapshots = ref<TurnSnapshot[]>([])
+  /** 已解锁里程碑（dateAdvance 分支判定） */
+  const milestonesUnlocked = ref<Record<string, MilestoneRecord>>({})
+  /** 玩家累计占城数（capture 分支计数，重放自动重建） */
+  const playerCaptures = ref(0)
 
   // ── 游戏结束状态 ──
   const gameOver = ref<GameOverState | null>(null)
@@ -524,6 +559,56 @@ export const useGameStore = defineStore('game', () => {
     return readRelation(relations.value, a, b)
   }
 
+  // ── 战纪：回合末采样 / 里程碑判定（挂 dateAdvance 分支；重放期照常执行=重建，toast 由 isReplaying 守卫）──
+
+  /** 采样当前玩家势力视角的回合末快照（未择势则跳过） */
+  function takeTurnSnapshot(): void {
+    const f = currentFaction.value
+    if (!f) return
+    turnSnapshots.value.push({
+      turn: turnCount.value,
+      date: currentDate.value,
+      cityCount: factionCities(f).length,
+      troops: round1(factionTroops(f)),
+      morale: factionMorale(f),
+      treasury: round1(getTreasury(f)),
+      granary: round1(getGranary(f)),
+    })
+  }
+
+  /** 判定里程碑：新达成的写入解锁记录 + 非重放期弹 toast */
+  function evaluateMilestonesForPlayer(): void {
+    const f = currentFaction.value
+    if (!f) return
+    const ctx: MilestoneContext = {
+      faction: f,
+      cityCount: factionCities(f).length,
+      totalCities: Object.keys(cities.value).length,
+      captures: playerCaptures.value,
+      provinceOwned: countOwnedByProvince(ownership.value, f),
+      troops: round1(factionTroops(f)),
+      morale: factionMorale(f),
+      treasury: round1(getTreasury(f)),
+      granary: round1(getGranary(f)),
+    }
+    const fresh = evaluateMilestones(ctx, milestonesUnlocked.value)
+    if (!fresh.length) return
+    for (const id of fresh) {
+      milestonesUnlocked.value[id] = { date: currentDate.value, turn: turnCount.value }
+      if (!isReplaying.value) {
+        const m = MILESTONES.find((x) => x.id === id)
+        if (m) {
+          useToast().push({
+            icon: 'rosette',
+            tone: 'amber',
+            title: `功业 · ${m.title}`,
+            text: m.flavor,
+          })
+        }
+      }
+    }
+  }
+
   // ── 初始化 / 设置 ──
   // seed 单向灌溉：仅在此处读取 chinaCities，之后世界态完全活在 cities 里。
   function initWorld(): void {
@@ -561,7 +646,7 @@ export const useGameStore = defineStore('game', () => {
     treasury.value = treas
     granary.value = gran
     lastEconomy.value = {}
-    currentDate.value = '1931-04-01'
+    currentDate.value = GAME_START_DATE
     playerName.value = ''
     currentFaction.value = null
     eventLog.value = [] // 重置事件日志
@@ -571,6 +656,10 @@ export const useGameStore = defineStore('game', () => {
     relations.value = buildInitialRelations() // 外交种子（蒋阎/蒋桂停战冷却、国共内战）；读档时由 eventLog 重放覆盖
     turnCount.value = 0
     gameOver.value = null // 重置游戏结束状态
+    // 战纪派生态清零（读档重放时由 dateAdvance/capture 分支重建）
+    turnSnapshots.value = []
+    milestonesUnlocked.value = {}
+    playerCaptures.value = 0
   }
 
   function selectFaction(f: Owner): void {
@@ -737,6 +826,9 @@ export const useGameStore = defineStore('game', () => {
     if (e.type === 'dateAdvance') {
       currentDate.value = e.date
       turnCount.value++
+      // 战纪：回合末采样 + 里程碑判定（重放期照常执行 = 读档自动重建）
+      takeTurnSnapshot()
+      evaluateMilestonesForPlayer()
       if (!isReplaying.value) autoSave()
       return { ok: true }
     }
@@ -896,6 +988,8 @@ export const useGameStore = defineStore('game', () => {
         }
         // 占领后自动检查势力存亡
         auditFactionSurvival()
+        // 战纪：玩家累计占城计数（重放期照常累加 = 读档自动重建）
+        if (e.actor === currentFaction.value) playerCaptures.value++
         break
       case 'attack': { // 战斗损耗：攻方扣 fieldForce（从来源城），守方扣 troops（目标城）
         const next: Record<string, CityState> = {
@@ -1228,6 +1322,10 @@ export const useGameStore = defineStore('game', () => {
     relationBetween,
     diplomacyRecords,
     upsertDiplomacyRecord,
+    // 战纪（成长轨迹，读档重放自动重建）
+    turnSnapshots,
+    milestonesUnlocked,
+    playerCaptures,
     // 游戏结束
     gameOver,
     auditFactionSurvival,

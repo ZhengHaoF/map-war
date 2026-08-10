@@ -45,6 +45,10 @@
         <component :is="ICONS['clipboard-text']" :size="16" />
         事件日志
       </GameButton>
+      <GameButton tooltip="战纪 · 扩张轨迹 / 势力沉浮 / 功业" :active="chronicleVisible" @click="chronicleVisible = !chronicleVisible">
+        <component :is="ICONS['timeline']" :size="16" />
+        战纪
+      </GameButton>
       <GameButton tooltip="查看各政权总览" :active="factionDebugVisible" @click="factionDebugVisible = !factionDebugVisible">
         <component :is="ICONS.building" :size="16" />
         政权总览
@@ -424,6 +428,7 @@
     <AdvisorPanel :visible="advisorVisible" @close="advisorVisible = false" />
     <DiplomacyPanel :visible="diplomacyVisible" @close="diplomacyVisible = false" />
     <PlayerStatusPanel :visible="overviewVisible" @close="overviewVisible = false" />
+    <ChroniclePanel :visible="chronicleVisible" @close="chronicleVisible = false" />
     <div class="disclaimer-bar map-ui" @click="disclaimerVisible = true">
       ⚠
       免责声明：本地图数据来源于网络公开数据源，仅供娱乐参考。游戏中的政权划分、边界线等均为虚构设定，不代表任何个人或组织的政治立场，亦不代表对现实世界领土归属的任何主张，不对应、不代表当下世界各国法定领土国界。本人始终坚持遵循以中华人民共和国自然资源部（原国家测绘地理信息局）发布的标准地图。
@@ -463,6 +468,7 @@ import AdvisorPanel from '@/components/AdvisorPanel.vue'
 import DiplomacyPanel from '@/components/DiplomacyPanel.vue'
 import TurnSummaryModal from '@/components/TurnSummaryModal.vue'
 import PlayerStatusPanel from '@/components/PlayerStatusPanel.vue'
+import ChroniclePanel from '@/components/ChroniclePanel.vue'
 import FactionDebugPanel from '@/components/FactionDebugPanel.vue'
 import InfoTable from '@/components/ui/InfoTable.vue'
 import LegendPanel from '@/components/ui/LegendPanel.vue'
@@ -492,6 +498,7 @@ import IconChevronDown from '~icons/tabler/chevron-down'
 import IconChevronUp from '~icons/tabler/chevron-up'
 import IconRefresh from '~icons/tabler/refresh'
 import IconAffiliate from '~icons/tabler/affiliate'
+import IconTimeline from '~icons/tabler/timeline'
 import IconCopy from '~icons/tabler/copy'
 import AiDebugPanel from '@/components/AiDebugPanel.vue'
 import EventLogPanel from '@/components/EventLogPanel.vue'
@@ -533,6 +540,7 @@ const ICONS: Record<string, Component> = {
   'chevron-up': IconChevronUp,
   refresh: IconRefresh,
   affiliate: IconAffiliate,
+  timeline: IconTimeline,
   copy: IconCopy,
 }
 
@@ -685,6 +693,8 @@ const advisorVisible = ref(false)
 const diplomacyVisible = ref(false)
 const battleListVisible = ref(false)
 const eventLogPanelVisible = ref(false)
+/** 战纪（成长轨迹）面板是否打开 */
+const chronicleVisible = ref(false)
 const saveModalVisible = ref(false)
 const loadModalVisible = ref(false)
 const battleList = computed(() => useGameStore().battles)
