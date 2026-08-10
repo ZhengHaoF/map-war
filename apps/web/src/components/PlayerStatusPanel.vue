@@ -104,10 +104,23 @@
           <div v-if="myBattles.length === 0" class="empty">暂无战斗</div>
           <ul v-else class="battle-list">
             <li v-for="b in myBattles" :key="b.id" @click="focusBattle(b.id)">
-              <span class="b-from">{{ b.fromName }}</span>
-              <span class="b-arrow">→</span>
-              <span class="b-to">{{ b.toName }}</span>
-              <span v-if="!b.active" class="inactive">(已停)</span>
+              <div class="b-header">
+                <span class="b-from">{{ b.fromName }}</span>
+                <span class="b-arrow">→</span>
+                <span class="b-to">{{ b.toName }}</span>
+                <span v-if="b.turns > 0" class="b-turns">第 {{ b.turns }} 回合</span>
+                <span v-if="!b.active" class="inactive">(已停)</span>
+                <span class="b-trend" :class="battleTrend(b, 'lastTurn').cls">{{ battleTrend(b, 'lastTurn').label }}</span>
+              </div>
+              <div v-if="b.turns > 0" class="b-body">
+                <span class="b-loss b-loss-atk">攻损 {{ b.totalAttackerLoss }}k</span>
+                <span class="b-force-bar">
+                  <span class="b-force-seg b-force-atk" :style="{ width: bForceShare(b) + '%' }"></span>
+                  <span class="b-force-seg b-force-def" :style="{ width: (100 - bForceShare(b)) + '%' }"></span>
+                </span>
+                <span class="b-loss b-loss-def">守损 {{ b.totalDefenderLoss }}k</span>
+              </div>
+              <div v-else class="b-body b-body-first">初次交锋——下回合见分晓</div>
             </li>
           </ul>
         </section>
@@ -195,6 +208,8 @@ import { ref, computed } from 'vue'
 import { useGameStore } from '@/stores/game'
 import { Owner, OWNER_LABELS, OWNER_COLORS, OWNER_DETAILS } from '@/data/owners'
 import { round1 } from '@/utils/format'
+import { battleTrend, battleForceShare } from '@/utils/battleTrend'
+import type { CityState } from '@/stores/game'
 import type { Component } from 'vue'
 import GameModal from '@/components/ui/GameModal.vue'
 import EventLogPanel from '@/components/EventLogPanel.vue'
@@ -256,6 +271,13 @@ function focusCity(gb: string): void {
 }
 function focusBattle(id: string): void {
   gameStore.requestFocus('battle', id)
+}
+/** 兵力比条：攻方野战 vs 守方驻军 */
+function bForceShare(b: { from: string; to: string }): number {
+  const cities = gameStore.cities as unknown as Record<string, CityState>
+  const atk = cities[b.from]?.fieldForce ?? 0
+  const def = cities[b.to]?.troops ?? 0
+  return battleForceShare(atk, def)
 }
 
 /** 净收支展示文案（带正负号） */
@@ -531,9 +553,9 @@ function deltaCls(v: number): string {
 
 .battle-list li {
   display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 7px 8px;
+  flex-direction: column;
+  gap: 5px;
+  padding: 7px 10px;
   border-radius: var(--radius-md);
   cursor: pointer;
   background: var(--paper-faint);
@@ -552,14 +574,71 @@ function deltaCls(v: number): string {
   transform: scale(0.98);
 }
 
+.b-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .b-arrow {
   color: var(--cinnabar);
 }
+
+.b-turns {
+  font-size: 11px;
+  color: var(--ink-muted);
+  margin-left: auto;
+}
+
+.b-trend {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+}
+
+.trend-atk { color: var(--cinnabar); }
+.trend-def { color: #6d5a37; }
+.trend-even { color: var(--ink-muted); }
 
 .inactive {
   color: var(--ink-muted);
   font-size: 11px;
 }
+
+.b-body {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--ink-muted);
+}
+
+.b-body-first {
+  color: var(--ink-muted);
+  font-style: italic;
+}
+
+.b-loss {
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.b-loss-atk { color: var(--cinnabar-ink); }
+.b-loss-def { color: var(--ink-soft); }
+
+.b-force-bar {
+  flex: 1;
+  height: 5px;
+  display: inline-flex;
+  border-radius: 3px;
+  overflow: hidden;
+  background: rgba(138, 109, 75, 0.18);
+}
+
+.b-force-seg { height: 100%; display: block; }
+.b-force-atk { background: var(--cinnabar); }
+.b-force-def { background: var(--ink-muted); }
 
 .empty {
   color: var(--ink-muted);
