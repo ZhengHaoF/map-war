@@ -312,6 +312,7 @@ async function settleActiveBattles(): Promise<void> {
  * @returns 'done' 队列跑空；'stopped' 遇到停标交还玩家；'running' 已在推进中（直接返回）
  */
 async function advance(): Promise<'done' | 'stopped' | 'running'> {
+  const store = useGameStore()
   if (status.value === 'running') return 'running'
   if (!queue.value.length) {
     status.value = 'done'
@@ -344,6 +345,9 @@ async function advance(): Promise<'done' | 'stopped' | 'running'> {
 
       // 世界 AI 标注「需玩家决策」→ 在此停下交还
       if (order.needsPlayerDecision) {
+        // 落一条停点事件进 eventLog，让读档重放也能还原「此处该玩家拍板」。
+        // 它是末尾事件时 pausedForPlayer 才为真；玩家决策产生新事件后自动解除。
+        store.applyEvent({ type: 'pauseForPlayer' })
         stoppedAt.value = order
         status.value = 'stopped'
         pushToast({ icon: 'alert-triangle', tone: 'cinnabar', title: '请主公定夺', text: '局势有变，控制权已交还' })

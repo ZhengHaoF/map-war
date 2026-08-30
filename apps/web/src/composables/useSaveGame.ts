@@ -20,6 +20,10 @@ export function useSaveGame() {
     if (ok) {
       store.requestMapReload()
       pushToast({ icon: 'file-import', tone: 'green', title: '读档成功', text: '已载入存档' })
+      // 存档停在决策点上（eventLog 末尾是 pauseForPlayer）→ 补一句提示，避免玩家错过拍板时机
+      if (store.pausedForPlayer) {
+        pushToast({ icon: 'alert-triangle', tone: 'cinnabar', title: '请主公定夺', text: '局势有变，控制权已交还' })
+      }
     } else {
       pushToast({ icon: 'alert-triangle', tone: 'error', title: '读档失败', text: '存档损坏或不存在' })
     }

@@ -188,6 +188,8 @@ export type GameEvent =
   | { type: 'economicTick'; entries: EconomyTickEntry[] }
   // ── 外交系统 ──
   | { type: 'relationChange'; a: Owner; b: Owner; status: RelationStatus; truceUntil?: string; note?: string; recordId?: string }
+  // ── 调度停点：不改世界态，仅标记「此处需玩家决策」，供读档还原暂停位置 ──
+  | { type: 'pauseForPlayer' }
 
 // ── 存档 / 持久化 ──
 
@@ -258,6 +260,15 @@ export const useGameStore = defineStore('game', () => {
   // 这段"收尾"能力在 LeafletMap（loadLayer/restoreActiveAnimations）里。store 不反向依赖组件，
   // 改用计数器信号：requestMapReload() ++token → LeafletMap watch(token) 收尾。
   const reloadToken = ref(0)
+
+  /**
+   * 是否停在「需玩家决策」的停点上。
+   * 判据：eventLog 末尾是 pauseForPlayer。后面还有事件 = 玩家已决策过，不再打断（天然幂等）。
+   * 连续停点（pause1 → 决策 → pause2）也只对末尾的 pause2 生效。
+   */
+  const pausedForPlayer = computed(
+    () => eventLog.value.length > 0 && eventLog.value[eventLog.value.length - 1].type === 'pauseForPlayer',
+  )
 
   // 派生投影：owner 视图（保持旧接口，读自 cities）
   const ownership = computed<Record<string, Owner>>(() =>
@@ -788,6 +799,7 @@ export const useGameStore = defineStore('game', () => {
       case 'treasuryChange':
       case 'granaryChange':
       case 'economicTick':
+      case 'pauseForPlayer':
         return { ok: true }
       case 'relationChange': {
         if (!e.a || !e.b) return { ok: false, reason: 'relationChange 需要 a 和 b 两个势力' }
@@ -833,6 +845,10 @@ export const useGameStore = defineStore('game', () => {
     if (!isReplaying.value) eventLog.value.push(e)
 
     // 3. 非城市态事件：无 targetGb，提前处理并 return
+    if (e.type === 'pauseForPlayer') {
+      // 停点标记：不触碰世界态，仅落日志。是否「当前暂停中」由 pausedForPlayer 判据决定
+      return { ok: true }
+    }
     if (e.type === 'dateAdvance') {
       currentDate.value = e.date
       turnCount.value++
@@ -1347,6 +1363,7 @@ export const useGameStore = defineStore('game', () => {
     deleteSave,
     listSaves,
     requestMapReload,
+    pausedForPlayer,
     // 电报
     telegrams,
     turnCount,

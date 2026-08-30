@@ -45,6 +45,7 @@ export function eventBadge(e: GameEvent): string {
     granaryChange: '粮仓',
     economicTick: '经济',
     relationChange: '外交',
+    pauseForPlayer: '定夺',
   }
   // battleEnd 徽章按 reason 细分，避免统一"停战"对撤退/崩溃/溃散表述不准
   if (e.type === 'battleEnd') {
@@ -135,6 +136,8 @@ export function describeEvent(e: GameEvent, cities: Record<string, { name: strin
       const parts = e.entries.map((it) => `${fn(it.faction)}${it.silverDelta >= 0 ? '+' : ''}${round1(it.silverDelta)}`)
       return `经济结算：${parts.join('，')}`
     }
+    case 'pauseForPlayer':
+      return '控制权交还玩家，等待定夺'
     case 'relationChange': {
       const verb = e.status === 'war' ? '宣战' : e.status === 'alliance' ? '结盟' : '停战'
       return `${fn(e.a)} ⇄ ${fn(e.b)} ${verb}${e.note ? `（${e.note}）` : ''}`
