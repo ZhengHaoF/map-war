@@ -50,7 +50,7 @@
         战纪
       </GameButton>
       <GameButton tooltip="查看各政权总览" :active="factionDebugVisible" @click="factionDebugVisible = !factionDebugVisible">
-        <component :is="ICONS.building" :size="16" />
+        <component :is="ICONS['building-castle']" :size="16" />
         政权总览
       </GameButton>
       <GameButton tooltip="保存当前进度" @click="saveModalVisible = true">
@@ -501,6 +501,7 @@ import IconRefresh from '~icons/tabler/refresh'
 import IconAffiliate from '~icons/tabler/affiliate'
 import IconTimeline from '~icons/tabler/timeline'
 import IconCopy from '~icons/tabler/copy'
+import IconBuildingCastle from '~icons/tabler/building-castle'
 import AiDebugPanel from '@/components/AiDebugPanel.vue'
 import EventLogPanel from '@/components/EventLogPanel.vue'
 import SaveSelectorModal from '@/components/SaveSelectorModal.vue'
@@ -543,6 +544,7 @@ const ICONS: Record<string, Component> = {
   affiliate: IconAffiliate,
   timeline: IconTimeline,
   copy: IconCopy,
+  'building-castle': IconBuildingCastle,
 }
 
 // ─── 类型定义 ───
