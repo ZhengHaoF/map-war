@@ -59,6 +59,19 @@ export const OWNER_COLORS: Record<Owner, number> = {
   [Owner.NEUTRAL]: 0xa99a7e, // 纸灰 - 中立
 }
 
+/**
+ * 首府别名：史料首府名 → 种子城市数据中的今地名。
+ *
+ * OWNER_DETAILS.capital 写的是 1931 年的叫法（旅顺/迪化/瑞金），
+ * 而 chinaCities.seed.json 用今地名（大连/乌鲁木齐/赣州），需要此映射对齐。
+ * 目前暂无消费方，保留为通用首府映射常量，供后续定位/展示功能复用。
+ */
+export const OWNER_CAPITAL_ALIASES: Partial<Record<Owner, string>> = {
+  [Owner.JPN]: '大连',
+  [Owner.XJ]: '乌鲁木齐',
+  [Owner.CCP]: '赣州',
+}
+
 /** 政权中文名 */
 export const OWNER_LABELS: Record<Owner, string> = {
   [Owner.KMT]: '国民政府',

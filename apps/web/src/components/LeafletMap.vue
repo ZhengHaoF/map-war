@@ -20,6 +20,10 @@
         <component :is="ICONS['tag']" :size="16" />
         显示地名
       </GameButton>
+      <GameButton tooltip="领土文字水印" :active="sealWatermarkEnabled" @click="toggleSealWatermark">
+        <component :is="ICONS['texture']" :size="16" />
+        水印
+      </GameButton>
       <GameButton :active="baseMapVisible" @click="toggleBaseMap">
         <component :is="ICONS['world']" :size="16" />
         世界背景
@@ -154,6 +158,18 @@
         <GameButton @click="recruitTest"
           ><component :is="ICONS['sword']" :size="16" />广元增兵</GameButton
         >
+        <label class="seal-alpha-row">
+          <span>水印浓度</span>
+          <input
+            v-model.number="sealWatermarkAlpha"
+            type="range"
+            min="0.02"
+            max="0.6"
+            step="0.01"
+            @change="redrawSealWatermark"
+          />
+          <span class="seal-alpha-val">{{ sealWatermarkAlpha.toFixed(2) }}</span>
+        </label>
       </div>
     </GameModal>
     <FactionDebugPanel
@@ -441,8 +457,22 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
-import { Application, Container, Graphics, Text, TextStyle } from 'pixi.js'
-import { OWNER_COLORS, OWNER_LABELS, OWNER_DETAILS, Owner } from '@/data/owners'
+import {
+  Application,
+  Container,
+  Graphics,
+  Matrix,
+  Rectangle,
+  Text,
+  TextStyle,
+} from 'pixi.js'
+import type { Texture } from 'pixi.js'
+import {
+  OWNER_COLORS,
+  OWNER_LABELS,
+  OWNER_DETAILS,
+  Owner,
+} from '@/data/owners'
 import type { CityData } from '@/data/chinaCities'
 import type { CountryData } from '@/data/worldCountries'
 import { worldCountries, GEO_TO_GAME_ISO } from '@/data/worldCountries'
@@ -502,6 +532,7 @@ import IconAffiliate from '~icons/tabler/affiliate'
 import IconTimeline from '~icons/tabler/timeline'
 import IconCopy from '~icons/tabler/copy'
 import IconBuildingCastle from '~icons/tabler/building-castle'
+import IconTexture from '~icons/tabler/texture'
 import AiDebugPanel from '@/components/AiDebugPanel.vue'
 import EventLogPanel from '@/components/EventLogPanel.vue'
 import SaveSelectorModal from '@/components/SaveSelectorModal.vue'
@@ -545,6 +576,7 @@ const ICONS: Record<string, Component> = {
   timeline: IconTimeline,
   copy: IconCopy,
   'building-castle': IconBuildingCastle,
+  texture: IconTexture,
 }
 
 // ─── 类型定义 ───
@@ -570,12 +602,6 @@ interface HitResult {
 
 /** PixiJS Text 扩展：自定义属性用于地图标签变换 */
 interface LabelText extends Text {
-  _geoX: number
-  _geoY: number
-}
-
-/** 首府钤印容器：自定义属性用于随相机定位（固定屏幕尺寸，不随地图缩放） */
-interface SealMark extends Container {
   _geoX: number
   _geoY: number
 }
@@ -653,6 +679,34 @@ const MAP_PALETTE = {
   worldBorder: 0x84735a,
   worldBorderWidth: 0.5,
 } as const
+
+// ─── 领土文字水印 ───
+// 水印不再是盖在某点的一枚方章，而是把势力名做成文字带、铺满整个疆域，
+// 像票据/图纸底纹一样透过国土轮廓透出来。实现上直接借 PixiJS 的图案填充：
+// fill({ texture, textureSpace: 'global' }) 会让所有城市多边形共享同一张平铺网格，
+// 于是同势力各市之间的市界不会打断文字行，整块疆域看起来是连续的印花字。
+// uv 绑定在几何顶点上、只在几何变更时重建，因此图案天然随地图缩放平移，
+// 不需要每帧同步，也不遮罩、不平铺精灵。
+
+/**
+ * 平铺单元边长（地图局部坐标；随地图一起缩放，故 zoom 越大水印越大）。
+ * 单元内横贯两条词带，故取 190 给 5 字长的政权名（如「日本关东军」）留足余量。
+ */
+const SEAL_TILE = 190
+/**
+ * 纹理超采样倍数。
+ * 图案填充按纹理的**物理**像素归一化，超采样会把周期同比放大，
+ * 故绘制时用 matrix 反向缩放 1 / SEAL_TEX_RES 抵消，保证周期仍是 SEAL_TILE。
+ * 文字水印字形本就粗大，取 2.5 即可兼顾 ZOOM_MAX(8) 下的清晰度与显存
+ * （12 张 475² 纹理，约 11MB）。
+ */
+const SEAL_TEX_RES = 2.5
+/** 水印字号（地图局部坐标） */
+const SEAL_TEXT_FS = 24
+/** 词带纵向位置（占单元高比例）：三条均分行距，织成连续底纹 */
+const SEAL_BAND_YS = [0.2, 0.5, 0.8] as const
+/** 相邻词带的横向相位增量（占单元宽比例）：逐行错开 1/3 周期，避免竖缝连成线 */
+const SEAL_BAND_X_SHIFT = 1 / 3
 
 const LAYERS: LayerConfig[] = [
   {
@@ -734,6 +788,10 @@ const disclaimerVisible = ref(false)
 const ownerColorEnabled = ref(true)
 const labelsVisible = ref(true)
 const baseMapVisible = ref(true)
+/** 领土文字水印开关（仅市级图层有城市几何可铺） */
+const sealWatermarkEnabled = ref(true)
+/** 水印浓度：调试面板可实时调，调到满意后固化回常量 */
+const sealWatermarkAlpha = ref(0.26)
 
 // ─── PixiJS 实例 ───
 
@@ -741,7 +799,6 @@ let app: Application
 let worldContainer: Container
 let fxContainer: Container
 let labelContainer: Container
-let sealContainer: Container
 let selectionHighlightGfx: Graphics
 let baseContainer: Container
 let baseHighlightGraphics: Graphics
@@ -754,6 +811,11 @@ let selectedWorldFeature: GeoJSON.Feature | null = null
 const geoJsonCache = new Map<string, GeoJSON.FeatureCollection>()
 let worldData: GeoJSON.FeatureCollection | null = null
 const worldDataMap = new Map<string, CountryData>()
+
+/** 各势力的印章平铺纹理（按势力分色，单字印文） */
+const sealTextures = new Map<Owner, Texture>()
+/** 当前水印图形：纹理重建前必须先销毁它，否则会有一帧采样到已销毁的纹理 */
+let sealWatermarkGfx: Graphics | null = null
 
 // ─── 地图状态 ───
 
@@ -945,14 +1007,20 @@ function hitTest(
 
 // ─── 绘图引擎 ───
 
-function drawFeature(
-  graphics: Graphics,
+/** 一个多边形的若干环：首环为外轮廓，其余为洞（内环） */
+type PolygonRings = Point[][]
+
+/**
+ * 收集 feature 的所有多边形（已换算为屏幕坐标）。
+ *
+ * 抽出来是为了让同一份几何能被多次着色而不重复做经纬度换算——
+ * 领土水印要在底色之上再画一遍同样的轮廓，换算只做一次即可。
+ */
+function collectFeatureRings(
   feature: GeoJSON.Feature,
   width: number,
   height: number,
-  style: LayerStyle,
-  alpha = 0.5,
-): void {
+): PolygonRings[] {
   const { geometry } = feature
   const polygons: GeoJSON.Position[][][] =
     geometry.type === 'Polygon'
@@ -961,23 +1029,52 @@ function drawFeature(
         ? (geometry.coordinates as GeoJSON.Position[][][])
         : []
 
+  const out: PolygonRings[] = []
   for (const polygon of polygons) {
+    const rings: PolygonRings = []
     for (const ring of polygon) {
       if (ring.length < 3) continue
-      const first = geoToScreen(ring[0][0], ring[0][1], width, height)
-      graphics.moveTo(first.x, first.y)
+      rings.push(ring.map(([lng, lat]) => geoToScreen(lng, lat, width, height)))
+    }
+    if (rings.length > 0) out.push(rings)
+  }
+  return out
+}
+
+/**
+ * 把多边形写入 graphics，每写完一个多边形回调一次（调用方在里面 fill / stroke）。
+ *
+ * 必须逐个 polygon 回调而不是最后统一 fill：fill() 会消费当前累积路径，
+ * 且只有在同一个 fill 内，后续环才会被当作洞挖掉；统一 fill 会让内环变成实心块。
+ */
+function fillPolygons(graphics: Graphics, polygons: PolygonRings[], onPolygon: () => void): void {
+  for (const rings of polygons) {
+    for (const ring of rings) {
+      graphics.moveTo(ring[0].x, ring[0].y)
       for (let i = 1; i < ring.length; i++) {
-        const p = geoToScreen(ring[i][0], ring[i][1], width, height)
-        graphics.lineTo(p.x, p.y)
+        graphics.lineTo(ring[i].x, ring[i].y)
       }
       graphics.closePath()
     }
+    onPolygon()
+  }
+}
+
+function drawFeature(
+  graphics: Graphics,
+  feature: GeoJSON.Feature,
+  width: number,
+  height: number,
+  style: LayerStyle,
+  alpha = 0.5,
+): void {
+  const borderWidth = style.borderWidth ?? 0.5
+  fillPolygons(graphics, collectFeatureRings(feature, width, height), () => {
     graphics.fill({ color: style.fillColor, alpha })
-    const borderWidth = style.borderWidth ?? 0.5
     if (borderWidth > 0) {
       graphics.stroke({ width: borderWidth, color: style.color, alpha: 1 })
     }
-  }
+  })
 }
 
 function highlightOn(gfx: Graphics, feature: GeoJSON.Feature, color = 0xb04a3a): void {
@@ -1804,102 +1901,107 @@ function updateLabels(): void {
   }
 }
 
-// ─── 首府钤印层（朱砂方章，像指挥员在地图上盖下的印）───
+// ─── 领土文字水印（满铺）───
+//
+// 把政权名织成平铺纹理铺满疆域，用势力色、低透明度，回答"这块地是谁的"。
+// 曾有一枚"首府朱砂实印"作锚点，现已移除——文字水印本身已表达归属，无需方章。
+
+/** 水印字体：与地图注记同族，明朝体 */
+const SEAL_FONT = '"HuiWen Ming", serif'
+
+/** 图案填充矩阵：抵消纹理超采样带来的周期放大（fill 只读取不持有，可安全复用） */
+const SEAL_PATTERN_MATRIX = new Matrix().scale(1 / SEAL_TEX_RES, 1 / SEAL_TEX_RES)
 
 /**
- * 首府城名（用于在种子城市数据中匹配，取今地名）：
- * 取 OWNER_DETAILS.capital 第一段，去「市」后缀与括号注记；
- * 旅顺（关东州）→ 今大连市、迪化 → 今乌鲁木齐市，种子数据用今地名故需别名。
+ * 生成某势力的平铺文字水印纹理。
+ *
+ * 单元内放三条**横贯的势力名词带**（词 + 全角空格循环成流，长于单元本身），
+ * 每行横向相位递增 1/3 周期——矩形 repeat 下三行词流错落如砖墙，
+ * 观感是整片疆域上连绵不断的政权名水印，而不是呆板的单格点阵。
+ * 词流首尾以空格收束，单元边界多切在空隙处，不劈断单字。
  */
-const CAPITAL_NAMES: Partial<Record<Owner, string>> = {
-  ...(Object.fromEntries(
-    Object.entries(OWNER_DETAILS).map(([owner, d]) => [
-      owner,
-      d.capital.split('/')[0].split('（')[0].replace(/市$/, '').trim(),
-    ]),
-  ) as Partial<Record<Owner, string>>),
-  [Owner.JPN]: '大连',
-  [Owner.XJ]: '乌鲁木齐',
-}
+function buildSealTexture(owner: Owner): Texture {
+  // OWNER_COLORS 覆盖全部 Owner，兜底色仅为防御
+  const color = (OWNER_COLORS as Record<string, number>)[owner] ?? 0x5f7fa6
+  const label = (OWNER_LABELS as Record<string, string>)[owner] ?? owner
+  const tile = new Container()
 
-/** 在城市 GeoJSON 中按 gb 找几何质心（复用注册表找不到时兜底用） */
-function findCityCentroid(gb: string): { lng: number; lat: number } | null {
-  const cityJson = geoJsonCache.get(LAYERS[1].file)
-  if (!cityJson) return null
-  const feature = cityJson.features.find((f) => (f.properties?.gb as string | undefined) === gb)
-  if (!feature) return null
-  return calculateCentroid(feature.geometry)
-}
+  // 词流：词 + 两枚全角空格 循环若干遍 + 长空格收尾，保证比单元宽多出一截，
+  // 于是任意单元窗内都是连续的"词·隙·词"段落，右缘裁切多落在收尾空隙上。
+  const gap = '\u3000\u3000'
+  let stream = ''
+  const cycles = Math.max(2, Math.ceil(SEAL_TILE / ((label.length + 2) * SEAL_TEXT_FS)) + 1)
+  for (let i = 0; i < cycles; i++) stream += label + gap
+  stream += label + '\u3000\u3000\u3000\u3000\u3000\u3000'
 
-/** 绘制单枚钤印：双框方章 + 竖排双字，微微倾斜如真实钤盖 */
-function buildSealMark(geoX: number, geoY: number, owner: Owner): SealMark {
-  const seal = new Container() as SealMark
-  const S = 15 // 半边长
-
-  const frame = new Graphics()
-  frame.rect(-S, -S, S * 2, S * 2)
-  frame.stroke({ width: 2.5, color: 0xb04a3a, alpha: 0.9 })
-  frame.rect(-S + 4, -S + 4, (S - 4) * 2, (S - 4) * 2)
-  frame.stroke({ width: 1, color: 0xb04a3a, alpha: 0.5 })
-  seal.addChild(frame)
-
-  const label = (OWNER_LABELS as Record<string, string>)[owner] ?? ''
-  const glyph = label.length >= 2 ? `${label[0]}\n${label[1]}` : label
-  const text = new Text({
-    text: glyph,
-    style: new TextStyle({
-      fontFamily: '"HuiWen Ming", serif',
-      fontSize: 13,
-      lineHeight: 14,
-      fill: 0xb04a3a,
-      align: 'center',
-    }),
+  SEAL_BAND_YS.forEach((fy, i) => {
+    const text = new Text({
+      text: stream,
+      style: new TextStyle({
+        fontFamily: SEAL_FONT,
+        fontSize: SEAL_TEXT_FS,
+        fill: color,
+      }),
+    })
+    text.anchor.set(0, 0.5)
+    // 横向相位逐行递增，纵向按 fy 均分：三行词流交错，铺开无竖缝
+    text.x = 8 + ((i * SEAL_BAND_X_SHIFT) % 1) * SEAL_TILE
+    text.y = fy * SEAL_TILE
+    tile.addChild(text)
   })
-  text.anchor.set(0.5)
-  seal.addChild(text)
 
-  seal.rotation = (Math.random() * 2 - 1) * 0.07
-  seal.alpha = 0.88
-  seal._geoX = geoX
-  seal._geoY = geoY
-  seal.x = geoX
-  seal.y = geoY
-  return seal
+  const texture = app.renderer.generateTexture({
+    target: tile,
+    // 显式 frame：让平铺网格严格对齐 SEAL_TILE，不受文字 bounds 影响
+    frame: new Rectangle(0, 0, SEAL_TILE, SEAL_TILE),
+    resolution: SEAL_TEX_RES,
+    antialias: true,
+  })
+  tile.destroy({ children: true })
+  return texture
 }
 
-/** 为每个存活势力的首府钤盖朱砂方章（随占领易主、势力存亡重建） */
-function renderSeals(): void {
-  if (!sealContainer) return
-  const width = app.screen.width
-  const height = app.screen.height
-  const store = useGameStore()
-
-  sealContainer.removeChildren()
-  for (const [ownerKey, capName] of Object.entries(CAPITAL_NAMES)) {
-    const owner = ownerKey as Owner
-    if (!store.isAlive(owner)) continue
-    const city = (Object.values(store.cities) as CityData[]).find(
-      (c) => c.owner === owner && c.name.startsWith(capName),
-    )
-    if (!city) continue
-
-    const centroid = findCityCentroid(city.gb)
-    if (!centroid) continue
-
-    const screenPos = geoToScreen(centroid.lng, centroid.lat, width, height)
-    sealContainer.addChild(buildSealMark(screenPos.x, screenPos.y, owner))
+/** 重建全部势力纹理（字体就绪后需重来一次，否则字形会固化成 fallback） */
+function buildSealTextures(): void {
+  if (!app?.renderer) return
+  disposeSealTextures()
+  for (const owner of Object.values(Owner)) {
+    if (owner === Owner.NEUTRAL) continue
+    sealTextures.set(owner, buildSealTexture(owner))
   }
-  updateSeals()
 }
 
-/** 钤印随相机平移缩放定位，但自身保持固定尺寸（印不随地图放大） */
-function updateSeals(): void {
-  if (!sealContainer) return
-  for (const child of sealContainer.children) {
-    const seal = child as SealMark
-    seal.x = seal._geoX * mapScale + mapX
-    seal.y = seal._geoY * mapScale + mapY
-  }
+/** 摘掉并销毁当前水印图形，切断对旧纹理的引用 */
+function disposeSealWatermark(): void {
+  if (!sealWatermarkGfx) return
+  sealWatermarkGfx.removeFromParent()
+  sealWatermarkGfx.destroy()
+  sealWatermarkGfx = null
+}
+
+function disposeSealTextures(): void {
+  disposeSealWatermark()
+  for (const texture of sealTextures.values()) texture.destroy(true)
+  sealTextures.clear()
+}
+
+/**
+ * 把某势力的领土轮廓用印章纹理铺满。
+ *
+ * textureSpace: 'global' 是关键——所有多边形共享同一张平铺网格，
+ * 于是同势力各市之间的市界不会切断花纹，整块疆域看起来是一片连续印花。
+ */
+function fillSealWatermark(gfx: Graphics, polygons: PolygonRings[], owner: Owner): void {
+  const texture = sealTextures.get(owner)
+  if (!texture) return
+  fillPolygons(gfx, polygons, () => {
+    gfx.fill({
+      texture,
+      textureSpace: 'global',
+      matrix: SEAL_PATTERN_MATRIX,
+      alpha: sealWatermarkAlpha.value,
+    })
+  })
 }
 
 // ─── 图层切换 ───
@@ -1920,6 +2022,16 @@ function toggleLabels(): void {
   labelContainer.visible = labelsVisible.value
 }
 
+async function toggleSealWatermark(): Promise<void> {
+  sealWatermarkEnabled.value = !sealWatermarkEnabled.value
+  await loadLayer(currentLayerIndex.value)
+}
+
+/** 调试滑条改动浓度后重铺水印（纹理不变，只需重画几何） */
+async function redrawSealWatermark(): Promise<void> {
+  await loadLayer(currentLayerIndex.value)
+}
+
 async function loadLayer(index: number): Promise<void> {
   if (!app?.renderer) return // 防御：HMR 或销毁后 app 可能无效
   const config = LAYERS[index]
@@ -1934,6 +2046,8 @@ async function loadLayer(index: number): Promise<void> {
 
   worldContainer.removeChildren()
   labelContainer.removeChildren()
+  // removeChildren 只解父子关系，水印图形需显式销毁以释放 GPU 资源
+  disposeSealWatermark()
 
   // 海域罩染：先铺一层极淡的冷色，让本国疆域内的海与纸面微微区分，
   // 又不割裂「整屏一张纸」的氛围（罩染在陆地图层之下）
@@ -1953,24 +2067,54 @@ async function loadLayer(index: number): Promise<void> {
   }
 
   const graphics = new Graphics()
+  /**
+   * 按势力归集的领土轮廓。
+   * 水印要在底色之上再铺一遍同样的几何，这里顺手存下来，
+   * 免得把几十万次经纬度换算做第二遍。
+   */
+  const ringsByOwner = new Map<Owner, PolygonRings[]>()
   if (currentData) {
+    const ownership = useGameStore().ownership
     for (const feature of currentData.features) {
       let fillColor = config.fillColor
-      if (ownerColorEnabled.value && index === 1 && feature.properties?.gb) {
-        const gb = feature.properties.gb as string
-        const owner = useGameStore().ownership[gb]
-        if (owner) {
+      // 归属判定与「政权着色」开关解耦：关掉着色只是不填色，水印照样能表达归属
+      let owner: Owner | null = null
+      const gb = feature.properties?.gb as string | undefined
+      if (index === 1 && gb) {
+        owner = (ownership[gb] ?? null) as Owner | null
+        if (owner && ownerColorEnabled.value) {
           fillColor = (OWNER_COLORS as Record<string, number>)[owner] ?? config.fillColor
         }
       }
-      drawFeature(graphics, feature, width, height, {
-        color: config.color,
-        fillColor,
-        borderWidth: MAP_PALETTE.landBorderWidth,
+      const polygons = collectFeatureRings(feature, width, height)
+      fillPolygons(graphics, polygons, () => {
+        graphics.fill({ color: fillColor, alpha: 0.5 })
+        graphics.stroke({
+          width: MAP_PALETTE.landBorderWidth,
+          color: config.color,
+          alpha: 1,
+        })
       })
+      if (owner && polygons.length > 0) {
+        const bucket = ringsByOwner.get(owner)
+        if (bucket) bucket.push(...polygons)
+        else ringsByOwner.set(owner, [...polygons])
+      }
     }
   }
   worldContainer.addChild(graphics)
+
+  // 领土文字水印：铺在底色之上、选中高亮之下。
+  // 只有市级图层（index 1）带 gb 归属，省级图层无城市几何可铺，直接跳过。
+  if (sealWatermarkEnabled.value && index === 1 && sealTextures.size > 0) {
+    const watermark = new Graphics()
+    for (const [owner, polygons] of ringsByOwner) {
+      if (owner === Owner.NEUTRAL) continue
+      fillSealWatermark(watermark, polygons, owner)
+    }
+    sealWatermarkGfx = watermark
+    worldContainer.addChild(watermark)
+  }
   worldContainer.addChild(selectionHighlightGfx)
   selectedFeature = null
 
@@ -1979,7 +2123,6 @@ async function loadLayer(index: number): Promise<void> {
   }
   labelContainer.visible = labelsVisible.value
   updateLabels()
-  renderSeals()
 }
 
 // ─── 相机控制（镜头演出）───
@@ -1999,7 +2142,6 @@ function applyCamera(): void {
   fxContainer.scale.set(mapScale)
   fxContainer.position.set(mapX, mapY)
   updateLabels()
-  updateSeals()
   syncBattleCards()
 }
 
@@ -2227,14 +2369,12 @@ onMounted(async () => {
   worldContainer = new Container()
   fxContainer = new Container()
   labelContainer = new Container()
-  sealContainer = new Container()
   selectionHighlightGfx = new Graphics()
   baseHighlightGraphics = new Graphics()
   app.stage.addChild(baseContainer)
   app.stage.addChild(worldContainer)
   app.stage.addChild(fxContainer)
   app.stage.addChild(labelContainer)
-  app.stage.addChild(sealContainer)
   worldContainer.addChild(selectionHighlightGfx)
 
   const width = app.screen.width
@@ -2266,6 +2406,9 @@ onMounted(async () => {
   useGameStore().initWorld()
   console.log('城市态加载完成:', Object.keys(useGameStore().cities).length, '个市')
 
+  // 印章纹理必须在首次 loadLayer 之前就绪，否则第一帧没有水印
+  buildSealTextures()
+
   for (const c of worldCountries) {
     if (c.iso_a3) worldDataMap.set(c.iso_a3, c)
   }
@@ -2291,13 +2434,13 @@ onMounted(async () => {
   await loadLayer(currentLayerIndex.value)
 
   // 汇文明朝体异步加载：首帧 Pixi Text 纹理可能已用 fallback 字体生成，
-  // 字体就绪后重绘一次标签，否则地图注记永远停留在系统衬线上
-  document.fonts?.ready.then(() => {
+  // 字体就绪后重绘一次标签与文字水印，否则字形永远停留在系统衬线上。
+  document.fonts?.ready.then(async () => {
     if (!currentData) return
-    renderLabels(currentData, app.screen.width, app.screen.height, currentLayerIndex.value)
+    buildSealTextures()
+    await loadLayer(currentLayerIndex.value)
     labelContainer.visible = labelsVisible.value
     updateLabels()
-    renderSeals()
   })
 
   const cityJson = geoJsonCache.get(LAYERS[1].file)
@@ -2337,6 +2480,7 @@ onUnmounted(() => {
   window.removeEventListener('mousedown', onGlobalMouseDown)
   window.removeEventListener('keydown', onKeyDown)
   disposeCloudTransition()
+  disposeSealTextures()
   app?.destroy(true)
 })
 </script>
@@ -2397,6 +2541,29 @@ onUnmounted(() => {
   flex-direction: column;
   gap: 8px;
   padding: 14px 20px 18px;
+}
+
+/* 水印浓度滑条：调参用，调到满意后把默认值固化回 sealWatermarkAlpha */
+.seal-alpha-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-kai);
+  font-size: 14px;
+  letter-spacing: 1px;
+  color: var(--ink);
+}
+
+.seal-alpha-row input[type='range'] {
+  flex: 1;
+  accent-color: var(--cinnabar, #b04a3a);
+}
+
+.seal-alpha-val {
+  min-width: 34px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-muted, #888);
 }
 
 .layer-switcher {
