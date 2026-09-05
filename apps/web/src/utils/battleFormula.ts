@@ -12,6 +12,7 @@
 // ─── 配置 ───
 
 import { BATTLE as BATTLE_RULES } from '@/data/gameConfig'
+import { FORT_CURVE_SEED } from '@/data/gameConfig'
 
 // 向后兼容：保留 BATTLE_RULES 导出（供给测试/调试脚本）
 export { BATTLE_RULES }
@@ -72,7 +73,14 @@ export function computeBaseBattle(input: BattleInput): BaseResult {
     r.ratioClamp[1],
     Math.max(r.ratioClamp[0], effectiveAtk / Math.max(input.defTroops, 1)),
   )
-  const fortF = 1 + (input.fort / 100) * (r.fortMaxFactor - 1)
+  // 工事收益曲线（防“刷数字”）：种子基准（FORT_CURVE_SEED=20）以下保持线性（与旧公式一致），
+  // 之上改 sqrt 凹曲线——堆高边际收益递减（fort 25 线性 1.25 → 曲线 1.5；fort 100 仍 2.0）。
+  const rawF =
+    input.fort <= FORT_CURVE_SEED
+      ? input.fort / 100
+      : FORT_CURVE_SEED / 100 +
+        (1 - FORT_CURVE_SEED / 100) * Math.sqrt((input.fort - FORT_CURVE_SEED) / (100 - FORT_CURVE_SEED))
+  const fortF = 1 + rawF * (r.fortMaxFactor - 1)
   // terrain 键大小写归一：store/seed 存大写（MOUNTAIN/HILL/PLAIN/FOREST），config 键为小写
   const terrainF = r.terrainFactor[(input.terrain ?? 'plain').toLowerCase()] ?? 1.0
 

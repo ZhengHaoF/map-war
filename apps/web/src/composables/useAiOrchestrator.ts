@@ -13,11 +13,13 @@ import { ref, computed } from 'vue'
 import { useAiChat } from './useAiChat'
 import { useGameStore } from '@/stores/game'
 import { executeOrder, resetBattleRuntime } from '@/utils/gameOrders'
+import { freeEffectToOrder } from '@/utils/freeActionRules'
 import { buildMessages, buildSystemPrompt, type AiKind } from '@/utils/aiPromptBuilder'
 import { buildEventHistory } from '@/utils/aiHistory'
 import {
   validateOrders,
   validatePlayerOrders,
+  validatePlayerOrder,
   type BatchValidation,
   type WorldValidationResult,
   type WorldValidationItem,
@@ -39,7 +41,7 @@ import type { GameOrder } from '@/utils/gameOrders'
 import { sendTelegram } from '@/utils/ai'
 import { Owner, OWNER_DETAILS, OWNER_LABELS } from '@/data/owners'
 import { useToast } from '@/composables/useToast'
-import { FACTION_AI_TELEGRAM_WINDOW } from '@/data/gameConfig'
+import { FACTION_AI_TELEGRAM_WINDOW, FREE_CAP_MORALE_NEG, FREE_CAP_CITY_STAT_NEG, FREE_CAP_TREASURY, FREE_CAP_GRANARY } from '@/data/gameConfig'
 
 export interface ExecResult {
   order: GameOrder
@@ -298,51 +300,52 @@ export function useAiOrchestrator(mode: AiMode = 'world') {
   }
 
   /**
-   * 自由行动管道：遍历 effects 逐个 applyEvent。
+   * 自由行动管道：遍历 effects，资源类走指令管线、其余直通钳制后 applyEvent。
    *
-   * 支持的 effects 类型：
-   * - cityStatChange：调整城市属性（工业/粮食/工事/城级），如办学、筑防、建设等开放行动
-   * - moraleChange：调整城市士气，如演讲、整肃、宣传等精神层面行动
-   * - produce：征兵，如招募民夫、扩编军队等兵力增长行动
-   * - moveTroops：调兵，如军队转移、撤退、换防等兵力调动行动
-   * - sendTelegram：发送电报，如求助、威胁、求和、离间等外交行动
-   * - relationChange：外交关系变更（宣战/结盟/停战），改写对称关系表 + toast
+   * ① 资源类（produce / moveTroops / 正向内政 / 正向士气）：由 freeEffectToOrder 翻译成
+   *    正规指令，经 validatePlayerOrder（归属/驻军上限）与 executeOrder（成本/动画/toast）执行——
+   *    征兵扣银粮、调兵扣行军费、建设/整军扣银，杜绝“话术白嫖”。
+   * ② 直通类（电报/外交/银粮叙事/负向士气/负向城市破坏）：仅安全类型，数值经 FREE_CAP_* 钳制。
    */
   async function runExecuteFreeAction(payload: FreeActionPayload): Promise<void> {
+    const playerFaction = store.currentFaction
+    const ownerOf = (gb: string): Owner | undefined => store.ownership[gb]
+    const troopsOf = (gb: string): number | undefined => store.cities[gb]?.troops
+
     for (const eff of payload.effects) {
+      // ── ① 资源类 effect → 正规指令 ──
+      // 复用 validatePlayerOrder + executeOrder：成本（征兵/行军/建设/整军）、
+      // 归属（只能操作己方城）、驻军上限、动画与 toast 全部与正规指令同管线。
+      const order = freeEffectToOrder(eff)
+      if (order) {
+        const vr = validatePlayerOrder(order, playerFaction, ownerOf, troopsOf)
+        if (!vr.ok) {
+          useToast().push({ icon: 'alert-triangle', tone: 'error', title: '指令失败', text: vr.reason ?? '未知原因' })
+          continue
+        }
+        try {
+          await executeOrder(order)
+        } catch (err) {
+          useToast().push({ icon: 'alert-triangle', tone: 'error', title: '指令失败', text: (err as Error).message })
+        }
+        continue
+      }
+
+      // ── ② 直通类 effect：仅安全类型，数值钳制后 applyEvent ──
       switch (eff.type) {
-        // 城市属性变更：工业/粮食/工事/城级（如办学、筑防、建设等开放行动）
-        case 'cityStatChange':
-          if (eff.targetGb && eff.field && eff.delta != null) {
-            store.applyEvent({
-              type: 'cityStatChange',
-              targetGb: eff.targetGb,
-              field: eff.field as 'industry' | 'food' | 'fort' | 'cityLevel',
-              delta: eff.delta,
-            })
-          }
-          break
-        // 士气变更：调整城市士气（如演讲、整肃、宣传等精神层面行动）
+        // 负向士气：宣传/谣言（可对敌城），幅度钳制
         case 'moraleChange':
-          if (eff.targetGb && eff.delta != null) {
-            store.applyEvent({ type: 'moraleChange', targetGb: eff.targetGb, delta: eff.delta })
+          if (eff.targetGb && eff.delta != null && eff.delta < 0) {
+            store.applyEvent({ type: 'moraleChange', targetGb: eff.targetGb, delta: Math.max(eff.delta, -FREE_CAP_MORALE_NEG) })
           }
           break
-        // 征兵：增加城市驻军（如招募民夫、扩编军队等兵力增长行动）
-        case 'produce':
-          if (eff.targetGb && eff.amount != null) {
-            store.applyEvent({ type: 'produce', targetGb: eff.targetGb, amount: eff.amount })
-          }
-          break
-        // 调兵：从 A 城搬运兵力到 B 城（如军队转移、撤退、换防等兵力调动行动）
-        case 'moveTroops':
-          if (eff.fromGb && eff.toGb && eff.amount != null) {
-            store.applyEvent({
-              type: 'moveTroops',
-              fromGb: eff.fromGb,
-              toGb: eff.toGb,
-              amount: eff.amount,
-            })
+        // 负向城市属性：谍报/焚毁（可对敌城），幅度钳制
+        case 'cityStatChange':
+          if (eff.targetGb && eff.field && eff.delta != null && eff.delta < 0) {
+            const field = eff.field as 'industry' | 'food' | 'fort'
+            if (field === 'industry' || field === 'food' || field === 'fort') {
+              store.applyEvent({ type: 'cityStatChange', targetGb: eff.targetGb, field, delta: Math.max(eff.delta, -FREE_CAP_CITY_STAT_NEG) })
+            }
           }
           break
         // 发送电报：将电报存入往来记录（如求助、威胁、求和、离间等外交行动），并即时触发对方回信
@@ -393,24 +396,24 @@ export function useAiOrchestrator(mode: AiMode = 'world') {
             }
           }
           break
-        // 银库变更：经济事件（赔款、截断商路、加税、劫掠等），faction 中文/代号归一化
+        // 银库变更：经济事件（赔款、截断商路、加税、劫掠等），faction 中文/代号归一化，delta 钳制
         case 'treasuryChange':
           if (eff.faction && eff.delta != null) {
             store.applyEvent({
               type: 'treasuryChange',
               faction: normalizeCommsFrom(eff.faction) as Owner,
-              delta: eff.delta,
+              delta: Math.max(-FREE_CAP_TREASURY, Math.min(FREE_CAP_TREASURY, eff.delta)),
               reason: payload.narrative.slice(0, 30),
             })
           }
           break
-        // 粮仓变更：经济事件（旱灾、焚粮、征粮、断粮道等）
+        // 粮仓变更：经济事件（旱灾、焚粮、征粮、断粮道等），delta 钳制
         case 'granaryChange':
           if (eff.faction && eff.delta != null) {
             store.applyEvent({
               type: 'granaryChange',
               faction: normalizeCommsFrom(eff.faction) as Owner,
-              delta: eff.delta,
+              delta: Math.max(-FREE_CAP_GRANARY, Math.min(FREE_CAP_GRANARY, eff.delta)),
               reason: payload.narrative.slice(0, 30),
             })
           }
@@ -443,6 +446,10 @@ export function useAiOrchestrator(mode: AiMode = 'world') {
           if (r.ok) pushDiplomacyToast(a, b, eff.status, eff.note)
           break
         }
+        default:
+          // produce / moveTroops / 正向内政 / 正向士气 / 非法字段：
+          // 翻译未产出即丢弃（不直通，防止绕过成本与归属校验）
+          break
       }
     }
   }

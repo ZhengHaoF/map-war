@@ -27,6 +27,8 @@ import {
   DEVELOP_SILVER_PER_POINT,
   FORTIFY_SILVER_PER_POINT,
   RALLY_SILVER_FLAT,
+  RALLY_SILVER_PER_POINT,
+  TAX_INDUSTRY_LINEAR_CAP,
   MARCH_SILVER_PER_KM_PER_K,
   MARCH_FOOD_PER_KM_PER_K,
   EXPEDITION_DECAY_REF_KM,
@@ -51,6 +53,8 @@ export {
   DEVELOP_SILVER_PER_POINT,
   FORTIFY_SILVER_PER_POINT,
   RALLY_SILVER_FLAT,
+  RALLY_SILVER_PER_POINT,
+  TAX_INDUSTRY_LINEAR_CAP,
   MARCH_SILVER_PER_KM_PER_K,
   MARCH_FOOD_PER_KM_PER_K,
   EXPEDITION_DECAY_REF_KM,
@@ -121,6 +125,18 @@ export function expeditionFactor(distanceKm: number): number {
 // ═══════════════════════════════════════
 
 /**
+ * 工业税贡献（防“刷数字”凹曲线）。纯函数。
+ * 两段式：≤ TAX_INDUSTRY_LINEAR_CAP 每点全额，> 阈值每点减半。
+ * 种子基础工业 10 不受影响（345 城）；玩家从 10 刷到 15 仍全额，
+ * 之后回本周期从 5 回合翻倍到 10 回合——刷到甜点区后自然收手。
+ */
+export function industryTaxContribution(industry: number): number {
+  const linear = Math.min(industry, TAX_INDUSTRY_LINEAR_CAP)
+  const excess = Math.max(0, industry - TAX_INDUSTRY_LINEAR_CAP)
+  return linear * TAX_PER_INDUSTRY + excess * TAX_PER_INDUSTRY * 0.5
+}
+
+/**
  * 计算单势力单回合经济结算（税收 - 养兵）。
  * 纯函数：传入城市表 + 势力，返回收支明细。
  */
@@ -134,7 +150,7 @@ export function computeFactionEconomy(
 
   for (const c of Object.values(cities)) {
     if (c.owner !== faction) continue
-    silverTax += c.cityLevel * TAX_PER_CITY_LEVEL + c.industry * TAX_PER_INDUSTRY
+    silverTax += c.cityLevel * TAX_PER_CITY_LEVEL + industryTaxContribution(c.industry)
     foodProduce += c.food * FOOD_PER_FOOD_POINT
     totalTroops += c.troops + c.fieldForce
   }
@@ -195,6 +211,7 @@ export function computeActionCost(
     case 'fortify':
       return { silver: Math.round(amount * FORTIFY_SILVER_PER_POINT * 10) / 10, food: 0 }
     case 'rally':
-      return { silver: RALLY_SILVER_FLAT, food: 0 }
+      // 按士气增量计费（防“0.5 万银拉满士气”）：基础费 + 每点增量费
+      return { silver: RALLY_SILVER_FLAT + Math.abs(amount) * RALLY_SILVER_PER_POINT, food: 0 }
   }
 }

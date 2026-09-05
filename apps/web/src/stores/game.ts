@@ -15,6 +15,7 @@ import {
 } from '@/utils/economy'
 import { DEFAULT_MORALE, MORALE_MIN, MORALE_MAX, CITY_CAP_INDUSTRY, CITY_CAP_FOOD, CITY_CAP_FORT, CITY_CAP_LEVEL, CAPTURE_MORALE_BONUS, BATTLE_ROUT_SURVIVOR_RATE } from '@/data/gameConfig'
 import { round1 } from '@/utils/format'
+import { clampEventMagnitude } from '@/utils/eventClamp'
 import { GAME_START_DATE, countOwnedByProvince } from '@/utils/chronicle'
 import { evaluateMilestones, MILESTONES, type MilestoneContext } from '@/data/milestones'
 
@@ -833,6 +834,9 @@ export const useGameStore = defineStore('game', () => {
     if ('gb' in e && typeof e.gb === 'string' && e.gb) {
       const r = resolveLocationId(e.gb); if (r) (e as Record<string, unknown>).gb = r
     }
+    // 入口统一钳制：超限数值收敛到安全区间（宽松兜底，确定性、replay 安全）。
+    // 必须在 push 日志之前执行，保证日志与落地状态一致。
+    e = clampEventMagnitude(e)
     // 1. 前置校验（拦截 4 个静默 return 点；先校验再 push 让坏事件也能进日志但不影响世界态）
     const check = preCheck(e)
     if (!check.ok) {

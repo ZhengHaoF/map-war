@@ -36,6 +36,24 @@ describe('computeBaseBattle', () => {
     expect(withFort.attackerLoss).toBe(noFort.attackerLoss)
   })
 
+  it('工事收益曲线：种子基准（20）以下线性、之上凹曲线递减（防刷数字）', () => {
+    // 用 1000 兵避免 round 量化吞掉差异
+    const atk = (fort: number) => computeBaseBattle({
+      atkForce: 1000, defTroops: 1000, atkMorale: 70, defMorale: 70, fort,
+    }).defenderLoss
+
+    // 种子锚点：fort=20 与旧线性公式一致（1.2 → 守损 = round(1000×0.08/1.2) = 67）
+    expect(atk(20)).toBe(67)
+    // 终点不变：fort=100 仍是 2.0（守损 40）
+    expect(atk(100)).toBe(40)
+    // 凹性：低段（20→40）收益大于高段（40→100）
+    const lowSeg = atk(20) - atk(40)   // 67 - 50 = 17
+    const highSeg = atk(40) - atk(100) // 50 - 40 = 10
+    expect(lowSeg).toBeGreaterThan(highSeg)
+    // fort=0 无工事（1.0）
+    expect(atk(0)).toBe(80)
+  })
+
   it('地形因子：山地 > 丘陵 > 平原', () => {
     const plain = computeBaseBattle({ atkForce: 100, defTroops: 100, atkMorale: 70, defMorale: 70, fort: 0, terrain: 'plain' })
     const hill = computeBaseBattle({ atkForce: 100, defTroops: 100, atkMorale: 70, defMorale: 70, fort: 0, terrain: 'hill' })

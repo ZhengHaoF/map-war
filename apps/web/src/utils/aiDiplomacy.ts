@@ -20,6 +20,7 @@ import { INTENT_LABELS } from '@/utils/diplomacy'
 import { COUNTRY_COMMS, countryName, worldCountries } from '@/data/worldCountries'
 import { useGameStore } from '@/stores/game'
 import { buildEventHistory } from '@/utils/aiHistory'
+import { PEACE_INDEMNITY_CAP, REDUCER_CAP_PRODUCE } from '@/data/gameConfig'
 
 // ════════════════════════════════════════════════════════════════
 //  共享工具
@@ -352,10 +353,15 @@ function parseConditions(raw: unknown): Condition[] | undefined {
       const c = item as Record<string, unknown>
       const type = c.type as string
       if (type === 'cedeCity' || type === 'transferSilver' || type === 'transferFood' || type === 'verbal') {
+        // 金额钳制：银/粮单笔不超过 PEACE_INDEMNITY_CAP（与议和赔款上限同量级）
+        let amount = typeof c.amount === 'number' ? c.amount : undefined
+        if (amount != null) {
+          amount = Math.max(-PEACE_INDEMNITY_CAP, Math.min(PEACE_INDEMNITY_CAP, Math.round(amount)))
+        }
         result.push({
           type,
           city: typeof c.city === 'string' ? c.city : undefined,
-          amount: typeof c.amount === 'number' ? c.amount : undefined,
+          amount,
           text: typeof c.text === 'string' ? c.text : undefined,
         })
       }
@@ -376,8 +382,13 @@ function parseAidOffer(raw: unknown): AidOffer[] | undefined {
     const o = item as Record<string, unknown>
     const type = o.type as string
     if (type !== 'military' && type !== 'silver' && type !== 'food') continue
-    const amount = typeof o.amount === 'number' ? o.amount : NaN
+    let amount = typeof o.amount === 'number' ? o.amount : NaN
     if (!Number.isFinite(amount) || amount <= 0) continue
+    // 金额钳制：军援单笔不超过 REDUCER_CAP_PRODUCE（征兵兜底），银/粮援不超过 PEACE_INDEMNITY_CAP
+    amount = Math.round(amount)
+    amount = type === 'military'
+      ? Math.min(amount, REDUCER_CAP_PRODUCE)
+      : Math.min(amount, PEACE_INDEMNITY_CAP)
     result.push({
       type,
       amount,

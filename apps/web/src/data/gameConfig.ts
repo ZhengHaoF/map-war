@@ -25,6 +25,17 @@ export const TAX_PER_INDUSTRY = 0.3
 /** 每点粮食产能贡献粮秣（万石/回合）。调大 → 农业省粮食充足 */
 export const FOOD_PER_FOOD_POINT = 0.4
 
+// ── 内政收益曲线（防“刷数字”：收益线性 → 凹曲线，堆高边际递减）──
+
+/** 工业税全额段上限（点）。≤ 此值每点按 TAX_PER_INDUSTRY 全额，> 此值每点减半。
+ *  种子基础工业 10（345 城）不受影响；玩家从 10 刷到 15 仍全额，之后回本周期翻倍。 */
+export const TAX_INDUSTRY_LINEAR_CAP = 15
+
+/** 工事收益曲线锚点（种子基准工事值，点）。≤ 此值保持线性（与旧公式一致），
+ *  > 此值改 sqrt 凹曲线——种子 fort=20 的 351 城开局防御完全不变，
+ *  玩家 fortify 从 20 往上堆时边际收益递减（甜点区在 40 左右）。 */
+export const FORT_CURVE_SEED = 20
+
 // ── 养兵消耗 ──
 
 /** 每千兵每回合银饷（万银/k/回合）。调大 → 养兵更贵，小势力更难维持 */
@@ -47,7 +58,7 @@ export const DEVELOP_SILVER_PER_POINT = 1.5
 /** 筑防（fortify）：每点工事的银两（万银/点） */
 export const FORTIFY_SILVER_PER_POINT = 1
 
-/** 整军（rally）：固定银两（万银/次）。调大 → 提振士气更贵 */
+/** 整军（rally）：基础银两（万银/次），另有每点增量费 RALLY_SILVER_PER_POINT。调大 → 提振士气更贵 */
 export const RALLY_SILVER_FLAT = 0.5
 
 // ── 行军成本（远征消耗）──
@@ -253,3 +264,56 @@ export const LLM_MAX_RETRIES = 3
 
 /** 每回合 AI 可发送给玩家的最大电报数 */
 export const AI_TELEGRAMS_PER_TURN = 2
+
+
+// ═══════════════════════════════════════════════════════════
+//  八、事件数值钳制（信任边界严格钳 + reducer 宽松兜底）
+// ═══════════════════════════════════════════════════════════
+// 两层防线：
+// - FREE_CAP_*：自由行动（freeAction）信任边界上的严格钳制，只影响新事件，老存档零影响；
+// - REDUCER_CAP_*：applyEvent 入口的宽松兜底，任何来源的超限值都收敛（确定性、replay 安全）。
+
+// ── 自由行动（freeAction）边界钳制 ──
+
+/** 自由行动单次征兵上限（k）。调大 → 叙事征兵更猛，但绕过正规征兵管线的空间更大 */
+export const FREE_CAP_PRODUCE = 20
+
+/** 自由行动单次建设/筑防上限（点）。对齐 prompt“建议 5-20” */
+export const FREE_CAP_CITY_STAT = 20
+
+/** 自由行动单次正向士气上限（点）。对齐 flavor.moraleCap */
+export const FREE_CAP_MORALE_POS = 20
+
+/** 自由行动单次负向士气上限（点）。宣传/谣言类对敌城打击，幅度刻意小于正向整军 */
+export const FREE_CAP_MORALE_NEG = 10
+
+/** 自由行动单次负向城市属性上限（点）。破坏类（谍报/焚毁）幅度刻意小于正向建设 */
+export const FREE_CAP_CITY_STAT_NEG = 10
+
+/** 自由行动单次银库变更上限（万银）。对齐 prompt“建议 -50~+50” */
+export const FREE_CAP_TREASURY = 50
+
+/** 自由行动单次粮仓变更上限（万石） */
+export const FREE_CAP_GRANARY = 50
+
+// ── reducer 兜底钳制（applyEvent 入口，任何来源的最终防线）──
+
+/** 单次银库变更兜底（万银）。对齐 PEACE_INDEMNITY_CAP（现有最大合法单笔） */
+export const REDUCER_CAP_TREASURY = 500
+
+/** 单次粮仓变更兜底（万石） */
+export const REDUCER_CAP_GRANARY = 500
+
+/** 单次征兵（produce）兜底上限（k）。军援/征兵单笔超出必是 AI 抽风 */
+export const REDUCER_CAP_PRODUCE = 100
+
+/** 单次城市属性增减（cityStatChange）兜底（点）。正常建设建议 5-20，此值只挡离谱 */
+export const REDUCER_CAP_CITY_STAT = 100
+
+/** 单次士气增减（moraleChange）兜底（点）。胜利奖励 ±10/调味 ±20 均不受影响 */
+export const REDUCER_CAP_MORALE = 50
+
+// ── rally（整军）计费 ──
+
+/** rally 每点士气增量的银两（万银/点）。调大 → 刷士气更贵，防“0.5 万银拉满士气” */
+export const RALLY_SILVER_PER_POINT = 0.2
