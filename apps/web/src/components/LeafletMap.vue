@@ -791,7 +791,7 @@ const baseMapVisible = ref(true)
 /** 领土文字水印开关（仅市级图层有城市几何可铺） */
 const sealWatermarkEnabled = ref(true)
 /** 水印浓度：调试面板可实时调，调到满意后固化回常量 */
-const sealWatermarkAlpha = ref(0.26)
+const sealWatermarkAlpha = ref(0.45)
 
 // ─── PixiJS 实例 ───
 
