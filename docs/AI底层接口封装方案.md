@@ -16,7 +16,7 @@
 | 3 | 输出方式 | tool calling → `Order` | **JSON Mode**：前端对 LLM 传 `response_format: { type: 'json_object' }`，回包按 JSON 解析 | 没用 tool calling |
 | 4 | 流式协议 | 后端手写 SSE（`thinking`/`order`/`done`） | **无 SSE**，普通 JSON `POST` + `res.json()`，回包即完整 completion | 大幅简化 |
 | 5 | 提示词/契约 | 后端拼 System Prompt + 注册 7 个 tools | **前端** `aiPromptBuilder.ts` + `aiOrderContract.ts` 组装与定义；17 条指令 | 逻辑上移 |
-| 6 | 数据库 | TypeORM + SQLite（`UsageLog`/`Faction` 实体，用量审计） | **依赖已装（`typeorm`/`@nestjs/typeorm`/`better-sqlite3`），但代码未接线**（`game.db` 为空文件，无 `TypeOrmModule`） | 暂为 stateless；审计层待补 |
+| 6 | 数据库 | TypeORM + SQLite（`UsageLog`/`Faction` 实体，用量审计） | **未接线，且依赖已移除**（2026-08-31 `000e40a`：`typeorm`/`@nestjs/typeorm`/`better-sqlite3`/`class-validator`/`class-transformer` 五个零引用依赖整体删除，`game.db` 空文件一并不存在；dependencies 12→7 项） | 保持 stateless；审计层若要重建需重新引依赖（注意 better-sqlite3 原生模块在 Node 24 的重编译风险） |
 | 7 | 跨轮记忆 | 本期跳过，后端 stateless | stateless ✓ | 一致 |
 | 8 | 端点 | `POST /api/ai/decide` | **`POST /api/ai/chat`** | 控制器路径变了 |
 | 9 | `thinking` 推理流 | 后端必返 `event:thinking` | 不再单独透传；前端把模型文本当作解析失败的兜底，或直接取 `msg`/`reason` 字段 | — |
@@ -99,7 +99,7 @@ await app.listen(port)
 })
 export class AppModule {}
 ```
-⚠ **未导入 `TypeOrmModule`**——TypeORM 相关依赖虽在 `package.json`，但本服务当前不连任何数据库，保持 stateless。
+⚠ **无 `TypeOrmModule`、不连任何数据库**（2026-08-31 起相关依赖已整体移除，见 §3.5）——本服务是纯 stateless 透传。
 
 **`ai.controller.ts`**
 ```ts
@@ -191,17 +191,22 @@ CORS_ORIGIN=http://localhost:5173
 LLM_API_KEY=sk-xxxxxxxxxxxxxxxx
 LLM_BASE_URL=https://api.deepseek.com/v1
 LLM_MODEL=deepseek-chat
+# 推理强度（step-3.7-flash 等支持的模型）：low / medium / high，默认 low
+# 请求体携带 reasoning_effort 可临时覆盖此默认值
+LLM_REASONING_EFFORT=low
 ```
 实际 `.env`（已配）：`LLM_BASE_URL=https://api.stepfun.com/step_plan/v1`、`LLM_MODEL=step-3.7-flash`。换 provider 只改这两项 + Key 即可，前端无感。
 
 - `.env` 已被 `.gitignore`（连同 `*.db` / `*.log` / `node_modules` / `dist`），Key 不入仓库、不入前端。
 - 绝不 `console.log(KEY)`；错误日志仅打印 `message`，不打印 Key 与完整对话。
 
-### 3.5 未接入项：TypeORM / 数据库
+### 3.5 未接入项：数据库 / 审计（2026-10-09 核对更新）
 
-`package.json` 含 `@nestjs/typeorm`、`typeorm`、`better-sqlite3`，但**没有任何代码引用**——`app.module.ts` 没 `TypeOrmModule.forRoot`，无 entity，`game.db` 是 0 字节空文件。因此：
-- 当前服务端是**纯 stateless 透传**，不做用量审计、不存势力目录。
-- 原方案的 `UsageLog` / `Faction` 审计层属于**可演进项，尚未实现**；若要做，按原方案在 `app.module.ts` 加 `TypeOrmModule.forRoot` + 实体即可，不影响现有透传主链路。
+**依赖已移除**（2026-08-31 `000e40a`）：`@nestjs/typeorm` / `typeorm` / `better-sqlite3` / `class-validator` / `class-transformer` 五个包全库 grep 零引用，已从 `apps/server/package.json` 删除（dependencies 12→7 项），`game.db` 空文件一并不存在。因此：
+
+- 当前服务端是**纯 stateless 透传**，不做用量审计、不存势力目录、无限流。
+- `main.ts` 仍挂 `ValidationPipe`，但入参是开放 `Record<string, unknown>`，实际不触发校验（`whitelist` 无从剥离）。
+- 原方案的 `UsageLog` / `Faction` 审计层属于**未实现项**；若要做，需重新引入 typeorm + better-sqlite3（后者为原生模块，Node 24 下有重编译风险——这正是当初移除的理由），或在 `AiService` 内加进程内速率限制（不引数据库，更轻）。
 
 ---
 
@@ -211,12 +216,14 @@ LLM_MODEL=deepseek-chat
 
 | 文件 | 职责 |
 |------|------|
-| `composables/useAiChat.ts` | **薄 HTTP 封装**：`POST /api/ai/chat`，发完整请求体、收原始 JSON、处理非 2xx 错误。 |
-| `utils/aiPromptBuilder.ts` | **提示词/上下文装配**：`buildSystemPrompt(kind)`、`buildMessages`、`buildWorldContext`（按需世界态）。 |
-| `utils/aiOrderContract.ts` | **唯一指令契约**（真相源）：17 条 `ORDER_TYPES`、结构校验、玩家战略校验、世界 AI 可行性判定、两份 system prompt 文案。 |
-| `composables/useAiOrchestrator.ts` | **编排**：`runSend()`（组装→发→解析→校验）、`runExecute()`（逐条 `executeOrder`），支持单步撤销/重置。 |
-| `components/AiDebugPanel.vue` | god-mode 调试面板（`useAiOrchestrator('world')`）。 |
-| `components/PlayerAiPanel.vue` | 玩家军师面板（`useAiOrchestrator('user')`）。 |
+| `composables/useAiChat.ts` | **薄 HTTP 封装**：`POST /api/ai/chat`，发完整请求体、收原始 JSON、处理非 2xx 错误。服务于 `useAiOrchestrator`（玩家面板 / god-mode） |
+| `composables/useLlmClient.ts` | **统一 LLM 调用层**：`callLlm(opts)` 直 `fetch('/api/ai/chat')`，带退避重试（4xx 不重试 / 5xx 重试）/ 错误归一。`utils/ai/*` 全部 AI 模块的底层出口 |
+| `utils/ai/` | **自包含 AI 模块层**（12 文件）：`index`（统一导出）/ `contract`（3 个核心 prompt 常量）/ `client`（re-export `callLlm`）/ `invoke`（通用包装 `invokeAgentDecision`）/ `prompts`（动态模板）/ `context`（上下文构建）+ 6 个角色模块 `factionAi` / `worldAi` / `battleFlavorAi` / `retreatAi` / `peaceAi` / `telegramAi`。详见《开发文档.md》「AI 模块使用规范」 |
+| `utils/aiOrderContract.ts` | **唯一指令契约**（真相源）：17 条 `ORDER_TYPES`、结构校验、玩家战略校验、世界 AI 可行性判定、两份 system prompt 文案 |
+| `utils/aiPromptBuilder.ts` | 提示词装配（**兼容层**：新代码应走 `utils/ai/prompts.ts` + 各角色模块） |
+| `composables/useAiOrchestrator.ts` | **编排**：`runSend()`（组装→发→解析→校验）、`runExecute()`（逐条 `executeOrder`），支持单步撤销/重置 |
+| `components/AiDebugPanel.vue` | god-mode 调试面板（`useAiOrchestrator('world')`） |
+| `components/PlayerAiPanel.vue` | 玩家军师面板（`useAiOrchestrator('user')`） |
 
 ### 4.1 `useAiChat` —— 薄 HTTP 封装
 
@@ -239,10 +246,10 @@ async function send(body: AiChatRequest) {
 ```
 注意：前端**不写死模型名/Key/后端域名**；Vite dev proxy 把 `/api` 指向 `http://localhost:3001`。
 
-### 4.2 `aiPromptBuilder` —— 提示词装配
+### 4.2 `aiPromptBuilder` —— 提示词装配（2026-10-09 核对）
 
 - `buildSystemPrompt(kind)`：`kind==='user'` → `PLAYER_AI_UNIFIED_PROMPT`（玩家势力代理，受限）；否则 → `CONTRACT_SCHEMA_TEXT`（god-mode，最高权限）。两份文案都定义在 `aiOrderContract.ts`，保证"AI 看到的"与"前端校验的"一致。
-- `buildWorldContext(userText)`：按需世界态 = `buildPlayerProfile()`（玩家名/势力/控制城市）+ `buildMentionedCities(userText)`（从城市索引本地匹配中文名）。替代原"全量快照"，token 大幅缩减且用中文名贴合契约。默认**不注入**，由 `injectContext` 开关控制。
+- **世界态注入已改版**：旧 `buildWorldContext(userText)` / `buildMentionedCities(userText)`（按需匹配提到城市）**已删除**；现由 `aiContext.ts` 的 `buildWorldOverview()` 提供**全势力城市全景**（每行自含 `归属X` 标注），默认随 system prompt 注入，不再按需匹配。
 - `buildMessages({ userText, injectContext })`：拼 `[system, (可选 worldContext), user]`。
 
 ### 4.3 `aiOrderContract` —— 唯一指令契约
@@ -280,7 +287,7 @@ if (mode === 'user' && isUnifiedResult(merged)) {
 }
 ```
 - `extractPayloads` 同时支持**模型把 JSON 放在 `content` 文本**和**放在 `tool_calls`** 两种回包——所以前端对"JSON Mode 还是 tool calling"都兼容，后端无需关心。
-- `runExecute()`：对每条结构校验通过的指令，先 `store.snapshotForUndo()` 打快照（支持单步撤销），再 `await executeOrder(order)`；结果回显到 `execResults`。
+- `runExecute()`：对每条结构校验通过的指令，`await executeOrder(order)`；结果回显到 `execResults`。（旧稿提到的 `snapshotForUndo()` 撤销快照在代码中不存在，已移除。）
 
 ### 4.5 契约形状（AI 回包 JSON）
 
@@ -331,11 +338,11 @@ if (mode === 'user' && isUnifiedResult(merged)) {
 
 ---
 
-## 6. 目录结构（与实际代码一致）
+## 6. 目录结构（与实际代码一致，2026-10-09 核对补全）
 
 ```
 apps/server/                              # NestJS 后端，独立 package
-  .env(.example)                          # LLM_API_KEY / LLM_BASE_URL / LLM_MODEL / PORT / CORS_ORIGIN
+  .env(.example)                          # LLM_API_KEY / LLM_BASE_URL / LLM_MODEL / LLM_REASONING_EFFORT / PORT / CORS_ORIGIN
   package.json / tsconfig.json / nest-cli.json
   src/
     main.ts                               # NestFactory → CORS → ValidationPipe → prefix 'api' → listen
@@ -349,15 +356,28 @@ apps/server/                              # NestJS 后端，独立 package
 
 apps/web/src/
   composables/
-    useAiChat.ts                          # 薄封装：POST /api/ai/chat，收原始 JSON
-    useAiOrchestrator.ts                         # 编排：组装→发送→解析→校验→执行（god/user 双模式）
+    useAiChat.ts                          # 薄封装：POST /api/ai/chat，收原始 JSON（服务 useAiOrchestrator）
+    useLlmClient.ts                       # 统一 LLM 调用层 callLlm（退避重试），utils/ai/* 的底层出口
+    useAiOrchestrator.ts                  # 编排：组装→发送→解析→校验→执行（god/user 双模式）
+    useAgentKernel.ts                     # 回合编排：P2 分类 → P3 并行决策 → P4a 战斗结算 → P4b 叙事+日期
+    useGameScheduler.ts                   # 指令队列调度 + settleActiveBattles
+    useDiplomacyBus.ts                    # 外交三段式总线（含赴列强求援）
+    useSaveGame.ts                        # 存档/读档（loadGame → requestMapReload）
   utils/
-    aiPromptBuilder.ts                    # 提示词/上下文装配
-    aiOrderContract.ts                    # 指令契约（17 条）+ 校验 + 两份 system prompt
-    locationResolver.ts                   # 中文城市名 ↔ 内部 gb 编码
+    ai/                                   # 自包含 AI 模块层（index/contract/client/invoke/prompts/context
+                                         #  + factionAi/worldAi/battleFlavorAi/retreatAi/peaceAi/telegramAi）
+    aiOrderContract.ts                    # 指令契约（17 条）+ 三层校验 + 两份 system prompt
+    aiContext.ts / aiHistory.ts / aiParse.ts / aiPromptBuilder.ts（兼容层）
+    gameOrders.ts                         # executeOrder 唯一指令入口
+    battleFormula.ts / economy.ts / eventClamp.ts / freeActionRules.ts / chronicle.ts / battleTrend.ts …
+  data/
+    gameConfig.ts                         # 全部平衡参数（含单胜奖励/威慑、freeAction 钳制）
+    milestones.ts                         # 战纪里程碑谓词表（13 条）
+    owners.ts / chinaCities.ts / worldCountries.ts / displayNames.ts / scenarioBrief.ts
   components/
     AiDebugPanel.vue                      # god-mode 调试（useAiOrchestrator('world')）
     PlayerAiPanel.vue                     # 玩家军师（useAiOrchestrator('user')）
+    ChroniclePanel.vue                    # 战纪（成长轨迹）
 ```
 
 ---
@@ -368,7 +388,8 @@ apps/web/src/
 - [x] 生产 `CORS` 由 `CORS_ORIGIN` 环境变量控制（默认 `http://localhost:5173`）；同时 Vite dev proxy `/api → http://localhost:3001` 也生效。
       > ⚠ 注意：Vite 实际开发端口在 `vite.config.ts` 里是 **5714**，而 `CORS_ORIGIN` 默认 5173。本地联调时需把 `CORS_ORIGIN` 设为 `http://localhost:5714`（或改 Vite 端口为 5173），否则浏览器会被 CORS 拦截。
 - [x] 后端对 LLM 异常统一转 502，缺配置转 503，错误 `detail` 不泄露 Key。
-- [ ] **限流/审计尚未实现**：因 TypeORM 未接线，暂无按 IP/token 的限流与 `UsageLog`。若 Key 有泄漏风险，建议尽快在 `AiService` 加一层简单速率限制（或网关层限流）。
+- [x] **质量门禁**（2026-10-09 实跑）：`vue-tsc --noEmit` exit 0；`vitest run --pool=threads` 290 passed / 21 files；`eslint .` exit 0；`oxlint .` 3 处 error（均在 `llmClient.spec.ts`）。
+- [ ] **限流/审计未实现**：服务端 stateless（数据库依赖已移除），暂无按 IP/token 的限流与 `UsageLog`。若 Key 有泄漏风险，建议尽快在 `AiService` 加一层进程内速率限制（比重建 typeorm + better-sqlite3 审计链更轻）。
 - [ ] **请求体大小/超时限制**：当前 `AiService` 未设 LLM 调用超时兜底，依赖 OpenAI SDK 默认；生产建议显式设 `timeout` 并兜底返回错误。
 - [x] dev 用 Vite proxy，前端代码零硬编码后端地址与 Key。
 
@@ -382,13 +403,14 @@ apps/web/src/
 | 端点 | `POST /api/ai/decide` | `POST /api/ai/chat` | 路径变了，调用方注意 |
 | 流式 | 手写 SSE（`thinking`/`order`/`done`） | 普通 JSON，无 SSE | 无增量"思考"展示；前端取 `msg`/`reason` |
 | 结构化输出 | 注册 7 个 tools | **JSON Mode**（`response_format: json_object`），兼容 content/tool_calls | 解析更轻，但依赖模型稳定吐 JSON |
-| 提示词/契约 | 后端拼 + 7 指令 | 前端 `aiPromptBuilder`+`aiOrderContract`，**12 指令** | 契约真相源在前端 |
+| 提示词/契约 | 后端拼 + 7 指令 | 前端 `aiPromptBuilder`+`aiOrderContract`，**17 指令**（旧稿记 12，已过时） | 契约真相源在前端 |
 | 校验 | 后端解析 tool_call→Order | 前端 `validateOrders`+`validatePlayerOrders`+世界 AI 判定 | 校验全在前端 |
-| 数据库 | TypeORM + SQLite 审计 | 依赖已装，**未接线**，stateless | 无审计/限流，待补 |
+| 数据库 | TypeORM + SQLite 审计 | **依赖已整体移除**（2026-08-31），stateless | 无审计/限流；重建需重新引依赖 |
 | 模型 | DeepSeek | OpenAI 兼容（默认 deepseek-chat，实际配 stepfun） | 可换，前端无感 |
 | 健康检查 | 无 | 新增 `GET /api/health` | 运维可用 |
+| AI 编排范围 | 仅调试面板 + 玩家军师 | **Agent-Kernel 全自动推演已落地**（2026-07 起）：`useAgentKernel` P2 分类 → P3 并行 `decideFaction`/`runWorldBatch` → P4a 战斗结算 → P4b 叙事+日期，`utils/ai/` 12 个自包含模块 | 不再是"调试/预生产"路径 |
 
-**结论**：原始方案把"AI 接入"设计成后端重、前端轻；落地版反了过来——**后端只做安全透传，AI 编排职责前移到 web 前端**。这套实现当前服务于调试面板（`AiDebugPanel` god-mode）与玩家军师（`PlayerAiPanel`），属于"调试/预生产"路径；真正的"生产 agent-kernel 自动推演"仍是未来工作（提示词注释里已预留"未来真实 agent-kernel 共用"接口）。
+**结论**：原始方案把"AI 接入"设计成后端重、前端轻；落地版反了过来——**后端只做安全透传，AI 编排职责前移到 web 前端**。这套实现既服务于调试面板（`AiDebugPanel` god-mode）与玩家军师（`PlayerAiPanel`），也支撑完整的 Agent-Kernel 自动推演（势力 AI / 世界 AI / 战斗裁决 / 撤退 / 议和 / 电报各角色模块，见《开发文档.md》「AI 模块使用规范」与《引擎架构决策记录.md》§5）。
 
 ---
 
