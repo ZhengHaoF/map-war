@@ -32,7 +32,7 @@ export interface FactionDecision {
 
 export async function decideFaction(faction: Owner, context: string): Promise<FactionDecision> {
   const store = useGameStore()
-  context += `\n本回合剩余行动额度：${store.getActionPoints(faction)}/6。每条开战/部署/调兵/内政耗1点；撤退和查询不耗点。禁止capture、日期指令与停战期进攻。`
+  context += `\n剩余回合行动点：${store.getActionPoints(faction)}/6。这是游戏内行动点，与 API 额度无关；结束回合后恢复。每条开战/部署/调兵/内政耗1点；撤退和查询不耗点。禁止capture、日期指令与停战期进攻。`
 
   const result = await invokeAgentDecision({
     systemPrompt: buildFactionSystemPrompt(faction),

@@ -95,8 +95,8 @@
           <!-- 输入区 -->
           <div class="chat-input-area">
             <div class="action-budget" role="status" aria-live="polite">
-              本回合行动 {{ actionPoints }}/{{ ACTION_POINTS_PER_TURN }}
-              <span>改变世界消耗额度，结束回合后恢复</span>
+              回合行动点 {{ actionPoints }}/{{ ACTION_POINTS_PER_TURN }}
+              <span>游戏内行动点，与 API 额度无关；结束回合后恢复</span>
             </div>
             <textarea
               v-model="userMessage"

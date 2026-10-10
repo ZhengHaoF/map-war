@@ -317,8 +317,8 @@ export const useGameStore = defineStore('game', () => {
 
   function checkAction(faction: Owner, amount = 1, key?: string): { ok: boolean; reason?: string } {
     if (!activeFactions.value.includes(faction)) return { ok: false, reason: '势力不存在或已覆灭' }
-    if (!Number.isInteger(amount) || amount <= 0) return { ok: false, reason: '行动额度必须为正整数' }
-    if (getActionPoints(faction) < amount) return { ok: false, reason: '本回合行动额度不足，请结束回合' }
+    if (!Number.isInteger(amount) || amount <= 0) return { ok: false, reason: '回合行动点必须为正整数' }
+    if (getActionPoints(faction) < amount) return { ok: false, reason: '回合行动点不足，请结束回合恢复' }
     if (key && actionKeys.value[faction]?.includes(key)) return { ok: false, reason: '本回合已执行同类行动，请下回合再试' }
     return { ok: true }
   }
@@ -773,7 +773,7 @@ export const useGameStore = defineStore('game', () => {
       }
       case 'actionRefunded':
         return Number.isInteger(e.amount) && e.amount > 0 && e.amount <= (actionSpent.value[e.faction] ?? 0)
-          ? { ok: true } : { ok: false, reason: '无可退还的行动额度' }
+          ? { ok: true } : { ok: false, reason: '无可退还的回合行动点' }
       case 'moveTroops': {
         const fromGb = resolveLocationId(e.fromGb) ?? e.fromGb
         const toGb = resolveLocationId(e.toGb) ?? e.toGb

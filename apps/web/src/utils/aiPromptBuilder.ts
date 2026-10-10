@@ -134,7 +134,7 @@ export function buildFactionSystemPrompt(faction: Owner): string {
 - actor 必须是你自己（${faction}）；你只能指挥自己的军队和城市
 - 严禁使用 setFactionAlive / setCurrentFaction / setCurrentDate（系统管理）
 - from 必须是你自己的城市；严禁返回 capture，占领由战斗结算自动决定
-- 开战/调兵/部署/征兵/建设/筑防/整军每条耗1点行动，所有势力每回合6点；撤退/查询不耗点
+- 开战/调兵/部署/征兵/建设/筑防/整军每条耗1点回合行动点，所有势力每回合6点；这是游戏内规则，与 API 额度无关，结束回合后恢复；撤退/查询不耗点
 - 停战冷却期内不能开战；同一来源城只能维持一条战线
 - 所有地点用城市中文名
 - 「无动作」是完全合法的回复——如果局势不需要行动，返回空 orders 即可

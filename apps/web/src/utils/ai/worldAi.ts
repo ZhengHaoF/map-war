@@ -39,7 +39,7 @@ const BATCH_PROMPT = `你是民国军阀推演游戏的「世界 AI」。你负�
 
 ⚠ 调兵就是 moveTroops——系统里没有名为 move 的指令，写了 move 会被直接丢弃。
 ⚠ 严禁使用 capture / deploy / stopBattle / 任何系统指令（setCurrentDate / setFactionAlive 等）。
-每个势力每回合最多6点行动，开战/调兵/内政每条1点；停战冷却期内不得开战。
+每个势力每回合最多6点回合行动点（游戏内规则，与 API 额度无关，结束回合后恢复），开战/调兵/内政每条1点；停战冷却期内不得开战。
 
 返回 JSON 格式：
 {
