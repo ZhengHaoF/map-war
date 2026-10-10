@@ -64,6 +64,9 @@
           <component :is="ICONS['user']" :size="16" />
           顾问
         </GameButton>
+        <GameButton v-if="useGameStore().currentFaction === Owner.SCC" tooltip="西南示范战役 · 目标与进度" :active="objectiveVisible" @click="objectiveVisible = !objectiveVisible">
+          <component :is="ICONS['flag']" :size="16" />战役
+        </GameButton>
         <GameButton
           tooltip="外交（电报·遣使）"
           :active="diplomacyVisible"
@@ -477,6 +480,7 @@
       <TurnSummaryModal
         :visible="turnSummaryVisible && !!turnEvents.length"
         :events="turnEvents"
+        :ownership-before="turnSummaryOwnership"
         @close="turnSummaryVisible = false"
       />
       <LegendPanel v-if="ownerColorEnabled" class="map-ui" :items="legendItems" />
@@ -539,7 +543,8 @@
         </div>
       </div>
     </div>
-    <PlayerAiPanel :visible="commandVisible" @close="commandVisible = false" />
+    <PlayerAiPanel :visible="commandVisible" @close="commandVisible = false" @open-objective="objectiveVisible = true" />
+    <ScenarioObjectivePanel :visible="objectiveVisible" @close="objectiveVisible = false" />
     <CampaignPanel
       :visible="campaignVisible"
       :initial-source-gb="campaignSourceGb"
@@ -591,6 +596,7 @@ import GameButton from '@/components/ui/GameButton.vue'
 import GameContextMenu from '@/components/ui/GameContextMenu.vue'
 import GameModal from '@/components/ui/GameModal.vue'
 import PlayerAiPanel from '@/components/PlayerAiPanel.vue'
+import ScenarioObjectivePanel from '@/components/ScenarioObjectivePanel.vue'
 import CampaignPanel from '@/components/CampaignPanel.vue'
 import {
   getSupplyStatus,
@@ -848,6 +854,7 @@ const factionDebugVisible = ref(false)
 const overviewVisible = ref(false)
 /** 指挥面板弹窗是否打开 */
 const commandVisible = ref(false)
+const objectiveVisible = ref(false)
 const campaignVisible = ref(false)
 const campaignSourceGb = ref<string | null>(null)
 /** 战略顾问弹窗是否打开 */
@@ -1492,7 +1499,7 @@ const retreatVerdictOrder = ref<{ ids: string[]; retreatLoss: number; narrative:
 )
 
 // ── 回合摘要弹窗 ──
-const { turnSummary } = useAgentKernel()
+const { turnSummary, turnSummaryOwnership } = useAgentKernel()
 const turnSummaryVisible = ref(false)
 const turnEvents = ref<GameEvent[]>([])
 
@@ -2766,6 +2773,20 @@ onUnmounted(() => {
   flex-direction: column;
   gap: 8px;
   z-index: 1000;
+}
+
+@media (max-width: 600px) {
+  .layer-switcher {
+    max-height: calc(100dvh - 220px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    padding-right: 4px;
+  }
+  .layer-switcher > button,
+  .layer-switcher > .switcher-divider {
+    flex-shrink: 0;
+  }
 }
 
 .layer-switcher button {

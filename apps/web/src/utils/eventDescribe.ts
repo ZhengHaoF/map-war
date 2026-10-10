@@ -44,6 +44,7 @@ export function eventBadge(e: GameEvent): string {
     battleEnd: '停战',
     selectFaction: '择势',
     narrative: '叙事',
+    scenarioStarted: '战役',
     commandReceipt: '回执',
     treasuryChange: '银库',
     granaryChange: '粮仓',
@@ -87,6 +88,8 @@ export function describeEvent(e: GameEvent, cities: Record<string, { name: strin
   const fn = factionName
 
   switch (e.type) {
+    case 'scenarioStarted':
+      return '川军开始西南支点示范战役：夺取昭通、完成整合并连续守住三个完整回合'
     case 'commandReceipt':
       return `${fn(e.faction)} ${receiptText(e)}`
     case 'actionSpent':

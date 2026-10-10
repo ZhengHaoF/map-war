@@ -11,6 +11,8 @@ export interface ExecutionContext {
   /** Supplied by trusted application code, never copied from LLM JSON. */
   authority?: 'player' | 'faction' | 'system' | 'debug'
   actor?: Owner
+  /** Trusted view-only setting. It never bypasses validation or payment. */
+  presentation?: 'full' | 'fast'
 }
 
 const SYSTEM_ORDERS = new Set(['capture', 'setCurrentDate', 'setFactionAlive', 'setCurrentFaction'])

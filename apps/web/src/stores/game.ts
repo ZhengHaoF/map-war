@@ -30,6 +30,7 @@ import { round1 } from '@/utils/format'
 import { clampEventMagnitude } from '@/utils/eventClamp'
 import { GAME_START_DATE, countOwnedByProvince } from '@/utils/chronicle'
 import { evaluateMilestones, MILESTONES, type MilestoneContext } from '@/data/milestones'
+import { SOUTHWEST_SCENARIO, bridgeheadConditions, updateScenarioProgress, scenarioStatus as getScenarioStatus, type ScenarioProgress } from '@/utils/scenarioObjective'
 
 // 战斗元数据（PixiJS 句柄不进 store，由 gameOrders 模块本地持有）
 export interface BattleInfo {
@@ -195,6 +196,7 @@ export interface MilestoneRecord {
 }
 
 export type GameEvent =
+  | { type: 'scenarioStarted'; id: typeof SOUTHWEST_SCENARIO; faction: Owner }
   | {
       type: 'capture'
       targetGb: string
@@ -285,6 +287,8 @@ interface SaveData {
   turnCount?: number
   /** 外交协商记录（Phase2 新增，电报孪生；老存档兼容缺省 []。不进 eventLog、不改世界态） */
   diplomacyRecords?: DiplomacyRecord[]
+  /** View-only preference; old saves default to fast AI domestic presentation. */
+  fastWorldDomestic?: boolean
 }
 
 /** 存档摘要（供选择界面用，不入存档文件） */
@@ -392,6 +396,10 @@ export const useGameStore = defineStore('game', () => {
   // ── 电报（AI 自主生成，不进 eventLog，单独持久化）──
   const telegrams = ref<Telegram[]>([])
   const turnCount = ref(0) // 当前回合序号（dateAdvance 时 +1）
+  const scenarioProgress = ref<ScenarioProgress | null>(null)
+  const fastWorldDomestic = ref(true)
+  const scenarioStatus = computed(() => scenarioProgress.value
+    ? getScenarioStatus(scenarioProgress.value, cities.value, turnCount.value) : null)
   const actionSpent = ref<Record<string, number>>({})
   const actionKeys = ref<Record<string, string[]>>({})
 
@@ -789,6 +797,8 @@ export const useGameStore = defineStore('game', () => {
     diplomacyRecords.value = [] // 重置外交协商记录（读档时由 load 覆盖）
     relations.value = buildInitialRelations() // 外交种子（蒋阎/蒋桂停战冷却、国共内战）；读档时由 eventLog 重放覆盖
     turnCount.value = 0
+    scenarioProgress.value = null
+    fastWorldDomestic.value = true
     actionSpent.value = {}
     actionKeys.value = {}
     gameOver.value = null // 重置游戏结束状态
@@ -873,6 +883,13 @@ export const useGameStore = defineStore('game', () => {
    * 返回 {ok:true} 或 {ok:false, reason:string}。
    */
   function preCheck(e: GameEvent): { ok: true } | { ok: false; reason: string } {
+    if (e.type === 'scenarioStarted') {
+      if (e.id !== SOUTHWEST_SCENARIO || e.faction !== Owner.SCC || currentFaction.value !== Owner.SCC)
+        return { ok: false, reason: '本示范战役仅支持川军' }
+      if (scenarioProgress.value) return { ok: false, reason: '战役已经开始，不能重复重置进度' }
+      if (gameOver.value?.ended) return { ok: false, reason: '本局已结束' }
+      return { ok: true }
+    }
     switch (e.type) {
       case 'actionSpent': {
         const r = checkAction(e.faction, e.amount, e.key)
@@ -959,6 +976,28 @@ export const useGameStore = defineStore('game', () => {
    * 例外：initWorld() 开局播种可直接写（仅此一处）。
    */
   function applyEvent(e: GameEvent): { ok: boolean; reason?: string } {
+    const checkpointReady = e.type === 'dateAdvance' && scenarioProgress.value
+      ? bridgeheadConditions(cities.value, turnCount.value).ready : false
+    const result = applyEventInternal(e)
+    if (!result.ok || !scenarioProgress.value) return result
+    if (e.type === 'selectFaction' && e.faction !== scenarioProgress.value.faction) {
+      scenarioProgress.value = null
+      return result
+    }
+    const relevant = e.type === 'dateAdvance' || e.type === 'capture' || e.type === 'scenarioStarted'
+      || (e.type === 'cityStatChange' && e.field === 'cityLevel')
+    if (relevant) {
+      const old = scenarioProgress.value
+      const ready = e.type === 'dateAdvance' ? checkpointReady : bridgeheadConditions(cities.value, turnCount.value).ready
+      scenarioProgress.value = updateScenarioProgress(old, ready, e.type === 'dateAdvance' ? turnCount.value : undefined)
+      if (old.completedTurn === undefined && scenarioProgress.value.completedTurn !== undefined && !isReplaying.value) {
+        useToast().push({ icon: 'flag', tone: 'green', title: '西南战役完成', text: '昭通已整合并连续守住三个完整回合，全国沙盘仍可继续' })
+      }
+    }
+    return result
+  }
+
+  function applyEventInternal(e: GameEvent): { ok: boolean; reason?: string } {
     // 入口统一反查：支持中文城市名（自由行动等路径传中文名时自动转 GB 编码）
     if ('targetGb' in e && typeof e.targetGb === 'string' && e.targetGb) {
       const r = resolveLocationId(e.targetGb)
@@ -991,6 +1030,10 @@ export const useGameStore = defineStore('game', () => {
     if (!isReplaying.value) eventLog.value.push(e)
 
     // 3. 非城市态事件：无 targetGb，提前处理并 return
+    if (e.type === 'scenarioStarted') {
+      scenarioProgress.value = { id: e.id, faction: Owner.SCC, startedTurn: turnCount.value, holdTurns: 0 }
+      return { ok: true }
+    }
     if (e.type === 'pauseForPlayer') {
       // 停点标记：不触碰世界态，仅落日志。是否「当前暂停中」由 pausedForPlayer 判据决定
       return { ok: true }
@@ -1333,6 +1376,7 @@ export const useGameStore = defineStore('game', () => {
       telegrams: telegrams.value,
       turnCount: turnCount.value,
       diplomacyRecords: diplomacyRecords.value,
+      fastWorldDomestic: fastWorldDomestic.value,
     }
     try {
       localStorage.setItem(`${SAVE_PREFIX}${slot}`, JSON.stringify(data))
@@ -1374,6 +1418,7 @@ export const useGameStore = defineStore('game', () => {
       telegrams.value = data.telegrams ?? []
       turnCount.value = data.turnCount ?? 0
       diplomacyRecords.value = data.diplomacyRecords ?? []
+      fastWorldDomestic.value = data.fastWorldDomestic ?? true
 
       return true
     } catch {
@@ -1580,6 +1625,9 @@ export const useGameStore = defineStore('game', () => {
     // 电报
     telegrams,
     turnCount,
+    scenarioProgress,
+    scenarioStatus,
+    fastWorldDomestic,
     getActionPoints,
     checkAction,
     pushTelegram,

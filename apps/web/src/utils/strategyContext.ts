@@ -12,7 +12,11 @@ export function buildStrategyContext(faction: Owner): string {
     store.getGranary(faction),
     store.battles.filter((b) => b.active && b.attacker === faction).length,
   )
+  const scenario = store.scenarioProgress?.faction === faction ? store.scenarioStatus : null
   return [
+    ...(scenario ? [scenario.completed
+      ? '可选战役目标：西南战役已完成，完成记录保留；继续全国沙盘，不改变全国胜负。'
+      : `可选战役目标：${scenario.goal}；昭通整合剩余${scenario.remaining}回合，连续守住${scenario.holdTurns}/3完整回合。须保有宜宾并保持昭通补给；失守或断供重置连续进度，不改变全国胜负。不要绕过战斗或路线规则直接达成任务。`] : []),
     `本回合阶段建议：${outlook.goal}。${outlook.reason}。这是建议，不替代指挥权和执行检查。`,
     `静态经济预测：税${outlook.eco.silverTax}/养兵银${outlook.eco.silverUpkeep}，净银${outlook.eco.silverNet}万/回合；产粮${outlook.eco.foodProduce}/养兵粮${outlook.eco.foodUpkeep}，净粮${outlook.eco.foodNet}万石/回合。`,
     `维持当前领土、兵力和产出时：银储备${runwayLabel(outlook.silverRunway)}，粮储备${runwayLabel(outlook.foodRunway)}。不包含战斗、失地、整合完成、外交和未来指令，不能当作保证。`,

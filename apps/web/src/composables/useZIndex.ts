@@ -9,10 +9,8 @@ let counter = 1000
 let seq = 0
 
 export function useZIndex(initial?: number) {
-  // 若外部传了更高的初始值，对齐 counter，避免 bringToFront 压不过静态高值面板
-  if (initial !== undefined && initial >= counter) {
-    counter = initial + 1
-  }
+  // Fixed dialogs reserve their own layer; they must not raise the draggable
+  // stack above summaries, save selectors or game-over dialogs just by mounting.
   const zIndex = ref(initial ?? counter++)
 
   // 窗口层叠偏移：每次调用递增，取模避免无限增长

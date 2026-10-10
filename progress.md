@@ -233,3 +233,66 @@ and mobile error screenshots inspected; no pageerrors/new horizontaloverflow.
 Browser closed after QA. Generic virtual-time helper remains unresolved.
 Next: small southwest goal chain, fast routine AI presentation, aggregate turn summary;
 long actual-model strategy/failure-adjustment assessment and full animation rollback remain.
+
+## Southwest goals / faster domestic presentation / focused summary
+
+Latest owner request authorizes continuing the proposed next features. PR5 remains
+OPEN, so work branches from e7af649 on feat/southwest-objectives; do not auto-merge.
+Scope: optional SCC bridgehead chain, event-replayed progress, three complete ready
+turns after integration, no resource reward/global victory change. Trusted faction
+domestic fast mode defaults on; only visuals/toasts omitted, not guards/payments.
+Summary aggregates own economy/local events, collapses foreign routine changes and
+retains raw events; world-start ownership snapshot protects lost-city attribution.
+
+QA inventory before browser checks:
+- Start objective through UI; initial/occupation/ready/hold/completed states visible.
+- Integration-ending checkpoint does not count early; three full ready turns required.
+- Loss of rear/target or supply resets unfinished streak, completion retained.
+- Duplicate start, non-SCC, legacy save, save/load and auto-save replay boundaries.
+- Fast checkbox on/off/on plus save/load preference; player animations unchanged.
+- Fixed25-order batch full-vs-fast has identical events/state/costs, animation25vs0.
+- Summary defaults focus own changes, foreign/raw sections open/close, loss/failure
+  remains visible and raw events unchanged. Summary must appear above command panel.
+- Desktop/mobile startup and densest modal/error/detail states, no clipped controls.
+- Browser tests use fixed provider replies, explicitly not new live-model matches.
+- Required generic game helper will be run with bounded timeout; existing failure
+  is not presumed repaired. Do not count black screenshots/hangs as passed.
+
+Implemented optional SCC southwest scenario, trusted domestic fast presentation,
+focused summary and preference persistence. Completion copy/context distinguishes
+achieved records from unfinished resettable streaks. Added17 new regression tests
+across3 files: final37files/424tests passed with prior real-output
+offline replay; typecheck, frontend/backend builds and JS-only ESLint passed.
+Oxlint remains41baseline errors. Final main bundle790.75kB/gzip233.22kB warning.
+
+QA found static high-layer dialogs inflated draggable z-counter; removed that
+inflation and added regression. Also found mobile legend intercepted Save clicks;
+mobile toolbar now has bounded internal scroll, leaving legend unobstructed.
+Native Save/Load now work on375x812. Toolbar bottom608 vs legend top686; document
+width375. Required command controls bottom<=467.3/right350, goal bottom~633.
+
+Ordinary software WebGL session confirmed first battle, occupation, ready0/3,
+summary collapsed/expanded and desktop/mobile visuals. Preliminary DOM-dispatch
+trial bypassed a disabled end-turn control and overlapped turns; discarded, not
+used as normal gameplay evidence. Later real pointer flow respected busy=false.
+Long WebGL script hit120sec REPL limit and subsequent call also timed out.
+Recovered by reset per browser guide; used existing Canvas fallback with
+--disable-webgl, no business-code or store-state shortcut.
+
+Fresh Canvas session used native Playwright clicks/fill for selection, objective
+start, player recruit2+battle6 and five world turns. Fixed sanitized responses,
+NOT new actual model calls; related AI idle fixtures prove no enemy intelligence.
+Turns/date/progress:1/04-08/occupation1hold0;2/04-15/integratedhold0;
+3/04-22/hold1;4/04-29/hold2;5/05-06/completed3. Native checkboxoff, manual save,
+checkboxon and manual load restoredfalse+completed3. Auto load restoredtrue+
+completed3. Non-SCC native new-game check hides both objective entries.
+Expanded raw summary mobile footer remains visible. Final desktop/mobile screenshots
+inspected after CSS transitions settled; no new clipping/horizontaloverflow or
+pageerrors in completed validation. Browser closed; Vite reused, never restarted.
+
+Generic helper first produced black screenshot despite readable state; final30sec
+bounded retry timed out during screenshot and produced no final artifacts.
+Explicitly NOT passed, not fixed. Software RAF and Canvas HUD are not real-device
+performance metrics or evidence of55FPS. DEV HUD omitted from production.
+Next: real-model10-15turn enemy pressure/failure adjustment; animation rollback,
+legacy lint, chunk splitting and generic helper remain unresolved.
