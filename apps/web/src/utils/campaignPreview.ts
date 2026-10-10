@@ -5,8 +5,14 @@ import type { GameOrder } from './gameOrders'
 import { checkLiveOrder } from './gameplayRules'
 import { routesFrom, type CampaignRoute } from './campaignRoutes'
 import { marchCost } from './economy'
-import { CAMPAIGN_AI_TARGET_LIMIT } from '@/data/gameConfig'
+import { CAMPAIGN_AI_TARGET_LIMIT, OCCUPATION_CONSOLIDATION_TURNS } from '@/data/gameConfig'
 import { getDisplayName } from '@/data/displayNames'
+import {
+  getSupplyStatus,
+  SUPPLY_PENALTY_LABEL,
+  OCCUPATION_YIELD_LABEL,
+  type SupplyStatus,
+} from './supply'
 
 export interface CampaignPreview {
   order: GameOrder
@@ -17,6 +23,7 @@ export interface CampaignPreview {
   silver?: number
   food?: number
   fightingTroops?: number
+  supply?: SupplyStatus
 }
 export function previewCampaign(
   from: string,
@@ -39,7 +46,17 @@ export function previewCampaign(
     route && Number.isFinite(amount) && (amount > 0 || useDeployed)
       ? marchCost(route.costDistanceKm, fightingTroops)
       : undefined
-  return { order, ok: check.ok, reason: check.reason, targetGb: to, route, fightingTroops, ...cost }
+  const supply = faction ? getSupplyStatus(from, faction, store.cities, store.turnCount) : undefined
+  return {
+    order,
+    ok: check.ok,
+    reason: check.reason,
+    targetGb: to,
+    route,
+    fightingTroops,
+    supply,
+    ...cost,
+  }
 }
 export function getAttackableTargets(
   from: string,
@@ -73,10 +90,11 @@ export function buildCampaignContext(faction: Owner): string {
   const name = (gb: string) => getDisplayName(gb) || store.cities[gb]?.name || gb
   const rows = options.slice(0, CAMPAIGN_AI_TARGET_LIMIT).map((p) => {
     const target = store.cities[p.targetGb]!
-    return `${name(p.order.from!)} → ${name(p.targetGb)}（新增出兵${p.order.deployAmount ?? 0}k/参战${p.fightingTroops}k，守军${target.troops}k，银${p.silver}/粮${p.food}，${p.route?.seaLegs ? '含海路' : '陆路'}）`
+    return `${name(p.order.from!)} → ${name(p.targetGb)}（新增出兵${p.order.deployAmount ?? 0}k/参战${p.fightingTroops}k，守军${target.troops}k，银${p.silver}/粮${p.food}，${p.route?.seaLegs ? '含海路' : '陆路'}，${p.supply?.supplied ? '补给通畅' : SUPPLY_PENALTY_LABEL}）`
   })
   return [
     '行军规则：中途只可经过己方城市，敌方仅可作为进攻终点；不能穿越第三方或盟友领土。跨海仅允许指定游戏航线，海路成本较高。调兵也须己方连通。',
+    `补给规则：未与已整合的补给中心连通时仍可进攻，但${SUPPLY_PENALTY_LABEL}；新占领城市有${OCCUPATION_CONSOLIDATION_TURNS}回合整合期，其${OCCUPATION_YIELD_LABEL}且不能充当补给中心。`,
     `当前可执行进攻示例（最多${CAMPAIGN_AI_TARGET_LIMIT}条，1k仅为预览示例，出兵量需自行判断；未列出的路线不一定非法）：`,
     ...(rows.length
       ? rows

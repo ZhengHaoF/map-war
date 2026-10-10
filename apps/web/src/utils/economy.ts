@@ -16,6 +16,7 @@
 
 import type { CityState } from '@/stores/game'
 import { Owner } from '@/data/owners'
+import { cityYieldMultiplier } from './supply'
 import {
   TAX_PER_CITY_LEVEL,
   TAX_PER_INDUSTRY,
@@ -143,6 +144,7 @@ export function industryTaxContribution(industry: number): number {
 export function computeFactionEconomy(
   cities: Record<string, CityState>,
   faction: Owner,
+  currentTurn = 0,
 ): FactionEconomy {
   let silverTax = 0
   let foodProduce = 0
@@ -150,8 +152,10 @@ export function computeFactionEconomy(
 
   for (const c of Object.values(cities)) {
     if (c.owner !== faction) continue
-    silverTax += c.cityLevel * TAX_PER_CITY_LEVEL + industryTaxContribution(c.industry)
-    foodProduce += c.food * FOOD_PER_FOOD_POINT
+    const integration = cityYieldMultiplier(c, currentTurn)
+    silverTax +=
+      (c.cityLevel * TAX_PER_CITY_LEVEL + industryTaxContribution(c.industry)) * integration
+    foodProduce += c.food * FOOD_PER_FOOD_POINT * integration
     totalTroops += c.troops + c.fieldForce
   }
 

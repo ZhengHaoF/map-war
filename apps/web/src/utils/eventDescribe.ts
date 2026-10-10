@@ -28,8 +28,8 @@ export function cityName(gb: string, cities: Record<string, { name: string }>): 
 /** 事件类型 → 两字徽章标签 */
 export function eventBadge(e: GameEvent): string {
   const map: Record<GameEvent['type'], string> = {
-    actionSpent: '指挥额度',
-    actionRefunded: '额度退还',
+    actionSpent: '行动消耗',
+    actionRefunded: '行动退还',
     capture: '占领',
     attack: '进攻',
     deploy: '出兵',
@@ -90,7 +90,7 @@ export function describeEvent(e: GameEvent, cities: Record<string, { name: strin
     case 'actionRefunded':
       return `${fn(e.faction)} 退还回合行动点 ${e.amount} 点`
     case 'capture':
-      return `${cn(e.targetGb)} → ${fn(e.actor)}${e.resultTroops != null ? ` (驻军 ${e.resultTroops}k)` : ''}`
+      return `${cn(e.targetGb)} → ${fn(e.actor)}${e.resultTroops != null ? ` (驻军 ${e.resultTroops}k)` : ''}${e.occupationTurns != null && Number.isInteger(e.occupationTurns) && e.occupationTurns > 0 && e.occupationTurns <= 10 ? ` · 整合期${e.occupationTurns}回合` : ''}`
     case 'attack': {
       const base = `${cn(e.fromGb)} ⇢ ${cn(e.targetGb)} 攻损 ${e.attackerLoss}k / 守损 ${e.defenderLoss}k`
       return e.narrative ? `${base} ${e.narrative}` : base

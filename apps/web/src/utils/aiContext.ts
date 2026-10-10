@@ -15,6 +15,7 @@ import { buildEventHistory } from './aiHistory'
 import { buildBattleContext } from './aiPromptBuilder'
 import { readRelation, isInTruce } from './diplomacy'
 import { buildCampaignContext } from './campaignPreview'
+import { occupationRemaining, OCCUPATION_YIELD_LABEL } from './supply'
 
 import {
   FACTION_AI_HISTORY_MAX,
@@ -36,7 +37,15 @@ export const TERRAIN_LABEL: Record<string, string> = {
  * 紧凑城市行格式，给 AI：
  *   城名 驻军Xk 士气X 地形 L城级 工事X
  */
-function formatCityCompact(gb: string, troops: number, morale: number, terrain?: string, cityLevel?: number, fort?: number, fieldForce?: number): string {
+function formatCityCompact(
+  gb: string,
+  troops: number,
+  morale: number,
+  terrain?: string,
+  cityLevel?: number,
+  fort?: number,
+  fieldForce?: number,
+): string {
   const store = useGameStore()
   const name = store.cities[gb]?.name ?? gb
   const parts: string[] = [name]
@@ -49,6 +58,9 @@ function formatCityCompact(gb: string, troops: number, morale: number, terrain?:
   if (terrain) parts.push(TERRAIN_LABEL[terrain] ?? terrain)
   if (cityLevel != null) parts.push(`L${cityLevel}`)
   if (fort != null) parts.push(`工事${fort}`)
+  const city = store.cities[gb]
+  const remaining = city ? occupationRemaining(city, store.turnCount) : 0
+  if (remaining > 0) parts.push(`待整合${remaining}回合/${OCCUPATION_YIELD_LABEL}`)
   return parts.join(' ')
 }
 
@@ -71,7 +83,9 @@ export function buildFactionContext(faction: Owner): string {
   lines.push('')
   lines.push(`你的势力：${OWNER_LABELS[faction] ?? faction}`)
   lines.push(`你控制 ${myCities.length} 座城市，总兵力 ${snap.factionTroops[faction] ?? 0}k`)
-  lines.push(`银库 ${snap.factionTreasury[faction] ?? 0} 万银，粮仓 ${snap.factionGranary[faction] ?? 0} 万石（征兵/建设/筑防/整军均需耗银，征兵另耗粮）`)
+  lines.push(
+    `银库 ${snap.factionTreasury[faction] ?? 0} 万银，粮仓 ${snap.factionGranary[faction] ?? 0} 万石（征兵/建设/筑防/整军均需耗银，征兵另耗粮）`,
+  )
   // 外交关系：只列非常态（war/alliance/停战冷却中），默认和平不占篇幅
   const relTable = snap.relations ?? {}
   const relLines: string[] = []
@@ -79,11 +93,15 @@ export function buildFactionContext(faction: Owner): string {
     if (other === faction || other === Owner.NEUTRAL) continue
     const rel = readRelation(relTable, faction, other)
     if (rel.status === 'war') {
-      relLines.push(`  与${OWNER_LABELS[other] ?? other}：交战中${rel.note ? `（${rel.note}）` : ''}`)
+      relLines.push(
+        `  与${OWNER_LABELS[other] ?? other}：交战中${rel.note ? `（${rel.note}）` : ''}`,
+      )
     } else if (rel.status === 'alliance') {
       relLines.push(`  与${OWNER_LABELS[other] ?? other}：同盟${rel.note ? `（${rel.note}）` : ''}`)
     } else if (isInTruce(relTable, faction, other, snap.currentDate)) {
-      relLines.push(`  与${OWNER_LABELS[other] ?? other}：停战中（冷却至 ${rel.truceUntil}，期内不可再战）`)
+      relLines.push(
+        `  与${OWNER_LABELS[other] ?? other}：停战中（冷却至 ${rel.truceUntil}，期内不可再战）`,
+      )
     }
   }
   if (relLines.length) {
@@ -96,13 +114,19 @@ export function buildFactionContext(faction: Owner): string {
   for (const [gb] of myCities) {
     const full = store.cities[gb]
     if (!full) continue
-    lines.push(`  ${formatCityCompact(gb, full.troops, full.morale, full.terrain, full.cityLevel, full.fort, full.fieldForce)}`)
+    lines.push(
+      `  ${formatCityCompact(gb, full.troops, full.morale, full.terrain, full.cityLevel, full.fort, full.fieldForce)}`,
+    )
   }
 
   // byActor 历史
   lines.push('')
   lines.push(buildCampaignContext(faction))
-  const history = buildEventHistory({ mode: 'byActor', actor: faction, maxEvents: FACTION_AI_HISTORY_MAX })
+  const history = buildEventHistory({
+    mode: 'byActor',
+    actor: faction,
+    maxEvents: FACTION_AI_HISTORY_MAX,
+  })
   if (history) {
     lines.push('')
     lines.push('近期世界动态：')
@@ -159,11 +183,15 @@ export function buildMinorContext(factions: Owner[]): string {
     const factionCities = Object.entries(snap.cities).filter(([, c]) => c.owner === f)
     const cityCount = factionCities.length
     const label = OWNER_LABELS[f] ?? f
-    lines.push(`- ${label}：${cityCount} 座城，${troops}k 兵力，银库 ${snap.factionTreasury[f] ?? 0} 万银，粮仓 ${snap.factionGranary[f] ?? 0} 万石`)
+    lines.push(
+      `- ${label}：${cityCount} 座城，${troops}k 兵力，银库 ${snap.factionTreasury[f] ?? 0} 万银，粮仓 ${snap.factionGranary[f] ?? 0} 万石`,
+    )
     for (const [gb] of factionCities) {
       const full = store.cities[gb]
       if (!full) continue
-      lines.push(`    ${formatCityCompact(gb, full.troops, full.morale, full.terrain, full.cityLevel, full.fort)} 归属${label}`)
+      lines.push(
+        `    ${formatCityCompact(gb, full.troops, full.morale, full.terrain, full.cityLevel, full.fort)} 归属${label}`,
+      )
     }
     lines.push(buildCampaignContext(f))
     lines.push('')
@@ -199,11 +227,15 @@ export function buildWorldOverview(): string {
     if (!factionCities.length) continue
     const troops = snap.factionTroops[f] ?? 0
     const label = OWNER_LABELS[f] ?? f
-    lines.push(`${label}：${factionCities.length} 座城，${troops}k 兵力，银库 ${snap.factionTreasury[f] ?? 0} 万银，粮仓 ${snap.factionGranary[f] ?? 0} 万石`)
+    lines.push(
+      `${label}：${factionCities.length} 座城，${troops}k 兵力，银库 ${snap.factionTreasury[f] ?? 0} 万银，粮仓 ${snap.factionGranary[f] ?? 0} 万石`,
+    )
     for (const [gb] of factionCities) {
       const full = store.cities[gb]
       if (!full) continue
-      lines.push(`    ${formatCityCompact(gb, full.troops, full.morale, full.terrain, full.cityLevel, full.fort)} 归属${label}`)
+      lines.push(
+        `    ${formatCityCompact(gb, full.troops, full.morale, full.terrain, full.cityLevel, full.fort)} 归属${label}`,
+      )
     }
     lines.push('')
   }

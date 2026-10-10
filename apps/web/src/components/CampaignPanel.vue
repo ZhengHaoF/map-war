@@ -64,6 +64,20 @@
           </div>
           <p v-if="!preview.ok" class="campaign-reason">{{ preview.reason }}</p>
           <template v-if="preview.route">
+            <p
+              v-if="preview.supply"
+              class="campaign-supply"
+              :class="{ warning: !preview.supply.supplied }"
+            >
+              {{
+                preview.supply.supplied
+                  ? `补给通畅 · ${cityName(preview.supply.hubGb!)}`
+                  : SUPPLY_PENALTY_LABEL
+              }}
+            </p>
+            <p v-if="targetOccupation > 0" class="campaign-integration">
+              目标城市整合中 · 剩余 {{ targetOccupation }} 回合，{{ OCCUPATION_YIELD_LABEL }}。
+            </p>
             <p class="campaign-route">{{ preview.route.path.map(cityName).join(' → ') }}</p>
             <div class="campaign-cost">
               <span
@@ -81,7 +95,7 @@
               {{ SEA_ROUTE_COST_MULTIPLIER }} 倍距离计行军成本，已包含在银粮预览中。</small
             >
           </template>
-          <GameButton :disabled="!preview.ok || busy" @click="executePreview">
+          <GameButton parchment :disabled="!preview.ok || busy" @click="executePreview">
             {{ busy ? '执行中…' : kind === 'battle' ? '确认进攻' : '确认调兵' }}
           </GameButton>
         </div>
@@ -137,6 +151,7 @@ import { Owner, OWNER_LABELS } from '@/data/owners'
 import { SEA_ROUTE_COST_MULTIPLIER } from '@/data/gameConfig'
 import { getDisplayName } from '@/data/displayNames'
 import { previewCampaign, getAttackableTargets } from '@/utils/campaignPreview'
+import { occupationRemaining, SUPPLY_PENALTY_LABEL, OCCUPATION_YIELD_LABEL } from '@/utils/supply'
 
 const props = defineProps<{ visible: boolean; initialSourceGb?: string | null }>()
 defineEmits<{ close: [] }>()
@@ -177,6 +192,11 @@ const attackable = computed(() =>
 const points = computed(() =>
   store.currentFaction ? store.getActionPoints(store.currentFaction) : 0,
 )
+const targetOccupation = computed(() =>
+  store.cities[targetGb.value]
+    ? occupationRemaining(store.cities[targetGb.value]!, store.turnCount)
+    : 0,
+)
 const busy = computed(
   () => executing.value || scheduler.status.value === 'running' || kernel.loading.value,
 )
@@ -216,7 +236,7 @@ async function executePreview() {
     result.value = {
       ok: !!outcome?.ok,
       text: outcome?.ok
-        ? `${cityName(order.from!)} → ${cityName(order.to!)}：已执行`
+        ? `${cityName(order.from!)} → ${cityName(order.to!)}：已执行${outcome.cost ? `（本次银${outcome.cost.silver}万、粮${outcome.cost.food}万石）` : ''}`
         : `未执行：${outcome?.reason ?? '队列未完成'}`,
     }
   } catch {
@@ -286,6 +306,15 @@ input:focus {
   font-weight: 600;
 }
 .campaign-reason {
+  color: var(--cinnabar);
+}
+.campaign-supply,
+.campaign-integration {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--ink-soft);
+}
+.campaign-supply.warning {
   color: var(--cinnabar);
 }
 .campaign-route {

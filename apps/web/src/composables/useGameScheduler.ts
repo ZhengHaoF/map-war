@@ -28,6 +28,7 @@ import { computeBaseBattle, clampFlavor, checkMoraleCollapse } from '@/utils/bat
 import type { BaseResult, FlavorResult, FlavorEvent } from '@/utils/battleFormula'
 import { distanceBetween } from '@/utils/locationResolver'
 import { expeditionFactor } from '@/utils/economy'
+import { getSupplyStatus, SUPPLY_PENALTY_LABEL } from '@/utils/supply'
 import {
   BATTLE_MIN_ATTRITION_PER_ROUND,
   BATTLE_VICTORY_MORALE_ATTACKER,
@@ -35,6 +36,7 @@ import {
   BATTLE_DEFEAT_MORALE_ATTACKER,
   BATTLE_DETERRENT_MORALE,
   BATTLE_DETERRENT_RADIUS_KM,
+  OCCUPATION_CONSOLIDATION_TURNS,
 } from '@/data/gameConfig'
 import { battleSummaryText } from '@/utils/battleTrend'
 import { Owner, OWNER_LABELS } from '@/data/owners'
@@ -46,7 +48,9 @@ const queue = ref<GameOrder[]>([])
 const executionContexts = new WeakMap<GameOrder, ExecutionContext>()
 const status = ref<AdvanceStatus>('idle')
 const stoppedAt = ref<GameOrder | null>(null)
-const executionResults = ref<{ order: GameOrder; ok: boolean; reason?: string }[]>([])
+const executionResults = ref<
+  { order: GameOrder; ok: boolean; reason?: string; cost?: { silver: number; food: number } }[]
+>([])
 const { push: pushToast } = useToast()
 
 /**
@@ -131,7 +135,9 @@ async function settleActiveBattles(): Promise<void> {
     // 快照：applyEvent 之前取累计数据
     const snap = store.battles.find((x) => x.id === id)
     const summary = snap ? battleSummaryText(snap) : ''
-    const ownerName = snap ? ((OWNER_LABELS as Record<string, string>)[snap.attacker] ?? snap.attacker) : ''
+    const ownerName = snap
+      ? ((OWNER_LABELS as Record<string, string>)[snap.attacker] ?? snap.attacker)
+      : ''
     stopBattleVisual(id)
     store.applyEvent({
       type: 'battleEnd',
@@ -149,9 +155,9 @@ async function settleActiveBattles(): Promise<void> {
     pushToast({ icon: toast.icon, tone: toast.tone, title: toast.title, text: parts.join(' · ') })
   }
 
-
   // ── 第一阶段：前置检查 + 本地公式（不展示） ──
   const baseResults = new Map<string, BaseResult>()
+  const supplyResults = new Map<string, boolean>()
   const validBattles: (typeof active)[number][] = []
 
   for (const b of active) {
@@ -162,28 +168,55 @@ async function settleActiveBattles(): Promise<void> {
 
     // 偷家检测：攻方来源城已被第三方占领
     if (from.owner !== b.attacker) {
-      endBattle(b.id, 'attackerRouted', { icon: 'skull', tone: 'error', title: '战线崩溃', suffix: `${b.fromName} 被占，前线溃散` })
+      endBattle(b.id, 'attackerRouted', {
+        icon: 'skull',
+        tone: 'error',
+        title: '战线崩溃',
+        suffix: `${b.fromName} 被占，前线溃散`,
+      })
       continue
     }
 
     // 攻方来源城无外出兵力：本不该开战（开战入口已拦截），属异常兜底。
     if (from.fieldForce <= 0) {
-      endBattle(b.id, 'retreat', { icon: 'player-stop', tone: 'neutral', title: '战线撤销', suffix: `${b.fromName} 未驻前线兵力，对峙作罢` })
+      endBattle(b.id, 'retreat', {
+        icon: 'player-stop',
+        tone: 'neutral',
+        title: '战线撤销',
+        suffix: `${b.fromName} 未驻前线兵力，对峙作罢`,
+      })
       continue
     }
 
     // 守方已归零 → 直接占领（跳过公式，无仗可打）
     if (to.troops <= 0) {
       const remaining = from.fieldForce
-      store.applyEvent({ type: 'capture', targetGb: b.to, actor: b.attacker, resultTroops: remaining })
-      endBattle(b.id, 'capture', { icon: 'flag', tone: 'cinnabar', title: '城池陷落', suffix: `进驻 ${remaining}k` })
+      store.applyEvent({
+        type: 'capture',
+        targetGb: b.to,
+        actor: b.attacker,
+        resultTroops: remaining,
+        occupationTurns: b.supplyRulesVersion === 1 ? OCCUPATION_CONSOLIDATION_TURNS : undefined,
+      })
+      endBattle(b.id, 'capture', {
+        icon: 'flag',
+        tone: 'cinnabar',
+        title: '城池陷落',
+        suffix: `进驻 ${remaining}k`,
+      })
       continue
     }
 
     // 本地公式：确定性基础减员 + 士气变化
     // 远征战力衰减：从 fromGb/targetGb 重算距离，传入 distanceFactor
     const dist = b.marchDistanceKm ?? distanceBetween(b.from, b.to)
-    const distFactor = dist !== null ? expeditionFactor(dist) : 1.0
+    const supply =
+      b.supplyRulesVersion === 1
+        ? getSupplyStatus(b.from, b.attacker, store.cities, store.turnCount)
+        : undefined
+    if (supply) supplyResults.set(b.id, supply.supplied)
+    const supplyFactor = supply?.battleFactor ?? 1
+    const distFactor = (dist !== null ? expeditionFactor(dist) : 1.0) * supplyFactor
     baseResults.set(
       b.id,
       computeBaseBattle({
@@ -240,7 +273,15 @@ async function settleActiveBattles(): Promise<void> {
       targetGb: b.to,
       attackerLoss: finalAttackerLoss,
       defenderLoss: finalDefenderLoss,
-      narrative: flavor.narrative,
+      narrative:
+        b.supplyRulesVersion === 1
+          ? [
+              flavor.narrative,
+              supplyResults.get(b.id) ? '本轮补给通畅。' : `本轮${SUPPLY_PENALTY_LABEL}。`,
+            ]
+              .filter(Boolean)
+              .join(' ')
+          : flavor.narrative,
     })
 
     // applyEvent(moraleChange) — 公式士气损耗
@@ -290,22 +331,49 @@ async function settleActiveBattles(): Promise<void> {
         targetGb: b.to,
         actor: b.attacker,
         resultTroops: finalFrom.fieldForce,
+        occupationTurns: b.supplyRulesVersion === 1 ? OCCUPATION_CONSOLIDATION_TURNS : undefined,
       })
-      endBattle(b.id, 'defenderCollapse', { icon: 'flag', tone: 'purple', title: '城池陷落', suffix: '守军士气崩溃' })
+      endBattle(b.id, 'defenderCollapse', {
+        icon: 'flag',
+        tone: 'purple',
+        title: '城池陷落',
+        suffix: '守军士气崩溃',
+      })
       continue
     }
     if (collapse === 'attacker') {
-      endBattle(b.id, 'attackerCollapse', { icon: 'skull', tone: 'purple', title: '攻方溃败', suffix: '攻军士气崩溃' })
+      endBattle(b.id, 'attackerCollapse', {
+        icon: 'skull',
+        tone: 'purple',
+        title: '攻方溃败',
+        suffix: '攻军士气崩溃',
+      })
       continue
     }
 
     // ① 兵力归零（原逻辑保留）
     if (finalTo.troops <= 0) {
       const remaining = finalFrom.fieldForce
-      store.applyEvent({ type: 'capture', targetGb: b.to, actor: b.attacker, resultTroops: remaining })
-      endBattle(b.id, 'capture', { icon: 'flag', tone: 'cinnabar', title: '城池陷落', suffix: `进驻 ${remaining}k` })
+      store.applyEvent({
+        type: 'capture',
+        targetGb: b.to,
+        actor: b.attacker,
+        resultTroops: remaining,
+        occupationTurns: b.supplyRulesVersion === 1 ? OCCUPATION_CONSOLIDATION_TURNS : undefined,
+      })
+      endBattle(b.id, 'capture', {
+        icon: 'flag',
+        tone: 'cinnabar',
+        title: '城池陷落',
+        suffix: `进驻 ${remaining}k`,
+      })
     } else if (finalFrom.fieldForce <= 0) {
-      endBattle(b.id, 'attackerRouted', { icon: 'skull', tone: 'error', title: '攻方溃败', suffix: '兵锋耗尽' })
+      endBattle(b.id, 'attackerRouted', {
+        icon: 'skull',
+        tone: 'error',
+        title: '攻方溃败',
+        suffix: '兵锋耗尽',
+      })
     }
   }
 }
@@ -332,7 +400,11 @@ async function advance(): Promise<'done' | 'stopped' | 'running'> {
     const gameOrders: GameOrder[] = []
     for (const o of queue.value) {
       const context = executionContexts.get(toRaw(o)) ?? {}
-      if (o.order === 'setCurrentDate' && (context.authority === 'system' || context.authority === 'debug')) dateOrders.push(o)
+      if (
+        o.order === 'setCurrentDate' &&
+        (context.authority === 'system' || context.authority === 'debug')
+      )
+        dateOrders.push(o)
       else gameOrders.push(o)
     }
     queue.value = gameOrders
@@ -342,13 +414,23 @@ async function advance(): Promise<'done' | 'stopped' | 'running'> {
       const order = queue.value.shift()!
       try {
         const result = await executeOrder(order, executionContexts.get(toRaw(order)) ?? {})
-        executionResults.value.push({ order, ok: result.ok, reason: result.reason })
+        executionResults.value.push({
+          order,
+          ok: result.ok,
+          reason: result.reason,
+          cost: result.cost,
+        })
       } catch (e) {
         // 单条失败不打断整批：告警后继续下一条
         // eslint-disable-next-line no-console
         console.warn('[scheduler] 指令执行失败，跳过：', order, e)
         executionResults.value.push({ order, ok: false, reason: '执行异常，未完成' })
-        pushToast({ icon: 'alert-triangle', tone: 'error', title: '指令出错', text: '推演中一条指令失败，已跳过' })
+        pushToast({
+          icon: 'alert-triangle',
+          tone: 'error',
+          title: '指令出错',
+          text: '推演中一条指令失败，已跳过',
+        })
       }
 
       // 世界 AI 标注「需玩家决策」→ 在此停下交还
@@ -358,7 +440,12 @@ async function advance(): Promise<'done' | 'stopped' | 'running'> {
         store.applyEvent({ type: 'pauseForPlayer' })
         stoppedAt.value = order
         status.value = 'stopped'
-        pushToast({ icon: 'alert-triangle', tone: 'cinnabar', title: '请主公定夺', text: '局势有变，控制权已交还' })
+        pushToast({
+          icon: 'alert-triangle',
+          tone: 'cinnabar',
+          title: '请主公定夺',
+          text: '局势有变，控制权已交还',
+        })
         return 'stopped'
       }
     }

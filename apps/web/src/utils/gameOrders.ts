@@ -24,7 +24,13 @@
  */
 
 import type { Container, Application } from 'pixi.js'
-import { playArcAnimation, playScoutAnimation, startBattleAnimation, playCaptureAnimation, playDevelopAnimation } from './troopAnimation'
+import {
+  playArcAnimation,
+  playScoutAnimation,
+  startBattleAnimation,
+  playCaptureAnimation,
+  playDevelopAnimation,
+} from './troopAnimation'
 import type { BattleHandle } from './troopAnimation'
 import { playCloudTransition, type CloudOptions } from './cloudTransition'
 import { resolveLocation, resolveLocationId, distanceBetween } from './locationResolver'
@@ -45,7 +51,7 @@ import type { CampaignRoute } from './campaignRoutes'
 export interface OrderResult {
   ok: boolean
   reason?: string
-  /** 内政指令的实际消耗（用于 toast 展示；与 applyDomesticCost 扣款同源） */
+  /** Actual committed costs, shared with UI feedback. */
   cost?: { silver: number; food: number }
 }
 
@@ -539,12 +545,26 @@ function listBattles(): BattleInfo[] {
  */
 export function restoreActiveAnimations(): void {
   // eslint-disable-next-line no-console
-  console.log('[restoreActiveAnimations] 开始, _container=', !!_container, 'battles=', useGameStore().battles.length)
+  console.log(
+    '[restoreActiveAnimations] 开始, _container=',
+    !!_container,
+    'battles=',
+    useGameStore().battles.length,
+  )
   if (!_container) return
   const store = useGameStore()
   for (const b of store.battles) {
     // eslint-disable-next-line no-console
-    console.log('[restoreActiveAnimations] battle:', b.id, 'active=', b.active, 'from=', b.from, 'to=', b.to)
+    console.log(
+      '[restoreActiveAnimations] battle:',
+      b.id,
+      'active=',
+      b.active,
+      'from=',
+      b.from,
+      'to=',
+      b.to,
+    )
     if (!b.active) continue
     if (hasActiveBattle(b.from, b.to)) continue
 
@@ -576,13 +596,25 @@ async function capture(gb: string, owner: Owner): Promise<OrderResult> {
     _camera.setLocked(true)
     try {
       await _camera.focusOn(gb, 500)
-      await playCaptureAnimation({ targetId: gb, container: _container, color, text: '占领！', duration })
+      await playCaptureAnimation({
+        targetId: gb,
+        container: _container,
+        color,
+        text: '占领！',
+        duration,
+      })
       await _camera.reset(before)
     } finally {
       _camera.setLocked(false)
     }
   } else {
-    await playCaptureAnimation({ targetId: gb, container: _container, color, text: '占领！', duration })
+    await playCaptureAnimation({
+      targetId: gb,
+      container: _container,
+      color,
+      text: '占领！',
+      duration,
+    })
   }
 
   return { ok: true }
@@ -660,15 +692,26 @@ function applyDomesticCost(
   const cost = computeActionCost(order, amount)
   // 银库不足（getTreasury 缺省 0 时亦按余额判定，老存档/测试环境兼容）
   if (store.getTreasury(faction) < cost.silver) {
-    return { ok: false, reason: `饷银不足（需 ${cost.silver} 万银，余 ${store.getTreasury(faction)} 万银）` }
+    return {
+      ok: false,
+      reason: `饷银不足（需 ${cost.silver} 万银，余 ${store.getTreasury(faction)} 万银）`,
+    }
   }
   // 粮仓不足（仅征兵耗粮）
   if (cost.food > 0 && store.getGranary(faction) < cost.food) {
-    return { ok: false, reason: `粮草不足（需 ${cost.food} 万石，余 ${store.getGranary(faction)} 万石）` }
+    return {
+      ok: false,
+      reason: `粮草不足（需 ${cost.food} 万石，余 ${store.getGranary(faction)} 万石）`,
+    }
   }
   // 扣款
   if (cost.silver > 0) {
-    store.applyEvent({ type: 'treasuryChange', faction, delta: -cost.silver, reason: `内政·${order}` })
+    store.applyEvent({
+      type: 'treasuryChange',
+      faction,
+      delta: -cost.silver,
+      reason: `内政·${order}`,
+    })
   }
   if (cost.food > 0) {
     store.applyEvent({ type: 'granaryChange', faction, delta: -cost.food, reason: `征兵·${order}` })
@@ -677,7 +720,11 @@ function applyDomesticCost(
 }
 
 /** Preserve full legitimate marching costs even when one event exceeds reducer caps. */
-function payMarchResource(faction: Owner, type: 'treasuryChange' | 'granaryChange', amount: number): void {
+function payMarchResource(
+  faction: Owner,
+  type: 'treasuryChange' | 'granaryChange',
+  amount: number,
+): void {
   const store = useGameStore()
   const cap = type === 'treasuryChange' ? REDUCER_CAP_TREASURY : REDUCER_CAP_GRANARY
   let remaining = amount
@@ -706,10 +753,16 @@ function applyMarchCost(
   const fromCity = store.cities[fromId]
   const faction = (fromCity?.owner as Owner) ?? Owner.NEUTRAL
   if (cost.silver > 0 && store.getTreasury(faction) < cost.silver) {
-    return { ok: false, reason: `远征饷银不足（需 ${cost.silver} 万银，余 ${store.getTreasury(faction)} 万银）` }
+    return {
+      ok: false,
+      reason: `远征饷银不足（需 ${cost.silver} 万银，余 ${store.getTreasury(faction)} 万银）`,
+    }
   }
   if (cost.food > 0 && store.getGranary(faction) < cost.food) {
-    return { ok: false, reason: `远征粮草不足（需 ${cost.food} 万石，余 ${store.getGranary(faction)} 万石）` }
+    return {
+      ok: false,
+      reason: `远征粮草不足（需 ${cost.food} 万石，余 ${store.getGranary(faction)} 万石）`,
+    }
   }
   if (cost.silver > 0) {
     payMarchResource(faction, 'treasuryChange', cost.silver)
@@ -730,7 +783,7 @@ function applyMarchCost(
       duration: 3000,
     })
   }
-  return { ok: true }
+  return { ok: true, cost }
 }
 
 // ─── AI JSON 协议解析器 ───
@@ -738,9 +791,13 @@ function applyMarchCost(
 /**
  * AI JSON 指令解析器 —— 将 AI 返回的 JSON 分发到对应方法。
  */
-export async function executeOrder(json: GameOrder, context: ExecutionContext = {}): Promise<OrderResult | BattleOrderResult | BattleListResult> {
+export async function executeOrder(
+  json: GameOrder,
+  context: ExecutionContext = {},
+): Promise<OrderResult | BattleOrderResult | BattleListResult> {
   if (!json?.order) return { ok: false, reason: '缺少 order 字段' }
-  if (!(ORDER_TYPES as readonly string[]).includes(json.order)) return { ok: false, reason: `未知指令: ${json.order}` }
+  if (!(ORDER_TYPES as readonly string[]).includes(json.order))
+    return { ok: false, reason: `未知指令: ${json.order}` }
   const guard = checkLiveOrder(json, context)
   if (!guard.ok) {
     const result = { ok: false, reason: guard.reason }
@@ -749,15 +806,21 @@ export async function executeOrder(json: GameOrder, context: ExecutionContext = 
   }
   const store = useGameStore()
   if (guard.points && guard.actor) {
-    const reservation = store.applyEvent({ type: 'actionSpent', faction: guard.actor, amount: guard.points })
+    const reservation = store.applyEvent({
+      type: 'actionSpent',
+      faction: guard.actor,
+      amount: guard.points,
+    })
     if (!reservation.ok) return reservation
   }
   try {
     const result = await executeUncheckedOrder(json, guard.route)
-    if (!result.ok && guard.points && guard.actor) store.applyEvent({ type: 'actionRefunded', faction: guard.actor, amount: guard.points })
+    if (!result.ok && guard.points && guard.actor)
+      store.applyEvent({ type: 'actionRefunded', faction: guard.actor, amount: guard.points })
     return result
   } catch (error) {
-    if (guard.points && guard.actor) store.applyEvent({ type: 'actionRefunded', faction: guard.actor, amount: guard.points })
+    if (guard.points && guard.actor)
+      store.applyEvent({ type: 'actionRefunded', faction: guard.actor, amount: guard.points })
     throw error
   }
 }
@@ -777,15 +840,24 @@ async function executeUncheckedOrder(
     case 'arrowFly': {
       const fromId = resolveLocationId(json.from!)
       const toId = resolveLocationId(json.to!)
-      if (!fromId) { result = { ok: false, reason: `出发城市不存在: ${json.from}` }; break }
-      if (!toId) { result = { ok: false, reason: `目标城市不存在: ${json.to}` }; break }
+      if (!fromId) {
+        result = { ok: false, reason: `出发城市不存在: ${json.from}` }
+        break
+      }
+      if (!toId) {
+        result = { ok: false, reason: `目标城市不存在: ${json.to}` }
+        break
+      }
       result = await arrowFly(fromId, toId, json.text)
       break
     }
 
     case 'radarPulse': {
       const fromId = resolveLocationId(json.from!)
-      if (!fromId) { result = { ok: false, reason: `出发城市不存在: ${json.from}` }; break }
+      if (!fromId) {
+        result = { ok: false, reason: `出发城市不存在: ${json.from}` }
+        break
+      }
       result = await radarPulse(fromId, json.text)
       break
     }
@@ -793,8 +865,14 @@ async function executeUncheckedOrder(
     case 'orbBurst': {
       const fromId = resolveLocationId(json.from!)
       const toId = resolveLocationId(json.to!)
-      if (!fromId) { result = { ok: false, reason: `起点城市不存在: ${json.from}` }; break }
-      if (!toId) { result = { ok: false, reason: `目标城市不存在: ${json.to}` }; break }
+      if (!fromId) {
+        result = { ok: false, reason: `起点城市不存在: ${json.from}` }
+        break
+      }
+      if (!toId) {
+        result = { ok: false, reason: `目标城市不存在: ${json.to}` }
+        break
+      }
       result = await orbBurst(fromId, toId, json.text)
       break
     }
@@ -802,34 +880,57 @@ async function executeUncheckedOrder(
     case 'battle': {
       const fromId = resolveLocationId(json.from!)
       const toId = resolveLocationId(json.to!)
-      if (!fromId) { result = { ok: false, reason: `A 方城市不存在: ${json.from}` }; break }
-      if (!toId) { result = { ok: false, reason: `B 方城市不存在: ${json.to}` }; break }
+      if (!fromId) {
+        result = { ok: false, reason: `A 方城市不存在: ${json.from}` }
+        break
+      }
+      if (!toId) {
+        result = { ok: false, reason: `B 方城市不存在: ${json.to}` }
+        break
+      }
       // 守卫式自动出兵：显式指定量 > 已有外出兵力 > 兜底全驻军
       const store = useGameStore()
       const preFrom0 = store.cities[fromId]
       const autoDeploy =
         json.deployAmount != null && json.deployAmount > 0
-          ? json.deployAmount                      // ① 显式指定 → 用该量
+          ? json.deployAmount // ① 显式指定 → 用该量
           : (preFrom0?.fieldForce ?? 0) > 0
-            ? 0                                     // ② 已有部署 → 不抽兵（尊重预部署 / 守家留兵）
-            : (preFrom0?.troops ?? 0)               // ③ 兜底：fieldForce 与驻军皆空则 0
+            ? 0 // ② 已有部署 → 不抽兵（尊重预部署 / 守家留兵）
+            : (preFrom0?.troops ?? 0) // ③ 兜底：fieldForce 与驻军皆空则 0
       if (autoDeploy > 0) {
         const dr = store.applyEvent({ type: 'deploy', fromGb: fromId, amount: autoDeploy })
-        if (!dr.ok) { result = { ok: false, reason: `出兵失败: ${dr.reason}` }; break }
+        if (!dr.ok) {
+          result = { ok: false, reason: `出兵失败: ${dr.reason}` }
+          break
+        }
         // 告知玩家自动出兵量（独立 toast：battle 的 popToast 分支不携带 deploy 量，此处显式告知）
-        useToast().push({ icon: 'sword', tone: 'cinnabar', title: '出兵', text: `${getLocationName(fromId)} 出兵 ${autoDeploy}k（驻军转外出）` })
+        useToast().push({
+          icon: 'sword',
+          tone: 'cinnabar',
+          title: '出兵',
+          text: `${getLocationName(fromId)} 出兵 ${autoDeploy}k（驻军转外出）`,
+        })
       }
       // 前置检查：来源城必须有外出兵力，否则不得立战线
       const preFrom = store.cities[fromId]
       if (!preFrom || preFrom.fieldForce <= 0) {
-        result = { ok: false, reason: `${getLocationName(fromId)} 无可战之兵（驻军与外出均为 0），无法开战` }
+        result = {
+          ok: false,
+          reason: `${getLocationName(fromId)} 无可战之兵（驻军与外出均为 0），无法开战`,
+        }
         break
       }
       // 行军成本：远征耗银/粮（不足则拒绝行军）
       const marchChk = applyMarchCost(fromId, toId, preFrom.fieldForce, route?.costDistanceKm)
-      if (!marchChk.ok) { result = marchChk; break }
+      if (!marchChk.ok) {
+        result = marchChk
+        break
+      }
       const r = await battle(fromId, toId, json.text)
-      if (!r.ok) { result = r; break }
+      if (!r.ok) {
+        result = r
+        break
+      }
       // 确定攻守双方（攻方 = 来源城 owner，守方 = 目标城 owner）
       const fromCity = store.cities[fromId]
       const toCity = store.cities[toId]
@@ -845,7 +946,14 @@ async function executeUncheckedOrder(
         toName: getLocationName(toId),
         attacker: attacker ?? Owner.NEUTRAL,
         defender: defender ?? Owner.NEUTRAL,
-        ...(route ? { route: route.path, marchDistanceKm: route.costDistanceKm, routeHasSea: route.seaLegs > 0 } : {}),
+        ...(route
+          ? {
+              route: route.path,
+              marchDistanceKm: route.costDistanceKm,
+              routeHasSea: route.seaLegs > 0,
+              supplyRulesVersion: 1 as const,
+            }
+          : {}),
       })
       // 开战自动宣战：双方均非中立时，将外交关系置为 war（战争来自实际战斗，非开局注入）
       if (
@@ -863,7 +971,7 @@ async function executeUncheckedOrder(
           note: `${getLocationName(fromId)}攻${getLocationName(toId)}，兵戈再起`,
         })
       }
-      result = r
+      result = { ...r, cost: marchChk.cost }
       break
     }
 
@@ -872,9 +980,9 @@ async function executeUncheckedOrder(
       const store = useGameStore()
       const requestedId = json.id!
       const existsInActiveBattles = activeBattles.has(requestedId)
-      const existsInStoreBattles = store.battles.some(b => b.id === requestedId)
+      const existsInStoreBattles = store.battles.some((b) => b.id === requestedId)
       const activeBattleIds = Array.from(activeBattles.keys())
-      const storeBattleIds = store.battles.map(b => b.id)
+      const storeBattleIds = store.battles.map((b) => b.id)
       // eslint-disable-next-line no-console
       console.log('[stopBattle] AI请求停止战斗:', {
         requestedId,
@@ -897,9 +1005,9 @@ async function executeUncheckedOrder(
         break
       }
       // 灭光束后，由唯一写者结束战斗（battleEnd），携带 reason + 撤退追击减员
-      const battleForEnd = store.battles.find(b => b.id === requestedId)
+      const battleForEnd = store.battles.find((b) => b.id === requestedId)
       const summary = battleForEnd ? battleSummaryText(battleForEnd) : ''
-      const endReason = (json.reason as 'retreat' | 'peace' | undefined)
+      const endReason = json.reason as 'retreat' | 'peace' | undefined
       store.applyEvent({
         type: 'battleEnd',
         battleId: requestedId,
@@ -910,11 +1018,19 @@ async function executeUncheckedOrder(
       })
       // 战果摘要 toast（仅撤退/求和有此入口，retreatLoss 并入文案）
       if (summary) {
-        const suffix = endReason === 'retreat' && json.retreatLoss
-          ? `撤退追击减员 ${json.retreatLoss}k`
-          : endReason === 'peace' ? '求和停战' : undefined
+        const suffix =
+          endReason === 'retreat' && json.retreatLoss
+            ? `撤退追击减员 ${json.retreatLoss}k`
+            : endReason === 'peace'
+              ? '求和停战'
+              : undefined
         const parts = [summary, suffix].filter(Boolean)
-        useToast().push({ icon: 'player-stop', tone: 'neutral', title: '战斗收兵', text: parts.join(' · ') })
+        useToast().push({
+          icon: 'player-stop',
+          tone: 'neutral',
+          title: '战斗收兵',
+          text: parts.join(' · '),
+        })
       }
       result = r
       break
@@ -932,7 +1048,10 @@ async function executeUncheckedOrder(
     // ── 世界态写回（动画已在上面各 case 播完，这里统一经 Kernel applyEvent 落地）──
     case 'capture': {
       const gbId = resolveLocationId(json.gb!)
-      if (!gbId) { result = { ok: false, reason: `目标城市不存在: ${json.gb}` }; break }
+      if (!gbId) {
+        result = { ok: false, reason: `目标城市不存在: ${json.gb}` }
+        break
+      }
       // 先播占领动画，播完再由唯一写者易主（gb/owner 必填，resultTroops 可选）
       await capture(gbId, json.owner!)
       const r = useGameStore().applyEvent({
@@ -941,7 +1060,10 @@ async function executeUncheckedOrder(
         actor: json.owner!,
         resultTroops: json.resultTroops,
       })
-      if (!r.ok) { result = { ok: false, reason: r.reason! }; break }
+      if (!r.ok) {
+        result = { ok: false, reason: r.reason! }
+        break
+      }
       result = { ok: true }
       break
     }
@@ -949,34 +1071,57 @@ async function executeUncheckedOrder(
     case 'moveTroops': {
       const fromId = resolveLocationId(json.from!)
       const toId = resolveLocationId(json.to!)
-      if (!fromId) { result = { ok: false, reason: `出发城市不存在: ${json.from}` }; break }
-      if (!toId) { result = { ok: false, reason: `目标城市不存在: ${json.to}` }; break }
+      if (!fromId) {
+        result = { ok: false, reason: `出发城市不存在: ${json.from}` }
+        break
+      }
+      if (!toId) {
+        result = { ok: false, reason: `目标城市不存在: ${json.to}` }
+        break
+      }
       if (typeof json.amount !== 'number' || json.amount <= 0) {
         result = { ok: false, reason: 'amount 必须是正数（单位 k）' }
         break
       }
       // 行军成本：远征调兵耗银/粮
       const marchChk = applyMarchCost(fromId, toId, json.amount, route?.costDistanceKm)
-      if (!marchChk.ok) { result = marchChk; break }
+      if (!marchChk.ok) {
+        result = marchChk
+        break
+      }
       // 复用 arrowFly 行军演出（黄点弧线），演完再落地（与 capture 同构）
       await arrowFly(fromId, toId, json.text || '调兵！')
-      const r = useGameStore().applyEvent({ type: 'moveTroops', fromGb: fromId, toGb: toId, amount: json.amount })
-      if (!r.ok) { result = { ok: false, reason: r.reason! }; break }
-      result = { ok: true }
+      const r = useGameStore().applyEvent({
+        type: 'moveTroops',
+        fromGb: fromId,
+        toGb: toId,
+        amount: json.amount,
+      })
+      if (!r.ok) {
+        result = { ok: false, reason: r.reason! }
+        break
+      }
+      result = { ok: true, cost: marchChk.cost }
       break
     }
 
     // ── 战斗生命周期：deploy（出兵）──
     case 'deploy': {
       const fromId = resolveLocationId(json.from!)
-      if (!fromId) { result = { ok: false, reason: `出发城市不存在: ${json.from}` }; break }
+      if (!fromId) {
+        result = { ok: false, reason: `出发城市不存在: ${json.from}` }
+        break
+      }
       if (typeof json.amount !== 'number' || json.amount <= 0) {
         result = { ok: false, reason: 'amount 必须是正数（单位 k）' }
         break
       }
       // 出兵：直接 apply（演出由调用方/上下文覆盖，本地只记录 toast）
       const r = useGameStore().applyEvent({ type: 'deploy', fromGb: fromId, amount: json.amount })
-      if (!r.ok) { result = { ok: false, reason: r.reason! }; break }
+      if (!r.ok) {
+        result = { ok: false, reason: r.reason! }
+        break
+      }
       result = { ok: true }
       break
     }
@@ -984,7 +1129,10 @@ async function executeUncheckedOrder(
     // ── 内政 / 建设（先播建设动画，再经 Kernel applyEvent 落地）──
     case 'recruit': {
       const gbId = resolveLocationId(json.gb!)
-      if (!gbId) { result = { ok: false, reason: `目标城市不存在: ${json.gb}` }; break }
+      if (!gbId) {
+        result = { ok: false, reason: `目标城市不存在: ${json.gb}` }
+        break
+      }
       if (typeof json.amount !== 'number' || json.amount <= 0) {
         result = { ok: false, reason: 'amount 必须是正数（单位 k）' }
         break
@@ -992,20 +1140,32 @@ async function executeUncheckedOrder(
       // 经济前置：征兵耗银 + 粮，付费主体 = 目标城 owner
       const payFaction = useGameStore().cities[gbId]?.owner as Owner
       const costChk = applyDomesticCost(payFaction, 'recruit', json.amount)
-      if (!costChk.ok) { result = costChk; break }
+      if (!costChk.ok) {
+        result = costChk
+        break
+      }
       await developCity(gbId, DEVELOP_COLORS.recruit, `+${json.amount}k 兵`)
       const r = useGameStore().applyEvent({ type: 'produce', targetGb: gbId, amount: json.amount })
-      if (!r.ok) { result = { ok: false, reason: r.reason! }; break }
+      if (!r.ok) {
+        result = { ok: false, reason: r.reason! }
+        break
+      }
       result = { ok: true, cost: computeActionCost('recruit', json.amount) }
       break
     }
 
     case 'develop': {
       const gbId = resolveLocationId(json.gb!)
-      if (!gbId) { result = { ok: false, reason: `目标城市不存在: ${json.gb}` }; break }
+      if (!gbId) {
+        result = { ok: false, reason: `目标城市不存在: ${json.gb}` }
+        break
+      }
       const field = json.field
       if (!field || !DEVELOP_FIELDS.includes(field)) {
-        result = { ok: false, reason: `field 必须是 ${DEVELOP_FIELDS.join(' / ')}（收到: ${String(field)}）` }
+        result = {
+          ok: false,
+          reason: `field 必须是 ${DEVELOP_FIELDS.join(' / ')}（收到: ${String(field)}）`,
+        }
         break
       }
       if (typeof json.amount !== 'number' || json.amount <= 0) {
@@ -1015,17 +1175,31 @@ async function executeUncheckedOrder(
       // 经济前置：建设耗银
       const payFaction = useGameStore().cities[gbId]?.owner as Owner
       const costChk = applyDomesticCost(payFaction, 'develop', json.amount)
-      if (!costChk.ok) { result = costChk; break }
+      if (!costChk.ok) {
+        result = costChk
+        break
+      }
       await developCity(gbId, DEVELOP_COLORS.develop, `+${json.amount} ${FIELD_LABELS[field]}`)
-      const r = useGameStore().applyEvent({ type: 'cityStatChange', targetGb: gbId, field, delta: json.amount })
-      if (!r.ok) { result = { ok: false, reason: r.reason! }; break }
+      const r = useGameStore().applyEvent({
+        type: 'cityStatChange',
+        targetGb: gbId,
+        field,
+        delta: json.amount,
+      })
+      if (!r.ok) {
+        result = { ok: false, reason: r.reason! }
+        break
+      }
       result = { ok: true, cost: computeActionCost('develop', json.amount) }
       break
     }
 
     case 'fortify': {
       const gbId = resolveLocationId(json.gb!)
-      if (!gbId) { result = { ok: false, reason: `目标城市不存在: ${json.gb}` }; break }
+      if (!gbId) {
+        result = { ok: false, reason: `目标城市不存在: ${json.gb}` }
+        break
+      }
       if (typeof json.amount !== 'number' || json.amount <= 0) {
         result = { ok: false, reason: 'amount 必须是正数' }
         break
@@ -1033,17 +1207,31 @@ async function executeUncheckedOrder(
       // 经济前置：筑防耗银
       const payFaction = useGameStore().cities[gbId]?.owner as Owner
       const costChk = applyDomesticCost(payFaction, 'fortify', json.amount)
-      if (!costChk.ok) { result = costChk; break }
+      if (!costChk.ok) {
+        result = costChk
+        break
+      }
       await developCity(gbId, DEVELOP_COLORS.fortify, `+${json.amount} 工事`)
-      const r = useGameStore().applyEvent({ type: 'cityStatChange', targetGb: gbId, field: 'fort', delta: json.amount })
-      if (!r.ok) { result = { ok: false, reason: r.reason! }; break }
+      const r = useGameStore().applyEvent({
+        type: 'cityStatChange',
+        targetGb: gbId,
+        field: 'fort',
+        delta: json.amount,
+      })
+      if (!r.ok) {
+        result = { ok: false, reason: r.reason! }
+        break
+      }
       result = { ok: true, cost: computeActionCost('fortify', json.amount) }
       break
     }
 
     case 'rally': {
       const gbId = resolveLocationId(json.gb!)
-      if (!gbId) { result = { ok: false, reason: `目标城市不存在: ${json.gb}` }; break }
+      if (!gbId) {
+        result = { ok: false, reason: `目标城市不存在: ${json.gb}` }
+        break
+      }
       if (typeof json.amount !== 'number' || json.amount === 0) {
         result = { ok: false, reason: 'amount 必须是非零数字（士气增量，可正可负）' }
         break
@@ -1051,17 +1239,31 @@ async function executeUncheckedOrder(
       // 经济前置：整军耗银（固定，不论增量大小）
       const payFaction = useGameStore().cities[gbId]?.owner as Owner
       const costChk = applyDomesticCost(payFaction, 'rally', Math.abs(json.amount))
-      if (!costChk.ok) { result = costChk; break }
+      if (!costChk.ok) {
+        result = costChk
+        break
+      }
       const sign = json.amount > 0 ? '+' : ''
       await developCity(gbId, DEVELOP_COLORS.rally, `${sign}${json.amount} 士气`)
-      const r = useGameStore().applyEvent({ type: 'moraleChange', targetGb: gbId, delta: json.amount })
-      if (!r.ok) { result = { ok: false, reason: r.reason! }; break }
+      const r = useGameStore().applyEvent({
+        type: 'moraleChange',
+        targetGb: gbId,
+        delta: json.amount,
+      })
+      if (!r.ok) {
+        result = { ok: false, reason: r.reason! }
+        break
+      }
       result = { ok: true, cost: computeActionCost('rally', Math.abs(json.amount)) }
       break
     }
 
     case 'setFactionAlive':
-      useGameStore().applyEvent({ type: 'setFactionAlive', faction: json.faction!, alive: json.alive! })
+      useGameStore().applyEvent({
+        type: 'setFactionAlive',
+        faction: json.faction!,
+        alive: json.alive!,
+      })
       result = { ok: true }
       break
 
@@ -1124,27 +1326,52 @@ function popToast(
   switch (json.order) {
     case 'arrowFly': {
       const t = `${getLocationName(json.from!)} ⇢ ${getLocationName(json.to!)}`
-      push({ icon: 'sword', tone: 'amber', title: '出兵', text: json.text ? `${json.text} · ${t}` : t })
+      push({
+        icon: 'sword',
+        tone: 'amber',
+        title: '出兵',
+        text: json.text ? `${json.text} · ${t}` : t,
+      })
       break
     }
     case 'radarPulse': {
       const t = `${getLocationName(json.from!)} 派出斥候`
-      push({ icon: 'eye', tone: 'blue', title: '侦察', text: json.text ? `${json.text} · ${t}` : t })
+      push({
+        icon: 'eye',
+        tone: 'blue',
+        title: '侦察',
+        text: json.text ? `${json.text} · ${t}` : t,
+      })
       break
     }
     case 'orbBurst': {
       const t = `${getLocationName(json.from!)} 对 ${getLocationName(json.to!)} 宣战`
-      push({ icon: 'flag', tone: 'cinnabar', title: '宣战', text: json.text ? `${json.text} · ${t}` : t })
+      push({
+        icon: 'flag',
+        tone: 'cinnabar',
+        title: '宣战',
+        text: json.text ? `${json.text} · ${t}` : t,
+      })
       break
     }
     case 'battle': {
       const t = `${getLocationName(json.from!)} 与 ${getLocationName(json.to!)} 交战`
-      push({ icon: 'crosshair', tone: 'cinnabar', title: '开战', text: json.text ? `${json.text} · ${t}` : t })
+      push({
+        icon: 'crosshair',
+        tone: 'cinnabar',
+        title: '开战',
+        text: json.text ? `${json.text} · ${t}` : t,
+      })
       break
     }
     case 'stopBattle':
       if (json.reason === 'retreat') {
-        push({ icon: 'player-stop', tone: 'neutral', title: '撤退', text: json.text ?? '我军收兵回城' })
+        push({
+          icon: 'player-stop',
+          tone: 'neutral',
+          title: '撤退',
+          text: json.text ?? '我军收兵回城',
+        })
       } else if (json.reason === 'peace') {
         push({ icon: 'affiliate', tone: 'green', title: '议和', text: json.text ?? '双方罢兵言和' })
       } else {
@@ -1164,34 +1391,64 @@ function popToast(
     }
     case 'moveTroops': {
       const t = `${getLocationName(json.from!)} ⇢ ${getLocationName(json.to!)}（${json.amount ?? 0}k）`
-      push({ icon: 'sword', tone: 'amber', title: '调兵', text: json.text ? `${json.text} · ${t}` : t })
+      push({
+        icon: 'sword',
+        tone: 'amber',
+        title: '调兵',
+        text: json.text ? `${json.text} · ${t}` : t,
+      })
       break
     }
     case 'deploy': {
       const t = `${getLocationName(json.from!)} 出兵 ${json.amount ?? 0}k`
-      push({ icon: 'sword', tone: 'cinnabar', title: '出兵', text: json.text ? `${json.text} · ${t}` : t })
+      push({
+        icon: 'sword',
+        tone: 'cinnabar',
+        title: '出兵',
+        text: json.text ? `${json.text} · ${t}` : t,
+      })
       break
     }
     case 'recruit': {
       const t = `${getLocationName(json.gb!)} 征兵 ${json.amount ?? 0}k${costSuffix}`
-      push({ icon: 'sword', tone: 'cinnabar', title: '征兵', text: json.text ? `${json.text} · ${t}` : t })
+      push({
+        icon: 'sword',
+        tone: 'cinnabar',
+        title: '征兵',
+        text: json.text ? `${json.text} · ${t}` : t,
+      })
       break
     }
     case 'develop': {
       const fieldLabel = json.field ? FIELD_LABELS[json.field] : ''
       const t = `${getLocationName(json.gb!)} ${fieldLabel} +${json.amount ?? 0}${costSuffix}`
-      push({ icon: 'crown', tone: 'amber', title: '建设', text: json.text ? `${json.text} · ${t}` : t })
+      push({
+        icon: 'crown',
+        tone: 'amber',
+        title: '建设',
+        text: json.text ? `${json.text} · ${t}` : t,
+      })
       break
     }
     case 'fortify': {
       const t = `${getLocationName(json.gb!)} 修筑工事 +${json.amount ?? 0}${costSuffix}`
-      push({ icon: 'flag', tone: 'neutral', title: '筑防', text: json.text ? `${json.text} · ${t}` : t })
+      push({
+        icon: 'flag',
+        tone: 'neutral',
+        title: '筑防',
+        text: json.text ? `${json.text} · ${t}` : t,
+      })
       break
     }
     case 'rally': {
       const sign = (json.amount ?? 0) > 0 ? '+' : ''
       const t = `${getLocationName(json.gb!)} 士气 ${sign}${json.amount ?? 0}${costSuffix}`
-      push({ icon: 'check', tone: 'green', title: '整军', text: json.text ? `${json.text} · ${t}` : t })
+      push({
+        icon: 'check',
+        tone: 'green',
+        title: '整军',
+        text: json.text ? `${json.text} · ${t}` : t,
+      })
       break
     }
     case 'setFactionAlive': {

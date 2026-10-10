@@ -76,12 +76,14 @@ describe('campaign execution and preview parity', () => {
     const before = { silver: store.getTreasury(Owner.SCC), food: store.getGranary(Owner.SCC) }
     const result = await executeOrder(preview.order)
     expect(result.ok).toBe(true)
+    expect(result.cost).toEqual({ silver: preview.silver, food: preview.food })
     expect(store.getTreasury(Owner.SCC)).toBeCloseTo(before.silver - preview.silver!)
     expect(store.getGranary(Owner.SCC)).toBeCloseTo(before.food - preview.food!)
     expect(store.getActionPoints(Owner.SCC)).toBe(5)
     expect(store.cities[a]!.troops).toBe(8)
     expect(store.battles[0]?.route).toEqual(preview.route?.path)
     expect(store.battles[0]?.marchDistanceKm).toBe(preview.route?.costDistanceKm)
+    expect(store.battles[0]?.supplyRulesVersion).toBe(1)
   })
   it('blocks enemy transit before deployment, money and points change', async () => {
     const { store, a, b, c } = world()
