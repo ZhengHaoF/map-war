@@ -14,6 +14,7 @@ import { useAiChat } from './useAiChat'
 import { useGameStore } from '@/stores/game'
 import { executeOrder, resetBattleRuntime } from '@/utils/gameOrders'
 import { freeEffectToOrder } from '@/utils/freeActionRules'
+import { executeBoundedFreeEffect } from '@/utils/freeActionExecution'
 import { buildMessages, buildSystemPrompt, type AiKind } from '@/utils/aiPromptBuilder'
 import { buildEventHistory } from '@/utils/aiHistory'
 import {
@@ -26,7 +27,6 @@ import {
   type WarVerdict,
 } from '@/utils/aiOrderContract'
 import { normalizeCommsFrom } from '@/utils/commsEntity'
-import { isInTruce, readRelation } from '@/utils/diplomacy'
 import {
   extractJson,
   extractPayloads,
@@ -41,7 +41,7 @@ import type { GameOrder } from '@/utils/gameOrders'
 import { sendTelegram } from '@/utils/ai'
 import { Owner, OWNER_DETAILS, OWNER_LABELS } from '@/data/owners'
 import { useToast } from '@/composables/useToast'
-import { FACTION_AI_TELEGRAM_WINDOW, FREE_CAP_MORALE_NEG, FREE_CAP_CITY_STAT_NEG, FREE_CAP_TREASURY, FREE_CAP_GRANARY } from '@/data/gameConfig'
+import { FACTION_AI_TELEGRAM_WINDOW, FREE_ACTION_EFFECT_LIMIT, ACTION_POINTS_PER_TURN } from '@/data/gameConfig'
 
 export interface ExecResult {
   order: GameOrder
@@ -145,17 +145,16 @@ export function useAiOrchestrator(mode: AiMode = 'world') {
         .filter((v) => v.verdict === 'feasible')
         .map((v) => v.index),
     )
-    return pending.filter((_, i) => feasibleIndices.has(i))
+    return pending.filter(order => feasibleIndices.has(parsed.value!.orders.indexOf(order)))
   }
 
   /** 世界AI断定为不可能的指令 + 理由 + 建议（供 UI 琥珀色警告） */
   const worldImpossible = computed(() => {
     if (!worldValidation.value) return []
-    const pending = getPendingOrders()
     return worldValidation.value.validations
       .filter((v) => v.verdict === 'impossible')
       .map((v) => ({
-        order: pending[v.index] ?? parsed.value?.orders[v.index],
+        order: parsed.value?.orders[v.index],
         reason: v.reason || '世界AI未说明原因',
         suggestion: v.suggestion || undefined,
       }))
@@ -183,6 +182,11 @@ export function useAiOrchestrator(mode: AiMode = 'world') {
     // 允许开发者覆盖自动生成的 system prompt
     if (systemPrompt.value.trim()) {
       messages[0] = { role: 'system', content: systemPrompt.value }
+    }
+    if (mode === 'user' && store.currentFaction) {
+      messages.splice(messages.length - 1, 0, { role: 'system', content:
+        `本方本回合剩余行动额度 ${store.getActionPoints(store.currentFaction)}/${ACTION_POINTS_PER_TURN}。征兵/建设/整军/部署/调兵/开战每条1点，撤退和查询不耗点。自由效果每条1点，每次最多${FREE_ACTION_EFFECT_LIMIT}条；同一敌城宣传/破坏本回合仅一次且耗10万银，本方筹银和筹粮各仅一次且至多50。日期和占领由系统自动结算；结盟/停战须双方外交协商。不要生成capture或setCurrentDate，也不要声称未执行的效果已经发生。`,
+      })
     }
 
     await send({ messages, response_format: { type: 'json_object' } })
@@ -287,18 +291,6 @@ export function useAiOrchestrator(mode: AiMode = 'world') {
     }
   }
 
-  /** 外交结果 toast：宣战=朱砂、结盟=青绿、停战=褐。文案用势力中文名。 */
-  function pushDiplomacyToast(a: Owner, b: Owner, status: 'war' | 'peace' | 'alliance', note?: string): void {
-    const la = OWNER_LABELS[a] ?? a
-    const lb = OWNER_LABELS[b] ?? b
-    const cfg = {
-      war: { icon: 'sword', tone: 'cinnabar' as const, title: '宣战', text: note ?? `${la} 向 ${lb} 宣战` },
-      alliance: { icon: 'affiliate', tone: 'green' as const, title: '结盟', text: note ?? `${la} 与 ${lb} 缔结同盟` },
-      peace: { icon: 'player-stop', tone: 'neutral' as const, title: '停战', text: note ?? `${la} 与 ${lb} 罢兵言和` },
-    }[status]
-    useToast().push(cfg)
-  }
-
   /**
    * 自由行动管道：遍历 effects，资源类走指令管线、其余直通钳制后 applyEvent。
    *
@@ -312,7 +304,9 @@ export function useAiOrchestrator(mode: AiMode = 'world') {
     const ownerOf = (gb: string): Owner | undefined => store.ownership[gb]
     const troopsOf = (gb: string): number | undefined => store.cities[gb]?.troops
 
-    for (const eff of payload.effects) {
+    const applied: FreeActionPayload['effects'] = []
+    const failures: string[] = []
+    for (const eff of payload.effects.slice(0, FREE_ACTION_EFFECT_LIMIT)) {
       // ── ① 资源类 effect → 正规指令 ──
       // 复用 validatePlayerOrder + executeOrder：成本（征兵/行军/建设/整军）、
       // 归属（只能操作己方城）、驻军上限、动画与 toast 全部与正规指令同管线。
@@ -324,30 +318,24 @@ export function useAiOrchestrator(mode: AiMode = 'world') {
           continue
         }
         try {
-          await executeOrder(order)
+          const result = await executeOrder(order)
+          if (result.ok) applied.push(eff)
+          else failures.push(result.reason ?? '指令未执行')
         } catch (err) {
           useToast().push({ icon: 'alert-triangle', tone: 'error', title: '指令失败', text: (err as Error).message })
         }
         continue
       }
 
-      // ── ② 直通类 effect：仅安全类型，数值钳制后 applyEvent ──
+      const outcome = executeBoundedFreeEffect(eff, payload.narrative)
+      if (!outcome.ok) {
+        failures.push(outcome.reason ?? '自由行动未执行')
+        continue
+      }
+      applied.push(eff)
+      // Only telegram delivery needs asynchronous handling after the bounded effect.
+      if (!outcome.telegram) continue
       switch (eff.type) {
-        // 负向士气：宣传/谣言（可对敌城），幅度钳制
-        case 'moraleChange':
-          if (eff.targetGb && eff.delta != null && eff.delta < 0) {
-            store.applyEvent({ type: 'moraleChange', targetGb: eff.targetGb, delta: Math.max(eff.delta, -FREE_CAP_MORALE_NEG) })
-          }
-          break
-        // 负向城市属性：谍报/焚毁（可对敌城），幅度钳制
-        case 'cityStatChange':
-          if (eff.targetGb && eff.field && eff.delta != null && eff.delta < 0) {
-            const field = eff.field as 'industry' | 'food' | 'fort'
-            if (field === 'industry' || field === 'food' || field === 'fort') {
-              store.applyEvent({ type: 'cityStatChange', targetGb: eff.targetGb, field, delta: Math.max(eff.delta, -FREE_CAP_CITY_STAT_NEG) })
-            }
-          }
-          break
         // 发送电报：将电报存入往来记录（如求助、威胁、求和、离间等外交行动），并即时触发对方回信
         case 'sendTelegram':
           if (eff.to && eff.content) {
@@ -396,62 +384,18 @@ export function useAiOrchestrator(mode: AiMode = 'world') {
             }
           }
           break
-        // 银库变更：经济事件（赔款、截断商路、加税、劫掠等），faction 中文/代号归一化，delta 钳制
-        case 'treasuryChange':
-          if (eff.faction && eff.delta != null) {
-            store.applyEvent({
-              type: 'treasuryChange',
-              faction: normalizeCommsFrom(eff.faction) as Owner,
-              delta: Math.max(-FREE_CAP_TREASURY, Math.min(FREE_CAP_TREASURY, eff.delta)),
-              reason: payload.narrative.slice(0, 30),
-            })
-          }
-          break
-        // 粮仓变更：经济事件（旱灾、焚粮、征粮、断粮道等），delta 钳制
-        case 'granaryChange':
-          if (eff.faction && eff.delta != null) {
-            store.applyEvent({
-              type: 'granaryChange',
-              faction: normalizeCommsFrom(eff.faction) as Owner,
-              delta: Math.max(-FREE_CAP_GRANARY, Math.min(FREE_CAP_GRANARY, eff.delta)),
-              reason: payload.narrative.slice(0, 30),
-            })
-          }
-          break
-        // 外交关系变更：宣战/结盟/停战。a/b 中文名归一化后改写对称关系表。
-        case 'relationChange': {
-          if (!eff.a || !eff.b || !eff.status) break
-          const a = normalizeCommsFrom(eff.a) as Owner
-          const b = normalizeCommsFrom(eff.b) as Owner
-          if (!a || !b || a === b || a === Owner.NEUTRAL || b === Owner.NEUTRAL) break
-          // 战略校验：停战冷却期内禁止再次宣战
-          if (eff.status === 'war' && isInTruce(store.relations, a, b, store.currentDate)) {
-            const rel = readRelation(store.relations, a, b)
-            useToast().push({
-              icon: 'alert-triangle',
-              tone: 'error',
-              title: '宣战被拒',
-              text: `${OWNER_LABELS[a] ?? a} 与 ${OWNER_LABELS[b] ?? b} 尚在停战期（至 ${rel.truceUntil}）`,
-            })
-            break
-          }
-          const r = store.applyEvent({
-            type: 'relationChange',
-            a,
-            b,
-            status: eff.status,
-            truceUntil: eff.status === 'peace' ? eff.truceUntil : undefined,
-            note: eff.note,
-          })
-          if (r.ok) pushDiplomacyToast(a, b, eff.status, eff.note)
-          break
-        }
         default:
           // produce / moveTroops / 正向内政 / 正向士气 / 非法字段：
           // 翻译未产出即丢弃（不直通，防止绕过成本与归属校验）
           break
       }
     }
+    if (payload.effects.length > FREE_ACTION_EFFECT_LIMIT) failures.push(`每次最多执行${FREE_ACTION_EFFECT_LIMIT}项效果`)
+    freeActionResult.value = {
+      ...payload, effects: applied, success: applied.length > 0,
+      narrative: applied.length ? `已执行 ${applied.length} 项效果。${failures.length ? `未执行：${failures.join('；')}` : payload.narrative}` : `行动未执行：${failures.join('；') || '没有有效效果'}`,
+    }
+    if (failures.length) useToast().push({ icon: 'alert-triangle', tone: 'error', title: '部分行动未执行', text: failures.join('；') })
   }
 
   async function runExecute() {
@@ -465,7 +409,7 @@ export function useAiOrchestrator(mode: AiMode = 'world') {
         continue
       }
       try {
-        const r = await executeOrder(order)
+        const r = await executeOrder(order, mode === 'world' ? { authority: 'debug' } : {})
         results.push({ order, valid: true, errors: [], result: r as any, detail: describe(order) })
       } catch (e) {
         results.push({

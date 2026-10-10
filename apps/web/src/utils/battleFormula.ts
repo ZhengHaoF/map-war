@@ -142,21 +142,25 @@ export function checkMoraleCollapse(args: {
 
 export function clampFlavor(flavor: FlavorResult, base: BaseResult): FlavorResult {
   const cap = BATTLE_RULES.flavor
+  const remaining = {
+    attacker: { shock: Math.round(base.attackerLoss * cap.shockCap), morale: cap.moraleCap },
+    defender: { shock: Math.round(base.defenderLoss * cap.shockCap), morale: cap.moraleCap },
+  }
   const events = (flavor.events ?? [])
-    .filter((e) => e.type === 'shock' || e.type === 'morale')
+    .filter((e) => (e.type === 'shock' || e.type === 'morale') && (e.side === 'attacker' || e.side === 'defender'))
     .map((e) => {
       if (e.type === 'shock') {
         const baseLoss = e.side === 'attacker' ? base.attackerLoss : base.defenderLoss
         const clamped = Math.min(
-          Math.max(0, Math.round(e.magnitude ?? 0)),
-          Math.round(baseLoss * cap.shockCap),
+          Number.isFinite(e.magnitude) ? Math.max(0, Math.round(e.magnitude!)) : 0,
+          Math.round(baseLoss * cap.shockCap), remaining[e.side].shock,
         )
+        remaining[e.side].shock -= clamped
         return { ...e, magnitude: clamped }
       }
-      const clamped = Math.min(
-        cap.moraleCap,
-        Math.max(-cap.moraleCap, Math.round(e.delta ?? 0)),
-      )
+      const magnitude = Number.isFinite(e.delta) ? Math.min(Math.abs(Math.round(e.delta!)), remaining[e.side].morale) : 0
+      const clamped = Math.sign(e.delta ?? 0) * magnitude
+      remaining[e.side].morale -= magnitude
       return { ...e, delta: clamped }
     })
     .filter((e) =>

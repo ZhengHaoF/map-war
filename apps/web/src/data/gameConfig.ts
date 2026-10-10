@@ -317,3 +317,8 @@ export const REDUCER_CAP_MORALE = 50
 
 /** rally 每点士气增量的银两（万银/点）。调大 → 刷士气更贵，防“0.5 万银拉满士气” */
 export const RALLY_SILVER_PER_POINT = 0.2
+
+// 九、回合行动预算（玩家与势力 AI 共用；查询、聊天、战斗自动结算不计费）
+export const ACTION_POINTS_PER_TURN = 6
+export const FREE_ACTION_EFFECT_LIMIT = 3
+export const COVERT_ACTION_SILVER_COST = 10

@@ -189,7 +189,7 @@ async function runAdvanceQueue(): Promise<void> {
   if (status.value !== 'stopped') {
     const valid = parsed.value.orders.filter((_, i) => !parsed.value!.errors[i].length)
     if (!valid.length) return
-    submit(valid)
+    submit(valid, { authority: 'debug' })
   }
   await advance()
 }

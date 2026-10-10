@@ -13,7 +13,7 @@ import {
   ARREAR_MORALE_PENALTY,
   FAMINE_TROOP_LOSS_RATE,
 } from '@/utils/economy'
-import { DEFAULT_MORALE, MORALE_MIN, MORALE_MAX, CITY_CAP_INDUSTRY, CITY_CAP_FOOD, CITY_CAP_FORT, CITY_CAP_LEVEL, CAPTURE_MORALE_BONUS, BATTLE_ROUT_SURVIVOR_RATE } from '@/data/gameConfig'
+import { DEFAULT_MORALE, MORALE_MIN, MORALE_MAX, CITY_CAP_INDUSTRY, CITY_CAP_FOOD, CITY_CAP_FORT, CITY_CAP_LEVEL, CAPTURE_MORALE_BONUS, BATTLE_ROUT_SURVIVOR_RATE, ACTION_POINTS_PER_TURN } from '@/data/gameConfig'
 import { round1 } from '@/utils/format'
 import { clampEventMagnitude } from '@/utils/eventClamp'
 import { GAME_START_DATE, countOwnedByProvince } from '@/utils/chronicle'
@@ -191,6 +191,8 @@ export type GameEvent =
   | { type: 'relationChange'; a: Owner; b: Owner; status: RelationStatus; truceUntil?: string; note?: string; recordId?: string }
   // ── 调度停点：不改世界态，仅标记「此处需玩家决策」，供读档还原暂停位置 ──
   | { type: 'pauseForPlayer' }
+  | { type: 'actionSpent'; faction: Owner; amount: number; key?: string }
+  | { type: 'actionRefunded'; faction: Owner; amount: number; key?: string }
 
 // ── 存档 / 持久化 ──
 
@@ -306,6 +308,20 @@ export const useGameStore = defineStore('game', () => {
   // ── 电报（AI 自主生成，不进 eventLog，单独持久化）──
   const telegrams = ref<Telegram[]>([])
   const turnCount = ref(0) // 当前回合序号（dateAdvance 时 +1）
+  const actionSpent = ref<Record<string, number>>({})
+  const actionKeys = ref<Record<string, string[]>>({})
+
+  function getActionPoints(faction: Owner): number {
+    return Math.max(0, ACTION_POINTS_PER_TURN - (actionSpent.value[faction] ?? 0))
+  }
+
+  function checkAction(faction: Owner, amount = 1, key?: string): { ok: boolean; reason?: string } {
+    if (!activeFactions.value.includes(faction)) return { ok: false, reason: '势力不存在或已覆灭' }
+    if (!Number.isInteger(amount) || amount <= 0) return { ok: false, reason: '行动额度必须为正整数' }
+    if (getActionPoints(faction) < amount) return { ok: false, reason: '本回合行动额度不足，请结束回合' }
+    if (key && actionKeys.value[faction]?.includes(key)) return { ok: false, reason: '本回合已执行同类行动，请下回合再试' }
+    return { ok: true }
+  }
 
   // ── 外交协商记录（Phase2，电报孪生：不进 eventLog、不改世界态，单独持久化）──
   const diplomacyRecords = ref<DiplomacyRecord[]>([])
@@ -674,6 +690,8 @@ export const useGameStore = defineStore('game', () => {
     diplomacyRecords.value = [] // 重置外交协商记录（读档时由 load 覆盖）
     relations.value = buildInitialRelations() // 外交种子（蒋阎/蒋桂停战冷却、国共内战）；读档时由 eventLog 重放覆盖
     turnCount.value = 0
+    actionSpent.value = {}
+    actionKeys.value = {}
     gameOver.value = null // 重置游戏结束状态
     // 战纪派生态清零（读档重放时由 dateAdvance/capture/battleEnd 分支重建）
     turnSnapshots.value = []
@@ -749,6 +767,13 @@ export const useGameStore = defineStore('game', () => {
    */
   function preCheck(e: GameEvent): { ok: true } | { ok: false; reason: string } {
     switch (e.type) {
+      case 'actionSpent': {
+        const r = checkAction(e.faction, e.amount, e.key)
+        return r.ok ? { ok: true } : { ok: false, reason: r.reason! }
+      }
+      case 'actionRefunded':
+        return Number.isInteger(e.amount) && e.amount > 0 && e.amount <= (actionSpent.value[e.faction] ?? 0)
+          ? { ok: true } : { ok: false, reason: '无可退还的行动额度' }
       case 'moveTroops': {
         const fromGb = resolveLocationId(e.fromGb) ?? e.fromGb
         const toGb = resolveLocationId(e.toGb) ?? e.toGb
@@ -853,9 +878,20 @@ export const useGameStore = defineStore('game', () => {
       // 停点标记：不触碰世界态，仅落日志。是否「当前暂停中」由 pausedForPlayer 判据决定
       return { ok: true }
     }
+    if (e.type === 'actionSpent' || e.type === 'actionRefunded') {
+      const sign = e.type === 'actionSpent' ? 1 : -1
+      actionSpent.value = { ...actionSpent.value, [e.faction]: (actionSpent.value[e.faction] ?? 0) + sign * e.amount }
+      if (e.key) {
+        const keys = actionKeys.value[e.faction] ?? []
+        actionKeys.value = { ...actionKeys.value, [e.faction]: sign > 0 ? [...keys, e.key] : keys.filter(k => k !== e.key) }
+      }
+      return { ok: true }
+    }
     if (e.type === 'dateAdvance') {
       currentDate.value = e.date
       turnCount.value++
+      actionSpent.value = {}
+      actionKeys.value = {}
       // 战纪：回合末采样 + 里程碑判定（重放期照常执行 = 读档自动重建）
       takeTurnSnapshot()
       evaluateMilestonesForPlayer()
@@ -1371,6 +1407,8 @@ export const useGameStore = defineStore('game', () => {
     // 电报
     telegrams,
     turnCount,
+    getActionPoints,
+    checkAction,
     pushTelegram,
     markChannelRead,
     unreadCount,

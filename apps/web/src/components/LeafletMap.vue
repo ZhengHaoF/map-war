@@ -1192,9 +1192,6 @@ function onContextMenu(e: PointerEvent | MouseEvent): void {
     const isFriendly = owner !== undefined && owner === useGameStore().currentFaction
     const items = [
       { action: 'info', label: '查看信息', icon: 'info-circle' },
-      { action: 'investigate', label: '调查', icon: 'search' },
-      { action: 'declare-war', label: '宣战', icon: 'flag' },
-      { action: 'surprise-attack', label: '奇袭', danger: true, icon: 'bolt' },
     ]
     if (!isFriendly) {
       items.push({ action: 'telegram', label: '电报', icon: 'mail' })
@@ -1300,7 +1297,7 @@ async function playCloudTest(): Promise<void> {
 
 /** 调试：占领测试——把宝鸡（gb=156610300）划给川军（SCC） */
 async function captureTest(): Promise<void> {
-  await executeOrder({ order: 'capture', gb: '156610300', owner: Owner.SCC })
+  await executeOrder({ order: 'capture', gb: '156610300', owner: Owner.SCC }, { authority: 'debug' })
 }
 
 /**
@@ -1673,7 +1670,7 @@ function onPeaceAccept(): void {
   }
   peaceVisible.value = false
   for (const id of s.battleIds) {
-    executeOrder({ order: 'stopBattle', id, reason: 'peace', text: s.outcome.narrative })
+    executeOrder({ order: 'stopBattle', id, reason: 'peace', text: s.outcome.narrative }, { authority: 'system' })
   }
   peaceState.value = null
 }

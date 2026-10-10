@@ -32,7 +32,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useZIndex } from '@/composables/useZIndex'
 
 const props = withDefaults(
@@ -72,6 +72,11 @@ const { zIndex: managedZ, bringToFront, offsetX, offsetY } = useZIndex(
 
 const posX = ref((props.initX ?? 160) + offsetX)
 const posY = ref((props.initY ?? 160) + offsetY)
+const viewportWidth = ref(window.innerWidth)
+function onResize(): void {
+  viewportWidth.value = window.innerWidth
+}
+onMounted(() => window.addEventListener('resize', onResize))
 
 // 面板打开时重新获取最高 z-index，确保新打开的面板始终覆盖在旧面板上方
 watch(
@@ -98,6 +103,16 @@ const modalStyle = computed<Record<string, string>>(() => {
     style.left = posX.value + 'px'
     style.top = posY.value + 'px'
     style.transform = 'none'
+  }
+  if (viewportWidth.value <= 600) {
+    style.minWidth = '0'
+    style.maxWidth = 'calc(100vw - 24px)'
+    style.maxHeight = 'calc(100dvh - 24px)'
+    style.overflowY = 'auto'
+    if (props.draggable) {
+      style.left = '12px'
+      style.top = '12px'
+    }
   }
   return style
 })
@@ -138,6 +153,7 @@ function cleanDragListeners(): void {
 
 onUnmounted(() => {
   cleanDragListeners()
+  window.removeEventListener('resize', onResize)
 })
 
 function onCloseClick(): void {
