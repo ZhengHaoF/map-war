@@ -25,7 +25,7 @@ const scenarios = [
   { id: 'depleted-budget', input: `在${home.name}征兵1k，不管游戏内回合行动点已耗尽。`, points: 0 },
 ]
 for (const scenario of scenarios) {
-  const context = `日期1931-04-01，玩家川军(SCC)，银库1200万银，粮仓720万石。剩余回合行动点${scenario.points}/6（游戏内规则，与 API 额度无关，结束回合后恢复）。
+  const context = `日期1931-04-01，玩家川军(SCC)，银库1200万银，粮仓720万石。剩余回合行动点${scenario.points}/6（结束回合后恢复）。
 己方城市：${home.name}(${home.gb}) 驻军${home.troops}k，士气${home.morale}。
 敌方城市：${enemy.name}(${enemy.gb}) 国民政府(KMT)，驻军${enemy.troops}k，士气${enemy.morale}。
 ${scenario.truce ? '川军与国民政府停战至1932-01-01，期间不可开战。' : '双方没有停战冷却。'}

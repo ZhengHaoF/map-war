@@ -13,7 +13,18 @@ import {
   ARREAR_MORALE_PENALTY,
   FAMINE_TROOP_LOSS_RATE,
 } from '@/utils/economy'
-import { DEFAULT_MORALE, MORALE_MIN, MORALE_MAX, CITY_CAP_INDUSTRY, CITY_CAP_FOOD, CITY_CAP_FORT, CITY_CAP_LEVEL, CAPTURE_MORALE_BONUS, BATTLE_ROUT_SURVIVOR_RATE, ACTION_POINTS_PER_TURN } from '@/data/gameConfig'
+import {
+  DEFAULT_MORALE,
+  MORALE_MIN,
+  MORALE_MAX,
+  CITY_CAP_INDUSTRY,
+  CITY_CAP_FOOD,
+  CITY_CAP_FORT,
+  CITY_CAP_LEVEL,
+  CAPTURE_MORALE_BONUS,
+  BATTLE_ROUT_SURVIVOR_RATE,
+  ACTION_POINTS_PER_TURN,
+} from '@/data/gameConfig'
 import { round1 } from '@/utils/format'
 import { clampEventMagnitude } from '@/utils/eventClamp'
 import { GAME_START_DATE, countOwnedByProvince } from '@/utils/chronicle'
@@ -36,6 +47,11 @@ export interface BattleInfo {
   lastDefenderLoss: number
   /** AI 战斗裁决官最近一次战报叙事（每回合结算时更新；开局为空） */
   lastNarrative?: string
+  /** Optional for older saves: route recorded at battle start. */
+  route?: string[]
+  marchDistanceKm?: number
+  routeHasSea?: boolean
+  supplyRulesVersion?: 1
 }
 
 /** 游戏结束状态 */
@@ -88,6 +104,8 @@ export interface CityState {
   troops: number // 驻军，单位：千（k）
   fieldForce: number // 外出兵力，单位：千（k）。出兵时从 troops 转入，战斗损耗从此扣（攻方）
   morale: number // 城市士气 0-100
+  /** Optional for old saves; derived from the capture event and turn counter. */
+  occupationUntilTurn?: number
 }
 
 /** 城市态中可通过 cityStatChange 增减的数值字段 */
@@ -110,7 +128,13 @@ export const DEVELOP_FIELDS: CityStatField[] = ['industry', 'food']
  * 都必须封装成 GameEvent，经 applyEvent 落地——这是唯一写者（initWorld 播种除外）。
  */
 /** 战斗终止原因 */
-export type BattleEndReason = 'capture' | 'attackerRouted' | 'retreat' | 'defenderCollapse' | 'attackerCollapse' | 'peace'
+export type BattleEndReason =
+  | 'capture'
+  | 'attackerRouted'
+  | 'retreat'
+  | 'defenderCollapse'
+  | 'attackerCollapse'
+  | 'peace'
 
 /** 单势力经济结算明细（进 eventLog 供 replay 重建国库/粮仓） */
 export interface EconomyTickEntry {
@@ -170,17 +194,50 @@ export interface MilestoneRecord {
 }
 
 export type GameEvent =
-  | { type: 'capture'; targetGb: string; actor: Owner; resultTroops?: number }
+  | {
+      type: 'capture'
+      targetGb: string
+      actor: Owner
+      resultTroops?: number
+      occupationTurns?: number
+    }
   | { type: 'moveTroops'; fromGb: string; toGb: string; amount: number }
   | { type: 'deploy'; fromGb: string; amount: number }
-  | { type: 'attack'; fromGb: string; targetGb: string; attackerLoss: number; defenderLoss: number; narrative?: string }
+  | {
+      type: 'attack'
+      fromGb: string
+      targetGb: string
+      attackerLoss: number
+      defenderLoss: number
+      narrative?: string
+    }
   | { type: 'moraleChange'; targetGb: string; delta: number }
   | { type: 'cityStatChange'; targetGb: string; field: CityStatField; delta: number }
   | { type: 'produce'; targetGb: string; amount: number }
   | { type: 'dateAdvance'; date: string }
   | { type: 'setFactionAlive'; faction: Owner; alive: boolean }
-  | { type: 'battleStart'; battleId: string; fromGb: string; targetGb: string; fromName: string; toName: string; attacker: Owner; defender: Owner }
-  | { type: 'battleEnd'; battleId: string; reason?: BattleEndReason; retreatLoss?: number; fromName?: string; toName?: string }
+  | {
+      type: 'battleStart'
+      battleId: string
+      fromGb: string
+      targetGb: string
+      fromName: string
+      toName: string
+      attacker: Owner
+      defender: Owner
+      route?: string[]
+      marchDistanceKm?: number
+      routeHasSea?: boolean
+      supplyRulesVersion?: 1
+    }
+  | {
+      type: 'battleEnd'
+      battleId: string
+      reason?: BattleEndReason
+      retreatLoss?: number
+      fromName?: string
+      toName?: string
+    }
   | { type: 'selectFaction'; faction: Owner; playerName: string }
   | { type: 'narrative'; playerInput: string; aiMessage: string; kind?: 'player' | 'settlement' }
   // ── 经济系统 ──
@@ -188,7 +245,15 @@ export type GameEvent =
   | { type: 'granaryChange'; faction: Owner; delta: number; reason?: string }
   | { type: 'economicTick'; entries: EconomyTickEntry[] }
   // ── 外交系统 ──
-  | { type: 'relationChange'; a: Owner; b: Owner; status: RelationStatus; truceUntil?: string; note?: string; recordId?: string }
+  | {
+      type: 'relationChange'
+      a: Owner
+      b: Owner
+      status: RelationStatus
+      truceUntil?: string
+      note?: string
+      recordId?: string
+    }
   // ── 调度停点：不改世界态，仅标记「此处需玩家决策」，供读档还原暂停位置 ──
   | { type: 'pauseForPlayer' }
   | { type: 'actionSpent'; faction: Owner; amount: number; key?: string }
@@ -236,7 +301,18 @@ export interface WorldStateSnapshot {
   /** 城市归属表：gb 编码 -> 控制政权（派生自 cities） */
   ownership: Record<string, Owner>
   /** 每城动态态，供 AI 据局势决策 */
-  cities: Record<string, { owner: Owner; troops: number; fieldForce: number; morale: number; industry: number; food: number; fort: number }>
+  cities: Record<
+    string,
+    {
+      owner: Owner
+      troops: number
+      fieldForce: number
+      morale: number
+      industry: number
+      food: number
+      fort: number
+    }
+  >
   /** 势力派生聚合（不存）：总兵力，单位 k */
   factionTroops: Record<string, number>
   /** 势力派生聚合（不存）：按兵力加权的平均士气 */
@@ -270,7 +346,9 @@ export const useGameStore = defineStore('game', () => {
    * 连续停点（pause1 → 决策 → pause2）也只对末尾的 pause2 生效。
    */
   const pausedForPlayer = computed(
-    () => eventLog.value.length > 0 && eventLog.value[eventLog.value.length - 1].type === 'pauseForPlayer',
+    () =>
+      eventLog.value.length > 0 &&
+      eventLog.value[eventLog.value.length - 1].type === 'pauseForPlayer',
   )
 
   // 派生投影：owner 视图（保持旧接口，读自 cities）
@@ -317,9 +395,12 @@ export const useGameStore = defineStore('game', () => {
 
   function checkAction(faction: Owner, amount = 1, key?: string): { ok: boolean; reason?: string } {
     if (!activeFactions.value.includes(faction)) return { ok: false, reason: '势力不存在或已覆灭' }
-    if (!Number.isInteger(amount) || amount <= 0) return { ok: false, reason: '回合行动点必须为正整数' }
-    if (getActionPoints(faction) < amount) return { ok: false, reason: '回合行动点不足，请结束回合恢复' }
-    if (key && actionKeys.value[faction]?.includes(key)) return { ok: false, reason: '本回合已执行同类行动，请下回合再试' }
+    if (!Number.isInteger(amount) || amount <= 0)
+      return { ok: false, reason: '回合行动点必须为正整数' }
+    if (getActionPoints(faction) < amount)
+      return { ok: false, reason: '回合行动点不足，请结束回合恢复' }
+    if (key && actionKeys.value[faction]?.includes(key))
+      return { ok: false, reason: '本回合已执行同类行动，请下回合再试' }
     return { ok: true }
   }
 
@@ -389,7 +470,10 @@ export const useGameStore = defineStore('game', () => {
   }
 
   // ── 我方聚合（派生，不存）──
-  type MyCityStat = Pick<CityState, 'gb' | 'name' | 'cityLevel' | 'industry' | 'food' | 'fort' | 'troops' | 'fieldForce' | 'morale'>
+  type MyCityStat = Pick<
+    CityState,
+    'gb' | 'name' | 'cityLevel' | 'industry' | 'food' | 'fort' | 'troops' | 'fieldForce' | 'morale'
+  >
   interface MyStats {
     cityCount: number
     totalIndustry: number
@@ -648,9 +732,18 @@ export const useGameStore = defineStore('game', () => {
   // seed 单向灌溉：仅在此处读取 chinaCities，之后世界态完全活在 cities 里。
   function initWorld(): void {
     activeFactions.value = [
-      Owner.KMT, Owner.CCP, Owner.JPN, Owner.NEA,
-      Owner.SHX, Owner.GXC, Owner.SCC, Owner.MA, Owner.XJ, Owner.TIB,
-      Owner.YUN, Owner.GUI,
+      Owner.KMT,
+      Owner.CCP,
+      Owner.JPN,
+      Owner.NEA,
+      Owner.SHX,
+      Owner.GXC,
+      Owner.SCC,
+      Owner.MA,
+      Owner.XJ,
+      Owner.TIB,
+      Owner.YUN,
+      Owner.GUI,
     ]
     const seed: Record<string, CityState> = {}
     for (const c of chinaCities) {
@@ -665,7 +758,7 @@ export const useGameStore = defineStore('game', () => {
         food: c.food ?? 0,
         fort: c.fort ?? 0,
         troops: c.troops ?? 0,
-        fieldForce: (c as unknown as Record<string, unknown>).fieldForce as number ?? 0,
+        fieldForce: ((c as unknown as Record<string, unknown>).fieldForce as number) ?? 0,
         morale: c.morale ?? DEFAULT_MORALE,
       }
     }
@@ -685,7 +778,7 @@ export const useGameStore = defineStore('game', () => {
     playerName.value = ''
     currentFaction.value = null
     eventLog.value = [] // 重置事件日志
-    battles.value = []   // 重置战斗列表（否则重复读档会叠加）
+    battles.value = [] // 重置战斗列表（否则重复读档会叠加）
     telegrams.value = [] // 重置电报
     diplomacyRecords.value = [] // 重置外交协商记录（读档时由 load 覆盖）
     relations.value = buildInitialRelations() // 外交种子（蒋阎/蒋桂停战冷却、国共内战）；读档时由 eventLog 重放覆盖
@@ -739,7 +832,15 @@ export const useGameStore = defineStore('game', () => {
       cities: Object.fromEntries(
         Object.entries(cities.value).map(([gb, c]) => [
           gb,
-          { owner: c.owner, troops: c.troops, fieldForce: c.fieldForce, morale: c.morale, industry: c.industry, food: c.food, fort: c.fort },
+          {
+            owner: c.owner,
+            troops: c.troops,
+            fieldForce: c.fieldForce,
+            morale: c.morale,
+            industry: c.industry,
+            food: c.food,
+            fort: c.fort,
+          },
         ]),
       ),
       factionTroops: factionTroopsMap,
@@ -772,8 +873,11 @@ export const useGameStore = defineStore('game', () => {
         return r.ok ? { ok: true } : { ok: false, reason: r.reason! }
       }
       case 'actionRefunded':
-        return Number.isInteger(e.amount) && e.amount > 0 && e.amount <= (actionSpent.value[e.faction] ?? 0)
-          ? { ok: true } : { ok: false, reason: '无可退还的回合行动点' }
+        return Number.isInteger(e.amount) &&
+          e.amount > 0 &&
+          e.amount <= (actionSpent.value[e.faction] ?? 0)
+          ? { ok: true }
+          : { ok: false, reason: '无可退还的回合行动点' }
       case 'moveTroops': {
         const fromGb = resolveLocationId(e.fromGb) ?? e.fromGb
         const toGb = resolveLocationId(e.toGb) ?? e.toGb
@@ -789,7 +893,8 @@ export const useGameStore = defineStore('game', () => {
         const from = cities.value[fromGb]
         if (!from) return { ok: false, reason: `出兵源城不存在: ${e.fromGb}` }
         if (e.amount <= 0) return { ok: false, reason: `出兵量必须为正: ${e.amount}` }
-        if (e.amount > from.troops) return { ok: false, reason: `出兵量 ${e.amount}k 超过驻军 ${from.troops}k` }
+        if (e.amount > from.troops)
+          return { ok: false, reason: `出兵量 ${e.amount}k 超过驻军 ${from.troops}k` }
         return { ok: true }
       }
       case 'capture':
@@ -830,7 +935,8 @@ export const useGameStore = defineStore('game', () => {
       case 'relationChange': {
         if (!e.a || !e.b) return { ok: false, reason: 'relationChange 需要 a 和 b 两个势力' }
         if (e.a === e.b) return { ok: false, reason: '不能对自身设置外交关系' }
-        if (e.a === Owner.NEUTRAL || e.b === Owner.NEUTRAL) return { ok: false, reason: '中立势力无外交关系' }
+        if (e.a === Owner.NEUTRAL || e.b === Owner.NEUTRAL)
+          return { ok: false, reason: '中立势力无外交关系' }
         return { ok: true }
       }
     }
@@ -848,16 +954,20 @@ export const useGameStore = defineStore('game', () => {
   function applyEvent(e: GameEvent): { ok: boolean; reason?: string } {
     // 入口统一反查：支持中文城市名（自由行动等路径传中文名时自动转 GB 编码）
     if ('targetGb' in e && typeof e.targetGb === 'string' && e.targetGb) {
-      const r = resolveLocationId(e.targetGb); if (r) (e as Record<string, unknown>).targetGb = r
+      const r = resolveLocationId(e.targetGb)
+      if (r) (e as Record<string, unknown>).targetGb = r
     }
     if ('fromGb' in e && typeof e.fromGb === 'string' && e.fromGb) {
-      const r = resolveLocationId(e.fromGb); if (r) (e as Record<string, unknown>).fromGb = r
+      const r = resolveLocationId(e.fromGb)
+      if (r) (e as Record<string, unknown>).fromGb = r
     }
     if ('toGb' in e && typeof e.toGb === 'string' && e.toGb) {
-      const r = resolveLocationId(e.toGb); if (r) (e as Record<string, unknown>).toGb = r
+      const r = resolveLocationId(e.toGb)
+      if (r) (e as Record<string, unknown>).toGb = r
     }
     if ('gb' in e && typeof e.gb === 'string' && e.gb) {
-      const r = resolveLocationId(e.gb); if (r) (e as Record<string, unknown>).gb = r
+      const r = resolveLocationId(e.gb)
+      if (r) (e as Record<string, unknown>).gb = r
     }
     // 入口统一钳制：超限数值收敛到安全区间（宽松兜底，确定性、replay 安全）。
     // 必须在 push 日志之前执行，保证日志与落地状态一致。
@@ -880,10 +990,16 @@ export const useGameStore = defineStore('game', () => {
     }
     if (e.type === 'actionSpent' || e.type === 'actionRefunded') {
       const sign = e.type === 'actionSpent' ? 1 : -1
-      actionSpent.value = { ...actionSpent.value, [e.faction]: (actionSpent.value[e.faction] ?? 0) + sign * e.amount }
+      actionSpent.value = {
+        ...actionSpent.value,
+        [e.faction]: (actionSpent.value[e.faction] ?? 0) + sign * e.amount,
+      }
       if (e.key) {
         const keys = actionKeys.value[e.faction] ?? []
-        actionKeys.value = { ...actionKeys.value, [e.faction]: sign > 0 ? [...keys, e.key] : keys.filter(k => k !== e.key) }
+        actionKeys.value = {
+          ...actionKeys.value,
+          [e.faction]: sign > 0 ? [...keys, e.key] : keys.filter((k) => k !== e.key),
+        }
       }
       return { ok: true }
     }
@@ -901,12 +1017,35 @@ export const useGameStore = defineStore('game', () => {
     if (e.type === 'setFactionAlive') {
       const has = activeFactions.value.includes(e.faction)
       if (e.alive && !has) activeFactions.value = [...activeFactions.value, e.faction]
-      if (!e.alive && has) activeFactions.value = activeFactions.value.filter((x) => x !== e.faction)
+      if (!e.alive && has)
+        activeFactions.value = activeFactions.value.filter((x) => x !== e.faction)
       return { ok: true }
     }
     // 战斗生命周期事件（无 targetGb，管理 battles 数组）
     if (e.type === 'battleStart') {
-      battles.value.push({ id: e.battleId, from: e.fromGb, to: e.targetGb, fromName: e.fromName, toName: e.toName, active: true, attacker: e.attacker, defender: e.defender, turns: 0, totalAttackerLoss: 0, totalDefenderLoss: 0, lastAttackerLoss: 0, lastDefenderLoss: 0 })
+      battles.value.push({
+        id: e.battleId,
+        from: e.fromGb,
+        to: e.targetGb,
+        fromName: e.fromName,
+        toName: e.toName,
+        active: true,
+        attacker: e.attacker,
+        defender: e.defender,
+        turns: 0,
+        totalAttackerLoss: 0,
+        totalDefenderLoss: 0,
+        lastAttackerLoss: 0,
+        lastDefenderLoss: 0,
+        ...(e.route
+          ? {
+              route: [...e.route],
+              marchDistanceKm: e.marchDistanceKm,
+              routeHasSea: e.routeHasSea,
+              supplyRulesVersion: e.supplyRulesVersion,
+            }
+          : {}),
+      })
       return { ok: true }
     }
     if (e.type === 'battleEnd') {
@@ -933,7 +1072,6 @@ export const useGameStore = defineStore('game', () => {
             nextTroops = from.troops + survivors
             nextFieldForce = 0
           } else {
-
             // peace（求和停战）/ 无 reason：各自收兵，攻方野战兵回城
             nextTroops = from.troops + from.fieldForce
             nextFieldForce = 0
@@ -1062,29 +1200,47 @@ export const useGameStore = defineStore('game', () => {
       const from = cities.value[e.fromGb]!
       cities.value = {
         ...cities.value,
-        [e.fromGb]: { ...from, troops: from.troops - e.amount, fieldForce: from.fieldForce + e.amount },
+        [e.fromGb]: {
+          ...from,
+          troops: from.troops - e.amount,
+          fieldForce: from.fieldForce + e.amount,
+        },
       }
       return { ok: true }
     }
     // 以下均为城市态事件；preCheck 已保证 targetGb 存在（统一不可变更新 cities.value）
     const t = cities.value[e.targetGb]!
     switch (e.type) {
-      case 'capture': // 占领：易主 + 设定新驻军（若未指定则用攻方剩余 fieldForce）+ 士气奖励
+      case 'capture': {
+        // Optional consolidation only for new, explicitly marked events.
+        const captured: CityState = {
+          ...t,
+          owner: e.actor,
+          ...(e.resultTroops != null ? { troops: Math.max(0, e.resultTroops) } : {}),
+          morale: clamp(t.morale + CAPTURE_MORALE_BONUS, MORALE_MIN, MORALE_MAX),
+        }
+        if (t.owner !== e.actor) {
+          delete captured.occupationUntilTurn
+          if (
+            Number.isInteger(e.occupationTurns) &&
+            e.occupationTurns! > 0 &&
+            e.occupationTurns! <= 10
+          ) {
+            captured.occupationUntilTurn = turnCount.value + e.occupationTurns!
+          }
+        }
         cities.value = {
           ...cities.value,
-          [e.targetGb]: {
-            ...t,
-            owner: e.actor,
-            ...(e.resultTroops != null ? { troops: Math.max(0, e.resultTroops) } : {}),
-            morale: clamp(t.morale + CAPTURE_MORALE_BONUS, MORALE_MIN, MORALE_MAX),
-          },
+          [e.targetGb]: captured,
         }
         // 占领后自动检查势力存亡
         auditFactionSurvival()
         // 战纪：玩家累计占城计数（重放期照常累加 = 读档自动重建）
         if (e.actor === currentFaction.value) playerCaptures.value++
         break
-      case 'attack': { // 战斗损耗：攻方扣 fieldForce（从来源城），守方扣 troops（目标城）
+      }
+      case 'attack': {
+        // 战斗损耗：攻方扣 fieldForce（从来源城），守方扣 troops（目标城）
         const next: Record<string, CityState> = {
           ...cities.value,
           [e.targetGb]: { ...t, troops: Math.max(0, t.troops - e.defenderLoss) },
@@ -1093,7 +1249,9 @@ export const useGameStore = defineStore('game', () => {
           const from = cities.value[e.fromGb]!
           next[e.fromGb] = { ...from, fieldForce: Math.max(0, from.fieldForce - e.attackerLoss) }
           // 累计战斗统计（battles 为深响应式 ref，原地更新即可）
-          const bi = battles.value.find((b) => b.from === e.fromGb && b.to === e.targetGb && b.active)
+          const bi = battles.value.find(
+            (b) => b.from === e.fromGb && b.to === e.targetGb && b.active,
+          )
           if (bi) {
             bi.totalAttackerLoss += e.attackerLoss
             bi.totalDefenderLoss += e.defenderLoss
@@ -1113,7 +1271,8 @@ export const useGameStore = defineStore('game', () => {
           [e.targetGb]: { ...t, morale: clamp(t.morale + e.delta, MORALE_MIN, MORALE_MAX) },
         }
         break
-      case 'cityStatChange': { // 通用城市数值增减（工业/粮食/工事/规模）
+      case 'cityStatChange': {
+        // 通用城市数值增减（工业/粮食/工事/规模）
         const cap = CITY_STAT_CAPS[e.field]
         cities.value = {
           ...cities.value,
@@ -1270,7 +1429,8 @@ export const useGameStore = defineStore('game', () => {
     for (const t of telegrams.value) {
       if (!t.read) {
         // world 公屏电报归到 'world' 频道；direct 按会话对方分组（玩家发出→to，对方发来→from）
-        const key = t.channel === 'world' ? 'world' : t.from === 'PLAYER' ? (t.to || 'PLAYER') : t.from
+        const key =
+          t.channel === 'world' ? 'world' : t.from === 'PLAYER' ? t.to || 'PLAYER' : t.from
         m[key] = (m[key] ?? 0) + 1
       }
     }
@@ -1306,7 +1466,7 @@ export const useGameStore = defineStore('game', () => {
       if (f === Owner.NEUTRAL) continue
       if (gameOver.value?.ended) break // 终局后跳出
 
-      const hasCity = Object.values(cities.value).some(c => c.owner === f)
+      const hasCity = Object.values(cities.value).some((c) => c.owner === f)
       if (hasCity) continue
 
       // 势力覆灭：从存活列表移除
@@ -1337,7 +1497,7 @@ export const useGameStore = defineStore('game', () => {
     // 检查是否所有敌人都灭亡（玩家胜利）
     if (playerFaction && !gameOver.value?.ended) {
       const enemiesAlive = activeFactions.value.filter(
-        x => x !== playerFaction && x !== Owner.NEUTRAL,
+        (x) => x !== playerFaction && x !== Owner.NEUTRAL,
       )
       if (enemiesAlive.length === 0) {
         gameOver.value = {

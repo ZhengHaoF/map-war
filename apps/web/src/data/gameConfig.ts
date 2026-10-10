@@ -102,7 +102,6 @@ export const INIT_GRANARY_UPKEEP_MULTIPLIER = 8
 /** 初始粮仓下限（万石） */
 export const INIT_GRANARY_FLOOR = 50
 
-
 // ═══════════════════════════════════════════════════════════
 //  二、战斗系统
 // ═══════════════════════════════════════════════════════════
@@ -179,8 +178,6 @@ export const BATTLE_DETERRENT_RADIUS_KM = 150
 /** 攻方溃败残部逃回率（比例 0-1）。调大 → 溃兵保留更多 */
 export const BATTLE_ROUT_SURVIVOR_RATE = 0.4
 
-
-
 // ═══════════════════════════════════════════════════════════
 //  三、AI 上下文窗口
 // ═══════════════════════════════════════════════════════════
@@ -200,7 +197,6 @@ export const SETTLE_CONTEXT_MAX_EVENTS = 50
 /** P4 世界公屏电报条数 */
 export const SETTLE_WORLD_TELEGRAM_WINDOW = 8
 
-
 // ═══════════════════════════════════════════════════════════
 //  四、历史叙事截断
 // ═══════════════════════════════════════════════════════════
@@ -214,7 +210,6 @@ export const PLAYER_INPUT_SNIPPET = 40
 /** AI 回复截断（字符数） */
 export const AI_REPLY_SNIPPET = 60
 
-
 // ═══════════════════════════════════════════════════════════
 //  五、世界规则
 // ═══════════════════════════════════════════════════════════
@@ -225,7 +220,6 @@ export const MORALE_MAX = 100
 
 /** 城市初始 / 默认士气（种子数据未提供时回退） */
 export const DEFAULT_MORALE = 70
-
 
 // ═══════════════════════════════════════════════════════════
 //  六、城市属性上限 & 战斗杂项
@@ -251,7 +245,6 @@ export const EVENT_HISTORY_MAX_EVENTS = 30
 export const EVENT_HISTORY_MAX_TURNS = 2
 export const EVENT_HISTORY_MAX_CHARS = 1200
 
-
 // ═══════════════════════════════════════════════════════════
 //  七、基础设施
 // ═══════════════════════════════════════════════════════════
@@ -264,7 +257,6 @@ export const LLM_MAX_RETRIES = 3
 
 /** 每回合 AI 可发送给玩家的最大电报数 */
 export const AI_TELEGRAMS_PER_TURN = 2
-
 
 // ═══════════════════════════════════════════════════════════
 //  八、事件数值钳制（信任边界严格钳 + reducer 宽松兜底）
@@ -322,3 +314,13 @@ export const RALLY_SILVER_PER_POINT = 0.2
 export const ACTION_POINTS_PER_TURN = 6
 export const FREE_ACTION_EFFECT_LIMIT = 3
 export const COVERT_ACTION_SILVER_COST = 10
+/** Explicit game sea lanes cost twice the corresponding sailing distance. */
+export const SEA_ROUTE_COST_MULTIPLIER = 2
+/** Keep strategic target context bounded, independently of the number of owned cities. */
+export const CAMPAIGN_AI_TARGET_LIMIT = 16
+/** Lightweight logistics: connected to a ready regional hub or a level-3+ city. */
+export const SUPPLY_BASE_MIN_LEVEL = 3
+export const UNSUPPLIED_BATTLE_FACTOR = 0.8
+/** New captures yield only half their taxes/food during the next two economic ticks. */
+export const OCCUPATION_CONSOLIDATION_TURNS = 2
+export const OCCUPATION_YIELD_FACTOR = 0.5

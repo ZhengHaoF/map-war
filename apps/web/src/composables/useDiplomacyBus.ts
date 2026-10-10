@@ -16,7 +16,11 @@
  */
 
 import { ref } from 'vue'
-import { invokeDiplomacyRoute, invokeDiplomacyReply, invokeDiplomacySettle } from '@/utils/aiDiplomacy'
+import {
+  invokeDiplomacyRoute,
+  invokeDiplomacyReply,
+  invokeDiplomacySettle,
+} from '@/utils/aiDiplomacy'
 import { useGameStore } from '@/stores/game'
 import { useToast } from '@/composables/useToast'
 import { OWNER_LABELS } from '@/data/owners'
@@ -30,8 +34,14 @@ import type {
   Condition,
   AidOffer,
 } from '@/utils/diplomacy'
-import { intentToRelationStatus, isInTruce, INTENT_LABELS, isCountryTarget } from '@/utils/diplomacy'
+import {
+  intentToRelationStatus,
+  isInTruce,
+  INTENT_LABELS,
+  isCountryTarget,
+} from '@/utils/diplomacy'
 import { resolveLocationId } from '@/utils/locationResolver'
+import { OCCUPATION_CONSOLIDATION_TURNS } from '@/data/gameConfig'
 
 // ═══════════════════════════════════════════════════════════
 //  模块级单例
@@ -72,15 +82,40 @@ function executeConditions(
     if (c.type === 'verbal') continue
     if (c.type === 'cedeCity') {
       const gb = resolveLocationId(c.city!)!
-      store.applyEvent({ type: 'capture', targetGb: gb, actor: targetFaction })
+      store.applyEvent({
+        type: 'capture',
+        targetGb: gb,
+        actor: targetFaction,
+        occupationTurns: OCCUPATION_CONSOLIDATION_TURNS,
+      })
     }
     if (c.type === 'transferSilver') {
-      store.applyEvent({ type: 'treasuryChange', faction: playerFaction, delta: -c.amount!, reason: `外交条约：给付${OWNER_LABELS[targetFaction] ?? targetFaction}银两` })
-      store.applyEvent({ type: 'treasuryChange', faction: targetFaction, delta: c.amount!, reason: `外交条约：接收${OWNER_LABELS[playerFaction] ?? playerFaction}银两` })
+      store.applyEvent({
+        type: 'treasuryChange',
+        faction: playerFaction,
+        delta: -c.amount!,
+        reason: `外交条约：给付${OWNER_LABELS[targetFaction] ?? targetFaction}银两`,
+      })
+      store.applyEvent({
+        type: 'treasuryChange',
+        faction: targetFaction,
+        delta: c.amount!,
+        reason: `外交条约：接收${OWNER_LABELS[playerFaction] ?? playerFaction}银两`,
+      })
     }
     if (c.type === 'transferFood') {
-      store.applyEvent({ type: 'granaryChange', faction: playerFaction, delta: -c.amount!, reason: `外交条约：给付${OWNER_LABELS[targetFaction] ?? targetFaction}粮草` })
-      store.applyEvent({ type: 'granaryChange', faction: targetFaction, delta: c.amount!, reason: `外交条约：接收${OWNER_LABELS[playerFaction] ?? playerFaction}粮草` })
+      store.applyEvent({
+        type: 'granaryChange',
+        faction: playerFaction,
+        delta: -c.amount!,
+        reason: `外交条约：给付${OWNER_LABELS[targetFaction] ?? targetFaction}粮草`,
+      })
+      store.applyEvent({
+        type: 'granaryChange',
+        faction: targetFaction,
+        delta: c.amount!,
+        reason: `外交条约：接收${OWNER_LABELS[playerFaction] ?? playerFaction}粮草`,
+      })
     }
   }
 
@@ -91,7 +126,11 @@ function executeConditions(
  * 国家分支：执行玩家偿付条件（银/粮/口头声明）。
  * 国家不是城市持有者——cedeCity 一律拒绝；银/粮只扣玩家侧（国家侧不记账，进条约叙事）。
  */
-function executePlayerCosts(conditions: Condition[], playerFaction: Owner, countryIso: string): boolean {
+function executePlayerCosts(
+  conditions: Condition[],
+  playerFaction: Owner,
+  countryIso: string,
+): boolean {
   const store = useGameStore()
   const label = countryName(countryIso)
 
@@ -108,10 +147,20 @@ function executePlayerCosts(conditions: Condition[], playerFaction: Owner, count
     if (c.type === 'verbal') continue
     if (c.type === 'cedeCity') return false
     if (c.type === 'transferSilver') {
-      store.applyEvent({ type: 'treasuryChange', faction: playerFaction, delta: -c.amount!, reason: `偿付${label}协定银两` })
+      store.applyEvent({
+        type: 'treasuryChange',
+        faction: playerFaction,
+        delta: -c.amount!,
+        reason: `偿付${label}协定银两`,
+      })
     }
     if (c.type === 'transferFood') {
-      store.applyEvent({ type: 'granaryChange', faction: playerFaction, delta: -c.amount!, reason: `偿付${label}协定粮秣` })
+      store.applyEvent({
+        type: 'granaryChange',
+        faction: playerFaction,
+        delta: -c.amount!,
+        reason: `偿付${label}协定粮秣`,
+      })
     }
   }
 
@@ -141,9 +190,19 @@ function executeAid(offers: AidOffer[], playerFaction: Owner, countryIso: string
   // 阶段二：执行
   for (const o of offers) {
     if (o.type === 'silver') {
-      store.applyEvent({ type: 'treasuryChange', faction: playerFaction, delta: o.amount, reason: `${label}外援助饷` })
+      store.applyEvent({
+        type: 'treasuryChange',
+        faction: playerFaction,
+        delta: o.amount,
+        reason: `${label}外援助饷`,
+      })
     } else if (o.type === 'food') {
-      store.applyEvent({ type: 'granaryChange', faction: playerFaction, delta: o.amount, reason: `${label}外援济粮` })
+      store.applyEvent({
+        type: 'granaryChange',
+        faction: playerFaction,
+        delta: o.amount,
+        reason: `${label}外援济粮`,
+      })
     } else if (o.type === 'military') {
       const gb = resolveLocationId(o.targetCity!)!
       store.applyEvent({ type: 'produce', targetGb: gb, amount: o.amount })
@@ -165,19 +224,30 @@ function formatTreatySummary(
     for (const o of aidOffers) {
       const amount = `${o.amount}${o.type === 'military' ? '千' : '万'}`
       parts.push(
-        o.type === 'military' ? `援军${amount}于${o.targetCity ?? '?'}` :
-        o.type === 'silver' ? `助饷${amount}银` : `济粮${amount}石`,
+        o.type === 'military'
+          ? `援军${amount}于${o.targetCity ?? '?'}`
+          : o.type === 'silver'
+            ? `助饷${amount}银`
+            : `济粮${amount}石`,
       )
     }
   }
-  const promises = conditions?.filter((c) => c.type === 'verbal').map((c) => c.text).filter(Boolean) ?? []
+  const promises =
+    conditions
+      ?.filter((c) => c.type === 'verbal')
+      .map((c) => c.text)
+      .filter(Boolean) ?? []
   const costParts: string[] = []
   for (const c of conditions ?? []) {
     if (c.type === 'transferSilver') costParts.push(`付银${c.amount}万`)
     if (c.type === 'transferFood') costParts.push(`付粮${c.amount}万石`)
   }
   const head = `《${label}协定》成`
-  const body = [parts.length ? parts.join('、') : '', costParts.length ? costParts.join('、') : '', ...promises]
+  const body = [
+    parts.length ? parts.join('、') : '',
+    costParts.length ? costParts.join('、') : '',
+    ...promises,
+  ]
     .filter(Boolean)
     .join('；')
   return `${head}：${body}`
@@ -225,20 +295,39 @@ export function useDiplomacyBus() {
   ): Promise<{ narrative: string; ok: boolean; reason?: string }> {
     const playerFaction = store.currentFaction
     if (!playerFaction) return { narrative: '', ok: false, reason: '请先选择势力' }
-    if (!targetFaction && !targetCountry) return { narrative: '', ok: false, reason: '请选择遣使目标' }
-    if (targetFaction === playerFaction) return { narrative: '', ok: false, reason: '不能对自身发起外交' }
+    if (!targetFaction && !targetCountry)
+      return { narrative: '', ok: false, reason: '请选择遣使目标' }
+    if (targetFaction === playerFaction)
+      return { narrative: '', ok: false, reason: '不能对自身发起外交' }
 
     currentSession.value = null // 覆盖旧 session（不允许同时两个）
 
     // 第一段：路由
-    const route = await invokeDiplomacyRoute(playerFaction, targetFaction, playerMessage, targetCountry)
+    const route = await invokeDiplomacyRoute(
+      playerFaction,
+      targetFaction,
+      playerMessage,
+      targetCountry,
+    )
     if (!route.ok) {
-      toast.push({ icon: 'flag', tone: 'cinnabar', title: '遣使被拒', text: route.reason ?? '外交路由校验未通过' })
+      toast.push({
+        icon: 'flag',
+        tone: 'cinnabar',
+        title: '遣使被拒',
+        text: route.reason ?? '外交路由校验未通过',
+      })
       return { narrative: '', ok: false, reason: route.reason }
     }
 
     // 第二段：初回
-    const reply = await invokeDiplomacyReply(playerFaction, targetFaction, route.intent, [], playerMessage, targetCountry)
+    const reply = await invokeDiplomacyReply(
+      playerFaction,
+      targetFaction,
+      route.intent,
+      [],
+      playerMessage,
+      targetCountry,
+    )
     const round: DiplomacyRound = {
       round: 1,
       playerMessage,
@@ -267,11 +356,21 @@ export function useDiplomacyBus() {
       ? countryName(targetCountry)
       : (OWNER_LABELS[targetFaction!] ?? targetFaction!)
     if (reply.stance === 'accept') {
-      toast.push({ icon: 'affiliate', tone: 'green', title: '对方同意', text: `${targetLabel}爽快应允` })
+      toast.push({
+        icon: 'affiliate',
+        tone: 'green',
+        title: '对方同意',
+        text: `${targetLabel}爽快应允`,
+      })
     } else if (reply.stance === 'reject') {
       toast.push({ icon: 'flag', tone: 'neutral', title: '遭婉拒', text: `${targetLabel}婉言谢绝` })
     } else {
-      toast.push({ icon: 'affiliate', tone: 'amber', title: '反提议', text: `${targetLabel}提出条件` })
+      toast.push({
+        icon: 'affiliate',
+        tone: 'amber',
+        title: '反提议',
+        text: `${targetLabel}提出条件`,
+      })
     }
 
     return { narrative: route.narrative, ok: true }
@@ -357,7 +456,8 @@ export function useDiplomacyBus() {
     playerMessage: string,
   ): Promise<{ round: DiplomacyRound; narrative?: string }> {
     const session = currentSession.value
-    if (!session) return { round: { round: 0, playerMessage, stance: 'reject', reply: '（无进行中的协商）' } }
+    if (!session)
+      return { round: { round: 0, playerMessage, stance: 'reject', reply: '（无进行中的协商）' } }
 
     const reply = await invokeDiplomacyReply(
       session.playerFaction,
@@ -386,9 +486,19 @@ export function useDiplomacyBus() {
       ? countryName(session.targetCountry)
       : (OWNER_LABELS[session.targetFaction!] ?? session.targetFaction!)
     if (reply.stance === 'accept') {
-      toast.push({ icon: 'affiliate', tone: 'green', title: '对方同意', text: `${targetLabel}应允了你的提议` })
+      toast.push({
+        icon: 'affiliate',
+        tone: 'green',
+        title: '对方同意',
+        text: `${targetLabel}应允了你的提议`,
+      })
     } else if (reply.stance === 'reject') {
-      toast.push({ icon: 'flag', tone: 'cinnabar', title: '谈判破裂', text: `${targetLabel}最终拒绝` })
+      toast.push({
+        icon: 'flag',
+        tone: 'cinnabar',
+        title: '谈判破裂',
+        text: `${targetLabel}最终拒绝`,
+      })
     }
 
     return { round }
@@ -413,7 +523,8 @@ export function useDiplomacyBus() {
     const aiStance: DiplomacyStance = lastRound?.stance ?? 'reject'
 
     // 有效立场：玩家同意 + AI 未拒绝 → accept；AI 已拒绝 → reject
-    const finalStance: DiplomacyStance = (playerAccepts && aiStance !== 'reject') ? 'accept' : aiStance
+    const finalStance: DiplomacyStance =
+      playerAccepts && aiStance !== 'reject' ? 'accept' : aiStance
 
     // 第三段：世界AI 收口叙事
     const settle = await invokeDiplomacySettle(
@@ -431,9 +542,15 @@ export function useDiplomacyBus() {
         // ── 国家分支：玩家偿付 ⇄ 国家援助，一笔两清 ──
         const conditions = lastRound?.conditions
         const offers = lastRound?.aidOffer
-        const costsOk = !conditions?.length || conditions.every(
-          (c) => c.type === 'verbal' || ((c.type === 'transferSilver' || c.type === 'transferFood') && typeof c.amount === 'number' && c.amount > 0),
-        )
+        const costsOk =
+          !conditions?.length ||
+          conditions.every(
+            (c) =>
+              c.type === 'verbal' ||
+              ((c.type === 'transferSilver' || c.type === 'transferFood') &&
+                typeof c.amount === 'number' &&
+                c.amount > 0),
+          )
         let aidOk = !offers?.length
         if (offers?.length) {
           aidOk = offers.every((o) => {
@@ -445,7 +562,12 @@ export function useDiplomacyBus() {
           })
         }
         if (!costsOk || !aidOk) {
-          toast.push({ icon: 'flag', tone: 'cinnabar' as const, title: '条约无法履行', text: '偿付或援助条目无效，协定作废' })
+          toast.push({
+            icon: 'flag',
+            tone: 'cinnabar' as const,
+            title: '条约无法履行',
+            text: '偿付或援助条目无效，协定作废',
+          })
           session.status = 'settled'
           session.finalStance = finalStance
           session.settleNarrative = settle.narrative
@@ -479,7 +601,12 @@ export function useDiplomacyBus() {
         persist()
         store.save('auto', { label: `外援协定 ${store.currentDate}` })
         currentSession.value = null
-        toast.push({ icon: 'affiliate', tone: 'green' as const, title: '外援协定达成', text: `${countryName(session.targetCountry!)} 的援助已到账` })
+        toast.push({
+          icon: 'affiliate',
+          tone: 'green' as const,
+          title: '外援协定达成',
+          text: `${countryName(session.targetCountry!)} 的援助已到账`,
+        })
         return { narrative: settle.narrative }
       }
 
@@ -489,7 +616,12 @@ export function useDiplomacyBus() {
         const condOk = executeConditions(conditions, session.playerFaction, session.targetFaction!)
         if (!condOk) {
           // 条件执行失败，整笔交易作废（不改关系）
-          toast.push({ icon: 'flag', tone: 'cinnabar' as const, title: '条约无法履行', text: '谈判条件未能执行，协定作废' })
+          toast.push({
+            icon: 'flag',
+            tone: 'cinnabar' as const,
+            title: '条约无法履行',
+            text: '谈判条件未能执行，协定作废',
+          })
           session.status = 'settled'
           session.finalStance = finalStance
           session.settleNarrative = settle.narrative
@@ -505,8 +637,21 @@ export function useDiplomacyBus() {
         const lb = OWNER_LABELS[session.targetFaction] ?? session.targetFaction
 
         // 停战冷却期校验：宣战时若在冷却期则拒绝，只叙事不改关系
-        if (rs === 'war' && isInTruce(store.relations, session.playerFaction, session.targetFaction, store.currentDate)) {
-          toast.push({ icon: 'flag', tone: 'cinnabar', title: '不可宣战', text: `与${lb}尚在停战冷却期，暂不可再战` })
+        if (
+          rs === 'war' &&
+          isInTruce(
+            store.relations,
+            session.playerFaction,
+            session.targetFaction,
+            store.currentDate,
+          )
+        ) {
+          toast.push({
+            icon: 'flag',
+            tone: 'cinnabar',
+            title: '不可宣战',
+            text: `与${lb}尚在停战冷却期，暂不可再战`,
+          })
           // 不改关系，但仍归档 + 叙事
           session.status = 'settled'
           session.finalStance = finalStance
@@ -526,14 +671,38 @@ export function useDiplomacyBus() {
         })
         if (!r.ok) {
           // eslint-disable-next-line no-console
-          console.warn(`[forceSettle] relationChange apply 失败: ${r.reason ?? '未知原因'}`, { a: session.playerFaction, b: session.targetFaction, status: rs })
-          toast.push({ icon: 'flag', tone: 'error' as const, title: '关系改写失败', text: r.reason ?? '请重试或联系开发者' })
+          console.warn(`[forceSettle] relationChange apply 失败: ${r.reason ?? '未知原因'}`, {
+            a: session.playerFaction,
+            b: session.targetFaction,
+            status: rs,
+          })
+          toast.push({
+            icon: 'flag',
+            tone: 'error' as const,
+            title: '关系改写失败',
+            text: r.reason ?? '请重试或联系开发者',
+          })
         } else {
           // toast
           const cfg = {
-            war: { icon: 'sword', tone: 'cinnabar' as const, title: '宣战', text: `${la} 向 ${lb} 宣战` },
-            alliance: { icon: 'affiliate', tone: 'green' as const, title: '结盟', text: `${la} 与 ${lb} 缔结同盟` },
-            peace: { icon: 'player-stop', tone: 'neutral' as const, title: '停战', text: `${la} 与 ${lb} 罢兵言和` },
+            war: {
+              icon: 'sword',
+              tone: 'cinnabar' as const,
+              title: '宣战',
+              text: `${la} 向 ${lb} 宣战`,
+            },
+            alliance: {
+              icon: 'affiliate',
+              tone: 'green' as const,
+              title: '结盟',
+              text: `${la} 与 ${lb} 缔结同盟`,
+            },
+            peace: {
+              icon: 'player-stop',
+              tone: 'neutral' as const,
+              title: '停战',
+              text: `${la} 与 ${lb} 罢兵言和`,
+            },
           }[rs]
           toast.push(cfg)
         }
@@ -572,12 +741,19 @@ export function useDiplomacyBus() {
 
     const targetLabel = session.targetCountry
       ? countryName(session.targetCountry)
-      : (session.targetFaction ? (OWNER_LABELS[session.targetFaction] ?? session.targetFaction) : '?')
+      : session.targetFaction
+        ? (OWNER_LABELS[session.targetFaction] ?? session.targetFaction)
+        : '?'
     session.status = 'abandoned'
     persist()
     store.save('auto', { label: `搁置外交 ${store.currentDate}` })
     currentSession.value = null
-    toast.push({ icon: 'flag', tone: 'neutral', title: '谈判搁置', text: `与${targetLabel}的协商被搁置` })
+    toast.push({
+      icon: 'flag',
+      tone: 'neutral',
+      title: '谈判搁置',
+      text: `与${targetLabel}的协商被搁置`,
+    })
   }
 
   // ═══════════════════════════════════════════════════════════

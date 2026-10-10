@@ -38,7 +38,9 @@ import { AI_TELEGRAMS_PER_TURN } from '@/data/gameConfig'
 
 // ─── 模块级单例 ───
 const loading = ref(false)
-const phase = ref<'idle' | 'classifying' | 'ai' | 'advancing' | 'settling' | 'done' | 'error'>('idle')
+const phase = ref<'idle' | 'classifying' | 'ai' | 'advancing' | 'settling' | 'done' | 'error'>(
+  'idle',
+)
 const progress = ref('')
 const lastError = ref('')
 const { push: pushToast } = useToast()
@@ -56,10 +58,7 @@ async function invokeFactionAI(
 }
 
 /** 调用世界 AI 批量生成 minor 政权事件 */
-async function invokeWorldAIBatch(
-  _factions: Owner[],
-  context: string,
-): Promise<GameOrder[]> {
+async function invokeWorldAIBatch(_factions: Owner[], context: string): Promise<GameOrder[]> {
   const { orders: rawOrders, errors: rawErrors, parseSucceeded } = await runWorldBatch(context)
 
   // 仅解析失败才弹 toast；合法的空 orders（次要势力按兵不动）静默通过
@@ -123,9 +122,7 @@ async function invokeWorldAIBatch(
 }
 
 /** 调用世界 AI 做 P4 总结（叙事 + 推进日期 + 世界公屏电报） */
-async function invokeWorldAISettle(
-  currentDate: string,
-): Promise<WorldSettleResult> {
+async function invokeWorldAISettle(currentDate: string): Promise<WorldSettleResult> {
   return runWorldSettle(currentDate)
 }
 
@@ -141,7 +138,7 @@ function runEconomicTick(): void {
   const store = useGameStore()
   const entries: EconomyTickEntry[] = []
   for (const f of store.activeFactions) {
-    const eco = computeFactionEconomy(store.cities, f)
+    const eco = computeFactionEconomy(store.cities, f, store.turnCount)
     const arrear = eco.silverNet < 0 && store.getTreasury(f) + eco.silverNet < 0
     const famine = eco.foodNet < 0 && store.getGranary(f) + eco.foodNet < 0
     entries.push({
@@ -163,10 +160,20 @@ function runEconomicTick(): void {
   if (pf) {
     const me = entries.find((e) => e.faction === pf)
     if (me?.arrear) {
-      pushToast({ icon: 'alert-triangle', tone: 'error', title: '欠饷', text: `银库空虚，全军士气低落（余 ${store.getTreasury(pf)} 万银）` })
+      pushToast({
+        icon: 'alert-triangle',
+        tone: 'error',
+        title: '欠饷',
+        text: `银库空虚，全军士气低落（余 ${store.getTreasury(pf)} 万银）`,
+      })
     }
     if (me?.famine) {
-      pushToast({ icon: 'alert-triangle', tone: 'amber', title: '缺粮', text: `粮草不继，驻军减员（余 ${store.getGranary(pf)} 万石）` })
+      pushToast({
+        icon: 'alert-triangle',
+        tone: 'amber',
+        title: '缺粮',
+        text: `粮草不继，驻军减员（余 ${store.getGranary(pf)} 万石）`,
+      })
     }
   }
 }
@@ -177,7 +184,12 @@ async function endPlayerTurn(): Promise<void> {
   const scheduler = useGameScheduler()
 
   if (!store.currentFaction) {
-    pushToast({ icon: 'alert-triangle', tone: 'error', title: '未选势力', text: '请先选择势力再结束回合' })
+    pushToast({
+      icon: 'alert-triangle',
+      tone: 'error',
+      title: '未选势力',
+      text: '请先选择势力再结束回合',
+    })
     return
   }
 
@@ -196,7 +208,12 @@ async function endPlayerTurn(): Promise<void> {
   } catch (err) {
     lastError.value = (err as Error).message || '未知错误'
     phase.value = 'error'
-    pushToast({ icon: 'alert-triangle', tone: 'cinnabar', title: '回合推演失败', text: lastError.value })
+    pushToast({
+      icon: 'alert-triangle',
+      tone: 'cinnabar',
+      title: '回合推演失败',
+      text: lastError.value,
+    })
   } finally {
     loading.value = false
     if (phase.value !== 'error') phase.value = 'done'
@@ -237,7 +254,14 @@ async function runWorldTurn(): Promise<void> {
 
   // 并行：related 各自独立 + unrelated 批量一次
   // invokeFactionAI 返回 { orders, telegram }；invokeWorldAIBatch 返回 GameOrder[]
-  const factionPromises: { faction: Owner; promise: Promise<{ orders: GameOrder[]; telegram?: string; diplomaticProposal?: DiplomaticProposal }> }[] = []
+  const factionPromises: {
+    faction: Owner
+    promise: Promise<{
+      orders: GameOrder[]
+      telegram?: string
+      diplomaticProposal?: DiplomaticProposal
+    }>
+  }[] = []
   const batchPromises: Promise<GameOrder[]>[] = []
 
   for (const f of related) {

@@ -1,446 +1,550 @@
 <template>
   <div class="map-shell">
     <div ref="mapContainer" class="map-container" @click.self="closeContextMenu">
-    <div class="layer-switcher map-ui">
-      <GameButton
-        v-for="(layer, index) in LAYERS"
-        :key="layer.file"
-        :active="currentLayerIndex === index"
-        @click="switchLayer(index)"
+      <div class="layer-switcher map-ui">
+        <GameButton
+          v-for="(layer, index) in LAYERS"
+          :key="layer.file"
+          :active="currentLayerIndex === index"
+          @click="switchLayer(index)"
+        >
+          <component :is="ICONS['stack-2']" :size="16" />
+          {{ layer.label }}
+        </GameButton>
+        <div class="switcher-divider"></div>
+        <GameButton :active="ownerColorEnabled" @click="toggleOwnerColor">
+          <component :is="ICONS['flag']" :size="16" />
+          政权着色
+        </GameButton>
+        <GameButton :active="labelsVisible" @click="toggleLabels">
+          <component :is="ICONS['tag']" :size="16" />
+          显示地名
+        </GameButton>
+        <GameButton
+          tooltip="领土文字水印"
+          :active="sealWatermarkEnabled"
+          @click="toggleSealWatermark"
+        >
+          <component :is="ICONS['texture']" :size="16" />
+          水印
+        </GameButton>
+        <GameButton :active="baseMapVisible" @click="toggleBaseMap">
+          <component :is="ICONS['world']" :size="16" />
+          世界背景
+        </GameButton>
+        <GameButton
+          tooltip="领土 · 城市 · 战斗一览"
+          :active="overviewVisible"
+          @click="overviewVisible = !overviewVisible"
+        >
+          <component :is="ICONS['map']" :size="16" />
+          总览
+        </GameButton>
+        <GameButton
+          tooltip="调出指挥面板"
+          :active="commandVisible"
+          @click="commandVisible = !commandVisible"
+        >
+          <component :is="ICONS['brain']" :size="16" />
+          指挥
+        </GameButton>
+        <GameButton
+          tooltip="查看行军路线与可进攻目标"
+          :active="campaignVisible"
+          @click="campaignVisible = !campaignVisible"
+        >
+          <component :is="ICONS['crosshair']" :size="16" />
+          前线
+        </GameButton>
+        <GameButton
+          tooltip="咨询战略顾问"
+          :active="advisorVisible"
+          @click="advisorVisible = !advisorVisible"
+        >
+          <component :is="ICONS['user']" :size="16" />
+          顾问
+        </GameButton>
+        <GameButton
+          tooltip="外交（电报·遣使）"
+          :active="diplomacyVisible"
+          @click="diplomacyVisible = !diplomacyVisible"
+        >
+          <component :is="ICONS['affiliate']" :size="16" />
+          外交
+          <span v-if="unreadCount > 0 || hasDiplomatPending" class="tg-nav-badge">{{
+            unreadCount > 9 ? '9+' : unreadCount || '!'
+          }}</span>
+        </GameButton>
+        <GameButton
+          tooltip="查看世界事件日志"
+          :active="eventLogPanelVisible"
+          @click="eventLogPanelVisible = !eventLogPanelVisible"
+        >
+          <component :is="ICONS['clipboard-text']" :size="16" />
+          事件日志
+        </GameButton>
+        <GameButton
+          tooltip="战纪 · 扩张轨迹 / 势力沉浮 / 功业"
+          :active="chronicleVisible"
+          @click="chronicleVisible = !chronicleVisible"
+        >
+          <component :is="ICONS['timeline']" :size="16" />
+          战纪
+        </GameButton>
+        <GameButton
+          tooltip="查看各政权总览"
+          :active="factionDebugVisible"
+          @click="factionDebugVisible = !factionDebugVisible"
+        >
+          <component :is="ICONS['building-castle']" :size="16" />
+          政权总览
+        </GameButton>
+        <GameButton tooltip="保存当前进度" @click="saveModalVisible = true">
+          <component :is="ICONS['device-floppy']" :size="16" />
+          保存
+        </GameButton>
+        <GameButton tooltip="载入已有存档" @click="loadModalVisible = true">
+          <component :is="ICONS['folder-open']" :size="16" />
+          读取
+        </GameButton>
+        <div class="switcher-divider"></div>
+        <GameButton @click="testPanelVisible = !testPanelVisible">
+          <component :is="ICONS['bug']" :size="16" />
+          调试
+        </GameButton>
+        <GameButton @click="fullRerender">
+          <component :is="ICONS['refresh']" :size="16" />
+          刷新
+        </GameButton>
+      </div>
+      <GameDateDisplay class="map-ui" />
+      <GameContextMenu
+        class="map-ui"
+        :visible="contextMenuVisible"
+        :position="contextMenuPos"
+        :items="contextMenuItems"
+        @select="onMenuAction"
+      />
+      <GameModal
+        class="map-ui"
+        :visible="infoModalVisible"
+        :title="infoTitle"
+        width="340px"
+        :z-index="5000"
+        variant="parchment"
+        @close="closeInfoModal"
       >
-        <component :is="ICONS['stack-2']" :size="16" />
-        {{ layer.label }}
-      </GameButton>
-      <div class="switcher-divider"></div>
-      <GameButton :active="ownerColorEnabled" @click="toggleOwnerColor">
-        <component :is="ICONS['flag']" :size="16" />
-        政权着色
-      </GameButton>
-      <GameButton :active="labelsVisible" @click="toggleLabels">
-        <component :is="ICONS['tag']" :size="16" />
-        显示地名
-      </GameButton>
-      <GameButton tooltip="领土文字水印" :active="sealWatermarkEnabled" @click="toggleSealWatermark">
-        <component :is="ICONS['texture']" :size="16" />
-        水印
-      </GameButton>
-      <GameButton :active="baseMapVisible" @click="toggleBaseMap">
-        <component :is="ICONS['world']" :size="16" />
-        世界背景
-      </GameButton>
-      <GameButton tooltip="领土 · 城市 · 战斗一览" :active="overviewVisible" @click="overviewVisible = !overviewVisible">
-        <component :is="ICONS['map']" :size="16" />
-        总览
-      </GameButton>
-      <GameButton tooltip="调出指挥面板" :active="commandVisible" @click="commandVisible = !commandVisible">
-        <component :is="ICONS['brain']" :size="16" />
-        指挥
-      </GameButton>
-      <GameButton tooltip="咨询战略顾问" :active="advisorVisible" @click="advisorVisible = !advisorVisible">
-        <component :is="ICONS['user']" :size="16" />
-        顾问
-      </GameButton>
-      <GameButton tooltip="外交（电报·遣使）" :active="diplomacyVisible" @click="diplomacyVisible = !diplomacyVisible">
-        <component :is="ICONS['affiliate']" :size="16" />
-        外交
-        <span v-if="unreadCount > 0 || hasDiplomatPending" class="tg-nav-badge">{{ unreadCount > 9 ? '9+' : unreadCount || '!' }}</span>
-      </GameButton>
-      <GameButton tooltip="查看世界事件日志" :active="eventLogPanelVisible" @click="eventLogPanelVisible = !eventLogPanelVisible">
-        <component :is="ICONS['clipboard-text']" :size="16" />
-        事件日志
-      </GameButton>
-      <GameButton tooltip="战纪 · 扩张轨迹 / 势力沉浮 / 功业" :active="chronicleVisible" @click="chronicleVisible = !chronicleVisible">
-        <component :is="ICONS['timeline']" :size="16" />
-        战纪
-      </GameButton>
-      <GameButton tooltip="查看各政权总览" :active="factionDebugVisible" @click="factionDebugVisible = !factionDebugVisible">
-        <component :is="ICONS['building-castle']" :size="16" />
-        政权总览
-      </GameButton>
-      <GameButton tooltip="保存当前进度" @click="saveModalVisible = true">
-        <component :is="ICONS['device-floppy']" :size="16" />
-        保存
-      </GameButton>
-      <GameButton tooltip="载入已有存档" @click="loadModalVisible = true">
-        <component :is="ICONS['folder-open']" :size="16" />
-        读取
-      </GameButton>
-      <div class="switcher-divider"></div>
-      <GameButton @click="testPanelVisible = !testPanelVisible">
-        <component :is="ICONS['bug']" :size="16" />
-        调试
-      </GameButton>
-      <GameButton @click="fullRerender">
-        <component :is="ICONS['refresh']" :size="16" />
-        刷新
-      </GameButton>
-    </div>
-    <GameDateDisplay class="map-ui" />
-    <GameContextMenu
-      class="map-ui"
-      :visible="contextMenuVisible"
-      :position="contextMenuPos"
-      :items="contextMenuItems"
-      @select="onMenuAction"
-    />
-    <GameModal class="map-ui"
-      :visible="infoModalVisible"
-      :title="infoTitle"
-      width="340px"
-      :z-index="5000"
-      variant="parchment"
-      @close="closeInfoModal"
-    >
-      <template #title>
-        <span class="modal-title">{{ infoTitle }}</span>
-        <button class="title-copy-btn" @click="copyInfoTitle" title="复制名称">
-          <component :is="ICONS['copy']" :size="14" />
-        </button>
-      </template>
-      <InfoTable v-if="infoCityData" :rows="infoRows" />
-      <InfoTable v-else-if="infoCountryData" :rows="countryInfoRows" />
-    </GameModal>
-    <GameModal class="map-ui"
-      :visible="testPanelVisible"
-      title="调试"
-      :draggable="true"
-      :overlay="false"
-      :z-index="4000"
-      variant="parchment"
-      :init-x="160"
-      :init-y="160"
-      @close="testPanelVisible = false"
-    >
-      <div class="test-panel">
-        <GameButton
-          @click="
-            () =>
-              executeOrder({ order: 'arrowFly', from: '156500000', to: '156450200', text: '出兵！' })
-          "
-          ><component :is="ICONS['sword']" :size="16" />派兵测试</GameButton
-        >
-        <GameButton
-          @click="() => executeOrder({ order: 'radarPulse', from: '156500000', text: '侦察！' })"
-          ><component :is="ICONS['eye']" :size="16" />探察测试</GameButton
-        >
-        <GameButton
-          @click="
-            () =>
-              executeOrder({
-                order: 'orbBurst',
-                from: '156500000',
-                to: '156450200',
-                text: '宣战！',
-              })
-          "
-          ><component :is="ICONS['flag']" :size="16" />宣战测试</GameButton
-        >
-        <GameButton
-          @click="() => executeOrder({ order: 'battle', from: '156500000', to: '156450200' })"
-          ><component :is="ICONS['crosshair']" :size="16" />战斗测试1</GameButton
-        >
-        <GameButton
-          @click="() => executeOrder({ order: 'battle', from: '156500000', to: '156451000' })"
-          ><component :is="ICONS['crosshair']" :size="16" />战斗测试2</GameButton
-        >
-        <GameButton @click="openBattleList"
-          ><component :is="ICONS['list']" :size="16" />查看战斗</GameButton
-        >
-        <GameButton v-if="isDev" @click="aiPanelVisible = true"
-          ><component :is="ICONS.brain" :size="16" />世界AI调试</GameButton
-        >
-        <GameButton @click="playCloudTest"
-          ><component :is="ICONS.cloud" :size="16" />云雾切换测试</GameButton
-        >
-        <GameButton @click="captureTest"
-          ><component :is="ICONS['tag']" :size="16" />占领测试</GameButton
-        >
-        <GameButton @click="recruitTest"
-          ><component :is="ICONS['sword']" :size="16" />广元增兵</GameButton
-        >
-        <label class="seal-alpha-row">
-          <span>水印浓度</span>
-          <input
-            v-model.number="sealWatermarkAlpha"
-            type="range"
-            min="0.02"
-            max="0.6"
-            step="0.01"
-            @change="redrawSealWatermark"
-          />
-          <span class="seal-alpha-val">{{ sealWatermarkAlpha.toFixed(2) }}</span>
-        </label>
-      </div>
-    </GameModal>
-    <FactionDebugPanel
-      :visible="factionDebugVisible"
-      @close="factionDebugVisible = false"
-    />
-    <GameModal v-if="isDev" class="map-ui"
-      :visible="aiPanelVisible"
-      title="世界AI调试"
-      :z-index="4100"
-      variant="parchment"
-      width="600px"
-      :overlay="false"
-      :draggable="true"
-      @close="aiPanelVisible = false"
-    >
-      <AiDebugPanel />
-    </GameModal>
-    <GameModal class="map-ui"
-      :visible="eventLogPanelVisible"
-      title="事件日志"
-      :draggable="true"
-      :overlay="false"
-      :z-index="4100"
-      width="540px"
-      variant="parchment"
-      @close="eventLogPanelVisible = false"
-    >
-      <EventLogPanel />
-    </GameModal>
-    <!-- 保存模态 -->
-    <SaveSelectorModal
-      :visible="saveModalVisible"
-      mode="save"
-      :closable="true"
-      @close="saveModalVisible = false"
-    />
-    <!-- 读取模态 -->
-    <SaveSelectorModal
-      :visible="loadModalVisible"
-      mode="load"
-      :closable="true"
-      @load="onLoadGame"
-      @close="loadModalVisible = false"
-    />
-    <GameModal class="map-ui"
-      :visible="battleListVisible"
-      title="战斗管理"
-      :z-index="3500"
-      variant="parchment"
-      :draggable="true"
-      :overlay="false"
-      @close="battleListVisible = false"
-    >
-      <div class="battle-list-body">
-      <div v-if="battleList.length === 0" class="empty-hint">当前没有进行中的战斗</div>
-      <!-- 按守方城市分组展示 -->
-      <div v-for="g in groupedBattles" :key="g.key" class="battle-group" :class="{ 'battle-stale': !g.battles.some(b => b.active) }">
-        <!-- 分组标题：守方城市名 -->
-        <div class="group-header">
-          <span class="group-city">{{ g.toName }}</span>
-          <span class="group-defender">守方：{{ ownerLabel(g.defender) }}</span>
-          <span class="group-turns">第 {{ maxTurns(g) }} 回合</span>
-        </div>
-        <!-- 各攻方路线 -->
-        <div v-for="b in g.battles" :key="b.id" class="battle-item" :class="{ 'battle-stale': !b.active }">
-          <div class="battle-main">
-            <!-- 标题行：出发城 → 目标城 · 回合数 -->
-            <div class="battle-title">
-              <span v-if="b.active" class="battle-live" title="交战中"></span>
-              <span class="battle-route">
-                <span class="battle-city atk">{{ b.fromName }}</span>
-                <span class="battle-arrow">→</span>
-                <span class="battle-city def">{{ b.toName }}</span>
-              </span>
-              <span class="battle-turns">第 {{ b.turns }} 回合</span>
-              <span v-if="!b.active" class="inactive">(已停止)</span>
-            </div>
-            <!-- 对阵行：攻方野战兵力 vs 守方驻军 -->
-            <div class="battle-vs">
-              <div class="battle-side side-atk">
-                <span class="side-tag">攻</span>
-                <span class="side-faction">{{ ownerLabel(b.attacker) }}</span>
-                <span class="side-troops" :class="{ warn: atkForce(b) <= 0 }">
-                  {{ atkForce(b) }}k
-                  <span class="side-sub">外出</span>
-                </span>
-              </div>
-              <span class="vs-mark">对</span>
-              <div class="battle-side side-def">
-                <span class="side-tag tag-def">守</span>
-                <span class="side-faction">{{ ownerLabel(b.defender) }}</span>
-                <span class="side-troops" :class="{ warn: defForce(b) <= 0 }">
-                  {{ defForce(b) }}k
-                  <span class="side-sub">驻军</span>
-                </span>
-              </div>
-            </div>
-            <!-- 兵力条：攻守双方当前兵力对比 -->
-            <div class="force-bar">
-              <div class="force-seg seg-atk" :style="{ width: forceShare(b) + '%' }"></div>
-              <div class="force-seg seg-def" :style="{ width: 100 - forceShare(b) + '%' }"></div>
-            </div>
-            <!-- 统计行：累计损耗 + 上回合战况 + 走势 -->
-            <div class="battle-stats">
-              <span class="stat">累计 攻损 <b class="loss-atk">{{ b.totalAttackerLoss }}k</b></span>
-              <span class="stat">守损 <b class="loss-def">{{ b.totalDefenderLoss }}k</b></span>
-              <span v-if="b.turns > 0" class="stat last-turn">上回合 攻-{{ b.lastAttackerLoss }}k / 守-{{ b.lastDefenderLoss }}k</span>
-              <span class="trend" :class="trend(b).cls">{{ trend(b).label }}</span>
-            </div>
-          </div>
-          <GameButton v-if="canRetreat(b)" danger size="small" class="battle-end-btn" :disabled="retreatingId === b.id" @click="requestRetreat(b)">
-            <component :is="ICONS['x']" :size="14" />
-            {{ retreatingId === b.id ? '对方思考中…' : '撤退' }}
-          </GameButton>
-        </div>
-      </div>
-      </div>
-    </GameModal>
-    <GameModal class="map-ui"
-      :visible="disclaimerVisible"
-      title="免责声明"
-      variant="parchment"
-      @close="disclaimerVisible = false"
-    >
-      <div class="disclaimer-content">
-        <p>
-          本游戏地图数据来源于网络公开数据源，仅用于游戏娱乐目的，可能存在边界线、地名标注等方面的偏差或不准确之处。
-        </p>
-        <p>其中国家边界线划分来自于ECharts网站中的数据，中国地图市划分来自于天地图数据</p>
-        <p>
-          游戏中的政权划分、势力范围、外交关系等均为虚构游戏设定，不代表任何个人或组织的政治立场，亦不代表对现实世界领土归属的任何主张。地图边界不对应、不代表当下世界各国法定领土国界。
-        </p>
-        <p>本人始终坚持遵循以中华人民共和国自然资源部（原国家测绘地理信息局）发布的标准地图。</p>
-        <p class="disclaimer-sources">数据来源：</p>
-        <ul>
-          <li>
-            Natural Earth —
-            <a href="https://www.naturalearthdata.com/" target="_blank" rel="noopener"
-              >https://www.naturalearthdata.com/</a
-            >
-          </li>
-          <li>
-            Apache ECharts —
-            <a href="https://echarts.apache.org/" target="_blank" rel="noopener"
-              >https://echarts.apache.org/</a
-            >
-          </li>
-          <li>
-            天地图 —
-            <a href="https://cloudcenter.tianditu.gov.cn/" target="_blank" rel="noopener"
-              >https://cloudcenter.tianditu.gov.cn/</a
-            >
-          </li>
-        </ul>
-      </div>
-    </GameModal>
-    <GameModal
-      :visible="retreatVerdictVisible"
-      title="撤退裁决"
-      variant="parchment"
-      width="360px"
-      @close="onRetreatVerdictConfirm"
-    >
-      <div class="retreat-verdict">
-        <p class="verdict-text">{{ retreatVerdictText }}</p>
-        <div v-if="retreatVerdictOrder" class="verdict-loss">
-          追击损失：{{ retreatVerdictOrder.retreatLoss }}k
-        </div>
-        <button class="verdict-btn" @click="onRetreatVerdictConfirm">知晓</button>
-      </div>
-    </GameModal>
-    <!-- 求和谈判弹窗 -->
-    <GameModal
-      :visible="peaceVisible"
-      title="议和"
-      variant="parchment"
-      width="400px"
-      :z-index="5100"
-      @close="onPeaceReject"
-    >
-      <div v-if="peaceState" class="peace-dlg">
-        <div class="peace-round">与 {{ peaceFoeLabel }} 谈判 · 第 {{ peaceState.round }} / {{ PEACE_MAX_ROUNDS }} 轮</div>
-        <!-- AI 思考中 -->
-        <div v-if="peaceState.busy" class="peace-thinking">
-          <span class="peace-dot"></span><span class="peace-dot"></span><span class="peace-dot"></span>
-          <span class="peace-thinking-text">对方权衡中…</span>
-        </div>
-        <template v-else-if="peaceState.outcome">
-          <p class="peace-text">「{{ peaceState.outcome.narrative }}」</p>
-          <div class="peace-indemnity" :class="peaceState.outcome.indemnity > 0 ? 'peace-pay' : 'peace-gain'">
-            {{ peaceIndemnityText }}
-          </div>
-          <div v-if="peaceState.outcome.final" class="peace-final-hint">此为对方最终报价</div>
-          <!-- 还价输入（可还价时显示） -->
-          <div v-if="canCounter" class="peace-counter">
-            <input
-              v-model="counterInput"
-              class="peace-input"
-              type="number"
-              placeholder="你愿赔多少（万银，可填负数）"
-            />
-            <GameButton parchment size="small" @click="onPeaceCounter">还价</GameButton>
-          </div>
-          <div class="peace-actions">
-            <GameButton parchment active size="small" @click="onPeaceAccept">接受条件</GameButton>
-            <GameButton parchment danger size="small" @click="onPeaceReject">
-              {{ canCounter ? '拒绝（战）' : '谈判破裂（战）' }}
-            </GameButton>
-          </div>
+        <template #title>
+          <span class="modal-title">{{ infoTitle }}</span>
+          <button class="title-copy-btn" @click="copyInfoTitle" title="复制名称">
+            <component :is="ICONS['copy']" :size="14" />
+          </button>
         </template>
-      </div>
-    </GameModal>
-    <!-- 回合摘要弹窗 -->
-    <TurnSummaryModal
-      :visible="turnSummaryVisible && !!turnEvents.length"
-      :events="turnEvents"
-      @close="turnSummaryVisible = false"
-    />
-    <LegendPanel v-if="ownerColorEnabled" class="map-ui" :items="legendItems" />
-    <!-- 战况浮层：按守方城市分组，每城一张可折叠卡片，锚定守方城、跟随相机 -->
-    <div class="battle-overlay map-ui">
-      <div
-        v-for="g in groupedBattles"
-        v-show="battleCardPos[g.key]"
-        :key="g.key"
-        class="battle-card"
-        :class="{ collapsed: !battleCardExpanded[g.key] }"
-        :style="battleCardPos[g.key] ? { transform: battleCardPos[g.key] } : undefined"
+        <InfoTable v-if="infoCityData" :rows="infoRows" />
+        <GameButton
+          parchment
+          v-if="infoCityData?.owner === useGameStore().currentFaction"
+          @click="openCampaign(infoCityGb)"
+        >
+          行军与进攻预览
+        </GameButton>
+        <InfoTable v-else-if="infoCountryData" :rows="countryInfoRows" />
+      </GameModal>
+      <GameModal
+        class="map-ui"
+        :visible="testPanelVisible"
+        title="调试"
+        :draggable="true"
+        :overlay="false"
+        :z-index="4000"
+        variant="parchment"
+        :init-x="160"
+        :init-y="160"
+        @close="testPanelVisible = false"
       >
-        <!-- 折叠态：精简标题条 -->
-        <div class="bc-head" @click="toggleBattleCard(g.key)">
-          <span class="bc-live" title="交战中"></span>
-          <span class="bc-route">{{ g.toName }}（守）</span>
-          <span class="bc-turns">{{ maxTurns(g) }} 回合</span>
-          <component :is="ICONS[battleCardExpanded[g.key] ? 'chevron-up' : 'chevron-down']" :size="13" class="bc-toggle" />
+        <div class="test-panel">
+          <GameButton
+            @click="
+              () =>
+                executeOrder({
+                  order: 'arrowFly',
+                  from: '156500000',
+                  to: '156450200',
+                  text: '出兵！',
+                })
+            "
+            ><component :is="ICONS['sword']" :size="16" />派兵测试</GameButton
+          >
+          <GameButton
+            @click="() => executeOrder({ order: 'radarPulse', from: '156500000', text: '侦察！' })"
+            ><component :is="ICONS['eye']" :size="16" />探察测试</GameButton
+          >
+          <GameButton
+            @click="
+              () =>
+                executeOrder({
+                  order: 'orbBurst',
+                  from: '156500000',
+                  to: '156450200',
+                  text: '宣战！',
+                })
+            "
+            ><component :is="ICONS['flag']" :size="16" />宣战测试</GameButton
+          >
+          <GameButton
+            @click="() => executeOrder({ order: 'battle', from: '156500000', to: '156450200' })"
+            ><component :is="ICONS['crosshair']" :size="16" />战斗测试1</GameButton
+          >
+          <GameButton
+            @click="() => executeOrder({ order: 'battle', from: '156500000', to: '156451000' })"
+            ><component :is="ICONS['crosshair']" :size="16" />战斗测试2</GameButton
+          >
+          <GameButton @click="openBattleList"
+            ><component :is="ICONS['list']" :size="16" />查看战斗</GameButton
+          >
+          <GameButton v-if="isDev" @click="aiPanelVisible = true"
+            ><component :is="ICONS.brain" :size="16" />世界AI调试</GameButton
+          >
+          <GameButton @click="playCloudTest"
+            ><component :is="ICONS.cloud" :size="16" />云雾切换测试</GameButton
+          >
+          <GameButton @click="captureTest"
+            ><component :is="ICONS['tag']" :size="16" />占领测试</GameButton
+          >
+          <GameButton @click="recruitTest"
+            ><component :is="ICONS['sword']" :size="16" />广元增兵</GameButton
+          >
+          <label class="seal-alpha-row">
+            <span>水印浓度</span>
+            <input
+              v-model.number="sealWatermarkAlpha"
+              type="range"
+              min="0.02"
+              max="0.6"
+              step="0.01"
+              @change="redrawSealWatermark"
+            />
+            <span class="seal-alpha-val">{{ sealWatermarkAlpha.toFixed(2) }}</span>
+          </label>
         </div>
-        <!-- 展开态：各攻方路线 / 战报 / 操作 -->
-        <div v-show="battleCardExpanded[g.key]" class="bc-body">
-          <!-- 各攻方路线 -->
-          <div v-for="b in g.battles" :key="b.id" class="bc-route-row">
-            <span class="bc-route-name">{{ b.fromName }} ⇢ {{ b.toName }}</span>
-            <span class="bc-route-vs">
-              <span class="bc-side bc-atk">{{ ownerLabel(b.attacker) }} {{ atkForce(b) }}k</span>
-              <span class="bc-vs-mark">对</span>
-              <span class="bc-side bc-def">{{ defForce(b) }}k</span>
-            </span>
-          </div>
-          <!-- 守方驻军 -->
-          <div class="bc-def-total">
-            守方 {{ ownerLabel(g.defender) }} 驻军 {{ defForce(g.battles[0]) }}k
-          </div>
-          <!-- 战报叙事（取最近一场有叙事的） -->
-          <div v-if="latestNarrative(g)" class="bc-report">「{{ latestNarrative(g) }}」</div>
-          <!-- 操作按钮（聚合到卡片底部） -->
-          <div class="bc-actions">
-            <button v-if="canPeaceGroup(g)" class="bc-btn" @click.stop="requestPeaceGroup(g)">
-              <component :is="ICONS['affiliate']" :size="13" /> 求和
-            </button>
-            <button v-if="canRetreatGroup(g)" class="bc-btn bc-btn-danger" :disabled="retreatingGroupId === g.key" @click.stop="requestRetreatGroup(g)">
-              <component :is="ICONS['x']" :size="13" />
-              {{ retreatingGroupId === g.key ? '对方思考中…' : '撤退' }}
-            </button>
+      </GameModal>
+      <FactionDebugPanel :visible="factionDebugVisible" @close="factionDebugVisible = false" />
+      <GameModal
+        v-if="isDev"
+        class="map-ui"
+        :visible="aiPanelVisible"
+        title="世界AI调试"
+        :z-index="4100"
+        variant="parchment"
+        width="600px"
+        :overlay="false"
+        :draggable="true"
+        @close="aiPanelVisible = false"
+      >
+        <AiDebugPanel />
+      </GameModal>
+      <GameModal
+        class="map-ui"
+        :visible="eventLogPanelVisible"
+        title="事件日志"
+        :draggable="true"
+        :overlay="false"
+        :z-index="4100"
+        width="540px"
+        variant="parchment"
+        @close="eventLogPanelVisible = false"
+      >
+        <EventLogPanel />
+      </GameModal>
+      <!-- 保存模态 -->
+      <SaveSelectorModal
+        :visible="saveModalVisible"
+        mode="save"
+        :closable="true"
+        @close="saveModalVisible = false"
+      />
+      <!-- 读取模态 -->
+      <SaveSelectorModal
+        :visible="loadModalVisible"
+        mode="load"
+        :closable="true"
+        @load="onLoadGame"
+        @close="loadModalVisible = false"
+      />
+      <GameModal
+        class="map-ui"
+        :visible="battleListVisible"
+        title="战斗管理"
+        :z-index="3500"
+        variant="parchment"
+        :draggable="true"
+        :overlay="false"
+        @close="battleListVisible = false"
+      >
+        <div class="battle-list-body">
+          <div v-if="battleList.length === 0" class="empty-hint">当前没有进行中的战斗</div>
+          <!-- 按守方城市分组展示 -->
+          <div
+            v-for="g in groupedBattles"
+            :key="g.key"
+            class="battle-group"
+            :class="{ 'battle-stale': !g.battles.some((b) => b.active) }"
+          >
+            <!-- 分组标题：守方城市名 -->
+            <div class="group-header">
+              <span class="group-city">{{ g.toName }}</span>
+              <span class="group-defender">守方：{{ ownerLabel(g.defender) }}</span>
+              <span class="group-turns">第 {{ maxTurns(g) }} 回合</span>
+            </div>
+            <!-- 各攻方路线 -->
+            <div
+              v-for="b in g.battles"
+              :key="b.id"
+              class="battle-item"
+              :class="{ 'battle-stale': !b.active }"
+            >
+              <div class="battle-main">
+                <!-- 标题行：出发城 → 目标城 · 回合数 -->
+                <div class="battle-title">
+                  <span v-if="b.active" class="battle-live" title="交战中"></span>
+                  <span class="battle-route">
+                    <span class="battle-city atk">{{ b.fromName }}</span>
+                    <span class="battle-arrow">→</span>
+                    <span class="battle-city def">{{ b.toName }}</span>
+                  </span>
+                  <span class="battle-turns">第 {{ b.turns }} 回合</span>
+                  <span v-if="!b.active" class="inactive">(已停止)</span>
+                </div>
+                <!-- 对阵行：攻方野战兵力 vs 守方驻军 -->
+                <div class="battle-vs">
+                  <div class="battle-side side-atk">
+                    <span class="side-tag">攻</span>
+                    <span class="side-faction">{{ ownerLabel(b.attacker) }}</span>
+                    <span class="side-troops" :class="{ warn: atkForce(b) <= 0 }">
+                      {{ atkForce(b) }}k
+                      <span class="side-sub">外出</span>
+                    </span>
+                  </div>
+                  <span class="vs-mark">对</span>
+                  <div class="battle-side side-def">
+                    <span class="side-tag tag-def">守</span>
+                    <span class="side-faction">{{ ownerLabel(b.defender) }}</span>
+                    <span class="side-troops" :class="{ warn: defForce(b) <= 0 }">
+                      {{ defForce(b) }}k
+                      <span class="side-sub">驻军</span>
+                    </span>
+                  </div>
+                </div>
+                <!-- 兵力条：攻守双方当前兵力对比 -->
+                <div class="force-bar">
+                  <div class="force-seg seg-atk" :style="{ width: forceShare(b) + '%' }"></div>
+                  <div
+                    class="force-seg seg-def"
+                    :style="{ width: 100 - forceShare(b) + '%' }"
+                  ></div>
+                </div>
+                <!-- 统计行：累计损耗 + 上回合战况 + 走势 -->
+                <div class="battle-stats">
+                  <span class="stat"
+                    >累计 攻损 <b class="loss-atk">{{ b.totalAttackerLoss }}k</b></span
+                  >
+                  <span class="stat"
+                    >守损 <b class="loss-def">{{ b.totalDefenderLoss }}k</b></span
+                  >
+                  <span v-if="b.turns > 0" class="stat last-turn"
+                    >上回合 攻-{{ b.lastAttackerLoss }}k / 守-{{ b.lastDefenderLoss }}k</span
+                  >
+                  <span class="trend" :class="trend(b).cls">{{ trend(b).label }}</span>
+                </div>
+              </div>
+              <GameButton
+                v-if="canRetreat(b)"
+                danger
+                size="small"
+                class="battle-end-btn"
+                :disabled="retreatingId === b.id"
+                @click="requestRetreat(b)"
+              >
+                <component :is="ICONS['x']" :size="14" />
+                {{ retreatingId === b.id ? '对方思考中…' : '撤退' }}
+              </GameButton>
+            </div>
           </div>
         </div>
-        <!-- 指向守方城的锚点尖角 -->
-        <span class="bc-anchor"></span>
+      </GameModal>
+      <GameModal
+        class="map-ui"
+        :visible="disclaimerVisible"
+        title="免责声明"
+        variant="parchment"
+        @close="disclaimerVisible = false"
+      >
+        <div class="disclaimer-content">
+          <p>
+            本游戏地图数据来源于网络公开数据源，仅用于游戏娱乐目的，可能存在边界线、地名标注等方面的偏差或不准确之处。
+          </p>
+          <p>其中国家边界线划分来自于ECharts网站中的数据，中国地图市划分来自于天地图数据</p>
+          <p>
+            游戏中的政权划分、势力范围、外交关系等均为虚构游戏设定，不代表任何个人或组织的政治立场，亦不代表对现实世界领土归属的任何主张。地图边界不对应、不代表当下世界各国法定领土国界。
+          </p>
+          <p>本人始终坚持遵循以中华人民共和国自然资源部（原国家测绘地理信息局）发布的标准地图。</p>
+          <p class="disclaimer-sources">数据来源：</p>
+          <ul>
+            <li>
+              Natural Earth —
+              <a href="https://www.naturalearthdata.com/" target="_blank" rel="noopener"
+                >https://www.naturalearthdata.com/</a
+              >
+            </li>
+            <li>
+              Apache ECharts —
+              <a href="https://echarts.apache.org/" target="_blank" rel="noopener"
+                >https://echarts.apache.org/</a
+              >
+            </li>
+            <li>
+              天地图 —
+              <a href="https://cloudcenter.tianditu.gov.cn/" target="_blank" rel="noopener"
+                >https://cloudcenter.tianditu.gov.cn/</a
+              >
+            </li>
+          </ul>
+        </div>
+      </GameModal>
+      <GameModal
+        :visible="retreatVerdictVisible"
+        title="撤退裁决"
+        variant="parchment"
+        width="360px"
+        @close="onRetreatVerdictConfirm"
+      >
+        <div class="retreat-verdict">
+          <p class="verdict-text">{{ retreatVerdictText }}</p>
+          <div v-if="retreatVerdictOrder" class="verdict-loss">
+            追击损失：{{ retreatVerdictOrder.retreatLoss }}k
+          </div>
+          <button class="verdict-btn" @click="onRetreatVerdictConfirm">知晓</button>
+        </div>
+      </GameModal>
+      <!-- 求和谈判弹窗 -->
+      <GameModal
+        :visible="peaceVisible"
+        title="议和"
+        variant="parchment"
+        width="400px"
+        :z-index="5100"
+        @close="onPeaceReject"
+      >
+        <div v-if="peaceState" class="peace-dlg">
+          <div class="peace-round">
+            与 {{ peaceFoeLabel }} 谈判 · 第 {{ peaceState.round }} / {{ PEACE_MAX_ROUNDS }} 轮
+          </div>
+          <!-- AI 思考中 -->
+          <div v-if="peaceState.busy" class="peace-thinking">
+            <span class="peace-dot"></span><span class="peace-dot"></span
+            ><span class="peace-dot"></span>
+            <span class="peace-thinking-text">对方权衡中…</span>
+          </div>
+          <template v-else-if="peaceState.outcome">
+            <p class="peace-text">「{{ peaceState.outcome.narrative }}」</p>
+            <div
+              class="peace-indemnity"
+              :class="peaceState.outcome.indemnity > 0 ? 'peace-pay' : 'peace-gain'"
+            >
+              {{ peaceIndemnityText }}
+            </div>
+            <div v-if="peaceState.outcome.final" class="peace-final-hint">此为对方最终报价</div>
+            <!-- 还价输入（可还价时显示） -->
+            <div v-if="canCounter" class="peace-counter">
+              <input
+                v-model="counterInput"
+                class="peace-input"
+                type="number"
+                placeholder="你愿赔多少（万银，可填负数）"
+              />
+              <GameButton parchment size="small" @click="onPeaceCounter">还价</GameButton>
+            </div>
+            <div class="peace-actions">
+              <GameButton parchment active size="small" @click="onPeaceAccept">接受条件</GameButton>
+              <GameButton parchment danger size="small" @click="onPeaceReject">
+                {{ canCounter ? '拒绝（战）' : '谈判破裂（战）' }}
+              </GameButton>
+            </div>
+          </template>
+        </div>
+      </GameModal>
+      <!-- 回合摘要弹窗 -->
+      <TurnSummaryModal
+        :visible="turnSummaryVisible && !!turnEvents.length"
+        :events="turnEvents"
+        @close="turnSummaryVisible = false"
+      />
+      <LegendPanel v-if="ownerColorEnabled" class="map-ui" :items="legendItems" />
+      <!-- 战况浮层：按守方城市分组，每城一张可折叠卡片，锚定守方城、跟随相机 -->
+      <div class="battle-overlay map-ui">
+        <div
+          v-for="g in groupedBattles"
+          v-show="battleCardPos[g.key]"
+          :key="g.key"
+          class="battle-card"
+          :class="{ collapsed: !battleCardExpanded[g.key] }"
+          :style="battleCardPos[g.key] ? { transform: battleCardPos[g.key] } : undefined"
+        >
+          <!-- 折叠态：精简标题条 -->
+          <div class="bc-head" @click="toggleBattleCard(g.key)">
+            <span class="bc-live" title="交战中"></span>
+            <span class="bc-route">{{ g.toName }}（守）</span>
+            <span class="bc-turns">{{ maxTurns(g) }} 回合</span>
+            <component
+              :is="ICONS[battleCardExpanded[g.key] ? 'chevron-up' : 'chevron-down']"
+              :size="13"
+              class="bc-toggle"
+            />
+          </div>
+          <!-- 展开态：各攻方路线 / 战报 / 操作 -->
+          <div v-show="battleCardExpanded[g.key]" class="bc-body">
+            <!-- 各攻方路线 -->
+            <div v-for="b in g.battles" :key="b.id" class="bc-route-row">
+              <span class="bc-route-name">{{ b.fromName }} ⇢ {{ b.toName }}</span>
+              <span class="bc-route-vs">
+                <span class="bc-side bc-atk">{{ ownerLabel(b.attacker) }} {{ atkForce(b) }}k</span>
+                <span class="bc-vs-mark">对</span>
+                <span class="bc-side bc-def">{{ defForce(b) }}k</span>
+              </span>
+            </div>
+            <!-- 守方驻军 -->
+            <div class="bc-def-total">
+              守方 {{ ownerLabel(g.defender) }} 驻军 {{ defForce(g.battles[0]) }}k
+            </div>
+            <!-- 战报叙事（取最近一场有叙事的） -->
+            <div v-if="latestNarrative(g)" class="bc-report">「{{ latestNarrative(g) }}」</div>
+            <!-- 操作按钮（聚合到卡片底部） -->
+            <div class="bc-actions">
+              <button v-if="canPeaceGroup(g)" class="bc-btn" @click.stop="requestPeaceGroup(g)">
+                <component :is="ICONS['affiliate']" :size="13" /> 求和
+              </button>
+              <button
+                v-if="canRetreatGroup(g)"
+                class="bc-btn bc-btn-danger"
+                :disabled="retreatingGroupId === g.key"
+                @click.stop="requestRetreatGroup(g)"
+              >
+                <component :is="ICONS['x']" :size="13" />
+                {{ retreatingGroupId === g.key ? '对方思考中…' : '撤退' }}
+              </button>
+            </div>
+          </div>
+          <!-- 指向守方城的锚点尖角 -->
+          <span class="bc-anchor"></span>
+        </div>
       </div>
-    </div>
     </div>
     <PlayerAiPanel :visible="commandVisible" @close="commandVisible = false" />
+    <CampaignPanel
+      :visible="campaignVisible"
+      :initial-source-gb="campaignSourceGb"
+      @close="campaignVisible = false"
+    />
     <AdvisorPanel :visible="advisorVisible" @close="advisorVisible = false" />
     <DiplomacyPanel :visible="diplomacyVisible" @close="diplomacyVisible = false" />
     <PlayerStatusPanel :visible="overviewVisible" @close="overviewVisible = false" />
@@ -457,27 +561,19 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
-import {
-  Application,
-  Container,
-  Graphics,
-  Matrix,
-  Rectangle,
-  Text,
-  TextStyle,
-} from 'pixi.js'
+import { Application, Container, Graphics, Matrix, Rectangle, Text, TextStyle } from 'pixi.js'
 import type { Texture } from 'pixi.js'
-import {
-  OWNER_COLORS,
-  OWNER_LABELS,
-  OWNER_DETAILS,
-  Owner,
-} from '@/data/owners'
+import { OWNER_COLORS, OWNER_LABELS, OWNER_DETAILS, Owner } from '@/data/owners'
 import type { CityData } from '@/data/chinaCities'
 import type { CountryData } from '@/data/worldCountries'
 import { worldCountries, GEO_TO_GAME_ISO } from '@/data/worldCountries'
 import { getDisplayName } from '@/data/displayNames'
-import { init as initGameOrders, executeOrder, restoreActiveAnimations, resetBattleRuntime } from '@/utils/gameOrders'
+import {
+  init as initGameOrders,
+  executeOrder,
+  restoreActiveAnimations,
+  resetBattleRuntime,
+} from '@/utils/gameOrders'
 import type { GameOrder, CameraTarget } from '@/utils/gameOrders'
 import { useGameStore } from '@/stores/game'
 import type { BattleInfo, GameEvent } from '@/stores/game'
@@ -495,6 +591,13 @@ import GameButton from '@/components/ui/GameButton.vue'
 import GameContextMenu from '@/components/ui/GameContextMenu.vue'
 import GameModal from '@/components/ui/GameModal.vue'
 import PlayerAiPanel from '@/components/PlayerAiPanel.vue'
+import CampaignPanel from '@/components/CampaignPanel.vue'
+import {
+  getSupplyStatus,
+  occupationRemaining,
+  SUPPLY_PENALTY_LABEL,
+  OCCUPATION_YIELD_LABEL,
+} from '@/utils/supply'
 import AdvisorPanel from '@/components/AdvisorPanel.vue'
 import DiplomacyPanel from '@/components/DiplomacyPanel.vue'
 import TurnSummaryModal from '@/components/TurnSummaryModal.vue'
@@ -745,6 +848,8 @@ const factionDebugVisible = ref(false)
 const overviewVisible = ref(false)
 /** 指挥面板弹窗是否打开 */
 const commandVisible = ref(false)
+const campaignVisible = ref(false)
+const campaignSourceGb = ref<string | null>(null)
 /** 战略顾问弹窗是否打开 */
 const advisorVisible = ref(false)
 const diplomacyVisible = ref(false)
@@ -758,10 +863,10 @@ const battleList = computed(() => useGameStore().battles)
 
 /** 按守方城市分组的战斗列表（同一守方城市的多场攻方合并为一张卡片） */
 interface BattleGroup {
-  key: string        // `${defender}_${toGb}` 唯一键
-  toGb: string       // 守方城市 id
-  toName: string     // 守方城市名
-  defender: Owner    // 守方势力
+  key: string // `${defender}_${toGb}` 唯一键
+  toGb: string // 守方城市 id
+  toName: string // 守方城市名
+  defender: Owner // 守方势力
   battles: BattleInfo[]
 }
 const groupedBattles = computed<BattleGroup[]>(() => {
@@ -865,7 +970,10 @@ function scheduleZoomRest(): void {
 
 /** 无障碍：用户偏好减少动态时，程序化镜头直接归位、不做补间（Apple §14） */
 function prefersReducedMotion(): boolean {
-  return typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true
+  return (
+    typeof window !== 'undefined' &&
+    window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true
+  )
 }
 
 // ─── 计算属性 ───
@@ -877,18 +985,22 @@ const legendItems = computed(() =>
   })),
 )
 
-const contextMenuItems = ref([
-  { action: 'info', label: '查看信息', icon: 'info-circle' },
-  { action: 'investigate', label: '调查', icon: 'search' },
-  { action: 'declare-war', label: '宣战', icon: 'flag' },
-  { action: 'surprise-attack', label: '奇袭', danger: true, icon: 'bolt' },
-])
+const contextMenuItems = ref([{ action: 'info', label: '查看信息', icon: 'info-circle' }])
 
 const infoRows = computed(() => {
   if (!infoCityData.value) return []
   const d = infoCityData.value
+  const store = useGameStore()
+  const city = infoCityGb.value ? store.cities[infoCityGb.value] : undefined
+  const remaining = city ? occupationRemaining(city, store.turnCount) : 0
+  const supply = city
+    ? getSupplyStatus(city.gb, city.owner, store.cities, store.turnCount)
+    : undefined
   return [
-    { label: '政权', value: ((OWNER_LABELS as Record<string, string>)[d.owner!] || d.owner || '—') as string },
+    {
+      label: '政权',
+      value: ((OWNER_LABELS as Record<string, string>)[d.owner!] || d.owner || '—') as string,
+    },
     { label: '地形', value: (TERRAIN_NAMES[d.terrain!] || d.terrain || '—') as string },
     { label: '城市规模', value: `${d.cityLevel ?? '—'}（${LEVEL_NAMES[d.cityLevel!] || '—'}）` },
     { label: '工业能力', value: `${d.industry ?? '—'} / 100` },
@@ -900,6 +1012,19 @@ const infoRows = computed(() => {
       ? [{ label: '外出兵力', value: `▲ ${d.fieldForce} k（作战中）` }]
       : []),
     { label: '士气', value: `${d.morale ?? 0} / 100` },
+    ...(supply
+      ? [
+          {
+            label: '补给',
+            value: supply.supplied
+              ? `通畅 · ${getDisplayName(supply.hubGb!) || store.cities[supply.hubGb!]?.name}`
+              : SUPPLY_PENALTY_LABEL,
+          },
+        ]
+      : []),
+    ...(remaining > 0
+      ? [{ label: '整合', value: `剩余${remaining}回合 · ${OCCUPATION_YIELD_LABEL}` }]
+      : []),
   ]
 })
 
@@ -1190,11 +1315,11 @@ function onContextMenu(e: PointerEvent | MouseEvent): void {
     const gb = result.feature.properties?.gb as string | undefined
     const owner = gb ? useGameStore().ownership[gb] : undefined
     const isFriendly = owner !== undefined && owner === useGameStore().currentFaction
-    const items = [
-      { action: 'info', label: '查看信息', icon: 'info-circle' },
-    ]
+    const items = [{ action: 'info', label: '查看信息', icon: 'info-circle' }]
     if (!isFriendly) {
       items.push({ action: 'telegram', label: '电报', icon: 'mail' })
+    } else {
+      items.push({ action: 'campaign', label: '行军预览', icon: 'crosshair' })
     }
     contextMenuItems.value = items
   } else {
@@ -1224,20 +1349,35 @@ function closeInfoModal(): void {
 function copyInfoTitle(): void {
   const text = infoTitle.value
   if (!text) return
-  navigator.clipboard.writeText(text).then(() => {
-    useToast().push({ icon: 'check', tone: 'green', title: '已复制', text })
-  }).catch(() => {
-    const ta = document.createElement('textarea')
-    ta.value = text
-    document.body.appendChild(ta)
-    ta.select()
-    document.execCommand('copy')
-    document.body.removeChild(ta)
-    useToast().push({ icon: 'check', tone: 'green', title: '已复制', text })
-  })
+  navigator.clipboard
+    .writeText(text)
+    .then(() => {
+      useToast().push({ icon: 'check', tone: 'green', title: '已复制', text })
+    })
+    .catch(() => {
+      const ta = document.createElement('textarea')
+      ta.value = text
+      document.body.appendChild(ta)
+      ta.select()
+      document.execCommand('copy')
+      document.body.removeChild(ta)
+      useToast().push({ icon: 'check', tone: 'green', title: '已复制', text })
+    })
+}
+
+function openCampaign(gb: string | null): void {
+  if (!gb || useGameStore().cities[gb]?.owner !== useGameStore().currentFaction) return
+  campaignSourceGb.value = gb
+  campaignVisible.value = true
+  infoModalVisible.value = false
 }
 
 function onMenuAction(action: string): void {
+  if (action === 'campaign') {
+    openCampaign((selectedFeature?.properties?.gb as string) ?? null)
+    closeContextMenu()
+    return
+  }
   if (action === 'telegram') {
     if (selectedFeature) {
       const gb = selectedFeature.properties?.gb as string | undefined
@@ -1297,7 +1437,10 @@ async function playCloudTest(): Promise<void> {
 
 /** 调试：占领测试——把宝鸡（gb=156610300）划给川军（SCC） */
 async function captureTest(): Promise<void> {
-  await executeOrder({ order: 'capture', gb: '156610300', owner: Owner.SCC }, { authority: 'debug' })
+  await executeOrder(
+    { order: 'capture', gb: '156610300', owner: Owner.SCC },
+    { authority: 'debug' },
+  )
 }
 
 /**
@@ -1344,7 +1487,9 @@ const retreatingId = ref<string | null>(null)
 const retreatVerdictVisible = ref(false)
 const retreatVerdictText = ref('')
 /** 撤退裁决结果（支持多 battle 批量停止） */
-const retreatVerdictOrder = ref<{ ids: string[]; retreatLoss: number; narrative: string } | null>(null)
+const retreatVerdictOrder = ref<{ ids: string[]; retreatLoss: number; narrative: string } | null>(
+  null,
+)
 
 // ── 回合摘要弹窗 ──
 const { turnSummary } = useAgentKernel()
@@ -1373,7 +1518,8 @@ async function requestRetreat(b: BattleInfo): Promise<void> {
     const atkLabel = (OWNER_LABELS as Record<string, string>)[b.attacker] ?? b.attacker
     const outcome = await judgeRetreat({
       defenderTag: (OWNER_LABELS as Record<string, string>)[b.defender] ?? b.defender,
-      defenderLeader: defDetail?.leader ?? (OWNER_LABELS as Record<string, string>)[b.defender] ?? b.defender,
+      defenderLeader:
+        defDetail?.leader ?? (OWNER_LABELS as Record<string, string>)[b.defender] ?? b.defender,
       personality: defDetail?.personality ?? '沉稳',
       attackerTag: atkLabel,
       fromName: b.fromName,
@@ -1417,7 +1563,8 @@ async function requestRetreatGroup(g: BattleGroup): Promise<void> {
     const routeNames = myBattles.map((b) => `${b.fromName}→${b.toName}`).join('、')
     const outcome = await judgeRetreat({
       defenderTag: (OWNER_LABELS as Record<string, string>)[g.defender] ?? g.defender,
-      defenderLeader: defDetail?.leader ?? (OWNER_LABELS as Record<string, string>)[g.defender] ?? g.defender,
+      defenderLeader:
+        defDetail?.leader ?? (OWNER_LABELS as Record<string, string>)[g.defender] ?? g.defender,
       personality: defDetail?.personality ?? '沉稳',
       attackerTag: (OWNER_LABELS as Record<string, string>)[me] ?? me,
       fromName: routeNames,
@@ -1462,12 +1609,12 @@ const PEACE_MAX_ROUNDS = 3
 
 interface PeaceState {
   battle: BattleInfo
-  battleIds: string[]   // 该分组下所有战斗 id（用于批量停战）
-  groupKey: string      // 分组 key
-  foe: Owner            // 对方势力
+  battleIds: string[] // 该分组下所有战斗 id（用于批量停战）
+  groupKey: string // 分组 key
+  foe: Owner // 对方势力
   playerSide: 'attacker' | 'defender'
   round: number
-  busy: boolean         // AI 思考中
+  busy: boolean // AI 思考中
   outcome: PeaceResult | null
 }
 const peaceState = ref<PeaceState | null>(null)
@@ -1503,13 +1650,22 @@ async function requestPeace(b: BattleInfo): Promise<void> {
   const myForce = side === 'attacker' ? atkForce(b) : defForce(b)
   const foeForce = side === 'attacker' ? defForce(b) : atkForce(b)
   const foeDetail = OWNER_DETAILS[foe]
-  peaceState.value = { battle: b, battleIds: [b.id], groupKey: '', foe, playerSide: side, round: 1, busy: true, outcome: null }
+  peaceState.value = {
+    battle: b,
+    battleIds: [b.id],
+    groupKey: '',
+    foe,
+    playerSide: side,
+    round: 1,
+    busy: true,
+    outcome: null,
+  }
   peaceVisible.value = true
   counterInput.value = ''
   try {
     const outcome = await negotiatePeace({
       foeTag: (OWNER_LABELS as Record<string, string>)[foe] ?? foe,
-      foeLeader: foeDetail?.leader ?? ((OWNER_LABELS as Record<string, string>)[foe] ?? foe),
+      foeLeader: foeDetail?.leader ?? (OWNER_LABELS as Record<string, string>)[foe] ?? foe,
       personality: foeDetail?.personality ?? '沉稳',
       playerTag: (OWNER_LABELS as Record<string, string>)[me] ?? me,
       playerSide: side,
@@ -1530,7 +1686,12 @@ async function requestPeace(b: BattleInfo): Promise<void> {
     peaceState.value.busy = false
   } catch {
     if (peaceState.value) {
-      peaceState.value.outcome = { accept: false, indemnity: 0, narrative: '和议未成。', final: false }
+      peaceState.value.outcome = {
+        accept: false,
+        indemnity: 0,
+        narrative: '和议未成。',
+        final: false,
+      }
       peaceState.value.busy = false
     }
   }
@@ -1544,22 +1705,30 @@ async function requestPeaceGroup(g: BattleGroup): Promise<void> {
   // 确定我方在该分组中的角色和对应战斗
   const isDefender = g.defender === me
   const myBattles = isDefender
-    ? g.battles  // 守方：所有攻方打我方，全部算我方参战
+    ? g.battles // 守方：所有攻方打我方，全部算我方参战
     : g.battles.filter((b) => b.attacker === me)
   if (!myBattles.length) return
-  const foe = isDefender ? g.defender : g.battles.find((b) => b.attacker === me)?.defender ?? g.defender
+  const foe = isDefender
+    ? g.defender
+    : (g.battles.find((b) => b.attacker === me)?.defender ?? g.defender)
   // 若守方是我方，敌方是攻方（可能多个势力），取第一个攻方势力作为谈判对手
   const foeFaction = isDefender
     ? (g.battles.find((b) => b.attacker !== me)?.attacker ?? g.battles[0].attacker)
     : foe
   const side: 'attacker' | 'defender' = isDefender ? 'defender' : 'attacker'
   // 聚合我方兵力/损耗
-  const myTotalForce = myBattles.reduce((sum, b) => sum + (side === 'attacker' ? atkForce(b) : defForce(b)), 0)
+  const myTotalForce = myBattles.reduce(
+    (sum, b) => sum + (side === 'attacker' ? atkForce(b) : defForce(b)),
+    0,
+  )
   const foeTotalForce = isDefender
     ? myBattles.reduce((sum, b) => sum + atkForce(b), 0)
     : defForce(myBattles[0])
   const maxTurnsVal = Math.max(...myBattles.map((b) => b.turns))
-  const myTotalLoss = myBattles.reduce((sum, b) => sum + (side === 'attacker' ? b.lastAttackerLoss : b.lastDefenderLoss), 0)
+  const myTotalLoss = myBattles.reduce(
+    (sum, b) => sum + (side === 'attacker' ? b.lastAttackerLoss : b.lastDefenderLoss),
+    0,
+  )
   const foeTotalLoss = isDefender
     ? myBattles.reduce((sum, b) => sum + b.lastAttackerLoss, 0)
     : myBattles[0].lastDefenderLoss
@@ -1580,7 +1749,8 @@ async function requestPeaceGroup(g: BattleGroup): Promise<void> {
   try {
     const outcome = await negotiatePeace({
       foeTag: (OWNER_LABELS as Record<string, string>)[foeFaction] ?? foeFaction,
-      foeLeader: foeDetail?.leader ?? ((OWNER_LABELS as Record<string, string>)[foeFaction] ?? foeFaction),
+      foeLeader:
+        foeDetail?.leader ?? (OWNER_LABELS as Record<string, string>)[foeFaction] ?? foeFaction,
       personality: foeDetail?.personality ?? '沉稳',
       playerTag: (OWNER_LABELS as Record<string, string>)[me] ?? me,
       playerSide: side,
@@ -1600,7 +1770,12 @@ async function requestPeaceGroup(g: BattleGroup): Promise<void> {
     peaceState.value.busy = false
   } catch {
     if (peaceState.value) {
-      peaceState.value.outcome = { accept: false, indemnity: 0, narrative: '和议未成。', final: false }
+      peaceState.value.outcome = {
+        accept: false,
+        indemnity: 0,
+        narrative: '和议未成。',
+        final: false,
+      }
       peaceState.value.busy = false
     }
   }
@@ -1614,7 +1789,12 @@ async function onPeaceCounter(): Promise<void> {
   if (!s || !me || s.busy || s.round >= PEACE_MAX_ROUNDS) return
   const counter = Number(counterInput.value)
   if (!Number.isFinite(counter)) {
-    useToast().push({ icon: 'alert-triangle', tone: 'error', title: '还价', text: '请输入一个数字（万银）' })
+    useToast().push({
+      icon: 'alert-triangle',
+      tone: 'error',
+      title: '还价',
+      text: '请输入一个数字（万银）',
+    })
     return
   }
   const b = s.battle
@@ -1629,7 +1809,7 @@ async function onPeaceCounter(): Promise<void> {
   try {
     const outcome = await negotiatePeace({
       foeTag: (OWNER_LABELS as Record<string, string>)[s.foe] ?? s.foe,
-      foeLeader: foeDetail?.leader ?? ((OWNER_LABELS as Record<string, string>)[s.foe] ?? s.foe),
+      foeLeader: foeDetail?.leader ?? (OWNER_LABELS as Record<string, string>)[s.foe] ?? s.foe,
       personality: foeDetail?.personality ?? '沉稳',
       playerTag: (OWNER_LABELS as Record<string, string>)[me] ?? me,
       playerSide: s.playerSide,
@@ -1650,7 +1830,12 @@ async function onPeaceCounter(): Promise<void> {
     peaceState.value.busy = false
   } catch {
     if (peaceState.value) {
-      peaceState.value.outcome = { accept: false, indemnity: 0, narrative: '来使语塞，谈判僵持。', final: false }
+      peaceState.value.outcome = {
+        accept: false,
+        indemnity: 0,
+        narrative: '来使语塞，谈判僵持。',
+        final: false,
+      }
       peaceState.value.busy = false
     }
   }
@@ -1670,7 +1855,10 @@ function onPeaceAccept(): void {
   }
   peaceVisible.value = false
   for (const id of s.battleIds) {
-    executeOrder({ order: 'stopBattle', id, reason: 'peace', text: s.outcome.narrative }, { authority: 'system' })
+    executeOrder(
+      { order: 'stopBattle', id, reason: 'peace', text: s.outcome.narrative },
+      { authority: 'system' },
+    )
   }
   peaceState.value = null
 }
@@ -1678,7 +1866,12 @@ function onPeaceAccept(): void {
 /** 拒绝 / 谈判破裂：关弹窗，战斗继续 */
 function onPeaceReject(): void {
   peaceVisible.value = false
-  useToast().push({ icon: 'affiliate', tone: 'neutral', title: '议和破裂', text: '和谈未成，战事继续' })
+  useToast().push({
+    icon: 'affiliate',
+    tone: 'neutral',
+    title: '议和破裂',
+    text: '和谈未成，战事继续',
+  })
   peaceState.value = null
 }
 
@@ -2307,6 +2500,8 @@ function onClick(e: MouseEvent): void {
     console.log('点击区域:', result.feature.properties)
     selectedFeature = result.feature
     highlightFeature(result.feature)
+    const gb = result.feature.properties?.gb as string | undefined
+    if (gb && useGameStore().cities[gb]?.owner === useGameStore().currentFaction) openCampaign(gb)
   } else {
     console.log('点击国家:', result.feature.properties)
     selectedWorldFeature = result.feature
@@ -2697,7 +2892,9 @@ onUnmounted(() => {
   color: var(--ink);
   font-family: var(--font-kai);
   box-shadow: 0 1px 3px rgba(90, 60, 20, 0.08);
-  transition: box-shadow 0.25s ease, transform 0.25s ease;
+  transition:
+    box-shadow 0.25s ease,
+    transform 0.25s ease;
 }
 
 .battle-item:hover {
@@ -2737,9 +2934,15 @@ onUnmounted(() => {
 }
 
 @keyframes battle-pulse {
-  0% { box-shadow: 0 0 0 0 rgba(176, 74, 58, 0.45); }
-  70% { box-shadow: 0 0 0 7px rgba(176, 74, 58, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(176, 74, 58, 0); }
+  0% {
+    box-shadow: 0 0 0 0 rgba(176, 74, 58, 0.45);
+  }
+  70% {
+    box-shadow: 0 0 0 7px rgba(176, 74, 58, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(176, 74, 58, 0);
+  }
 }
 
 .battle-route {
@@ -2871,8 +3074,12 @@ onUnmounted(() => {
   font-variant-numeric: tabular-nums;
 }
 
-.loss-atk { color: var(--cinnabar); }
-.loss-def { color: var(--brown); }
+.loss-atk {
+  color: var(--cinnabar);
+}
+.loss-def {
+  color: var(--brown);
+}
 
 .trend {
   margin-left: auto;
@@ -2880,9 +3087,15 @@ onUnmounted(() => {
   font-weight: 700;
 }
 
-.trend-atk { color: var(--cinnabar); }
-.trend-def { color: #6d5a37; }
-.trend-even { color: var(--ink-muted); }
+.trend-atk {
+  color: var(--cinnabar);
+}
+.trend-def {
+  color: #6d5a37;
+}
+.trend-even {
+  color: var(--ink-muted);
+}
 
 .battle-end-btn {
   flex: none;
@@ -2971,14 +3184,18 @@ body.cloud-active .battle-card {
   border: 1px solid rgba(138, 109, 75, 0.42);
   border-top: 2px solid var(--cinnabar);
   border-radius: var(--radius-sm);
-  box-shadow: 0 6px 20px rgba(60, 40, 15, 0.28), 0 1px 3px rgba(60, 40, 15, 0.18);
+  box-shadow:
+    0 6px 20px rgba(60, 40, 15, 0.28),
+    0 1px 3px rgba(60, 40, 15, 0.18);
   color: var(--ink);
   cursor: default;
   transition: box-shadow 0.2s ease;
 }
 
 .battle-card:hover {
-  box-shadow: 0 8px 26px rgba(60, 40, 15, 0.38), 0 1px 3px rgba(60, 40, 15, 0.18);
+  box-shadow:
+    0 8px 26px rgba(60, 40, 15, 0.38),
+    0 1px 3px rgba(60, 40, 15, 0.18);
 }
 
 /* 折叠态标题条（整条可点，切换展开） */
@@ -3051,8 +3268,12 @@ body.cloud-active .battle-card {
   white-space: nowrap;
 }
 
-.bc-atk { color: var(--cinnabar); }
-.bc-def { color: #6d5a37; }
+.bc-atk {
+  color: var(--cinnabar);
+}
+.bc-def {
+  color: #6d5a37;
+}
 
 .bc-vs-mark {
   font-size: 10px;
@@ -3120,7 +3341,10 @@ body.cloud-active .battle-card {
   border: 1px solid rgba(138, 109, 75, 0.35);
   border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease;
 }
 
 .bc-btn:hover {
@@ -3260,7 +3484,9 @@ body.cloud-active .battle-card {
   font-size: 15px;
   letter-spacing: 4px;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s;
 }
 
 .verdict-btn:hover {
@@ -3305,8 +3531,12 @@ body.cloud-active .battle-card {
   border-bottom: 1px dashed rgba(138, 109, 75, 0.35);
 }
 
-.peace-pay { color: var(--cinnabar); }
-.peace-gain { color: #5a7a3a; }
+.peace-pay {
+  color: var(--cinnabar);
+}
+.peace-gain {
+  color: #5a7a3a;
+}
 
 .peace-final-hint {
   font-size: 12px;
@@ -3372,11 +3602,23 @@ body.cloud-active .battle-card {
   animation: peace-blink 1.2s ease-in-out infinite;
 }
 
-.peace-dot:nth-child(2) { animation-delay: 0.2s; }
-.peace-dot:nth-child(3) { animation-delay: 0.4s; }
+.peace-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.peace-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
 
 @keyframes peace-blink {
-  0%, 80%, 100% { opacity: 0.25; transform: scale(0.8); }
-  40% { opacity: 1; transform: scale(1); }
+  0%,
+  80%,
+  100% {
+    opacity: 0.25;
+    transform: scale(0.8);
+  }
+  40% {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 </style>

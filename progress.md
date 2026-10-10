@@ -65,3 +65,65 @@ first legal attack connectivity and previews, then lightweight supply, then econ
 Desktop/mobile command-panel screenshots inspected; the API distinction is fully visible.
 Standard browser-game smoke script captured the map and onboarding correctly; no page errors
 in the separate command-panel check. Browser closed after QA.
+
+## Connectivity milestone
+
+User request: Remove the API-quota explanation and continue the recommended gameplay goals.
+
+Removed that explanation from active UI/prompts/scripts/rule docs. Added 375-city topology:
+979 shared-boundary land links plus four explicit sea lanes, with deterministic generation,
+source hash and synthetic corner/short-boundary/override tests. Paths only traverse own
+cities, with opposing endpoints permitted for battle. UI, AI context and execution share
+the same guard. Previewed and paid costs include every route segment and all field forces.
+New battles persist route metadata; older route-less events remain readable.
+
+First full regression after integration: 26 files / 345 tests passed; another five topology
+generation tests passed separately. Typecheck, ESLint and both builds passed; Oxlint has
+the same 41 baseline diagnostics. Browser desktop/mobile screenshots inspected: illegal
+Guang'an -> Beijing disabled, valid Guang'an -> Chongqing battle and Guang'an -> Nanchong
+transfer executed; after both, points=4, treasury=1195.6, granary=716.7. Sea preview Taiwan
+-> Fuzhou showed 313km, silver12.5/food9.4 at 1k, including the sea multiplier. No page errors.
+Browser closed. Next milestone: lightweight supply and occupation consolidation.
+
+## Supply and consolidation milestone
+
+Added initial regional hubs for every owned starting component plus ready level-3
+cities as supply centres. Own connected paths (including explicit sea lanes) provide
+supply; disconnected sources retain attack permission but have effective attacking
+strength multiplied by 0.8. Captures and agreed cessions under new rules take two
+world turns to consolidate, produce half tax/food meanwhile, and do not discount upkeep.
+Pending cities may be transit nodes but cannot be hubs. New battles explicitly version
+the supply rule; old captures/battles keep legacy behaviour. Capture dates and remaining
+turns survive event replay and save/load.
+
+UI and AI now show supply/consolidation status and share tuning labels. Actual paid
+march costs are returned through the scheduler to historical execution feedback.
+Battle logs use the same frozen supply snapshot as the round's formula, including
+when asynchronous flavor or other battle effects change city status before reporting.
+
+Final regression: 28 files / 366 tests passed, including six earlier provider responses
+replayed offline (no new provider calls). Frontend/backend builds, typecheck, ESLint,
+topology --check and git diff --check passed. Oxlint remains the same 41 baseline errors;
+the final main bundle is 774.74kB minified / 226.72kB gzip with the existing size warning.
+
+QA inventory and observed checks:
+- Source/target/kind/troop controls: legal land, illegal enemy transit, own transfer,
+  zero new deployment with existing forces, sea costs (prior connectivity checks).
+- End-to-end actual battle: Guang'an -> Chongqing 1k, confirmation feedback reported
+  silver2.5/food1.9; state points6->5, treasury1200->1197.5, granary720->718.1.
+- Off-happy-path staged source isolation: attack remains legal but shows 20% penalty.
+- Newly captured Nanchong level-3 hub: two turns pending, tax/food50%, source still
+  unsupplied; two dateAdvance events restore supply and remove integration message.
+- Desktop1440x1000 and mobile375x812 screenshots inspected, primary preview controls,
+  warnings and confirmations fit. Mobile panel x13, width349, document width375.
+- No page errors observed. Native pointer click and keyboard Enter were unreliable
+  in sandbox Pixi/Chromium; execution used DOM click dispatch and verified real state.
+  This is not claimed as a complete real-input browser compatibility test.
+- Required browser-game helper initially captured black before rendering settled;
+  rerun at180frames/pause3000 captured the rendered map/onboarding and was inspected.
+  It is a startup smoke test; separate gameplay screenshots cover the implemented UI.
+Browser closed after QA.
+
+Next: reproducible 20-40-turn economy/scripted-agent benchmark before balancing.
+Real model long-game evaluation remains separate. Full animation-failure transactional
+rollback, baseline lint cleanup, chunk splitting, and naval/ally-transit rules remain open.
