@@ -139,7 +139,7 @@ export function describeEvent(e: GameEvent, cities: Record<string, { name: strin
     case 'granaryChange':
       return `${fn(e.faction)} 粮仓 ${e.delta > 0 ? '+' : ''}${round1(e.delta)} 万石${e.reason ? `（${e.reason}）` : ''}`
     case 'economicTick': {
-      const parts = e.entries.map((it) => `${fn(it.faction)}${it.silverDelta >= 0 ? '+' : ''}${round1(it.silverDelta)}`)
+      const parts = e.entries.map((it) => `${fn(it.faction)} 银${it.silverDelta >= 0 ? '+' : ''}${round1(it.silverDelta)}/粮${it.foodDelta >= 0 ? '+' : ''}${round1(it.foodDelta)}${it.arrear ? '（欠饷）' : ''}${it.famine ? e.attritionVersion === 2 ? '（缺粮：驻军及外出部队减员）' : '（缺粮）' : ''}`)
       return `经济结算：${parts.join('，')}`
     }
     case 'pauseForPlayer':

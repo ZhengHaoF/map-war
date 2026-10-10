@@ -3,9 +3,13 @@ import { useGameStore } from '@/stores/game'
 import { Owner } from '@/data/owners'
 import type { GameOrder } from './gameOrders'
 import { checkLiveOrder } from './gameplayRules'
-import { routesFrom, type CampaignRoute } from './campaignRoutes'
+import { routesFrom, getCityNeighbours, type CampaignRoute } from './campaignRoutes'
 import { marchCost } from './economy'
-import { CAMPAIGN_AI_TARGET_LIMIT, OCCUPATION_CONSOLIDATION_TURNS } from '@/data/gameConfig'
+import {
+  CAMPAIGN_AI_TARGET_LIMIT,
+  CAMPAIGN_AI_SOURCE_LIMIT,
+  OCCUPATION_CONSOLIDATION_TURNS,
+} from '@/data/gameConfig'
 import { getDisplayName } from '@/data/displayNames'
 import {
   getSupplyStatus,
@@ -82,8 +86,23 @@ export function getAttackableTargets(
 export function buildCampaignContext(faction: Owner): string {
   const store = useGameStore()
   const options: CampaignPreview[] = []
-  for (const city of Object.values(store.cities)) {
-    if (city.owner !== faction || (city.troops < 0.1 && city.fieldForce <= 0)) continue
+  const border = new Map<string, boolean>()
+  const sources = Object.values(store.cities).filter(
+    (city) => city.owner === faction && (city.troops >= 0.1 || city.fieldForce > 0),
+  )
+  for (const city of sources)
+    border.set(
+      city.gb,
+      getCityNeighbours(city.gb).some((gb) => store.cities[gb]?.owner !== faction),
+    )
+  sources.sort(
+    (a, b) =>
+      Number(border.get(b.gb)) - Number(border.get(a.gb)) ||
+      b.troops + b.fieldForce - a.troops - a.fieldForce ||
+      a.gb.localeCompare(b.gb),
+  )
+  for (const city of sources.slice(0, CAMPAIGN_AI_SOURCE_LIMIT)) {
+    if (store.getActionPoints(faction) <= 0 || options.length >= CAMPAIGN_AI_TARGET_LIMIT) break
     options.push(...getAttackableTargets(city.gb, Math.min(1, city.troops), faction).slice(0, 2))
   }
   options.sort((a, b) => (a.silver ?? 0) - (b.silver ?? 0))
@@ -95,7 +114,7 @@ export function buildCampaignContext(faction: Owner): string {
   return [
     '行军规则：中途只可经过己方城市，敌方仅可作为进攻终点；不能穿越第三方或盟友领土。跨海仅允许指定游戏航线，海路成本较高。调兵也须己方连通。',
     `补给规则：未与已整合的补给中心连通时仍可进攻，但${SUPPLY_PENALTY_LABEL}；新占领城市有${OCCUPATION_CONSOLIDATION_TURNS}回合整合期，其${OCCUPATION_YIELD_LABEL}且不能充当补给中心。`,
-    `当前可执行进攻示例（最多${CAMPAIGN_AI_TARGET_LIMIT}条，1k仅为预览示例，出兵量需自行判断；未列出的路线不一定非法）：`,
+    `当前可执行进攻示例（采样最多${CAMPAIGN_AI_SOURCE_LIMIT}座出发城，最多${CAMPAIGN_AI_TARGET_LIMIT}条；1k仅为预览示例，出兵量需自行判断；未列出的路线不一定非法）：`,
     ...(rows.length
       ? rows
       : [

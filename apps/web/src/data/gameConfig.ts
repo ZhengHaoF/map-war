@@ -84,6 +84,9 @@ export const ARREAR_MORALE_PENALTY = -5
 
 /** 缺粮时兵力损耗比例（每回合）。调大 → 断粮死更快 */
 export const FAMINE_TROOP_LOSS_RATE = 0.02
+/** New economic ticks: minimum loss per nonempty force pool, in k (100 soldiers).
+ * Prevent integer rounding from making small garrisons immune to starvation. */
+export const FAMINE_MIN_TROOP_LOSS_K = 0.1
 
 /** 占领城市后，新占领城市的士气奖励。调大 → 占领后稳定控制更快 */
 export const CAPTURE_MORALE_BONUS = 12
@@ -318,6 +321,8 @@ export const COVERT_ACTION_SILVER_COST = 10
 export const SEA_ROUTE_COST_MULTIPLIER = 2
 /** Keep strategic target context bounded, independently of the number of owned cities. */
 export const CAMPAIGN_AI_TARGET_LIMIT = 16
+/** Bound prompt sampling work, not player legality or the complete campaign UI. */
+export const CAMPAIGN_AI_SOURCE_LIMIT = 16
 /** Lightweight logistics: connected to a ready regional hub or a level-3+ city. */
 export const SUPPLY_BASE_MIN_LEVEL = 3
 export const UNSUPPLIED_BATTLE_FACTOR = 0.8

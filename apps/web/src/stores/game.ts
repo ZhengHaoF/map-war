@@ -10,6 +10,7 @@ import type { DiplomacyRecord } from '@/utils/diplomacy'
 import {
   computeFactionEconomy,
   computeInitialFunds,
+  famineTroops,
   ARREAR_MORALE_PENALTY,
   FAMINE_TROOP_LOSS_RATE,
 } from '@/utils/economy'
@@ -243,7 +244,7 @@ export type GameEvent =
   // ── 经济系统 ──
   | { type: 'treasuryChange'; faction: Owner; delta: number; reason?: string }
   | { type: 'granaryChange'; faction: Owner; delta: number; reason?: string }
-  | { type: 'economicTick'; entries: EconomyTickEntry[] }
+  | { type: 'economicTick'; entries: EconomyTickEntry[]; attritionVersion?: 2 }
   // ── 外交系统 ──
   | {
       type: 'relationChange'
@@ -1130,7 +1131,7 @@ export const useGameStore = defineStore('game', () => {
     if (e.type === 'economicTick') {
       const nextLast: Record<string, FactionEconomyBreakdown> = {}
       // 收集本批次需调整的城（gb → 增量），循环结束后一次性不可变替换 cities.value
-      const cityPatches: Record<string, { morale?: number; troops?: number }> = {}
+      const cityPatches: Record<string, { morale?: number; troops?: number; fieldForce?: number }> = {}
       for (const ent of e.entries) {
         const f = ent.faction
         treasury.value[f] = round1((treasury.value[f] ?? 0) + ent.silverDelta)
@@ -1155,7 +1156,13 @@ export const useGameStore = defineStore('game', () => {
           }
           if (starved) {
             const base = patch.troops ?? c.troops
-            patch.troops = Math.max(0, Math.round(base * (1 - FAMINE_TROOP_LOSS_RATE)))
+            if (e.attritionVersion === 2) {
+              patch.troops = famineTroops(base)
+              patch.fieldForce = famineTroops(patch.fieldForce ?? c.fieldForce)
+            } else {
+              // Legacy events preserve exact save/replay outcomes.
+              patch.troops = Math.max(0, Math.round(base * (1 - FAMINE_TROOP_LOSS_RATE)))
+            }
           }
         }
       }

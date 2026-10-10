@@ -29,8 +29,7 @@ import type { GameOrder } from '@/utils/gameOrders'
 import type { WorldSettleResult } from '@/utils/ai'
 import { Owner, OWNER_LABELS, OWNER_DETAILS } from '@/data/owners'
 import { useToast } from '@/composables/useToast'
-import { computeFactionEconomy } from '@/utils/economy'
-import type { EconomyTickEntry } from '@/stores/game'
+import { buildEconomicTickEvent } from '@/utils/economicTick'
 
 import { useDiplomacyBus } from '@/composables/useDiplomacyBus'
 import type { DiplomaticProposal } from '@/utils/ai/factionAi'
@@ -136,24 +135,9 @@ async function invokeWorldAISettle(currentDate: string): Promise<WorldSettleResu
  */
 function runEconomicTick(): void {
   const store = useGameStore()
-  const entries: EconomyTickEntry[] = []
-  for (const f of store.activeFactions) {
-    const eco = computeFactionEconomy(store.cities, f, store.turnCount)
-    const arrear = eco.silverNet < 0 && store.getTreasury(f) + eco.silverNet < 0
-    const famine = eco.foodNet < 0 && store.getGranary(f) + eco.foodNet < 0
-    entries.push({
-      faction: f,
-      silverDelta: eco.silverNet,
-      foodDelta: eco.foodNet,
-      silverTax: eco.silverTax,
-      silverUpkeep: eco.silverUpkeep,
-      foodProduce: eco.foodProduce,
-      foodUpkeep: eco.foodUpkeep,
-      arrear,
-      famine,
-    })
-  }
-  store.applyEvent({ type: 'economicTick', entries })
+  const event = buildEconomicTickEvent(store)
+  const entries = event.entries
+  store.applyEvent(event)
 
   // 玩家预警
   const pf = store.currentFaction
@@ -172,7 +156,7 @@ function runEconomicTick(): void {
         icon: 'alert-triangle',
         tone: 'amber',
         title: '缺粮',
-        text: `粮草不继，驻军减员（余 ${store.getGranary(pf)} 万石）`,
+        text: `粮草不继，驻军与外出部队减员（余 ${store.getGranary(pf)} 万石）`,
       })
     }
   }

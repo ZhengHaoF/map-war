@@ -16,6 +16,7 @@ import { buildBattleContext } from './aiPromptBuilder'
 import { readRelation, isInTruce } from './diplomacy'
 import { buildCampaignContext } from './campaignPreview'
 import { occupationRemaining, OCCUPATION_YIELD_LABEL } from './supply'
+import { buildStrategyContext } from './strategyContext'
 
 import {
   FACTION_AI_HISTORY_MAX,
@@ -122,6 +123,7 @@ export function buildFactionContext(faction: Owner): string {
   // byActor 历史
   lines.push('')
   lines.push(buildCampaignContext(faction))
+  lines.push(buildStrategyContext(faction))
   const history = buildEventHistory({
     mode: 'byActor',
     actor: faction,
@@ -194,6 +196,7 @@ export function buildMinorContext(factions: Owner[]): string {
       )
     }
     lines.push(buildCampaignContext(f))
+    lines.push(buildStrategyContext(f))
     lines.push('')
   }
 

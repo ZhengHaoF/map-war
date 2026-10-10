@@ -12,6 +12,8 @@ import {
 } from '@/utils/campaignPreview'
 import { marchCost } from '@/utils/economy'
 import { useGameScheduler } from '@/composables/useGameScheduler'
+import * as supply from '@/utils/supply'
+import { CAMPAIGN_AI_SOURCE_LIMIT } from '@/data/gameConfig'
 
 vi.mock('@/utils/troopAnimation', () => ({
   playArcAnimation: vi.fn<() => Promise<void>>().mockResolvedValue(undefined),
@@ -69,6 +71,21 @@ function world() {
   return { store, a, b, c }
 }
 describe('campaign execution and preview parity', () => {
+  it('bounds AI source sampling without restricting player reachability', () => {
+    const { store, a } = world()
+    const spy = vi.spyOn(supply, 'getSupplyStatus')
+    try {
+      const text = buildCampaignContext(Owner.KMT)
+      const sampled = new Set(spy.mock.calls.map(call => call[0]))
+      expect(sampled.size).toBeLessThanOrEqual(CAMPAIGN_AI_SOURCE_LIMIT)
+      expect(text).toContain(`采样最多${CAMPAIGN_AI_SOURCE_LIMIT}座出发城`)
+      const unlisted = Object.values(store.cities).find(city => city.owner === Owner.KMT
+        && !sampled.has(city.gb) && previewCampaign(city.gb, a, 1, 'battle', Owner.KMT).ok)
+      expect(unlisted).toBeDefined()
+    } finally {
+      spy.mockRestore()
+    }
+  })
   it('executes the exact previewed route, cost and action spend', async () => {
     const { store, a, c } = world()
     const preview = previewCampaign(a, c, 2)

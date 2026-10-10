@@ -1,0 +1,118 @@
+/** Mechanical report generation from exported benchmark rows, never a live API call. */
+import { readFileSync, writeFileSync } from "node:fs";
+const arg = (name) => {
+  const index = process.argv.indexOf(name);
+  if (index < 0 || !process.argv[index + 1]) throw new Error(`Missing ${name}`);
+  return process.argv[index + 1];
+};
+const before = JSON.parse(readFileSync(`${arg("--before")}/economy-benchmark.json`, "utf8"));
+const after = JSON.parse(readFileSync(`${arg("--after")}/economy-benchmark.json`, "utf8"));
+const destination = arg("--out");
+const sum = (rows, key) => rows.reduce((total, row) => total + row[key], 0);
+function aggregate(rows) {
+  const attempts = sum(rows, "attempts"), rejected = sum(rows, "rejected");
+  return {
+    rows: rows.length, attempts, rejected,
+    rejectionPercent: attempts ? Number((100 * rejected / attempts).toFixed(1)) : null,
+    spent: sum(rows, "pointsSpent"), capacity: sum(rows, "capacity"),
+    utilizationPercent: Number((100 * sum(rows, "pointsSpent") / sum(rows, "capacity")).toFixed(1)),
+    arrearFactionTurns: rows.filter(r => r.arrear).length,
+    famineFactionTurns: rows.filter(r => r.famine).length,
+    arrearFactions: [...new Set(rows.filter(r => r.arrear).map(r => r.faction))],
+    startedBattles: sum(rows, "startedBattles"), captureEvents: sum(rows, "captures"),
+    noActionFactionTurns: rows.filter(r => r.capacity > 0 && r.pointsSpent === 0).length,
+  };
+}
+const policies = ["idle", "recruit-rush", "reserve-aware", "food-shock"];
+const summaries = Object.fromEntries(policies.map(policy => [policy, {
+  before: aggregate(before.rows.filter(r => r.policy === policy)),
+  after: aggregate(after.rows.filter(r => r.policy === policy)),
+}]));
+const sameNormal = JSON.stringify(before.rows.filter(r => r.policy !== "food-shock")) === JSON.stringify(after.rows.filter(r => r.policy !== "food-shock"));
+const fieldComparison = after.rows.filter(r => r.policy === "food-shock" && r.turn === 40).map(row => {
+  const old = before.rows.find(r => r.policy === row.policy && r.faction === row.faction && r.turn === row.turn);
+  if (!old) throw new Error(`Missing paired baseline for ${row.faction}`);
+  return { faction: row.faction, label: after.labels[row.faction], beforeTroops: old.troops,
+    afterTroops: row.troops, beforeFieldForce: old.fieldForce, afterFieldForce: row.fieldForce };
+});
+const firstArrear = [...new Set(after.rows.map(r => r.faction))].map(faction => ({
+  faction, label: after.labels[faction],
+  turn: after.rows.find(r => r.policy === "recruit-rush" && r.seed === 1931 && r.faction === faction && r.arrear)?.turn ?? null,
+}));
+writeFileSync(destination.replace(/\.md$/, ".summary.json"), JSON.stringify({
+  normalScenariosUnchanged: sameNormal, beforeRows: before.rows.length, afterRows: after.rows.length,
+  summaries, fieldComparison, firstArrear,
+}, null, 2) + "\n");
+const names = { idle: "不行动", "recruit-rush": "持续征兵", "reserve-aware": "储备与阶段策略", "food-shock": "极端缺粮压力" };
+const s = summaries["recruit-rush"].after, r = summaries["reserve-aware"].after;
+const text = `# map-war 40 回合经济与策略基准
+
+这份报告先区分经济公式、脚本决策与真实模型行为，再决定是否调参。代码在[map-war 项目](https://github.com/ZhengHaoF/map-war)，基准脚本为 \`apps/web/tests/economyBenchmark.spec.ts\`；本轮没有请求模型，也没有验证真实模型已经学会新的策略。
+
+## 方法与边界
+
+- **规模**：每个常规策略使用 1931、1942、2026 三个种子，12 个势力、40 回合；缺粮压力只运行种子 1931。每个版本 ${after.rows.length} 条“势力 × 回合”记录，修正前后合计 ${before.rows.length + after.rows.length} 条。种子改变势力行动顺序与同分目标排序，不是随机独立样本，不进行显著性检验。
+- **执行路径**：使用真实城市连接、权限检查、成本、行动点、经济事件 reducer、补给、占领整合与战斗结算；动画和模型调味关闭。经济先结算，随后行动、战斗、日期推进，与生产回合阶段顺序一致。
+- **基准限制**：没有外交决策、玩家自由效果、世界随机事件、真实模型推理或人类操作。地点使用已生成连接图的质心；战斗守城、来源城和费用仍走实际规则。脚本不是当前生产 AI 的替身。
+- **不行动**：不下达任何指令，测初始静态收入能否维持军队。
+- **持续征兵**：每势力每回合最多六次、每次 5k，直到实际执行层拒绝；不计算长期维护费。这是压力策略，不是对真实模型行为的测量。
+- **储备与阶段策略**：每回合最多三项动作；负收入先补粮或工业，其他时候比较可执行、已供给且兵力足够的目标，并预留三回合净消耗。缺少合适目标时整备或保守征兵；每条重算预算并预检，因此零拒绝并不证明模型错误率下降。
+- **极端缺粮压力**：把产粮和粮库通过合法、分批事件降至零，每势力部署部分部队后不采取补救，专门暴露缺粮损耗边界。不是正常开局，也不是历史或真实玩家行为。
+
+## 常规策略结果
+
+| 脚本策略 | 尝试指令 | 拒绝指令 | 拒绝率 | 行动点利用率 | 欠饷势力回合 | 开战次数 | 占领事件 |
+|---|---:|---:|---:|---:|---:|---:|---:|
+${["idle", "recruit-rush", "reserve-aware"].map(p => {
+  const a = summaries[p].after;
+  return `| ${names[p]} | ${a.attempts} | ${a.rejected} | ${a.rejectionPercent === null ? "不适用" : `${a.rejectionPercent}%`} | ${a.utilizationPercent}% | ${a.arrearFactionTurns} | ${a.startedBattles} | ${a.captureEvents} |`;
+}).join("\n")}
+
+行动点利用率为实际消耗 / 存活势力当轮初始可用点数；储备策略人为限定三项动作，因此上限为六点预算的 50%，不能把两种策略的比例直接解释为 AI 能力差异。欠饷“势力回合”是累计次数，不是独立破产人数；占领事件包括夺回旧城，不是净增加的城市数。
+
+- **初始经济不是全面不足**：不行动的三组开局均未出现欠饷或缺粮；粮食在常规策略中也没有成为紧缺资源。因此本轮不统一提高维护费，不凭这些脚本结果宣布粮食系统已经平衡。
+- **盲目征兵会耗尽财政**：持续征兵产生 ${s.rejected} 次拒绝，拒绝率 ${s.rejectionPercent}%，涉及 ${s.arrearFactions.length} 个势力出现欠饷。种子 1931 下的首次欠饷回合如下；失败的主要方向是“购买时付得起、后续养不起”，而不是初始收入全不足。
+- **保守预算不是免疫失地**：储备策略有 ${r.arrearFactionTurns} 个欠饷势力回合，涉及 ${r.arrearFactions.map(f => after.labels[f]).join("、")}。当前领土与收入预测不能保证失地后继续成立，因此不会把储备建议变为硬性禁止所有冒险行动。
+
+| 势力 | 持续征兵首次欠饷回合，种子 1931 |
+|---|---:|
+${firstArrear.map(x => `| ${x.label} | ${x.turn ?? "40 回合内未出现"} |`).join("\n")}
+
+## 确认并修复的缺粮漏洞
+
+旧算法仅对驻军做整千损耗取整，小驻军可能长期无损；外出部队完全不受缺粮影响。修正后的新经济事件同时处理驻军与外出部队：每个非空兵力池按 2% 损耗，最少 0.1k，按 0.1k 粒度收敛，损耗不超过现有兵力。
+
+| 势力 | 旧规则第 40 回合总兵力 k | 新规则总兵力 k | 旧外出兵力 k | 新外出兵力 k |
+|---|---:|---:|---:|---:|
+${fieldComparison.map(x => `| ${x.label} | ${x.beforeTroops} | ${x.afterTroops} | ${x.beforeFieldForce} | ${x.afterFieldForce} |`).join("\n")}
+
+兵力变化来自上述极端压力场景，不可外推正常战争中的预期损耗。旧经济事件没有 \`attritionVersion: 2\` 时仍沿用原算法，保留旧存档回放结果；新事件明确标记版本，存读档回归覆盖实际种子事件重建。
+
+常规三种策略的全部逐回合记录在修正前后${sameNormal ? "完全一致" : "发生变化，需逐项复核"}。此外，欠饷/缺粮提示现在根据结算后实际余额判断，即使本轮净收入为正，但尚未填平旧债，也不会错误地隐藏警告。
+
+## 已落地的决策与界面改进
+
+- **经济预测**：界面显示每回合净收支与按当前局势估算的储备回合，AI 上下文另列税收、产粮和养兵费明细；失地、战斗、未来建设和整合完成都不在保证范围内。
+- **征兵建议**：同时计算购买成本、额外三回合养兵费与可持续净收入；现有负收支时建议新增征兵为零。多条征兵应累计，不是每条重新使用同一限额，玩家仍可自行选择冒险。
+- **阶段提示**：根据粮食风险、财政风险、整合等待、现有战线和低士气，给出保粮、补税、整合、支援、整备或择机扩张建议。玩家、顾问、独立势力与批量势力上下文共用规则，执行权不转交脚本。
+- **提示词采样**：可执行进攻示例最多采样 16 座出发城、输出 16 条，优先边境与较多兵力来源，避免为一段短提示反复遍历全国。未列出的来源与路线仍可能合法，玩家前线面板和执行检查不受此采样上限限制。
+- **日志**：经济事件显示银粮变化、欠饷和缺粮，缺粮说明包含驻军与外出部队。静态预测不是额外收费或新的行动点限制。
+
+## 复现
+
+\`\`\`sh
+# 当前规则，40 回合完整矩阵
+MAPWAR_BENCHMARK_OUT=/tmp/map-war-after pnpm --filter warlords-1931-web exec vitest run tests/economyBenchmark.spec.ts
+# 用同一脚本重放旧缺粮算法，验证修正边界
+MAPWAR_BENCHMARK_LEGACY=1 MAPWAR_BENCHMARK_OUT=/tmp/map-war-before pnpm --filter warlords-1931-web exec vitest run tests/economyBenchmark.spec.ts
+node scripts/summarize_economy_benchmark.mjs --before /tmp/map-war-before --after /tmp/map-war-after --out docs/economy-benchmark-report.md
+\`\`\`
+
+Windows 环境可先设置相应环境变量再运行相同命令。默认单元测试只跑短局确定性检查，不自动运行或导出完整长局；输出包含 JSON 与 CSV，报告由真实记录机械生成，不手工回填结果。
+
+## 下一步
+
+先对真实模型的多条行动计划做预算、阶段目标和失败反馈评估，再增加地区控制或关键节点任务；不把脚本扩张速度当作真实模型胜率。本轮保留现有税收、粮产和维护费系数，海路、供给与整合系数也未凭这组试验改动；完整动画异常事务回滚和主包拆分仍单独排期。
+`;
+writeFileSync(destination, text);
+console.log(`Report generated: ${destination}; normal scenarios unchanged=${sameNormal}`);
