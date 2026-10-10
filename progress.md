@@ -180,3 +180,11 @@ still execute a legal attack. Serial final full regression:30files/387tests pass
 ESLint/build/typecheck passed; Oxlint remains41baseline errors. Legacy-switch export
 reproduced all4800baseline rows exactly. Browser startup smoke rerun/inspected separately
 from forecast QA. Final bundle size is recorded in the build log, not tuned here.
+
+Final browser-helper caveat: the last single-iteration smoke capture was black
+despite independent desktop/mobile forecast screenshots rendering correctly.
+A three-iteration retry then hung until the sandbox command timed out at630seconds;
+the owned helper process tree was terminated and the issue recorded internally.
+Do not count this final generic smoke check as passed. The earlier rendered smoke
+capture and independent UI/state checks are separate evidence, not proof that this
+helper failure is resolved. No code change or new regression result from this retry.
