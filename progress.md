@@ -30,7 +30,8 @@ replays: 24 files / 323 tests passed. Typecheck, ESLint and frontend/backend bui
 Oxlint has the same 41 diagnostics as the unmodified base, with no new diagnostics.
 See docs/gameplay-rules-first-pass.md for scope, evidence and reproduction.
 
-The standard browser-game script ran, but its canvas-only capture was black; full-page
+The standard browser-game script's initial capture was black; a final run with more
+frame/pause time correctly captured the rendered map and onboarding screen. Full-page
 Playwright screenshots confirm the map renders. Browser UI automation encountered slow
 pointer actions in the Pixi/Chromium environment; this is not treated as a passing full
 gameplay run. Desktop (1440x1000) and mobile (375x812) command-panel full-page screenshots
@@ -38,6 +39,9 @@ were inspected. The mobile modal is x=12, width=351, and the action budget is fu
 Real-response browser replay recruited successfully (6 -> 5 points, silver 1200 -> 1198,
 food 720 -> 719); at zero points a subsequent model-approved recruit was rejected with
 an explicit UI reason and no further silver/food debit. No page errors observed.
+Final UI replay after feedback refinement showed "已执行 0 条，未执行 1 条".
+Changes committed and pushed on fix/gameplay-rule-boundaries; PR #1 remains open.
+Static preview built separately; it does not include a running model backend.
 
 ## Follow-up
 
