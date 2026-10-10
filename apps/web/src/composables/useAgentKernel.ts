@@ -46,6 +46,7 @@ const { push: pushToast } = useToast()
 
 /** 回合摘要：本轮新增的 GameEvent 数组，弹窗用；null 表示没有待展示的摘要 */
 const turnSummary = ref<GameEvent[] | null>(null)
+const turnSummaryOwnership = ref<Record<string, Owner>>({})
 
 /** 调用专属政权 AI，返回通过结构 + 战略校验的 GameOrder[] + 可选电报 + 可选外交提案。 */
 async function invokeFactionAI(
@@ -220,6 +221,8 @@ async function runWorldTurn(): Promise<void> {
   progress.value = '分析势力关系…'
 
   const snap = store.getSnapshot()
+  turnSummaryOwnership.value = { ...snap.ownership }
+  const presentation = store.fastWorldDomestic ? 'fast' as const : 'full' as const
   const { related, unrelated } = classifyFactions({
     playerFaction: snap.currentFaction,
     activeFactions: snap.activeFactions,
@@ -276,7 +279,7 @@ async function runWorldTurn(): Promise<void> {
     const faction = factionPromises[i].faction
     if (orders.length) {
       allOrders.push(...orders)
-      scheduler.submit(orders, { authority: 'faction', actor: faction })
+      scheduler.submit(orders, { authority: 'faction', actor: faction, presentation })
     }
     // 电报：软上限每回合 2 封
     if (telegram && telegramCount < MAX_TELEGRAMS_PER_TURN) {
@@ -322,7 +325,7 @@ async function runWorldTurn(): Promise<void> {
       allOrders.push(...r.value)
       for (const order of r.value) {
         const actor = normalizeCommsFrom((order as GameOrder & { actor: string }).actor) as Owner
-        scheduler.submit([order], { authority: 'faction', actor })
+        scheduler.submit([order], { authority: 'faction', actor, presentation })
       }
     }
   }
@@ -392,6 +395,7 @@ export function useAgentKernel() {
     progress,
     lastError,
     turnSummary,
+    turnSummaryOwnership,
     endPlayerTurn,
     runWorldTurn,
   }

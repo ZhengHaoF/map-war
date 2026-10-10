@@ -5,6 +5,7 @@
     variant="parchment"
     :closable="false"
     width="440px"
+    :z-index="2400"
     @close="$emit('close')"
   >
     <div class="tsm-body">
@@ -12,25 +13,35 @@
       <div class="tsm-scroll">
         <!-- 空态保护 -->
         <div v-if="groups.length === 0" class="tsm-empty">
-          无事发生，岁月静好。
+          本方暂无需要处理的新变化。
         </div>
 
         <!-- 事件分组 -->
         <div v-for="g in groups" :key="g.key" class="tsm-group">
           <h3 class="tsm-group-title">
             <span class="tsm-group-label">{{ g.key }}</span>
-            <span class="tsm-group-count">{{ g.events.length }}</span>
+            <span class="tsm-group-count">{{ g.rows.length }}</span>
           </h3>
           <div
-            v-for="(e, i) in g.events"
+            v-for="(row, i) in g.rows"
             :key="i"
             class="tsm-row"
-            :class="{ 'tsm-row--important': isImportantEvent(e) }"
+            :class="{ 'tsm-row--important': row.important }"
           >
-            <span class="tsm-row-badge">{{ eventBadge(e) }}</span>
-            <span class="tsm-row-text">{{ eventText(e) }}</span>
+            <span class="tsm-row-badge">{{ row.badge }}</span>
+            <span class="tsm-row-text">{{ row.text }}</span>
           </div>
         </div>
+        <details v-if="projection.background.length" class="tsm-details">
+          <summary>其他势力 {{ projection.background.length }} 家（展开）</summary>
+          <p v-for="item in projection.background" :key="item.faction">{{ item.text }}</p>
+        </details>
+        <details class="tsm-details">
+          <summary>完整事件 {{ events.length }} 条（展开）</summary>
+          <div v-for="(e, i) in events" :key="i" class="tsm-row">
+            <span class="tsm-row-badge">{{ eventBadge(e) }}</span><span class="tsm-row-text">{{ eventText(e) }}</span>
+          </div>
+        </details>
       </div>
 
       <!-- 底栏：固定在弹窗底部，不随内容滚动 -->
@@ -48,20 +59,18 @@ import { computed, type Component } from 'vue'
 import { useGameStore, type GameEvent } from '@/stores/game'
 import GameModal from '@/components/ui/GameModal.vue'
 import GameButton from '@/components/ui/GameButton.vue'
+import type { Owner } from '@/data/owners'
+import { summarizeTurn } from '@/utils/turnSummary'
 import {
   eventBadge,
   describeEvent,
-  isImportantEvent,
-  isRoutineEvent,
-  eventSummaryGroup,
-  SUMMARY_GROUP_ORDER,
-  type SummaryGroup,
 } from '@/utils/eventDescribe'
 import IconCheck from '~icons/tabler/check'
 
 const props = defineProps<{
   visible: boolean
   events: GameEvent[]
+  ownershipBefore?: Record<string, Owner>
 }>()
 
 const emit = defineEmits<{
@@ -76,24 +85,9 @@ const ICONS: Record<string, Component> = {
 
 // ─── 分组 ───
 
-/** 非例行事件（过滤掉叙事/日期推进） */
-const meaningful = computed(() =>
-  props.events.filter((e) => !isRoutineEvent(e)),
-)
-
-/** 按 SummaryGroup 分组 */
-const groups = computed(() => {
-  const map = new Map<SummaryGroup, GameEvent[]>()
-  for (const e of meaningful.value) {
-    const g = eventSummaryGroup(e)
-    if (!map.has(g)) map.set(g, [])
-    map.get(g)!.push(e)
-  }
-  return SUMMARY_GROUP_ORDER.filter((k) => map.has(k)).map((k) => ({
-    key: k,
-    events: map.get(k)!,
-  }))
-})
+const projection = computed(() => summarizeTurn({ events: props.events,
+  player: store.currentFaction, cities: store.cities, ownershipBefore: props.ownershipBefore }))
+const groups = computed(() => projection.value.groups)
 
 // ─── 事件文本 ───
 
@@ -135,6 +129,10 @@ function onConfirm(): void {
   font-style: italic;
   padding: 24px 0;
 }
+.tsm-details { border-top: 1px solid var(--line-soft); padding-top: 10px; font-size: 12px; }
+.tsm-details summary { cursor: pointer; color: var(--ink-panel); }
+.tsm-details p { margin: 8px 0; line-height: 1.6; overflow-wrap: anywhere; }
+.tsm-row-text { overflow-wrap: anywhere; min-width: 0; }
 
 /* ── 分组 ── */
 .tsm-group-title {

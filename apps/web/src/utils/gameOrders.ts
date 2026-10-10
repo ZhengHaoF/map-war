@@ -821,7 +821,9 @@ export async function executeOrder(
     if (!reservation.ok) return reservation
   }
   try {
-    const result = await executeUncheckedOrder(json, guard.route)
+    const fastDomestic = context.authority === 'faction' && context.presentation === 'fast'
+      && ['recruit', 'develop', 'fortify', 'rally'].includes(json.order)
+    const result = await executeUncheckedOrder(json, guard.route, fastDomestic)
     if (!result.ok && guard.points && guard.actor)
       store.applyEvent({ type: 'actionRefunded', faction: guard.actor, amount: guard.points })
     return result
@@ -835,6 +837,7 @@ export async function executeOrder(
 async function executeUncheckedOrder(
   json: GameOrder,
   route?: CampaignRoute,
+  fastDomestic = false,
 ): Promise<OrderResult | BattleOrderResult | BattleListResult> {
   if (!json || !json.order) {
     return { ok: false, reason: '缺少 order 字段' }
@@ -1151,7 +1154,7 @@ async function executeUncheckedOrder(
         result = costChk
         break
       }
-      await developCity(gbId, DEVELOP_COLORS.recruit, `+${json.amount}k 兵`)
+      if (!fastDomestic) await developCity(gbId, DEVELOP_COLORS.recruit, `+${json.amount}k 兵`)
       const r = useGameStore().applyEvent({ type: 'produce', targetGb: gbId, amount: json.amount })
       if (!r.ok) {
         result = { ok: false, reason: r.reason! }
@@ -1186,7 +1189,7 @@ async function executeUncheckedOrder(
         result = costChk
         break
       }
-      await developCity(gbId, DEVELOP_COLORS.develop, `+${json.amount} ${FIELD_LABELS[field]}`)
+      if (!fastDomestic) await developCity(gbId, DEVELOP_COLORS.develop, `+${json.amount} ${FIELD_LABELS[field]}`)
       const r = useGameStore().applyEvent({
         type: 'cityStatChange',
         targetGb: gbId,
@@ -1218,7 +1221,7 @@ async function executeUncheckedOrder(
         result = costChk
         break
       }
-      await developCity(gbId, DEVELOP_COLORS.fortify, `+${json.amount} 工事`)
+      if (!fastDomestic) await developCity(gbId, DEVELOP_COLORS.fortify, `+${json.amount} 工事`)
       const r = useGameStore().applyEvent({
         type: 'cityStatChange',
         targetGb: gbId,
@@ -1251,7 +1254,7 @@ async function executeUncheckedOrder(
         break
       }
       const sign = json.amount > 0 ? '+' : ''
-      await developCity(gbId, DEVELOP_COLORS.rally, `${sign}${json.amount} 士气`)
+      if (!fastDomestic) await developCity(gbId, DEVELOP_COLORS.rally, `${sign}${json.amount} 士气`)
       const r = useGameStore().applyEvent({
         type: 'moraleChange',
         targetGb: gbId,
@@ -1290,7 +1293,7 @@ async function executeUncheckedOrder(
   }
 
   // 单点触发提示（replay 安全：executeOrder 只在活指令里被调用）
-  popToast(json, result)
+  if (!fastDomestic || !result.ok) popToast(json, result)
   return result
 }
 

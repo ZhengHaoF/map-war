@@ -53,6 +53,8 @@ function cityName(store: ReturnType<typeof useGameStore>, gb?: string): string {
 /** 单条事件 → 一行中文时间线；无法概述的事件返回 null（被跳过）。 */
 function eventLine(store: ReturnType<typeof useGameStore>, e: GameEvent): string | null {
   switch (e.type) {
+    case 'scenarioStarted':
+      return '川军开始西南支点战役，需完成昭通整合并连续守住三个完整回合'
     case 'commandReceipt':
       return `【执行层回执/${e.faction}】${receiptText(e)}`
     case 'dateAdvance':
@@ -110,6 +112,7 @@ function selectWindow(
     if (f === undefined) return []
     return log.filter((e) => {
       if (e.type === 'dateAdvance') return true
+      if (e.type === 'scenarioStarted') return e.faction === f
       if (e.type === 'commandReceipt') return e.faction === f
       if (e.type === 'capture') return e.actor === f || store.cities[e.targetGb]?.owner === f
       if (e.type === 'attack') return store.cities[e.fromGb]?.owner === f || store.cities[e.targetGb]?.owner === f

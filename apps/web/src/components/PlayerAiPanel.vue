@@ -98,6 +98,9 @@
               回合行动点 {{ actionPoints }}/{{ ACTION_POINTS_PER_TURN }}
               <span>改变世界消耗行动点，结束回合后恢复</span>
             </div>
+            <button v-if="gameStore.currentFaction === Owner.SCC" class="scenario-shortcut" @click="$emit('openObjective')">
+              {{ gameStore.scenarioStatus ? `战役：${gameStore.scenarioStatus.goal} · 守住${gameStore.scenarioStatus.holdTurns}/3` : '开启西南战役目标链' }}
+            </button>
             <div v-if="outlook" class="economic-outlook" aria-label="经济与阶段建议">
               <div>{{ outlook.goal }} · 净银 {{ outlook.eco.silverNet }} / 净粮 {{ outlook.eco.foodNet }} 每回合</div>
               <small>储备：银{{ runwayLabel(outlook.silverRunway) }}，粮{{ runwayLabel(outlook.foodRunway) }}。</small>
@@ -131,6 +134,10 @@
                 <IconSend :size="16" />{{ sendButtonText }}
               </GameButton>
             </div>
+            <label class="fast-presentation">
+              <input v-model="gameStore.fastWorldDomestic" type="checkbox" :disabled="busy">
+              AI 内政快速演出（规则不变）
+            </label>
           </div>
 
           <!-- 进队栏：面板底部，展示当前推演进度与待执行指令 -->
@@ -148,6 +155,7 @@ import { useGameScheduler } from '@/composables/useGameScheduler'
 import { useAgentKernel } from '@/composables/useAgentKernel'
 import { useGameStore } from '@/stores/game'
 import { ACTION_POINTS_PER_TURN } from '@/data/gameConfig'
+import { Owner } from '@/data/owners'
 import { economyOutlook, runwayLabel } from '@/utils/economyOutlook'
 import { chatFeedbackText } from '@/utils/commandFeedback'
 import GameButton from '@/components/ui/GameButton.vue'
@@ -193,7 +201,7 @@ const sendButtonText = computed(() => {
 })
 
 defineProps<{ visible: boolean }>()
-defineEmits<{ close: [] }>()
+defineEmits<{ close: []; openObjective: [] }>()
 
 // 监听顾问建议事件，填充到输入框
 function handleAdvisorSuggestion(event: CustomEvent): void {
@@ -337,6 +345,8 @@ async function onSend(): Promise<void> {
 </script>
 
 <style scoped>
+.scenario-shortcut { padding: 4px 0; background: none; border: 0; text-align: left; color: var(--cinnabar); font: inherit; font-size: 12px; cursor: pointer; }
+.fast-presentation { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--ink-soft); margin-top: 6px; }
 .economic-outlook {
   margin: 6px 0 8px;
   padding: 8px;
