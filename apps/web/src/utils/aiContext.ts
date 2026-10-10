@@ -14,6 +14,7 @@ import { Owner, OWNER_LABELS } from '@/data/owners'
 import { buildEventHistory } from './aiHistory'
 import { buildBattleContext } from './aiPromptBuilder'
 import { readRelation, isInTruce } from './diplomacy'
+import { buildCampaignContext } from './campaignPreview'
 
 import {
   FACTION_AI_HISTORY_MAX,
@@ -99,6 +100,8 @@ export function buildFactionContext(faction: Owner): string {
   }
 
   // byActor 历史
+  lines.push('')
+  lines.push(buildCampaignContext(faction))
   const history = buildEventHistory({ mode: 'byActor', actor: faction, maxEvents: FACTION_AI_HISTORY_MAX })
   if (history) {
     lines.push('')
@@ -162,6 +165,7 @@ export function buildMinorContext(factions: Owner[]): string {
       if (!full) continue
       lines.push(`    ${formatCityCompact(gb, full.troops, full.morale, full.terrain, full.cityLevel, full.fort)} 归属${label}`)
     }
+    lines.push(buildCampaignContext(f))
     lines.push('')
   }
 

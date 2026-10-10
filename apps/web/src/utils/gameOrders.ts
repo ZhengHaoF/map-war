@@ -38,6 +38,7 @@ import { computeActionCost, marchCost } from '@/utils/economy'
 import { battleSummaryText } from '@/utils/battleTrend'
 import { checkLiveOrder, type ExecutionContext } from './gameplayRules'
 import { REDUCER_CAP_TREASURY, REDUCER_CAP_GRANARY } from '@/data/gameConfig'
+import type { CampaignRoute } from './campaignRoutes'
 
 // ─── 类型定义 ───
 
@@ -696,8 +697,9 @@ function applyMarchCost(
   fromId: string,
   toId: string,
   troopsK: number,
+  routeDistanceKm?: number,
 ): OrderResult {
-  const dist = distanceBetween(fromId, toId)
+  const dist = routeDistanceKm ?? distanceBetween(fromId, toId)
   if (dist === null) return { ok: true } // 容错放行
   const cost = marchCost(dist, troopsK)
   const store = useGameStore()
@@ -751,7 +753,7 @@ export async function executeOrder(json: GameOrder, context: ExecutionContext = 
     if (!reservation.ok) return reservation
   }
   try {
-    const result = await executeUncheckedOrder(json)
+    const result = await executeUncheckedOrder(json, guard.route)
     if (!result.ok && guard.points && guard.actor) store.applyEvent({ type: 'actionRefunded', faction: guard.actor, amount: guard.points })
     return result
   } catch (error) {
@@ -762,6 +764,7 @@ export async function executeOrder(json: GameOrder, context: ExecutionContext = 
 
 async function executeUncheckedOrder(
   json: GameOrder,
+  route?: CampaignRoute,
 ): Promise<OrderResult | BattleOrderResult | BattleListResult> {
   if (!json || !json.order) {
     return { ok: false, reason: '缺少 order 字段' }
@@ -823,7 +826,7 @@ async function executeUncheckedOrder(
         break
       }
       // 行军成本：远征耗银/粮（不足则拒绝行军）
-      const marchChk = applyMarchCost(fromId, toId, autoDeploy || preFrom.fieldForce)
+      const marchChk = applyMarchCost(fromId, toId, preFrom.fieldForce, route?.costDistanceKm)
       if (!marchChk.ok) { result = marchChk; break }
       const r = await battle(fromId, toId, json.text)
       if (!r.ok) { result = r; break }
@@ -842,6 +845,7 @@ async function executeUncheckedOrder(
         toName: getLocationName(toId),
         attacker: attacker ?? Owner.NEUTRAL,
         defender: defender ?? Owner.NEUTRAL,
+        ...(route ? { route: route.path, marchDistanceKm: route.costDistanceKm, routeHasSea: route.seaLegs > 0 } : {}),
       })
       // 开战自动宣战：双方均非中立时，将外交关系置为 war（战争来自实际战斗，非开局注入）
       if (
@@ -952,7 +956,7 @@ async function executeUncheckedOrder(
         break
       }
       // 行军成本：远征调兵耗银/粮
-      const marchChk = applyMarchCost(fromId, toId, json.amount)
+      const marchChk = applyMarchCost(fromId, toId, json.amount, route?.costDistanceKm)
       if (!marchChk.ok) { result = marchChk; break }
       // 复用 arrowFly 行军演出（黄点弧线），演完再落地（与 capture 同构）
       await arrowFly(fromId, toId, json.text || '调兵！')

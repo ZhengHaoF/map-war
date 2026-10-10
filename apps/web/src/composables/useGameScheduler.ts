@@ -182,7 +182,7 @@ async function settleActiveBattles(): Promise<void> {
 
     // 本地公式：确定性基础减员 + 士气变化
     // 远征战力衰减：从 fromGb/targetGb 重算距离，传入 distanceFactor
-    const dist = distanceBetween(b.from, b.to)
+    const dist = b.marchDistanceKm ?? distanceBetween(b.from, b.to)
     const distFactor = dist !== null ? expeditionFactor(dist) : 1.0
     baseResults.set(
       b.id,

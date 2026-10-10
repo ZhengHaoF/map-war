@@ -36,6 +36,10 @@
         <component :is="ICONS['brain']" :size="16" />
         指挥
       </GameButton>
+      <GameButton tooltip="查看行军路线与可进攻目标" :active="campaignVisible" @click="campaignVisible = !campaignVisible">
+        <component :is="ICONS['crosshair']" :size="16" />
+        前线
+      </GameButton>
       <GameButton tooltip="咨询战略顾问" :active="advisorVisible" @click="advisorVisible = !advisorVisible">
         <component :is="ICONS['user']" :size="16" />
         顾问
@@ -98,6 +102,9 @@
         </button>
       </template>
       <InfoTable v-if="infoCityData" :rows="infoRows" />
+      <GameButton v-if="infoCityData?.owner === useGameStore().currentFaction" @click="openCampaign(infoCityGb)">
+        行军与进攻预览
+      </GameButton>
       <InfoTable v-else-if="infoCountryData" :rows="countryInfoRows" />
     </GameModal>
     <GameModal class="map-ui"
@@ -441,6 +448,7 @@
     </div>
     </div>
     <PlayerAiPanel :visible="commandVisible" @close="commandVisible = false" />
+    <CampaignPanel :visible="campaignVisible" :initial-source-gb="campaignSourceGb" @close="campaignVisible = false" />
     <AdvisorPanel :visible="advisorVisible" @close="advisorVisible = false" />
     <DiplomacyPanel :visible="diplomacyVisible" @close="diplomacyVisible = false" />
     <PlayerStatusPanel :visible="overviewVisible" @close="overviewVisible = false" />
@@ -495,6 +503,7 @@ import GameButton from '@/components/ui/GameButton.vue'
 import GameContextMenu from '@/components/ui/GameContextMenu.vue'
 import GameModal from '@/components/ui/GameModal.vue'
 import PlayerAiPanel from '@/components/PlayerAiPanel.vue'
+import CampaignPanel from '@/components/CampaignPanel.vue'
 import AdvisorPanel from '@/components/AdvisorPanel.vue'
 import DiplomacyPanel from '@/components/DiplomacyPanel.vue'
 import TurnSummaryModal from '@/components/TurnSummaryModal.vue'
@@ -745,6 +754,8 @@ const factionDebugVisible = ref(false)
 const overviewVisible = ref(false)
 /** 指挥面板弹窗是否打开 */
 const commandVisible = ref(false)
+const campaignVisible = ref(false)
+const campaignSourceGb = ref<string | null>(null)
 /** 战略顾问弹窗是否打开 */
 const advisorVisible = ref(false)
 const diplomacyVisible = ref(false)
@@ -879,9 +890,6 @@ const legendItems = computed(() =>
 
 const contextMenuItems = ref([
   { action: 'info', label: '查看信息', icon: 'info-circle' },
-  { action: 'investigate', label: '调查', icon: 'search' },
-  { action: 'declare-war', label: '宣战', icon: 'flag' },
-  { action: 'surprise-attack', label: '奇袭', danger: true, icon: 'bolt' },
 ])
 
 const infoRows = computed(() => {
@@ -1195,6 +1203,8 @@ function onContextMenu(e: PointerEvent | MouseEvent): void {
     ]
     if (!isFriendly) {
       items.push({ action: 'telegram', label: '电报', icon: 'mail' })
+    } else {
+      items.push({ action: 'campaign', label: '行军预览', icon: 'crosshair' })
     }
     contextMenuItems.value = items
   } else {
@@ -1237,7 +1247,19 @@ function copyInfoTitle(): void {
   })
 }
 
+function openCampaign(gb: string | null): void {
+  if (!gb || useGameStore().cities[gb]?.owner !== useGameStore().currentFaction) return
+  campaignSourceGb.value = gb
+  campaignVisible.value = true
+  infoModalVisible.value = false
+}
+
 function onMenuAction(action: string): void {
+  if (action === 'campaign') {
+    openCampaign(selectedFeature?.properties?.gb as string ?? null)
+    closeContextMenu()
+    return
+  }
   if (action === 'telegram') {
     if (selectedFeature) {
       const gb = selectedFeature.properties?.gb as string | undefined
@@ -2307,6 +2329,8 @@ function onClick(e: MouseEvent): void {
     console.log('点击区域:', result.feature.properties)
     selectedFeature = result.feature
     highlightFeature(result.feature)
+    const gb = result.feature.properties?.gb as string | undefined
+    if (gb && useGameStore().cities[gb]?.owner === useGameStore().currentFaction) openCampaign(gb)
   } else {
     console.log('点击国家:', result.feature.properties)
     selectedWorldFeature = result.feature

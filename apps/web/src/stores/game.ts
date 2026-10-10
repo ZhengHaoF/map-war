@@ -36,6 +36,10 @@ export interface BattleInfo {
   lastDefenderLoss: number
   /** AI 战斗裁决官最近一次战报叙事（每回合结算时更新；开局为空） */
   lastNarrative?: string
+  /** Optional for older saves: route recorded at battle start. */
+  route?: string[]
+  marchDistanceKm?: number
+  routeHasSea?: boolean
 }
 
 /** 游戏结束状态 */
@@ -179,7 +183,7 @@ export type GameEvent =
   | { type: 'produce'; targetGb: string; amount: number }
   | { type: 'dateAdvance'; date: string }
   | { type: 'setFactionAlive'; faction: Owner; alive: boolean }
-  | { type: 'battleStart'; battleId: string; fromGb: string; targetGb: string; fromName: string; toName: string; attacker: Owner; defender: Owner }
+  | { type: 'battleStart'; battleId: string; fromGb: string; targetGb: string; fromName: string; toName: string; attacker: Owner; defender: Owner; route?: string[]; marchDistanceKm?: number; routeHasSea?: boolean }
   | { type: 'battleEnd'; battleId: string; reason?: BattleEndReason; retreatLoss?: number; fromName?: string; toName?: string }
   | { type: 'selectFaction'; faction: Owner; playerName: string }
   | { type: 'narrative'; playerInput: string; aiMessage: string; kind?: 'player' | 'settlement' }
@@ -906,7 +910,9 @@ export const useGameStore = defineStore('game', () => {
     }
     // 战斗生命周期事件（无 targetGb，管理 battles 数组）
     if (e.type === 'battleStart') {
-      battles.value.push({ id: e.battleId, from: e.fromGb, to: e.targetGb, fromName: e.fromName, toName: e.toName, active: true, attacker: e.attacker, defender: e.defender, turns: 0, totalAttackerLoss: 0, totalDefenderLoss: 0, lastAttackerLoss: 0, lastDefenderLoss: 0 })
+      battles.value.push({ id: e.battleId, from: e.fromGb, to: e.targetGb, fromName: e.fromName, toName: e.toName, active: true, attacker: e.attacker, defender: e.defender, turns: 0, totalAttackerLoss: 0, totalDefenderLoss: 0, lastAttackerLoss: 0, lastDefenderLoss: 0,
+        ...(e.route ? { route: [...e.route], marchDistanceKm: e.marchDistanceKm, routeHasSea: e.routeHasSea } : {}),
+      })
       return { ok: true }
     }
     if (e.type === 'battleEnd') {

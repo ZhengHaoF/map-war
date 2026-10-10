@@ -65,3 +65,22 @@ first legal attack connectivity and previews, then lightweight supply, then econ
 Desktop/mobile command-panel screenshots inspected; the API distinction is fully visible.
 Standard browser-game smoke script captured the map and onboarding correctly; no page errors
 in the separate command-panel check. Browser closed after QA.
+
+## Connectivity milestone
+
+User request: Remove the API-quota explanation and continue the recommended gameplay goals.
+
+Removed that explanation from active UI/prompts/scripts/rule docs. Added 375-city topology:
+979 shared-boundary land links plus four explicit sea lanes, with deterministic generation,
+source hash and synthetic corner/short-boundary/override tests. Paths only traverse own
+cities, with opposing endpoints permitted for battle. UI, AI context and execution share
+the same guard. Previewed and paid costs include every route segment and all field forces.
+New battles persist route metadata; older route-less events remain readable.
+
+First full regression after integration: 26 files / 345 tests passed; another five topology
+generation tests passed separately. Typecheck, ESLint and both builds passed; Oxlint has
+the same 41 baseline diagnostics. Browser desktop/mobile screenshots inspected: illegal
+Guang'an -> Beijing disabled, valid Guang'an -> Chongqing battle and Guang'an -> Nanchong
+transfer executed; after both, points=4, treasury=1195.6, granary=716.7. Sea preview Taiwan
+-> Fuzhou showed 313km, silver12.5/food9.4 at 1k, including the sea multiplier. No page errors.
+Browser closed. Next milestone: lightweight supply and occupation consolidation.

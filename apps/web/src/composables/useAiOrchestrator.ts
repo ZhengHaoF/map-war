@@ -12,6 +12,7 @@
 import { ref, computed } from 'vue'
 import { useAiChat } from './useAiChat'
 import { useGameStore } from '@/stores/game'
+import { buildCampaignContext } from '@/utils/campaignPreview'
 import { executeOrder, resetBattleRuntime } from '@/utils/gameOrders'
 import { freeEffectToOrder } from '@/utils/freeActionRules'
 import { executeBoundedFreeEffect } from '@/utils/freeActionExecution'
@@ -185,8 +186,11 @@ export function useAiOrchestrator(mode: AiMode = 'world') {
     }
     if (mode === 'user' && store.currentFaction) {
       messages.splice(messages.length - 1, 0, { role: 'system', content:
-        `本方剩余回合行动点 ${store.getActionPoints(store.currentFaction)}/${ACTION_POINTS_PER_TURN}，这是游戏内行动点，与 API 额度无关，结束回合后恢复。征兵/建设/整军/部署/调兵/开战每条1点，撤退和查询不耗点。自由效果每条1点，每次最多${FREE_ACTION_EFFECT_LIMIT}条；同一敌城宣传/破坏本回合仅一次且耗10万银，本方筹银和筹粮各仅一次且至多50。日期和占领由系统自动结算；结盟/停战须双方外交协商。不要生成capture或setCurrentDate，也不要声称未执行的效果已经发生。`,
+        `本方剩余回合行动点 ${store.getActionPoints(store.currentFaction)}/${ACTION_POINTS_PER_TURN}，结束回合后恢复。征兵/建设/整军/部署/调兵/开战每条1点，撤退和查询不耗点。自由效果每条1点，每次最多${FREE_ACTION_EFFECT_LIMIT}条；同一敌城宣传/破坏本回合仅一次且耗10万银，本方筹银和筹粮各仅一次且至多50。日期和占领由系统自动结算；结盟/停战须双方外交协商。不要生成capture或setCurrentDate，也不要声称未执行的效果已经发生。`,
       })
+    }
+    if ((mode === 'user' || mode === 'advisor') && store.currentFaction) {
+      messages.splice(messages.length - 1, 0, { role: 'system', content: buildCampaignContext(store.currentFaction) })
     }
 
     await send({ messages, response_format: { type: 'json_object' } })

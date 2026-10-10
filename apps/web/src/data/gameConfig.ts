@@ -322,3 +322,7 @@ export const RALLY_SILVER_PER_POINT = 0.2
 export const ACTION_POINTS_PER_TURN = 6
 export const FREE_ACTION_EFFECT_LIMIT = 3
 export const COVERT_ACTION_SILVER_COST = 10
+/** Explicit game sea lanes cost twice the corresponding sailing distance. */
+export const SEA_ROUTE_COST_MULTIPLIER = 2
+/** Keep strategic target context bounded, independently of the number of owned cities. */
+export const CAMPAIGN_AI_TARGET_LIMIT = 16
