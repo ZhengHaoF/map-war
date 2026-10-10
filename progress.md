@@ -426,3 +426,27 @@ redeploy quick-entry selection is assessment-only, not authorized implementation
 
 See docs/battle-persistence-and-setback-review.md and
 docs/map-command-shortcuts-assessment.md. No shortcut/map-picking code changed.
+
+## 2026-10-10: map attack / transfer command selection
+
+User approved implementing the assessed map interaction and merging after validation.
+Preserve the existing parchment design and actual execution rules. Add visible attack /
+transfer entry, explicit draft phases, topology/diplomacy highlights, atomic panel
+hydration, reselection/list fallback, cancellation and A/M/Esc keyboard controls.
+QA inventory is in docs/map-command-shortcuts-implementation.md; final results pending.
+
+Final: 43 files / 498 offline tests passed, 4 live tests default skipped; four reporter
+tests, typecheck, frontend/backend builds and Oxlint on 8 changed code files passed.
+Native Chromium WebGL mouse/touch drafts and normal scheduler transfers passed.
+Desktop and mobile independently moved 1k Yibin->Luzhou, paid 1AP / 2silver / 1.5food
+once; confirmation locks unchanged successful drafts. No page errors observed.
+Actual UI save/load clears picker; faction-event cancellation and held mocked-chat
+busy guards verified separately, not a new real-model match.
+Found narrow-screen confirm below viewport; moved confirm/cancel into a separate
+footer and opted this panel out of modal cascade offsets without changing defaults.
+Final desktop modal180,100..950; mobile12,12..754 with confirmation709..741.
+Native map QA paused ticker for non-animation checks/manual renders, restored for
+transfers; not a performance pass. An older AI-context 5s timeout under concurrent
+browser load passed at the same timeout after browser cleanup. Standard gameplay
+client's final smoke screenshot/state reviewed; only startup, not full gameplay.
+Existing bundle/jsdom warnings and batch transfer->deploy preflight limit unchanged.

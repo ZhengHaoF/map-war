@@ -5,12 +5,18 @@
     width="540px"
     variant="parchment"
     draggable
-    :init-y="24"
+    :cascade-offset="false"
+    :init-x="180"
+    :init-y="100"
     :overlay="false"
     @close="$emit('close')"
   >
     <div class="campaign-panel">
       <p class="campaign-rule">途中仅可经过己方城市，敌方只能作为进攻终点。海路仅限指定航线。</p>
+      <div class="campaign-reselect">
+        <GameButton parchment :disabled="busy" @click="$emit('reselect', 'source', { kind, sourceGb, targetGb })">地图重选出发城</GameButton>
+        <GameButton parchment :disabled="busy || !sourceGb" @click="$emit('reselect', 'target', { kind, sourceGb, targetGb })">地图重选目标城</GameButton>
+      </div>
       <div v-if="!store.currentFaction" class="campaign-empty">请先选择势力。</div>
       <template v-else>
         <div class="campaign-controls">
@@ -115,9 +121,6 @@
               >
             </section>
           </template>
-          <GameButton parchment :disabled="!preview.ok || busy" @click="executePreview">
-            {{ busy ? '执行中…' : kind === 'battle' ? '确认进攻' : '确认调兵' }}
-          </GameButton>
         </div>
         <div v-if="result" class="campaign-result" :class="{ failed: !result.ok }" role="status">
           {{ result.text }}
@@ -157,6 +160,12 @@
         </template>
       </template>
     </div>
+    <div class="campaign-confirm">
+      <GameButton v-if="store.currentFaction && preview" parchment :disabled="!preview.ok || busy || result?.ok" @click="executePreview">
+        {{ busy ? '执行中…' : result?.ok ? '已执行，请重新选择' : kind === 'battle' ? '确认进攻' : '确认调兵' }}
+      </GameButton>
+      <GameButton parchment @click="$emit('close')">取消</GameButton>
+    </div>
   </GameModal>
 </template>
 
@@ -173,9 +182,11 @@ import { getDisplayName } from '@/data/displayNames'
 import { previewCampaign, getAttackableTargets } from '@/utils/campaignPreview'
 import { occupationRemaining, SUPPLY_PENALTY_LABEL, OCCUPATION_YIELD_LABEL } from '@/utils/supply'
 import { assessCampaign, moraleRuleText } from '@/utils/tacticalAssessment'
+import type { MapCommandDraft } from '@/composables/useMapCommand'
+import { aiRequestsPending } from '@/composables/useAiChat'
 
-const props = defineProps<{ visible: boolean; initialSourceGb?: string | null }>()
-defineEmits<{ close: [] }>()
+const props = defineProps<{ visible: boolean; initialSourceGb?: string | null; initialDraft?: MapCommandDraft | null }>()
+defineEmits<{ close: []; reselect: [step: 'source' | 'target', draft: MapCommandDraft] }>()
 const store = useGameStore()
 const scheduler = useGameScheduler()
 const kernel = useAgentKernel()
@@ -220,19 +231,23 @@ const targetOccupation = computed(() =>
     : 0,
 )
 const busy = computed(
-  () => executing.value || scheduler.status.value === 'running' || kernel.loading.value,
+  () => executing.value || scheduler.status.value === 'running' || scheduler.queue.value.length > 0 || kernel.loading.value || aiRequestsPending.value > 0 || store.isReplaying,
 )
 const cityName = (gb: string) => getDisplayName(gb) || store.cities[gb]?.name || gb
 const ownerLabel = (owner: Owner) => OWNER_LABELS[owner] ?? owner
 const round = (v: number) => Math.round(v)
 watch(
-  [() => props.visible, () => props.initialSourceGb, () => store.currentFaction],
+  [() => props.visible, () => props.initialSourceGb, () => props.initialDraft, () => store.currentFaction],
   () => {
     if (!props.visible) return
-    const initial = props.initialSourceGb
+    const initial = props.initialDraft?.sourceGb ?? props.initialSourceGb
     if (initial && store.cities[initial]?.owner === store.currentFaction) sourceGb.value = initial
     else if (!sourceGb.value || store.cities[sourceGb.value]?.owner !== store.currentFaction)
       sourceGb.value = friendlyCities.value[0]?.gb ?? ''
+    kind.value = props.initialDraft?.kind ?? 'battle'
+    targetGb.value = props.initialDraft?.targetGb ?? ''
+    amount.value = Math.min(1, source.value?.troops ?? 0)
+    result.value = null
   },
   { immediate: true },
 )
@@ -240,9 +255,10 @@ watch([sourceGb, kind], () => {
   targetGb.value = ''
   result.value = null
   amount.value = Math.min(1, source.value?.troops ?? 0)
-})
+}, { flush: 'sync' })
+watch([targetGb, amount], () => { result.value = null }, { flush: 'sync' })
 async function executePreview() {
-  if (!preview.value?.ok || busy.value) return
+  if (!preview.value?.ok || busy.value || result.value?.ok) return
   const order = { ...preview.value.order }
   executing.value = true
   result.value = null
@@ -273,13 +289,27 @@ async function executePreview() {
 .campaign-panel {
   padding: 14px;
   box-sizing: border-box;
-  max-height: calc(100dvh - 250px);
+  max-height: calc(100dvh - 260px);
   overflow-y: auto;
   color: var(--ink);
   font-size: 13px;
 }
+.campaign-reselect {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.campaign-confirm {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px 14px;
+  border-top: 1px solid var(--brown-line);
+  background: var(--paper-deep);
+}
 @media (max-width: 600px) {
-  .campaign-panel { max-height: calc(100dvh - 100px); }
+  .campaign-panel { max-height: calc(100dvh - 180px); }
 }
 .campaign-rule {
   margin: 0 0 12px;
