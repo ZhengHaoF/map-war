@@ -5,6 +5,7 @@
     width="540px"
     variant="parchment"
     draggable
+    :init-y="24"
     :overlay="false"
     @close="$emit('close')"
   >
@@ -94,6 +95,25 @@
               >海路段按
               {{ SEA_ROUTE_COST_MULTIPLIER }} 倍距离计行军成本，已包含在银粮预览中。</small
             >
+            <section v-if="tactics" class="campaign-tactics" aria-label="战术权衡">
+              <h4>战术权衡 · {{ tactics.label }}</h4>
+              <p>
+                下一轮基础估计：攻损 {{ tactics.attackerLoss }}k / 守损
+                {{ tactics.defenderLoss }}k。
+              </p>
+              <p>
+                来源留守 {{ tactics.remainingGarrison }}k；攻方士气
+                {{ tactics.attackerMoraleBefore }} → {{ tactics.attackerMoraleAfter }} /
+                守方士气 {{ tactics.defenderMoraleBefore }} → {{ tactics.defenderMoraleAfter }}。
+              </p>
+              <p>{{ moraleRuleText() }}</p>
+              <ul>
+                <li v-for="reason in tactics.reasons" :key="reason">{{ reason }}</li>
+              </ul>
+              <small
+                >仅按当前状态作基础比较，不含后续行动、经济减员、突发事件或崩溃结果，不是胜率。风险提示不改变合法性与费用。</small
+              >
+            </section>
           </template>
           <GameButton parchment :disabled="!preview.ok || busy" @click="executePreview">
             {{ busy ? '执行中…' : kind === 'battle' ? '确认进攻' : '确认调兵' }}
@@ -152,6 +172,7 @@ import { SEA_ROUTE_COST_MULTIPLIER } from '@/data/gameConfig'
 import { getDisplayName } from '@/data/displayNames'
 import { previewCampaign, getAttackableTargets } from '@/utils/campaignPreview'
 import { occupationRemaining, SUPPLY_PENALTY_LABEL, OCCUPATION_YIELD_LABEL } from '@/utils/supply'
+import { assessCampaign, moraleRuleText } from '@/utils/tacticalAssessment'
 
 const props = defineProps<{ visible: boolean; initialSourceGb?: string | null }>()
 defineEmits<{ close: [] }>()
@@ -189,6 +210,7 @@ const attackable = computed(() =>
     ? getAttackableTargets(sourceGb.value, amount.value)
     : [],
 )
+const tactics = computed(() => (preview.value ? assessCampaign(preview.value) : null))
 const points = computed(() =>
   store.currentFaction ? store.getActionPoints(store.currentFaction) : 0,
 )
@@ -250,10 +272,14 @@ async function executePreview() {
 <style scoped>
 .campaign-panel {
   padding: 14px;
-  max-height: 75dvh;
+  box-sizing: border-box;
+  max-height: calc(100dvh - 250px);
   overflow-y: auto;
   color: var(--ink);
   font-size: 13px;
+}
+@media (max-width: 600px) {
+  .campaign-panel { max-height: calc(100dvh - 100px); }
 }
 .campaign-rule {
   margin: 0 0 12px;
@@ -301,6 +327,26 @@ input:focus {
 }
 .campaign-preview.blocked {
   border-color: var(--cinnabar);
+}
+.campaign-tactics {
+  margin: 10px 0;
+  padding: 10px;
+  border: 1px solid var(--brown-line);
+  font-size: 12px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.campaign-tactics h4 {
+  margin: 0 0 6px;
+  color: var(--ink);
+  font-size: 13px;
+}
+.campaign-tactics p {
+  margin: 5px 0;
+}
+.campaign-tactics ul {
+  padding-left: 18px;
+  margin: 6px 0;
 }
 .campaign-verdict {
   font-weight: 600;

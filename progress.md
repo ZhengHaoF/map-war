@@ -330,3 +330,99 @@ faction-initiative-results.md for exact scope, evidence and limitations.
 Next: explain tactical risk/cost and avoid repeated failed plans; complete valid
 10–15-turn checkpointed samples in a stable request environment before broadening
 campaign content or changing nationwide economy.
+
+## Tactical assessment milestone
+
+PR7 merged into master at 2026-10-10T12:39:49Z, merge89da24b, as explicitly
+authorized. New feat/tactical-assessment branch starts there; this iteration
+is for a new reviewable PR, not authorized for automatic merging.
+
+- Shared read-only one-settlement assessment reuses the existing battle formula,
+  actual route cost distance, current supply and legacy battle version semantics.
+  Player and faction context show losses, morale, reserves, fees and reasons,
+  explicitly not win probability. Risk never blocks otherwise legal execution.
+- Only money-rejected campaign suggestions search smaller legal tenths of k via
+  normal previews. Own active fronts can show legal retreat even at zero AP;
+  no automatic retreat, extra resources or cost/battle-rule changes.
+- Failure advice distinguishes malformed fields, current money, points,
+  diplomacy and routes. Unit coverage is not proof of live-model adaptation.
+- 24 new tests; full39files/462tests pass, opt-in live2 skipped. Typecheck,
+  frontend/server builds and JS ESLint pass; four changed/new code/test files
+  Oxlint0. Existing full-project lint debt remains; bundle803.11kB/gzip238.00kB.
+- Native Canvas input verified 1k high-risk legal attack, 8k zero reserve,
+  9k/0k rejection and move-mode exclusion. Previews preserve state; actual confirm
+  charges2.4silver/1.8food/1AP and starts battle without date advancement.
+  Desktop1440x1000/mobile375x812 screenshots inspected, no page errors.
+  Fixed locally clipped taller panel with initial position and bounded scroll.
+- Generic helper this iteration exits0 with inspected onboarding screenshot and
+  state only; not an end-to-end gameplay or universal baseline-failure fix.
+- One fresh real step-5-preview decision, HTTP200/44573ms/no retry. Context
+  advised assembly, but model chose legal10k counterattack+fortify5+recruit3.
+  Three executed orders cost3AP/66.1silver/44.4food. One valid decision,
+  not12-turn coverage or proof of more cautious strategy/setback learning.
+
+See docs/tactical-assessment.md. Next: checkpointed10-15valid decision rounds,
+compare advice with selected plans, test sustained support/withdrawal and
+specific setback adjustment before adding systems.
+
+## Checkpointed tactical pressure follow-up
+
+User authorized the proposed long test; no authorization to merge PR8.
+Ran original80442f2 gameplay code without rule/prompt changes. Resumed identical
+previous one-decision normal save and added11valid decisions, one counterattack
+scenario12/12complete, not twelve newly called decisions or two complete cases.
+
+- 41planned/41executed, zero preflight/execution refusals, no retreat/idle turns;
+  actual receipts41AP/404.9silver/236.3food, AP use56.9%.
+- Recovered Zhaotong at decision6 via defenderCollapse; consolidation then15k
+  Luzhou campaign, defended SCC counterattack, captured Luzhou at decision12.
+  Fixed SCC recruit/fortify policy did not protect morale; not a human match.
+- Request evidence24including prior success:200x12,502x11,401x1. Fresh same
+  credential bridge recovered proxy-token expiration, not a quota finding.
+  Failed attempts do not count as game turns; finalturn13/1931-07-01.
+- Continuation checks current snapshot equality, but discovered historical ID
+  reuse after ended battles and runtime reset. nextBattleId scans only current
+  battles, while finished battles are deleted; event history and collapse seeds
+  can be affected. Report explicit limitation; not fixed in this test.
+- Added standalone sanitized reporting script with continuity assertions,
+  CSV/JSON artifacts and docs/tactical-pressure-results.md. No new UI/gameplay
+  change; prior462regression result remains a prior result, not silently rerun.
+
+Next priority: historical-unique battle IDs and post-load future consistency,
+then bilateral morale explanations and explicit legal resource-stress/retreat
+scenarios before larger gameplay systems.
+
+## 2026-10-10: historical IDs, bilateral morale, explicit setbacks
+
+User approved this follow-up and merging PR8 after verification. Map attack /
+redeploy quick-entry selection is assessment-only, not authorized implementation.
+
+- New battle IDs scan active battles AND historical start/end events. Six normal
+  save regressions include ended fronts and four post-load settlements compared
+  with uninterrupted execution. Legacy IDs/results remain unchanged.
+- UI/AI comparison shows current -> estimated next morale for both sides, explains
+  configured collapse threshold20 without a guaranteed result, and removes the
+  positive favorable sentence from narrow exchanges classified consider.
+- Continuation reporter takes explicit prior-decision count and source commit;
+  four Node tests distinguish fresh/resumed runs and invalid prior counts.
+- Normal over-recruitment/upkeep produced actual negative silver with six AP;
+  one actual recruitment refusal, then two valid model idle decisions. No further
+  spending, but persistent deficit not fixed: not proof of economic recovery.
+- Independent unfavorable complete-context trial: one valid decision planned
+  transfer15k then deploy15k. Transfer succeeded; deploy was rejected against the
+  initial5k garrison. Existing batch-order preflight limitation documented, not
+  fixed or disguised as model error. Next decision failed after three502s.
+- Independent focused two-city trial: one valid model retreat,3k returned normally
+  to garrison, no new fees/AP. Next decision failed after three502s. Do not combine
+  these trials into a continuous two-turn match or claim all live targets passed.
+- Formal evidence15requests:200x5 (one empty content),502x10; valid decisions4
+  across budget2/full unfavorable1/focused unfavorable1. Pilot bridge/setup tests
+  excluded. Evidence whitelist omits prompts/saves/credentials/hidden reasoning.
+- Actual final rerun:40files469offline tests passed,4live tests default skipped;
+  three normalized actual-order replay tests included. Four reporter tests separate.
+  Typecheck/server+web builds passed;7changed TS/Vue files Oxlint0. Original804kB
+  bundle warning and jsdom Canvas warning persist. No new native-map screenshot:
+  cloud browser could not reach localhost and sandbox transport unavailable.
+
+See docs/battle-persistence-and-setback-review.md and
+docs/map-command-shortcuts-assessment.md. No shortcut/map-picking code changed.

@@ -1,0 +1,3919 @@
+{
+  "sourceCommit": "80442f28cbf07ab595c7dfe7b1a9af1277b87897",
+  "method": "Actual step-5-preview NPC decisions; fixed SCC controller; actual rules engine. Not native UI gameplay.",
+  "constraints": [
+    "375-city economy retained",
+    "other factions idle",
+    "no diplomacy settlements",
+    "no AI battle flavor",
+    "presentation mocked",
+    "no extra NPC resources or direct debug capture"
+  ],
+  "setup": "Normal engine-settled opening capture; NPC idle during setup, then real model responses.",
+  "summary": {
+    "scenario": "counterattack",
+    "targetDecisions": 12,
+    "validDecisions": 12,
+    "complete": true,
+    "includesPreviousOneDecision": true,
+    "newlyCompletedDecisions": 11,
+    "requests": 24,
+    "statuses": {
+      "200": 12,
+      "401": 1,
+      "502": 11
+    },
+    "planned": 41,
+    "preflightRefused": 0,
+    "executed": 41,
+    "executionRefused": 0,
+    "spentPoints": 41,
+    "pointUtilization": 56.9,
+    "spentSilver": 404.9,
+    "spentFood": 236.3,
+    "retreatOrders": 0,
+    "successfulRequestMedianMs": 78928,
+    "captures": [
+      {
+        "decision": 6,
+        "date": "1931-05-20",
+        "captures": "156530600:YUN",
+        "battleEnds": "昭通市:defenderCollapse"
+      },
+      {
+        "decision": 12,
+        "date": "1931-07-01",
+        "captures": "156510500:YUN",
+        "battleEnds": "泸州市:defenderCollapse"
+      }
+    ]
+  },
+  "rows": [
+    {
+      "decision": 1,
+      "worldTurn": 2,
+      "date": "1931-04-15",
+      "advice": "assemble",
+      "planned": 3,
+      "preflightRefused": 0,
+      "executed": 3,
+      "executionRefused": 0,
+      "spentPoints": 3,
+      "spentSilver": 66.1,
+      "spentFood": 44.4,
+      "zhaotongOwner": "SCC",
+      "zhaotongTroops": 6,
+      "zhaotongMorale": 35,
+      "zhaotongFort": 25,
+      "yunSilver": 287,
+      "yunFood": 407.9,
+      "battleEnds": "",
+      "captures": "",
+      "orders": "{\"order\":\"battle\",\"from\":\"昆明市\",\"to\":\"昭通市\",\"deployAmount\":10};{\"order\":\"fortify\",\"gb\":\"昆明市\",\"amount\":5};{\"order\":\"recruit\",\"gb\":\"昆明市\",\"amount\":3}"
+    },
+    {
+      "decision": 2,
+      "worldTurn": 3,
+      "date": "1931-04-22",
+      "advice": "support",
+      "planned": 1,
+      "preflightRefused": 0,
+      "executed": 1,
+      "executionRefused": 0,
+      "spentPoints": 1,
+      "spentSilver": 0,
+      "spentFood": 0,
+      "zhaotongOwner": "SCC",
+      "zhaotongTroops": 7,
+      "zhaotongMorale": 31,
+      "zhaotongFort": 30,
+      "yunSilver": 379.3,
+      "yunFood": 579.6,
+      "battleEnds": "",
+      "captures": "",
+      "orders": "{\"order\":\"deploy\",\"from\":\"昆明市\",\"amount\":2}"
+    },
+    {
+      "decision": 3,
+      "worldTurn": 4,
+      "date": "1931-04-29",
+      "advice": "support",
+      "planned": 1,
+      "preflightRefused": 0,
+      "executed": 1,
+      "executionRefused": 0,
+      "spentPoints": 1,
+      "spentSilver": 0,
+      "spentFood": 0,
+      "zhaotongOwner": "SCC",
+      "zhaotongTroops": 8,
+      "zhaotongMorale": 28,
+      "zhaotongFort": 35,
+      "yunSilver": 472.1,
+      "yunFood": 751.6,
+      "battleEnds": "",
+      "captures": "",
+      "orders": "{\"order\":\"deploy\",\"from\":\"昆明市\",\"amount\":2}"
+    },
+    {
+      "decision": 4,
+      "worldTurn": 5,
+      "date": "1931-05-06",
+      "advice": "support",
+      "planned": 3,
+      "preflightRefused": 0,
+      "executed": 3,
+      "executionRefused": 0,
+      "spentPoints": 3,
+      "spentSilver": 11.2,
+      "spentFood": 6.9,
+      "zhaotongOwner": "SCC",
+      "zhaotongTroops": 9,
+      "zhaotongMorale": 25,
+      "zhaotongFort": 40,
+      "yunSilver": 554.7,
+      "yunFood": 917.3,
+      "battleEnds": "",
+      "captures": "",
+      "orders": "{\"order\":\"deploy\",\"from\":\"昆明市\",\"amount\":3};{\"order\":\"moveTroops\",\"from\":\"楚雄彝族自治州\",\"to\":\"昆明市\",\"amount\":2};{\"order\":\"recruit\",\"gb\":\"昆明市\",\"amount\":3}"
+    },
+    {
+      "decision": 5,
+      "worldTurn": 6,
+      "date": "1931-05-13",
+      "advice": "support",
+      "planned": 2,
+      "preflightRefused": 0,
+      "executed": 2,
+      "executionRefused": 0,
+      "spentPoints": 2,
+      "spentSilver": 10,
+      "spentFood": 5,
+      "zhaotongOwner": "SCC",
+      "zhaotongTroops": 10,
+      "zhaotongMorale": 22,
+      "zhaotongFort": 45,
+      "yunSilver": 638,
+      "yunFood": 1084.6,
+      "battleEnds": "",
+      "captures": "",
+      "orders": "{\"order\":\"deploy\",\"from\":\"昆明市\",\"amount\":4};{\"order\":\"recruit\",\"gb\":\"昆明市\",\"amount\":5}"
+    },
+    {
+      "decision": 6,
+      "worldTurn": 7,
+      "date": "1931-05-20",
+      "advice": "support",
+      "planned": 4,
+      "preflightRefused": 0,
+      "executed": 4,
+      "executionRefused": 0,
+      "spentPoints": 4,
+      "spentSilver": 15.5,
+      "spentFood": 4,
+      "zhaotongOwner": "YUN",
+      "zhaotongTroops": 15,
+      "zhaotongMorale": 31,
+      "zhaotongFort": 50,
+      "yunSilver": 714.3,
+      "yunFood": 1252,
+      "battleEnds": "昭通市:defenderCollapse",
+      "captures": "156530600:YUN",
+      "orders": "{\"order\":\"rally\",\"gb\":\"昆明市\",\"amount\":10};{\"order\":\"deploy\",\"from\":\"昆明市\",\"amount\":4};{\"order\":\"recruit\",\"gb\":\"昆明市\",\"amount\":4};{\"order\":\"fortify\",\"gb\":\"昆明市\",\"amount\":5}"
+    },
+    {
+      "decision": 7,
+      "worldTurn": 8,
+      "date": "1931-05-27",
+      "advice": "consolidate",
+      "planned": 4,
+      "preflightRefused": 0,
+      "executed": 4,
+      "executionRefused": 0,
+      "spentPoints": 4,
+      "spentSilver": 45.1,
+      "spentFood": 25.7,
+      "zhaotongOwner": "YUN",
+      "zhaotongTroops": 20,
+      "zhaotongMorale": 41,
+      "zhaotongFort": 55,
+      "yunSilver": 763.5,
+      "yunFood": 1403.1,
+      "battleEnds": "",
+      "captures": "",
+      "orders": "{\"order\":\"moveTroops\",\"from\":\"昆明市\",\"to\":\"昭通市\",\"amount\":5};{\"order\":\"rally\",\"gb\":\"昭通市\",\"amount\":10};{\"order\":\"fortify\",\"gb\":\"昭通市\",\"amount\":5};{\"order\":\"recruit\",\"gb\":\"昆明市\",\"amount\":5}"
+    },
+    {
+      "decision": 8,
+      "worldTurn": 9,
+      "date": "1931-06-03",
+      "advice": "assemble",
+      "planned": 5,
+      "preflightRefused": 0,
+      "executed": 5,
+      "executionRefused": 0,
+      "spentPoints": 5,
+      "spentSilver": 100.8,
+      "spentFood": 67.4,
+      "zhaotongOwner": "YUN",
+      "zhaotongTroops": 10,
+      "zhaotongMorale": 47,
+      "zhaotongFort": 60,
+      "yunSilver": 758,
+      "yunFood": 1517,
+      "battleEnds": "",
+      "captures": "",
+      "orders": "{\"order\":\"rally\",\"gb\":\"昭通市\",\"amount\":10};{\"order\":\"battle\",\"from\":\"昭通市\",\"to\":\"泸州市\",\"deployAmount\":15};{\"order\":\"moveTroops\",\"from\":\"昆明市\",\"to\":\"昭通市\",\"amount\":5};{\"order\":\"fortify\",\"gb\":\"昭通市\",\"amount\":5};{\"order\":\"recruit\",\"gb\":\"昆明市\",\"amount\":5}"
+    },
+    {
+      "decision": 9,
+      "worldTurn": 10,
+      "date": "1931-06-10",
+      "advice": "defend",
+      "planned": 5,
+      "preflightRefused": 0,
+      "executed": 5,
+      "executionRefused": 0,
+      "spentPoints": 5,
+      "spentSilver": 55.1,
+      "spentFood": 30.7,
+      "zhaotongOwner": "YUN",
+      "zhaotongTroops": 19,
+      "zhaotongMorale": 50,
+      "zhaotongFort": 65,
+      "yunSilver": 796.7,
+      "yunFood": 1666.7,
+      "battleEnds": "",
+      "captures": "",
+      "orders": "{\"order\":\"moveTroops\",\"from\":\"昆明市\",\"to\":\"昭通市\",\"amount\":5};{\"order\":\"recruit\",\"gb\":\"昭通市\",\"amount\":5};{\"order\":\"rally\",\"gb\":\"昭通市\",\"amount\":10};{\"order\":\"fortify\",\"gb\":\"昭通市\",\"amount\":5};{\"order\":\"recruit\",\"gb\":\"昆明市\",\"amount\":5}"
+    },
+    {
+      "decision": 10,
+      "worldTurn": 11,
+      "date": "1931-06-17",
+      "advice": "defend",
+      "planned": 5,
+      "preflightRefused": 0,
+      "executed": 5,
+      "executionRefused": 0,
+      "spentPoints": 5,
+      "spentSilver": 45.1,
+      "spentFood": 25.7,
+      "zhaotongOwner": "YUN",
+      "zhaotongTroops": 23,
+      "zhaotongMorale": 55,
+      "zhaotongFort": 70,
+      "yunSilver": 841.9,
+      "yunFood": 1819.3,
+      "battleEnds": "",
+      "captures": "",
+      "orders": "{\"order\":\"moveTroops\",\"from\":\"昆明市\",\"to\":\"昭通市\",\"amount\":5};{\"order\":\"deploy\",\"from\":\"昭通市\",\"amount\":5};{\"order\":\"recruit\",\"gb\":\"昭通市\",\"amount\":5};{\"order\":\"rally\",\"gb\":\"昭通市\",\"amount\":10};{\"order\":\"fortify\",\"gb\":\"昭通市\",\"amount\":5}"
+    },
+    {
+      "decision": 11,
+      "worldTurn": 12,
+      "date": "1931-06-24",
+      "advice": "defend",
+      "planned": 4,
+      "preflightRefused": 0,
+      "executed": 4,
+      "executionRefused": 0,
+      "spentPoints": 4,
+      "spentSilver": 33,
+      "spentFood": 17.4,
+      "zhaotongOwner": "YUN",
+      "zhaotongTroops": 30,
+      "zhaotongMorale": 55,
+      "zhaotongFort": 75,
+      "yunSilver": 898.2,
+      "yunFood": 1979.6,
+      "battleEnds": "",
+      "captures": "",
+      "orders": "{\"order\":\"moveTroops\",\"from\":\"昆明市\",\"to\":\"昭通市\",\"amount\":3};{\"order\":\"recruit\",\"gb\":\"昭通市\",\"amount\":5};{\"order\":\"fortify\",\"gb\":\"昭通市\",\"amount\":5};{\"order\":\"rally\",\"gb\":\"昭通市\",\"amount\":5}"
+    },
+    {
+      "decision": 12,
+      "worldTurn": 13,
+      "date": "1931-07-01",
+      "advice": "defend",
+      "planned": 4,
+      "preflightRefused": 0,
+      "executed": 4,
+      "executionRefused": 0,
+      "spentPoints": 4,
+      "spentSilver": 23,
+      "spentFood": 9.1,
+      "zhaotongOwner": "YUN",
+      "zhaotongTroops": 35,
+      "zhaotongMorale": 69,
+      "zhaotongFort": 80,
+      "yunSilver": 963.5,
+      "yunFood": 2147.6,
+      "battleEnds": "泸州市:defenderCollapse",
+      "captures": "156510500:YUN",
+      "orders": "{\"order\":\"moveTroops\",\"from\":\"昆明市\",\"to\":\"昭通市\",\"amount\":1};{\"order\":\"recruit\",\"gb\":\"昭通市\",\"amount\":5};{\"order\":\"fortify\",\"gb\":\"昭通市\",\"amount\":5};{\"order\":\"rally\",\"gb\":\"昭通市\",\"amount\":10}"
+    }
+  ],
+  "decisions": [
+    {
+      "step": 1,
+      "initiative": {
+        "kind": "assemble",
+        "goal": "集结准备争夺昭通市",
+        "sourceGb": "156530100",
+        "targetGb": "156530600",
+        "reason": "近期失地，已保留易主事实。来源昆明市，守军7k/工事25/士气39；建议至少留守4.5k。需要权衡：下一次结算基础估计攻损2k/守损1k，攻方士气67/守方士气35，来源留守4.5k；本次行军银74.4/粮55.8。基础比例消耗并未明显有利于攻方，城防与地形可能拖长战线。这是静态基础比较，不含双方后续动作、经济减员、突发事件及崩溃结果，不是胜率或胜利保证。当前建议先集结与整备，不把1k路线示例当成足够的攻城兵力。",
+        "examples": [
+          {
+            "order": "recruit",
+            "gb": "156530100",
+            "amount": 3
+          },
+          {
+            "order": "fortify",
+            "gb": "156530100",
+            "amount": 5
+          }
+        ]
+      },
+      "controller": [
+        {
+          "order": {
+            "order": "recruit",
+            "gb": "156530600",
+            "amount": 2
+          },
+          "ok": true
+        },
+        {
+          "order": {
+            "order": "fortify",
+            "gb": "156530600",
+            "amount": 5
+          },
+          "ok": true
+        }
+      ],
+      "plannedOrders": [
+        {
+          "order": "battle",
+          "from": "昆明市",
+          "to": "昭通市",
+          "deployAmount": 10
+        },
+        {
+          "order": "fortify",
+          "gb": "昆明市",
+          "amount": 5
+        },
+        {
+          "order": "recruit",
+          "gb": "昆明市",
+          "amount": 3
+        }
+      ],
+      "planningRefusals": [],
+      "execution": [
+        {
+          "order": {
+            "order": "battle",
+            "from": "昆明市",
+            "to": "昭通市",
+            "deployAmount": 10
+          },
+          "ok": true,
+          "cost": {
+            "silver": 55.1,
+            "food": 41.4
+          }
+        },
+        {
+          "order": {
+            "order": "fortify",
+            "gb": "昆明市",
+            "amount": 5
+          },
+          "ok": true,
+          "cost": {
+            "silver": 5,
+            "food": 0
+          }
+        },
+        {
+          "order": {
+            "order": "recruit",
+            "gb": "昆明市",
+            "amount": 3
+          },
+          "ok": true,
+          "cost": {
+            "silver": 6,
+            "food": 3
+          }
+        }
+      ],
+      "receipts": [
+        {
+          "type": "commandReceipt",
+          "faction": "YUN",
+          "label": "battle 昆明市 → 昭通市 数量10",
+          "ok": true,
+          "spentPoints": 1,
+          "spentSilver": 55.1,
+          "spentFood": 41.4,
+          "remainingPoints": 5,
+          "remainingSilver": 298,
+          "remainingFood": 410.9
+        },
+        {
+          "type": "commandReceipt",
+          "faction": "YUN",
+          "label": "fortify 昆明市 数量5",
+          "ok": true,
+          "spentPoints": 1,
+          "spentSilver": 5,
+          "spentFood": 0,
+          "remainingPoints": 4,
+          "remainingSilver": 293,
+          "remainingFood": 410.9
+        },
+        {
+          "type": "commandReceipt",
+          "faction": "YUN",
+          "label": "recruit 昆明市 数量3",
+          "ok": true,
+          "spentPoints": 1,
+          "spentSilver": 6,
+          "spentFood": 3,
+          "remainingPoints": 3,
+          "remainingSilver": 287,
+          "remainingFood": 407.9
+        }
+      ],
+      "state": {
+        "date": "1931-04-15",
+        "turn": 2,
+        "objective": {
+          "targetOwned": true,
+          "rearOwned": true,
+          "supplied": true,
+          "remaining": 0,
+          "integrated": true,
+          "ready": true,
+          "id": "southwest-bridgehead",
+          "faction": "SCC",
+          "startedTurn": 0,
+          "holdTurns": 0,
+          "completed": false,
+          "goal": "连续守住支点",
+          "steps": [
+            {
+              "label": "夺取昭通",
+              "done": true,
+              "detail": "占领只能由战斗或合法外交移交产生。"
+            },
+            {
+              "label": "整合并连通补给",
+              "done": true,
+              "detail": "保有宜宾；昭通整合剩余0回合；补给通畅。"
+            },
+            {
+              "label": "连续守住三个完整回合",
+              "done": false,
+              "detail": "0/3 回合；失守、断供或整合未完成会清零。"
+            }
+          ]
+        },
+        "cities": [
+          {
+            "gb": "156511500",
+            "name": "宜宾市",
+            "owner": "SCC",
+            "terrain": "MOUNTAIN",
+            "cityLevel": 2,
+            "industry": 10,
+            "food": 30,
+            "fort": 20,
+            "troops": 4,
+            "fieldForce": 0,
+            "morale": 47
+          },
+          {
+            "gb": "156530600",
+            "name": "昭通市",
+            "owner": "SCC",
+            "terrain": "MOUNTAIN",
+            "cityLevel": 2,
+            "industry": 10,
+            "food": 30,
+            "fort": 25,
+            "troops": 6,
+            "fieldForce": 0,
+            "morale": 35,
+            "occupationUntilTurn": 2
+          }
+        ],
+        "scc": {
+          "silver": 1189.2,
+          "food": 1081.7,
+          "points": 6
+        },
+        "yun": {
+          "silver": 287,
+          "food": 407.9,
+          "points": 6
+        },
+        "battles": [
+          {
+            "id": "battle_2",
+            "from": "156530100",
+            "to": "156530600",
+            "fromName": "昆明市",
+            "toName": "昭通市",
+            "active": true,
+            "attacker": "YUN",
+            "defender": "SCC",
+            "turns": 1,
+            "totalAttackerLoss": 1,
+            "totalDefenderLoss": 1,
+            "lastAttackerLoss": 1,
+            "lastDefenderLoss": 1,
+            "route": [
+              "156530100",
+              "156530600"
+            ],
+            "marchDistanceKm": 275.7,
+            "routeHasSea": false,
+            "supplyRulesVersion": 1,
+            "lastNarrative": "本轮补给通畅。"
+          }
+        ]
+      },
+      "militaryEvents": [
+        {
+          "type": "attack",
+          "fromGb": "156530100",
+          "targetGb": "156530600",
+          "attackerLoss": 1,
+          "defenderLoss": 1,
+          "narrative": "本轮补给通畅。"
+        },
+        {
+          "type": "moraleChange",
+          "targetGb": "156530100",
+          "delta": -3
+        },
+        {
+          "type": "moraleChange",
+          "targetGb": "156530600",
+          "delta": -4
+        }
+      ]
+    },
+    {
+      "step": 2,
+      "initiative": {
+        "kind": "support",
+        "goal": "支援昆明市至昭通市战线",
+        "sourceGb": "156530100",
+        "targetGb": "156530600",
+        "reason": "已有战线，不重复从同一城开战。需要权衡：下一次结算基础估计攻损1k/守损1k，攻方士气65/守方士气31，来源留守11k；本次行军银0/粮0。当前基础比例消耗相对有利，但敌方增援或士气变化可能逆转局面。这是静态基础比较，不含双方后续动作、经济减员、突发事件及崩溃结果，不是胜率或胜利保证。可比较支援、整军与撤退；现有战线行军费不重复收取。",
+        "examples": [
+          {
+            "order": "recruit",
+            "gb": "156530100",
+            "amount": 3
+          },
+          {
+            "order": "fortify",
+            "gb": "156530100",
+            "amount": 5
+          },
+          {
+            "order": "stopBattle",
+            "id": "battle_2"
+          }
+        ]
+      },
+      "controller": [
+        {
+          "order": {
+            "order": "recruit",
+            "gb": "156530600",
+            "amount": 2
+          },
+          "ok": true
+        },
+        {
+          "order": {
+            "order": "fortify",
+            "gb": "156530600",
+            "amount": 5
+          },
+          "ok": true
+        }
+      ],
+      "plannedOrders": [
+        {
+          "order": "deploy",
+          "from": "昆明市",
+          "amount": 2
+        }
+      ],
+      "planningRefusals": [],
+      "execution": [
+        {
+          "order": {
+            "order": "deploy",
+            "from": "昆明市",
+            "amount": 2
+          },
+          "ok": true
+        }
+      ],
+      "receipts": [
+        {
+          "type": "commandReceipt",
+          "faction": "YUN",
+          "label": "deploy 昆明市 数量2",
+          "ok": true,
+          "spentPoints": 1,
+          "spentSilver": 0,
+          "spentFood": 0,
+          "remainingPoints": 5,
+          "remainingSilver": 379.3,
+          "remainingFood": 579.6
+        }
+      ],
+      "state": {
+        "date": "1931-04-22",
+        "turn": 3,
+        "objective": {
+          "targetOwned": true,
+          "rearOwned": true,
+          "supplied": true,
+          "remaining": 0,
+          "integrated": true,
+          "ready": true,
+          "id": "southwest-bridgehead",
+          "faction": "SCC",
+          "startedTurn": 0,
+          "holdTurns": 1,
+          "completed": false,
+          "goal": "连续守住支点",
+          "steps": [
+            {
+              "label": "夺取昭通",
+              "done": true,
+              "detail": "占领只能由战斗或合法外交移交产生。"
+            },
+            {
+              "label": "整合并连通补给",
+              "done": true,
+              "detail": "保有宜宾；昭通整合剩余0回合；补给通畅。"
+            },
+            {
+              "label": "连续守住三个完整回合",
+              "done": false,
+              "detail": "1/3 回合；失守、断供或整合未完成会清零。"
+            }
+          ]
+        },
+        "cities": [
+          {
+            "gb": "156511500",
+            "name": "宜宾市",
+            "owner": "SCC",
+            "terrain": "MOUNTAIN",
+            "cityLevel": 2,
+            "industry": 10,
+            "food": 30,
+            "fort": 20,
+            "troops": 4,
+            "fieldForce": 0,
+            "morale": 47
+          },
+          {
+            "gb": "156530600",
+            "name": "昭通市",
+            "owner": "SCC",
+            "terrain": "MOUNTAIN",
+            "cityLevel": 2,
+            "industry": 10,
+            "food": 30,
+            "fort": 30,
+            "troops": 7,
+            "fieldForce": 0,
+            "morale": 31,
+            "occupationUntilTurn": 2
+          }
+        ],
+        "scc": {
+          "silver": 1193,
+          "food": 1276.5,
+          "points": 6
+        },
+        "yun": {
+          "silver": 379.3,
+          "food": 579.6,
+          "points": 6
+        },
+        "battles": [
+          {
+            "id": "battle_2",
+            "from": "156530100",
+            "to": "156530600",
+            "fromName": "昆明市",
+            "toName": "昭通市",
+            "active": true,
+            "attacker": "YUN",
+            "defender": "SCC",
+            "turns": 2,
+            "totalAttackerLoss": 2,
+            "totalDefenderLoss": 2,
+            "lastAttackerLoss": 1,
+            "lastDefenderLoss": 1,
+            "route": [
+              "156530100",
+              "156530600"
+            ],
+            "marchDistanceKm": 275.7,
+            "routeHasSea": false,
+            "supplyRulesVersion": 1,
+            "lastNarrative": "本轮补给通畅。"
+          }
+        ]
+      },
+      "militaryEvents": [
+        {
+          "type": "attack",
+          "fromGb": "156530100",
+          "targetGb": "156530600",
+          "attackerLoss": 1,
+          "defenderLoss": 1,
+          "narrative": "本轮补给通畅。"
+        },
+        {
+          "type": "moraleChange",
+          "targetGb": "156530100",
+          "delta": -3
+        },
+        {
+          "type": "moraleChange",
+          "targetGb": "156530600",
+          "delta": -4
+        }
+      ]
+    },
+    {
+      "step": 3,
+      "initiative": {
+        "kind": "support",
+        "goal": "支援昆明市至昭通市战线",
+        "sourceGb": "156530100",
+        "targetGb": "156530600",
+        "reason": "已有战线，不重复从同一城开战。需要权衡：下一次结算基础估计攻损1k/守损1k，攻方士气62/守方士气28，来源留守9k；本次行军银0/粮0。当前基础比例消耗相对有利，但敌方增援或士气变化可能逆转局面。这是静态基础比较，不含双方后续动作、经济减员、突发事件及崩溃结果，不是胜率或胜利保证。可比较支援、整军与撤退；现有战线行军费不重复收取。",
+        "examples": [
+          {
+            "order": "recruit",
+            "gb": "156530100",
+            "amount": 3
+          },
+          {
+            "order": "fortify",
+            "gb": "156530100",
+            "amount": 5
+          },
+          {
+            "order": "stopBattle",
+            "id": "battle_2"
+          }
+        ]
+      },
+      "controller": [
+        {
+          "order": {
+            "order": "recruit",
+            "gb": "156530600",
+            "amount": 2
+          },
+          "ok": true
+        },
+        {
+          "order": {
+            "order": "fortify",
+            "gb": "156530600",
+            "amount": 5
+          },
+          "ok": true
+        }
+      ],
+      "plannedOrders": [
+        {
+          "order": "deploy",
+          "from": "昆明市",
+          "amount": 2
+        }
+      ],
+      "planningRefusals": [],
+      "execution": [
+        {
+          "order": {
+            "order": "deploy",
+            "from": "昆明市",
+            "amount": 2
+          },
+          "ok": true
+        }
+      ],
+      "receipts": [
+        {
+          "type": "commandReceipt",
+          "faction": "YUN",
+          "label": "deploy 昆明市 数量2",
+          "ok": true,
+          "spentPoints": 1,
+          "spentSilver": 0,
+          "spentFood": 0,
+          "remainingPoints": 5,
+          "remainingSilver": 472.1,
+          "remainingFood": 751.6
+        }
+      ],
+      "state": {
+        "date": "1931-04-29",
+        "turn": 4,
+        "objective": {
+          "targetOwned": true,
+          "rearOwned": true,
+          "supplied": true,
+          "remaining": 0,
+          "integrated": true,
+          "ready": true,
+          "id": "southwest-bridgehead",
+          "faction": "SCC",
+          "startedTurn": 0,
+          "holdTurns": 2,
+          "completed": false,
+          "goal": "连续守住支点",
+          "steps": [
+            {
+              "label": "夺取昭通",
+              "done": true,
+              "detail": "占领只能由战斗或合法外交移交产生。"
+            },
+            {
+              "label": "整合并连通补给",
+              "done": true,
+              "detail": "保有宜宾；昭通整合剩余0回合；补给通畅。"
+            },
+            {
+              "label": "连续守住三个完整回合",
+              "done": false,
+              "detail": "2/3 回合；失守、断供或整合未完成会清零。"
+            }
+          ]
+        },
+        "cities": [
+          {
+            "gb": "156511500",
+            "name": "宜宾市",
+            "owner": "SCC",
+            "terrain": "MOUNTAIN",
+            "cityLevel": 2,
+            "industry": 10,
+            "food": 30,
+            "fort": 20,
+            "troops": 4,
+            "fieldForce": 0,
+            "morale": 47
+          },
+          {
+            "gb": "156530600",
+            "name": "昭通市",
+            "owner": "SCC",
+            "terrain": "MOUNTAIN",
+            "cityLevel": 2,
+            "industry": 10,
+            "food": 30,
+            "fort": 35,
+            "troops": 8,
+            "fieldForce": 0,
+            "morale": 28,
+            "occupationUntilTurn": 2
+          }
+        ],
+        "scc": {
+          "silver": 1196.3,
+          "food": 1471,
+          "points": 6
+        },
+        "yun": {
+          "silver": 472.1,
+          "food": 751.6,
+          "points": 6
+        },
+        "battles": [
+          {
+            "id": "battle_2",
+            "from": "156530100",
+            "to": "156530600",
+            "fromName": "昆明市",
+            "toName": "昭通市",
+            "active": true,
+            "attacker": "YUN",
+            "defender": "SCC",
+            "turns": 3,
+            "totalAttackerLoss": 4,
+            "totalDefenderLoss": 3,
+            "lastAttackerLoss": 2,
+            "lastDefenderLoss": 1,
+            "route": [
+              "156530100",
+              "156530600"
+            ],
+            "marchDistanceKm": 275.7,
+            "routeHasSea": false,
+            "supplyRulesVersion": 1,
+            "lastNarrative": "本轮补给通畅。"
+          }
+        ]
+      },
+      "militaryEvents": [
+        {
+          "type": "attack",
+          "fromGb": "156530100",
+          "targetGb": "156530600",
+          "attackerLoss": 2,
+          "defenderLoss": 1,
+          "narrative": "本轮补给通畅。"
+        },
+        {
+          "type": "moraleChange",
+          "targetGb": "156530100",
+          "delta": -5
+        },
+        {
+          "type": "moraleChange",
+          "targetGb": "156530600",
+          "delta": -3
+        }
+      ]
+    },
+    {
+      "step": 4,
+      "initiative": {
+        "kind": "support",
+        "goal": "支援昆明市至昭通市战线",
+        "sourceGb": "156530100",
+        "targetGb": "156530600",
+        "reason": "已有战线，不重复从同一城开战。需要权衡：下一次结算基础估计攻损1k/守损1k，攻方士气57/守方士气25，来源留守7k；本次行军银0/粮0。基础比例消耗并未明显有利于攻方，城防与地形可能拖长战线。这是静态基础比较，不含双方后续动作、经济减员、突发事件及崩溃结果，不是胜率或胜利保证。可比较支援、整军与撤退；现有战线行军费不重复收取。",
+        "examples": [
+          {
+            "order": "recruit",
+            "gb": "156530100",
+            "amount": 3
+          },
+          {
+            "order": "fortify",
+            "gb": "156530100",
+            "amount": 5
+          },
+          {
+            "order": "stopBattle",
+            "id": "battle_2"
+          }
+        ]
+      },
+      "controller": [
+        {
+          "order": {
+            "order": "recruit",
+            "gb": "156530600",
+            "amount": 2
+          },
+          "ok": true
+        },
+        {
+          "order": {
+            "order": "fortify",
+            "gb": "156530600",
+            "amount": 5
+          },
+          "ok": true
+        }
+      ],
+      "plannedOrders": [
+        {
+          "order": "deploy",
+          "from": "昆明市",
+          "amount": 3
+        },
+        {
+          "order": "moveTroops",
+          "from": "楚雄彝族自治州",
+          "to": "昆明市",
+          "amount": 2
+        },
+        {
+          "order": "recruit",
+          "gb": "昆明市",
+          "amount": 3
+        }
+      ],
+      "planningRefusals": [],
+      "execution": [
+        {
+          "order": {
+            "order": "deploy",
+            "from": "昆明市",
+            "amount": 3
+          },
+          "ok": true
+        },
+        {
+          "order": {
+            "order": "moveTroops",
+            "from": "楚雄彝族自治州",
+            "to": "昆明市",
+            "amount": 2
+          },
+          "ok": true,
+          "cost": {
+            "silver": 5.2,
+            "food": 3.9
+          }
+        },
+        {
+          "order": {
+            "order": "recruit",
+            "gb": "昆明市",
+            "amount": 3
+          },
+          "ok": true,
+          "cost": {
+            "silver": 6,
+            "food": 3
+          }
+        }
+      ],
+      "receipts": [
+        {
+          "type": "commandReceipt",
+          "faction": "YUN",
+          "label": "deploy 昆明市 数量3",
+          "ok": true,
+          "spentPoints": 1,
+          "spentSilver": 0,
+          "spentFood": 0,
+          "remainingPoints": 5,
+          "remainingSilver": 565.9,
+          "remainingFood": 924.2
+        },
+        {
+          "type": "commandReceipt",
+          "faction": "YUN",
+          "label": "moveTroops 楚雄彝族自治州 → 昆明市 数量2",
+          "ok": true,
+          "spentPoints": 1,
+          "spentSilver": 5.2,
+          "spentFood": 3.9,
+          "remainingPoints": 4,
+          "remainingSilver": 560.7,
+          "remainingFood": 920.3
+        },
+        {
+          "type": "commandReceipt",
+          "faction": "YUN",
+          "label": "recruit 昆明市 数量3",
+          "ok": true,
+          "spentPoints": 1,
+          "spentSilver": 6,
+          "spentFood": 3,
+          "remainingPoints": 3,
+          "remainingSilver": 554.7,
+          "remainingFood": 917.3
+        }
+      ],
+      "state": {
+        "date": "1931-05-06",
+        "turn": 5,
+        "objective": {
+          "targetOwned": true,
+          "rearOwned": true,
+          "supplied": true,
+          "remaining": 0,
+          "integrated": true,
+          "ready": true,
+          "id": "southwest-bridgehead",
+          "faction": "SCC",
+          "startedTurn": 0,
+          "holdTurns": 3,
+          "completedTurn": 5,
+          "completed": true,
+          "goal": "西南支点已稳固",
+          "steps": [
+            {
+              "label": "夺取昭通",
+              "done": true,
+              "detail": "占领只能由战斗或合法外交移交产生。"
+            },
+            {
+              "label": "整合并连通补给",
+              "done": true,
+              "detail": "达成时已完成整合并连通补给；完成记录保留。"
+            },
+            {
+              "label": "连续守住三个完整回合",
+              "done": true,
+              "detail": "3/3 回合；战役已完成，后续失地不清除完成记录。"
+            }
+          ]
+        },
+        "cities": [
+          {
+            "gb": "156511500",
+            "name": "宜宾市",
+            "owner": "SCC",
+            "terrain": "MOUNTAIN",
+            "cityLevel": 2,
+            "industry": 10,
+            "food": 30,
+            "fort": 20,
+            "troops": 4,
+            "fieldForce": 0,
+            "morale": 47
+          },
+          {
+            "gb": "156530600",
+            "name": "昭通市",
+            "owner": "SCC",
+            "terrain": "MOUNTAIN",
+            "cityLevel": 2,
+            "industry": 10,
+            "food": 30,
+            "fort": 40,
+            "troops": 9,
+            "fieldForce": 0,
+            "morale": 25,
+            "occupationUntilTurn": 2
+          }
+        ],
+        "scc": {
+          "silver": 1199.1,
+          "food": 1665.2,
+          "points": 6
+        },
+        "yun": {
+          "silver": 554.7,
+          "food": 917.3,
+          "points": 6
+        },
+        "battles": [
+          {
+            "id": "battle_2",
+            "from": "156530100",
+            "to": "156530600",
+            "fromName": "昆明市",
+            "toName": "昭通市",
+            "active": true,
+            "attacker": "YUN",
+            "defender": "SCC",
+            "turns": 4,
+            "totalAttackerLoss": 6,
+            "totalDefenderLoss": 4,
+            "lastAttackerLoss": 2,
+            "lastDefenderLoss": 1,
+            "route": [
+              "156530100",
+              "156530600"
+            ],
+            "marchDistanceKm": 275.7,
+            "routeHasSea": false,
+            "supplyRulesVersion": 1,
+            "lastNarrative": "本轮补给通畅。"
+          }
+        ]
+      },
+      "militaryEvents": [
+        {
+          "type": "attack",
+          "fromGb": "156530100",
+          "targetGb": "156530600",
+          "attackerLoss": 2,
+          "defenderLoss": 1,
+          "narrative": "本轮补给通畅。"
+        },
+        {
+          "type": "moraleChange",
+          "targetGb": "156530100",
+          "delta": -5
+        },
+        {
+          "type": "moraleChange",
+          "targetGb": "156530600",
+          "delta": -3
+        }
+      ]
+    },
+    {
+      "step": 5,
+      "initiative": {
+        "kind": "support",
+        "goal": "支援昆明市至昭通市战线",
+        "sourceGb": "156530100",
+        "targetGb": "156530600",
+        "reason": "已有战线，不重复从同一城开战。需要权衡：下一次结算基础估计攻损2k/守损1k，攻方士气50/守方士气22，来源留守9k；本次行军银0/粮0。基础比例消耗并未明显有利于攻方，城防与地形可能拖长战线。这是静态基础比较，不含双方后续动作、经济减员、突发事件及崩溃结果，不是胜率或胜利保证。可比较支援、整军与撤退；现有战线行军费不重复收取。",
+        "examples": [
+          {
+            "order": "recruit",
+            "gb": "156530100",
+            "amount": 3
+          },
+          {
+            "order": "rally",
+            "gb": "156530100",
+            "amount": 10
+          },
+          {
+            "order": "fortify",
+            "gb": "156530100",
+            "amount": 5
+          },
+          {
+            "order": "stopBattle",
+            "id": "battle_2"
+          }
+        ]
+      },
+      "controller": [
+        {
+          "order": {
+            "order": "recruit",
+            "gb": "156530600",
+            "amount": 2
+          },
+          "ok": true
+        },
+        {
+          "order": {
+            "order": "fortify",
+            "gb": "156530600",
+            "amount": 5
+          },
+          "ok": true
+        }
+      ],
+      "plannedOrders": [
+        {
+          "order": "deploy",
+          "from": "昆明市",
+          "amount": 4
+        },
+        {
+          "order": "recruit",
+          "gb": "昆明市",
+          "amount": 5
+        }
+      ],
+      "planningRefusals": [],
+      "execution": [
+        {
+          "order": {
+            "order": "deploy",
+            "from": "昆明市",
+            "amount": 4
+          },
+          "ok": true
+        },
+        {
+          "order": {
+            "order": "recruit",
+            "gb": "昆明市",
+            "amount": 5
+          },
+          "ok": true,
+          "cost": {
+            "silver": 10,
+            "food": 5
+          }
+        }
+      ],
+      "receipts": [
+        {
+          "type": "commandReceipt",
+          "faction": "YUN",
+          "label": "deploy 昆明市 数量4",
+          "ok": true,
+          "spentPoints": 1,
+          "spentSilver": 0,
+          "spentFood": 0,
+          "remainingPoints": 5,
+          "remainingSilver": 648,
+          "remainingFood": 1089.6
+        },
+        {
+          "type": "commandReceipt",
+          "faction": "YUN",
+          "label": "recruit 昆明市 数量5",
+          "ok": true,
+          "spentPoints": 1,
+          "spentSilver": 10,
+          "spentFood": 5,
+          "remainingPoints": 4,
+          "remainingSilver": 638,
+          "remainingFood": 1084.6
+        }
+      ],
+      "state": {
+        "date": "1931-05-13",
+        "turn": 6,
+        "objective": {
+          "targetOwned": true,
+          "rearOwned": true,
+          "supplied": true,
+          "remaining": 0,
+          "integrated": true,
+          "ready": true,
+          "id": "southwest-bridgehead",
+          "faction": "SCC",
+          "startedTurn": 0,
+          "holdTurns": 3,
+          "completedTurn": 5,
+          "completed": true,
+          "goal": "西南支点已稳固",
+          "steps": [
+            {
+              "label": "夺取昭通",
+              "done": true,
+              "detail": "占领只能由战斗或合法外交移交产生。"
+            },
+            {
+              "label": "整合并连通补给",
+              "done": true,
+              "detail": "达成时已完成整合并连通补给；完成记录保留。"
+            },
+            {
+              "label": "连续守住三个完整回合",
+              "done": true,
+              "detail": "3/3 回合；战役已完成，后续失地不清除完成记录。"
+            }
+          ]
+        },
+        "cities": [
+          {
+            "gb": "156511500",
+            "name": "宜宾市",
+            "owner": "SCC",
+            "terrain": "MOUNTAIN",
+            "cityLevel": 2,
+            "industry": 10,
+            "food": 30,
+            "fort": 20,
+            "troops": 4,
+            "fieldForce": 0,
+            "morale": 47
+          },
+          {
+            "gb": "156530600",
+            "name": "昭通市",
+            "owner": "SCC",
+            "terrain": "MOUNTAIN",
+            "cityLevel": 2,
+            "industry": 10,
+            "food": 30,
+            "fort": 45,
+            "troops": 10,
+            "fieldForce": 0,
+            "morale": 22,
+            "occupationUntilTurn": 2
+          }
+        ],
+        "scc": {
+          "silver": 1201.4,
+          "food": 1859.1,
+          "points": 6
+        },
+        "yun": {
+          "silver": 638,
+          "food": 1084.6,
+          "points": 6
+        },
+        "battles": [
+          {
+            "id": "battle_2",
+            "from": "156530100",
+            "to": "156530600",
+            "fromName": "昆明市",
+            "toName": "昭通市",
+            "active": true,
+            "attacker": "YUN",
+            "defender": "SCC",
+            "turns": 5,
+            "totalAttackerLoss": 8,
+            "totalDefenderLoss": 5,
+            "lastAttackerLoss": 2,
+            "lastDefenderLoss": 1,
+            "route": [
+              "156530100",
+              "156530600"
+            ],
+            "marchDistanceKm": 275.7,
+            "routeHasSea": false,
+            "supplyRulesVersion": 1,
+            "lastNarrative": "本轮补给通畅。"
+          }
+        ]
+      },
+      "militaryEvents": [
+        {
+          "type": "attack",
+          "fromGb": "156530100",
+          "targetGb": "156530600",
+          "attackerLoss": 2,
+          "defenderLoss": 1,
+          "narrative": "本轮补给通畅。"
+        },
+        {
+          "type": "moraleChange",
+          "targetGb": "156530100",
+          "delta": -4
+        },
+        {
+          "type": "moraleChange",
+          "targetGb": "156530600",
+          "delta": -3
+        }
+      ]
+    },
+    {
+      "step": 6,
+      "initiative": {
+        "kind": "support",
+        "goal": "支援昆明市至昭通市战线",
+        "sourceGb": "156530100",
+        "targetGb": "156530600",
+        "reason": "已有战线，不重复从同一城开战。需要权衡：下一次结算基础估计攻损2k/守损1k，攻方士气46/守方士气19，来源留守10k；本次行军银0/粮0。基础比例消耗并未明显有利于攻方，城防与地形可能拖长战线。这是静态基础比较，不含双方后续动作、经济减员、突发事件及崩溃结果，不是胜率或胜利保证。可比较支援、整军与撤退；现有战线行军费不重复收取。",
+        "examples": [
+          {
+            "order": "recruit",
+            "gb": "156530100",
+            "amount": 3
+          },
+          {
+            "order": "rally",
+            "gb": "156530100",
+            "amount": 10
+          },
+          {
+            "order": "fortify",
+            "gb": "156530100",
+            "amount": 5
+          },
+          {
+            "order": "stopBattle",
+            "id": "battle_2"
+          }
+        ]
+      },
+      "controller": [
+        {
+          "order": {
+            "order": "recruit",
+            "gb": "156530600",
+            "amount": 2
+          },
+          "ok": true
+        },
+        {
+          "order": {
+            "order": "fortify",
+            "gb": "156530600",
+            "amount": 5
+          },
+          "ok": true
+        }
+      ],
+      "plannedOrders": [
+        {
+          "order": "rally",
+          "gb": "昆明市",
+          "amount": 10
+        },
+        {
+          "order": "deploy",
+          "from": "昆明市",
+          "amount": 4
+        },
+        {
+          "order": "recruit",
+          "gb": "昆明市",
+          "amount": 4
+        },
+        {
+          "order": "fortify",
+          "gb": "昆明市",
+          "amount": 5
+        }
+      ],
+      "planningRefusals": [],
+      "execution": [
+        {
+          "order": {
+            "order": "rally",
+            "gb": "昆明市",
+            "amount": 10
+          },
+          "ok": true,
+          "cost": {
+            "silver": 2.5,
+            "food": 0
+          }
+        },
+        {
+          "order": {
+            "order": "deploy",
+            "from": "昆明市",
+            "amount": 4
+          },
+          "ok": true
+        },
+        {
+          "order": {
+            "order": "recruit",
+            "gb": "昆明市",
+            "amount": 4
+          },
+          "ok": true,
+          "cost": {
+            "silver": 8,
+            "food": 4
+          }
+        },
+        {
+          "order": {
+            "order": "fortify",
+            "gb": "昆明市",
+            "amount": 5
+          },
+          "ok": true,
+          "cost": {
+            "silver": 5,
+            "food": 0
+          }
+        }
+      ],
+      "receipts": [
+        {
+          "type": "commandReceipt",
+          "faction": "YUN",
+          "label": "rally 昆明市 数量10",
+          "ok": true,
+          "spentPoints": 1,
+          "spentSilver": 2.5,
+          "spentFood": 0,
+          "remainingPoints": 5,
+          "remainingSilver": 727.3,
+          "remainingFood": 1256
+        },
+        {
+          "type": "commandReceipt",
+          "faction": "YUN",
+          "label": "deploy 昆明市 数量4",
+          "ok": true,
+          "spentPoints": 1,
+          "spentSilver": 0,
+          "spentFood": 0,
+          "remainingPoints": 4,
+          "remainingSilver": 727.3,
+          "remainingFood": 1256
+        },
+        {
+          "type": "commandReceipt",
+          "faction": "YUN",
+          "label": "recruit 昆明市 数量4",
+          "ok": true,
+          "spentPoints": 1,
+          "spentSilver": 8,
+          "spentFood": 4,
+          "remainingPoints": 3,
+          "remainingSilver": 719.3,
+          "remainingFood": 1252
+        },
+        {
+          "type": "commandReceipt",
+          "faction": "YUN",
+          "label": "fortify 昆明市 数量5",
+          "ok": true,
+          "spentPoints": 1,
+          "spentSilver": 5,
+          "spentFood": 0,
+          "remainingPoints": 2,
+          "remainingSilver": 714.3,
+          "remainingFood": 1252
+        }
+      ],
+      "state": {
+        "date": "1931-05-20",
+        "turn": 7,
+        "objective": {
+          "targetOwned": false,
+          "rearOwned": true,
+          "supplied": false,
+          "remaining": 1,
+          "integrated": false,
+          "ready": false,
+          "id": "southwest-bridgehead",
+          "faction": "SCC",
+          "startedTurn": 0,
+          "holdTurns": 3,
+          "completedTurn": 5,
+          "completed": true,
+          "goal": "西南支点已稳固",
+          "steps": [
+            {
+              "label": "夺取昭通",
+              "done": true,
+              "detail": "占领只能由战斗或合法外交移交产生。"
+            },
+            {
+              "label": "整合并连通补给",
+              "done": true,
+              "detail": "达成时已完成整合并连通补给；完成记录保留。"
+            },
+            {
+              "label": "连续守住三个完整回合",
+              "done": true,
+              "detail": "3/3 回合；战役已完成，后续失地不清除完成记录。"
+            }
+          ]
+        },
+        "cities": [
+          {
+            "gb": "156511500",
+            "name": "宜宾市",
+            "owner": "SCC",
+            "terrain": "MOUNTAIN",
+            "cityLevel": 2,
+            "industry": 10,
+            "food": 30,
+            "fort": 20,
+            "troops": 4,
+            "fieldForce": 0,
+            "morale": 47
+          },
+          {
+            "gb": "156530600",
+            "name": "昭通市",
+            "owner": "YUN",
+            "terrain": "MOUNTAIN",
+            "cityLevel": 2,
+            "industry": 10,
+            "food": 30,
+            "fort": 50,
+            "troops": 15,
+            "fieldForce": 0,
+            "morale": 31,
+            "occupationUntilTurn": 8
+          }
+        ],
+        "scc": {
+          "silver": 1203.2,
+          "food": 2052.7,
+          "points": 6
+        },
+        "yun": {
+          "silver": 714.3,
+          "food": 1252,
+          "points": 6
+        },
+        "battles": []
+      },
+      "militaryEvents": [
+        {
+          "type": "moraleChange",
+          "targetGb": "156530100",
+          "delta": 10
+        },
+        {
+          "type": "attack",
+          "fromGb": "156530100",
+          "targetGb": "156530600",
+          "attackerLoss": 2,
+          "defenderLoss": 1,
+          "narrative": "本轮补给通畅。"
+        },
+        {
+          "type": "moraleChange",
+          "targetGb": "156530100",
+          "delta": -4
+        },
+        {
+          "type": "moraleChange",
+          "targetGb": "156530600",
+          "delta": -3
+        },
+        {
+          "type": "capture",
+          "targetGb": "156530600",
+          "actor": "YUN",
+          "resultTroops": 15,
+          "occupationTurns": 2
+        },
+        {
+          "type": "battleEnd",
+          "battleId": "battle_2",
+          "reason": "defenderCollapse",
+          "fromName": "昆明市",
+          "toName": "昭通市"
+        },
+        {
+          "type": "moraleChange",
+          "targetGb": "156530100",
+          "delta": 10
+        }
+      ]
+    },
+    {
+      "step": 7,
+      "initiative": {
+        "kind": "consolidate",
+        "goal": "稳固昭通市",
+        "targetGb": "156530600",
+        "reason": "新占领城市尚在整合期，优先保护补给连接与驻军，不为了产生动作而不断开启新战线。",
+        "examples": [
+          {
+            "order": "moveTroops",
+            "from": "156530100",
+            "to": "156530600",
+            "amount": 7.5
+          },
+          {
+            "order": "recruit",
+            "gb": "156530600",
+            "amount": 3
+          },
+          {
+            "order": "rally",
+            "gb": "156530600",
+            "amount": 10
+          },
+          {
+            "order": "fortify",
+            "gb": "156530600",
+            "amount": 5
+          }
+        ]
+      },
+      "controller": [
+        {
+          "order": {
+            "order": "recruit",
+            "gb": "156511500",
+            "amount": 3
+          },
+          "ok": true
+        }
+      ],
+      "plannedOrders": [
+        {
+          "order": "moveTroops",
+          "from": "昆明市",
+          "to": "昭通市",
+          "amount": 5
+        },
+        {
+          "order": "rally",
+          "gb": "昭通市",
+          "amount": 10
+        },
+        {
+          "order": "fortify",
+          "gb": "昭通市",
+          "amount": 5
+        },
+        {
+          "order": "recruit",
+          "gb": "昆明市",
+          "amount": 5
+        }
+      ],
+      "planningRefusals": [],
+      "execution": [
+        {
+          "order": {
+            "order": "moveTroops",
+            "from": "昆明市",
+            "to": "昭通市",
+            "amount": 5
+          },
+          "ok": true,
+          "cost": {
+            "silver": 27.6,
+            "food": 20.7
+          }
+        },
+        {
+          "order": {
+            "order": "rally",
+            "gb": "昭通市",
+            "amount": 10
+          },
+          "ok": true,
+          "cost": {
+            "silver": 2.5,
+            "food": 0
+          }
+        },
+        {
+          "order": {
+            "order": "fortify",
+            "gb": "昭通市",
+            "amount": 5
+          },
+          "ok": true,
+          "cost": {
+            "silver": 5,
+            "food": 0
+          }
+        },
+        {
+          "order": {
+            "order": "recruit",
+            "gb": "昆明市",
+            "amount": 5
+          },
+          "ok": true,
+          "cost": {
+            "silver": 10,
+            "food": 5
+          }
+        }
+      ],
+      "receipts": [
+        {
+          "type": "commandReceipt",
+          "faction": "YUN",
+          "label": "moveTroops 昆明市 → 昭通市 数量5",
+          "ok": true,
+          "spentPoints": 1,
+          "spentSilver": 27.6,
+          "spentFood": 20.7,
+          "remainingPoints": 5,
+          "remainingSilver": 781,
+          "remainingFood": 1408.1
+        },
+        {
+          "type": "commandReceipt",
+          "faction": "YUN",
+          "label": "rally 昭通市 数量10",
+          "ok": true,
+          "spentPoints": 1,
+          "spentSilver": 2.5,
+          "spentFood": 0,
+          "remainingPoints": 4,
+          "remainingSilver": 778.5,
+          "remainingFood": 1408.1
+        },
+        {
+          "type": "commandReceipt",
+          "faction": "YUN",
+          "label": "fortify 昭通市 数量5",
+          "ok": true,
+          "spentPoints": 1,
+          "spentSilver": 5,
+          "spentFood": 0,
+          "remainingPoints": 3,
+          "remainingSilver": 773.5,
+          "remainingFood": 1408.1
+        },
+        {
+          "type": "commandReceipt",
+          "faction": "YUN",
+          "label": "recruit 昆明市 数量5",
+          "ok": true,
+          "spentPoints": 1,
+          "spentSilver": 10,
+          "spentFood": 5,
+          "remainingPoints": 2,
+          "remainingSilver": 763.5,
+          "remainingFood": 1403.1
+        }
+      ],
+      "state": {
+        "date": "1931-05-27",
+        "turn": 8,
+        "objective": {
+          "targetOwned": false,
+          "rearOwned": true,
+          "supplied": false,
+          "remaining": 0,
+          "integrated": true,
+          "ready": false,
+          "id": "southwest-bridgehead",
+          "faction": "SCC",
+          "startedTurn": 0,
+          "holdTurns": 3,
+          "completedTurn": 5,
+          "completed": true,
+          "goal": "西南支点已稳固",
+          "steps": [
+            {
+              "label": "夺取昭通",
+              "done": true,
+              "detail": "占领只能由战斗或合法外交移交产生。"
+            },
+            {
+              "label": "整合并连通补给",
+              "done": true,
+              "detail": "达成时已完成整合并连通补给；完成记录保留。"
+            },
+            {
+              "label": "连续守住三个完整回合",
+              "done": true,
+              "detail": "3/3 回合；战役已完成，后续失地不清除完成记录。"
+            }
+          ]
+        },
+        "cities": [
+          {
+            "gb": "156511500",
+            "name": "宜宾市",
+            "owner": "SCC",
+            "terrain": "MOUNTAIN",
+            "cityLevel": 2,
+            "industry": 10,
+            "food": 30,
+            "fort": 20,
+            "troops": 7,
+            "fieldForce": 0,
+            "morale": 47
+          },
+          {
+            "gb": "156530600",
+            "name": "昭通市",
+            "owner": "YUN",
+            "terrain": "MOUNTAIN",
+            "cityLevel": 2,
+            "industry": 10,
+            "food": 30,
+            "fort": 55,
+            "troops": 20,
+            "fieldForce": 0,
+            "morale": 41,
+            "occupationUntilTurn": 8
+          }
+        ],
+        "scc": {
+          "silver": 1205.5,
+          "food": 2236,
+          "points": 6
+        },
+        "yun": {
+          "silver": 763.5,
+          "food": 1403.1,
+          "points": 6
+        },
+        "battles": []
+      },
+      "militaryEvents": [
+        {
+          "type": "moraleChange",
+          "targetGb": "156530600",
+          "delta": 10
+        }
+      ]
+    },
+    {
+      "step": 8,
+      "initiative": {
+        "kind": "assemble",
+        "goal": "集结准备争夺泸州市",
+        "sourceGb": "156530600",
+        "targetGb": "156510500",
+        "reason": "与川军交战，目标是可达的敌方节点。来源昭通市，守军8k/工事20/士气42；建议至少留守5k。需要权衡：下一次结算基础估计攻损2k/守损1k，攻方士气37/守方士气38，来源留守5k；本次行军银55.7/粮41.7。基础比例消耗并未明显有利于攻方，城防与地形可能拖长战线。这是静态基础比较，不含双方后续动作、经济减员、突发事件及崩溃结果，不是胜率或胜利保证。当前建议先集结与整备，不把1k路线示例当成足够的攻城兵力。",
+        "examples": [
+          {
+            "order": "moveTroops",
+            "from": "156530100",
+            "to": "156530600",
+            "amount": 7.5
+          },
+          {
+            "order": "recruit",
+            "gb": "156530600",
+            "amount": 3
+          },
+          {
+            "order": "rally",
+            "gb": "156530600",
+            "amount": 10
+          },
+          {
+            "order": "fortify",
+            "gb": "156530600",
+            "amount": 5
+          }
+        ]
+      },
+      "controller": [
+        {
+          "order": {
+            "order": "recruit",
+            "gb": "156511500",
+            "amount": 3
+          },
+          "ok": true
+        }
+      ],
+      "plannedOrders": [
+        {
+          "order": "rally",
+          "gb": "昭通市",
+          "amount": 10
+        },
+        {
+          "order": "battle",
+          "from": "昭通市",
+          "to": "泸州市",
+          "deployAmount": 15
+        },
+        {
+          "order": "moveTroops",
+          "from": "昆明市",
+          "to": "昭通市",
+          "amount": 5
+        },
+        {
+          "order": "fortify",
+          "gb": "昭通市",
+          "amount": 5
+        },
+        {
+          "order": "recruit",
+          "gb": "昆明市",
+          "amount": 5
+        }
+      ],
+      "planningRefusals": [],
+      "execution": [
+        {
+          "order": {
+            "order": "rally",
+            "gb": "昭通市",
+            "amount": 10
+          },
+          "ok": true,
+          "cost": {
+            "silver": 2.5,
+            "food": 0
+          }
+        },
+        {
+          "order": {
+            "order": "battle",
+            "from": "昭通市",
+            "to": "泸州市",
+            "deployAmount": 15
+          },
+          "ok": true,
+          "cost": {
+            "silver": 55.7,
+            "food": 41.7
+          }
+        },
+        {
+          "order": {
+            "order": "moveTroops",
+            "from": "昆明市",
+            "to": "昭通市",
+            "amount": 5
+          },
+          "ok": true,
+          "cost": {
+            "silver": 27.6,
+            "food": 20.7
+          }
+        },
+        {
+          "order": {
+            "order": "fortify",
+            "gb": "昭通市",
+            "amount": 5
+          },
+          "ok": true,
+          "cost": {
+            "silver": 5,
+            "food": 0
+          }
+        },
+        {
+          "order": {
+            "order": "recruit",
+            "gb": "昆明市",
+            "amount": 5
+          },
+          "ok": true,
+          "cost": {
+            "silver": 10,
+            "food": 5
+          }
+        }
+      ],
+      "receipts": [
+        {
+          "type": "commandReceipt",
+          "faction": "YUN",
+          "label": "rally 昭通市 数量10",
+          "ok": true,
+          "spentPoints": 1,
+          "spentSilver": 2.5,
+          "spentFood": 0,
+          "remainingPoints": 5,
+          "remainingSilver": 856.3,
+          "remainingFood": 1584.4
+        },
+        {
+          "type": "commandReceipt",
+          "faction": "YUN",
+          "label": "battle 昭通市 → 泸州市 数量15",
+          "ok": true,
+          "spentPoints": 1,
+          "spentSilver": 55.7,
+          "spentFood": 41.7,
+          "remainingPoints": 4,
+          "remainingSilver": 800.6,
+          "remainingFood": 1542.7
+        },
+        {
+          "type": "commandReceipt",
+          "faction": "YUN",
+          "label": "moveTroops 昆明市 → 昭通市 数量5",
+          "ok": true,
+          "spentPoints": 1,
+          "spentSilver": 27.6,
+          "spentFood": 20.7,
+          "remainingPoints": 3,
+          "remainingSilver": 773,
+          "remainingFood": 1522
+        },
+        {
+          "type": "commandReceipt",
+          "faction": "YUN",
+          "label": "fortify 昭通市 数量5",
+          "ok": true,
+          "spentPoints": 1,
+          "spentSilver": 5,
+          "spentFood": 0,
+          "remainingPoints": 2,
+          "remainingSilver": 768,
+          "remainingFood": 1522
+        },
+        {
+          "type": "commandReceipt",
+          "faction": "YUN",
+          "label": "recruit 昆明市 数量5",
+          "ok": true,
+          "spentPoints": 1,
+          "spentSilver": 10,
+          "spentFood": 5,
+          "remainingPoints": 1,
+          "remainingSilver": 758,
+          "remainingFood": 1517
+        }
+      ],
+      "state": {
+        "date": "1931-06-03",
+        "turn": 9,
+        "objective": {
+          "targetOwned": false,
+          "rearOwned": true,
+          "supplied": false,
+          "remaining": 0,
+          "integrated": true,
+          "ready": false,
+          "id": "southwest-bridgehead",
+          "faction": "SCC",
+          "startedTurn": 0,
+          "holdTurns": 3,
+          "completedTurn": 5,
+          "completed": true,
+          "goal": "西南支点已稳固",
+          "steps": [
+            {
+              "label": "夺取昭通",
+              "done": true,
+              "detail": "占领只能由战斗或合法外交移交产生。"
+            },
+            {
+              "label": "整合并连通补给",
+              "done": true,
+              "detail": "达成时已完成整合并连通补给；完成记录保留。"
+            },
+            {
+              "label": "连续守住三个完整回合",
+              "done": true,
+              "detail": "3/3 回合；战役已完成，后续失地不清除完成记录。"
+            }
+          ]
+        },
+        "cities": [
+          {
+            "gb": "156511500",
+            "name": "宜宾市",
+            "owner": "SCC",
+            "terrain": "MOUNTAIN",
+            "cityLevel": 2,
+            "industry": 10,
+            "food": 30,
+            "fort": 20,
+            "troops": 10,
+            "fieldForce": 0,
+            "morale": 47
+          },
+          {
+            "gb": "156530600",
+            "name": "昭通市",
+            "owner": "YUN",
+            "terrain": "MOUNTAIN",
+            "cityLevel": 2,
+            "industry": 10,
+            "food": 30,
+            "fort": 60,
+            "troops": 10,
+            "fieldForce": 13,
+            "morale": 47,
+            "occupationUntilTurn": 8
+          }
+        ],
+        "scc": {
+          "silver": 1206.3,
+          "food": 2418.4,
+          "points": 6
+        },
+        "yun": {
+          "silver": 758,
+          "food": 1517,
+          "points": 6
+        },
+        "battles": [
+          {
+            "id": "battle_1",
+            "from": "156530600",
+            "to": "156510500",
+            "fromName": "昭通市",
+            "toName": "泸州市",
+            "active": true,
+            "attacker": "YUN",
+            "defender": "SCC",
+            "turns": 1,
+            "totalAttackerLoss": 2,
+            "totalDefenderLoss": 1,
+            "lastAttackerLoss": 2,
+            "lastDefenderLoss": 1,
+            "route": [
+              "156530600",
+              "156510500"
+            ],
+            "marchDistanceKm": 185.5,
+            "routeHasSea": false,
+            "supplyRulesVersion": 1,
+            "lastNarrative": "本轮补给通畅。"
+          }
+        ]
+      },
+      "militaryEvents": [
+        {
+          "type": "moraleChange",
+          "targetGb": "156530600",
+          "delta": 10
+        },
+        {
+          "type": "attack",
+          "fromGb": "156530600",
+          "targetGb": "156510500",
+          "attackerLoss": 2,
+          "defenderLoss": 1,
+          "narrative": "本轮补给通畅。"
+        },
+        {
+          "type": "moraleChange",
+          "targetGb": "156530600",
+          "delta": -4
+        },
+        {
+          "type": "moraleChange",
+          "targetGb": "156510500",
+          "delta": -4
+        }
+      ]
+    },
+    {
+      "step": 9,
+      "initiative": {
+        "kind": "defend",
+        "goal": "保住昭通市",
+        "targetGb": "156530600",
+        "reason": "本城正在遭受进攻，优先调兵增援、适量征兵、筑防或整军，而非在远离前线的城市例行建设。以下为敌方进攻视角，攻损属于敌方：需要权衡：下一次结算基础估计攻损1k/守损1k，攻方士气42/守方士气44，来源留守4k；本次行军银0/粮0。基础比例消耗并未明显有利于攻方，城防与地形可能拖长战线。这是静态基础比较，不含双方后续动作、经济减员、突发事件及崩溃结果，不是胜率或胜利保证。若无法守住，应说明取舍。",
+        "examples": [
+          {
+            "order": "moveTroops",
+            "from": "156530100",
+            "to": "156530600",
+            "amount": 7.5
+          },
+          {
+            "order": "recruit",
+            "gb": "156530600",
+            "amount": 3
+          },
+          {
+            "order": "rally",
+            "gb": "156530600",
+            "amount": 10
+          },
+          {
+            "order": "fortify",
+            "gb": "156530600",
+            "amount": 5
+          }
+        ]
+      },
+      "controller": [
+        {
+          "order": {
+            "order": "battle",
+            "from": "156511500",
+            "to": "156530600",
+            "deployAmount": 6
+          },
+          "ok": true
+        }
+      ],
+      "plannedOrders": [
+        {
+          "order": "moveTroops",
+          "from": "昆明市",
+          "to": "昭通市",
+          "amount": 5
+        },
+        {
+          "order": "recruit",
+          "gb": "昭通市",
+          "amount": 5
+        },
+        {
+          "order": "rally",
+          "gb": "昭通市",
+          "amount": 10
+        },
+        {
+          "order": "fortify",
+          "gb": "昭通市",
+          "amount": 5
+        },
+        {
+          "order": "recruit",
+          "gb": "昆明市",
+          "amount": 5
+        }
+      ],
+      "planningRefusals": [],
+      "execution": [
+        {
+          "order": {
+            "order": "moveTroops",
+            "from": "昆明市",
+            "to": "昭通市",
+            "amount": 5
+          },
+          "ok": true,
+          "cost": {
+            "silver": 27.6,
+            "food": 20.7
+          }
+        },
+        {
+          "order": {
+            "order": "recruit",
+            "gb": "昭通市",
+            "amount": 5
+          },
+          "ok": true,
+          "cost": {
+            "silver": 10,
+            "food": 5
+          }
+        },
+        {
+          "order": {
+            "order": "rally",
+            "gb": "昭通市",
+            "amount": 10
+          },
+          "ok": true,
+          "cost": {
+            "silver": 2.5,
+            "food": 0
+          }
+        },
+        {
+          "order": {
+            "order": "fortify",
+            "gb": "昭通市",
+            "amount": 5
+          },
+          "ok": true,
+          "cost": {
+            "silver": 5,
+            "food": 0
+          }
+        },
+        {
+          "order": {
+            "order": "recruit",
+            "gb": "昆明市",
+            "amount": 5
+          },
+          "ok": true,
+          "cost": {
+            "silver": 10,
+            "food": 5
+          }
+        }
+      ],
+      "receipts": [
+        {
+          "type": "commandReceipt",
+          "faction": "YUN",
+          "label": "moveTroops 昆明市 → 昭通市 数量5",
+          "ok": true,
+          "spentPoints": 1,
+          "spentSilver": 27.6,
+          "spentFood": 20.7,
+          "remainingPoints": 5,
+          "remainingSilver": 824.2,
+          "remainingFood": 1676.7
+        },
+        {
+          "type": "commandReceipt",
+          "faction": "YUN",
+          "label": "recruit 昭通市 数量5",
+          "ok": true,
+          "spentPoints": 1,
+          "spentSilver": 10,
+          "spentFood": 5,
+          "remainingPoints": 4,
+          "remainingSilver": 814.2,
+          "remainingFood": 1671.7
+        },
+        {
+          "type": "commandReceipt",
+          "faction": "YUN",
+          "label": "rally 昭通市 数量10",
+          "ok": true,
+          "spentPoints": 1,
+          "spentSilver": 2.5,
+          "spentFood": 0,
+          "remainingPoints": 3,
+          "remainingSilver": 811.7,
+          "remainingFood": 1671.7
+        },
+        {
+          "type": "commandReceipt",
+          "faction": "YUN",
+          "label": "fortify 昭通市 数量5",
+          "ok": true,
+          "spentPoints": 1,
+          "spentSilver": 5,
+          "spentFood": 0,
+          "remainingPoints": 2,
+          "remainingSilver": 806.7,
+          "remainingFood": 1671.7
+        },
+        {
+          "type": "commandReceipt",
+          "faction": "YUN",
+          "label": "recruit 昆明市 数量5",
+          "ok": true,
+          "spentPoints": 1,
+          "spentSilver": 10,
+          "spentFood": 5,
+          "remainingPoints": 1,
+          "remainingSilver": 796.7,
+          "remainingFood": 1666.7
+        }
+      ],
+      "state": {
+        "date": "1931-06-10",
+        "turn": 10,
+        "objective": {
+          "targetOwned": false,
+          "rearOwned": true,
+          "supplied": false,
+          "remaining": 0,
+          "integrated": true,
+          "ready": false,
+          "id": "southwest-bridgehead",
+          "faction": "SCC",
+          "startedTurn": 0,
+          "holdTurns": 3,
+          "completedTurn": 5,
+          "completed": true,
+          "goal": "西南支点已稳固",
+          "steps": [
+            {
+              "label": "夺取昭通",
+              "done": true,
+              "detail": "占领只能由战斗或合法外交移交产生。"
+            },
+            {
+              "label": "整合并连通补给",
+              "done": true,
+              "detail": "达成时已完成整合并连通补给；完成记录保留。"
+            },
+            {
+              "label": "连续守住三个完整回合",
+              "done": true,
+              "detail": "3/3 回合；战役已完成，后续失地不清除完成记录。"
+            }
+          ]
+        },
+        "cities": [
+          {
+            "gb": "156511500",
+            "name": "宜宾市",
+            "owner": "SCC",
+            "terrain": "MOUNTAIN",
+            "cityLevel": 2,
+            "industry": 10,
+            "food": 30,
+            "fort": 20,
+            "troops": 4,
+            "fieldForce": 5,
+            "morale": 42
+          },
+          {
+            "gb": "156530600",
+            "name": "昭通市",
+            "owner": "YUN",
+            "terrain": "MOUNTAIN",
+            "cityLevel": 2,
+            "industry": 10,
+            "food": 30,
+            "fort": 65,
+            "troops": 19,
+            "fieldForce": 11,
+            "morale": 50,
+            "occupationUntilTurn": 8
+          }
+        ],
+        "scc": {
+          "silver": 1199.2,
+          "food": 2593.3,
+          "points": 6
+        },
+        "yun": {
+          "silver": 796.7,
+          "food": 1666.7,
+          "points": 6
+        },
+        "battles": [
+          {
+            "id": "battle_1",
+            "from": "156530600",
+            "to": "156510500",
+            "fromName": "昭通市",
+            "toName": "泸州市",
+            "active": true,
+            "attacker": "YUN",
+            "defender": "SCC",
+            "turns": 2,
+            "totalAttackerLoss": 4,
+            "totalDefenderLoss": 2,
+            "lastAttackerLoss": 2,
+            "lastDefenderLoss": 1,
+            "route": [
+              "156530600",
+              "156510500"
+            ],
+            "marchDistanceKm": 185.5,
+            "routeHasSea": false,
+            "supplyRulesVersion": 1,
+            "lastNarrative": "本轮补给通畅。"
+          },
+          {
+            "id": "battle_2",
+            "from": "156511500",
+            "to": "156530600",
+            "fromName": "宜宾市",
+            "toName": "昭通市",
+            "active": true,
+            "attacker": "SCC",
+            "defender": "YUN",
+            "turns": 1,
+            "totalAttackerLoss": 1,
+            "totalDefenderLoss": 1,
+            "lastAttackerLoss": 1,
+            "lastDefenderLoss": 1,
+            "route": [
+              "156511500",
+              "156530600"
+            ],
+            "marchDistanceKm": 119.7,
+            "routeHasSea": false,
+            "supplyRulesVersion": 1,
+            "lastNarrative": "本轮补给通畅。"
+          }
+        ]
+      },
+      "militaryEvents": [
+        {
+          "type": "moraleChange",
+          "targetGb": "156530600",
+          "delta": 10
+        },
+        {
+          "type": "attack",
+          "fromGb": "156530600",
+          "targetGb": "156510500",
+          "attackerLoss": 2,
+          "defenderLoss": 1,
+          "narrative": "本轮补给通畅。"
+        },
+        {
+          "type": "moraleChange",
+          "targetGb": "156530600",
+          "delta": -5
+        },
+        {
+          "type": "moraleChange",
+          "targetGb": "156510500",
+          "delta": -4
+        },
+        {
+          "type": "attack",
+          "fromGb": "156511500",
+          "targetGb": "156530600",
+          "attackerLoss": 1,
+          "defenderLoss": 1,
+          "narrative": "本轮补给通畅。"
+        },
+        {
+          "type": "moraleChange",
+          "targetGb": "156511500",
+          "delta": -5
+        },
+        {
+          "type": "moraleChange",
+          "targetGb": "156530600",
+          "delta": -2
+        }
+      ]
+    },
+    {
+      "step": 10,
+      "initiative": {
+        "kind": "defend",
+        "goal": "保住昭通市",
+        "targetGb": "156530600",
+        "reason": "本城正在遭受进攻，优先调兵增援、适量征兵、筑防或整军，而非在远离前线的城市例行建设。以下为敌方进攻视角，攻损属于敌方：需要权衡：下一次结算基础估计攻损1k/守损1k，攻方士气38/守方士气48，来源留守5k；本次行军银0/粮0。基础比例消耗并未明显有利于攻方，城防与地形可能拖长战线。这是静态基础比较，不含双方后续动作、经济减员、突发事件及崩溃结果，不是胜率或胜利保证。若无法守住，应说明取舍。",
+        "examples": [
+          {
+            "order": "moveTroops",
+            "from": "156530100",
+            "to": "156530600",
+            "amount": 7.5
+          },
+          {
+            "order": "recruit",
+            "gb": "156530600",
+            "amount": 3
+          },
+          {
+            "order": "rally",
+            "gb": "156530600",
+            "amount": 10
+          },
+          {
+            "order": "fortify",
+            "gb": "156530600",
+            "amount": 5
+          }
+        ]
+      },
+      "controller": [
+        {
+          "order": {
+            "order": "recruit",
+            "gb": "156511500",
+            "amount": 3
+          },
+          "ok": true
+        },
+        {
+          "order": {
+            "order": "deploy",
+            "from": "156511500",
+            "amount": 2
+          },
+          "ok": true
+        }
+      ],
+      "plannedOrders": [
+        {
+          "order": "moveTroops",
+          "from": "昆明市",
+          "to": "昭通市",
+          "amount": 5
+        },
+        {
+          "order": "deploy",
+          "from": "昭通市",
+          "amount": 5
+        },
+        {
+          "order": "recruit",
+          "gb": "昭通市",
+          "amount": 5
+        },
+        {
+          "order": "rally",
+          "gb": "昭通市",
+          "amount": 10
+        },
+        {
+          "order": "fortify",
+          "gb": "昭通市",
+          "amount": 5
+        }
+      ],
+      "planningRefusals": [],
+      "execution": [
+        {
+          "order": {
+            "order": "moveTroops",
+            "from": "昆明市",
+            "to": "昭通市",
+            "amount": 5
+          },
+          "ok": true,
+          "cost": {
+            "silver": 27.6,
+            "food": 20.7
+          }
+        },
+        {
+          "order": {
+            "order": "deploy",
+            "from": "昭通市",
+            "amount": 5
+          },
+          "ok": true
+        },
+        {
+          "order": {
+            "order": "recruit",
+            "gb": "昭通市",
+            "amount": 5
+          },
+          "ok": true,
+          "cost": {
+            "silver": 10,
+            "food": 5
+          }
+        },
+        {
+          "order": {
+            "order": "rally",
+            "gb": "昭通市",
+            "amount": 10
+          },
+          "ok": true,
+          "cost": {
+            "silver": 2.5,
+            "food": 0
+          }
+        },
+        {
+          "order": {
+            "order": "fortify",
+            "gb": "昭通市",
+            "amount": 5
+          },
+          "ok": true,
+          "cost": {
+            "silver": 5,
+            "food": 0
+          }
+        }
+      ],
+      "receipts": [
+        {
+          "type": "commandReceipt",
+          "faction": "YUN",
+          "label": "moveTroops 昆明市 → 昭通市 数量5",
+          "ok": true,
+          "spentPoints": 1,
+          "spentSilver": 27.6,
+          "spentFood": 20.7,
+          "remainingPoints": 5,
+          "remainingSilver": 859.4,
+          "remainingFood": 1824.3
+        },
+        {
+          "type": "commandReceipt",
+          "faction": "YUN",
+          "label": "deploy 昭通市 数量5",
+          "ok": true,
+          "spentPoints": 1,
+          "spentSilver": 0,
+          "spentFood": 0,
+          "remainingPoints": 4,
+          "remainingSilver": 859.4,
+          "remainingFood": 1824.3
+        },
+        {
+          "type": "commandReceipt",
+          "faction": "YUN",
+          "label": "recruit 昭通市 数量5",
+          "ok": true,
+          "spentPoints": 1,
+          "spentSilver": 10,
+          "spentFood": 5,
+          "remainingPoints": 3,
+          "remainingSilver": 849.4,
+          "remainingFood": 1819.3
+        },
+        {
+          "type": "commandReceipt",
+          "faction": "YUN",
+          "label": "rally 昭通市 数量10",
+          "ok": true,
+          "spentPoints": 1,
+          "spentSilver": 2.5,
+          "spentFood": 0,
+          "remainingPoints": 2,
+          "remainingSilver": 846.9,
+          "remainingFood": 1819.3
+        },
+        {
+          "type": "commandReceipt",
+          "faction": "YUN",
+          "label": "fortify 昭通市 数量5",
+          "ok": true,
+          "spentPoints": 1,
+          "spentSilver": 5,
+          "spentFood": 0,
+          "remainingPoints": 1,
+          "remainingSilver": 841.9,
+          "remainingFood": 1819.3
+        }
+      ],
+      "state": {
+        "date": "1931-06-17",
+        "turn": 11,
+        "objective": {
+          "targetOwned": false,
+          "rearOwned": true,
+          "supplied": false,
+          "remaining": 0,
+          "integrated": true,
+          "ready": false,
+          "id": "southwest-bridgehead",
+          "faction": "SCC",
+          "startedTurn": 0,
+          "holdTurns": 3,
+          "completedTurn": 5,
+          "completed": true,
+          "goal": "西南支点已稳固",
+          "steps": [
+            {
+              "label": "夺取昭通",
+              "done": true,
+              "detail": "占领只能由战斗或合法外交移交产生。"
+            },
+            {
+              "label": "整合并连通补给",
+              "done": true,
+              "detail": "达成时已完成整合并连通补给；完成记录保留。"
+            },
+            {
+              "label": "连续守住三个完整回合",
+              "done": true,
+              "detail": "3/3 回合；战役已完成，后续失地不清除完成记录。"
+            }
+          ]
+        },
+        "cities": [
+          {
+            "gb": "156511500",
+            "name": "宜宾市",
+            "owner": "SCC",
+            "terrain": "MOUNTAIN",
+            "cityLevel": 2,
+            "industry": 10,
+            "food": 30,
+            "fort": 20,
+            "troops": 5,
+            "fieldForce": 6,
+            "morale": 38
+          },
+          {
+            "gb": "156530600",
+            "name": "昭通市",
+            "owner": "YUN",
+            "terrain": "MOUNTAIN",
+            "cityLevel": 2,
+            "industry": 10,
+            "food": 30,
+            "fort": 70,
+            "troops": 23,
+            "fieldForce": 14,
+            "morale": 55,
+            "occupationUntilTurn": 8
+          }
+        ],
+        "scc": {
+          "silver": 1200,
+          "food": 2775.7,
+          "points": 6
+        },
+        "yun": {
+          "silver": 841.9,
+          "food": 1819.3,
+          "points": 6
+        },
+        "battles": [
+          {
+            "id": "battle_1",
+            "from": "156530600",
+            "to": "156510500",
+            "fromName": "昭通市",
+            "toName": "泸州市",
+            "active": true,
+            "attacker": "YUN",
+            "defender": "SCC",
+            "turns": 3,
+            "totalAttackerLoss": 6,
+            "totalDefenderLoss": 3,
+            "lastAttackerLoss": 2,
+            "lastDefenderLoss": 1,
+            "route": [
+              "156530600",
+              "156510500"
+            ],
+            "marchDistanceKm": 185.5,
+            "routeHasSea": false,
+            "supplyRulesVersion": 1,
+            "lastNarrative": "本轮补给通畅。"
+          },
+          {
+            "id": "battle_2",
+            "from": "156511500",
+            "to": "156530600",
+            "fromName": "宜宾市",
+            "toName": "昭通市",
+            "active": true,
+            "attacker": "SCC",
+            "defender": "YUN",
+            "turns": 2,
+            "totalAttackerLoss": 2,
+            "totalDefenderLoss": 2,
+            "lastAttackerLoss": 1,
+            "lastDefenderLoss": 1,
+            "route": [
+              "156511500",
+              "156530600"
+            ],
+            "marchDistanceKm": 119.7,
+            "routeHasSea": false,
+            "supplyRulesVersion": 1,
+            "lastNarrative": "本轮补给通畅。"
+          }
+        ]
+      },
+      "militaryEvents": [
+        {
+          "type": "moraleChange",
+          "targetGb": "156530600",
+          "delta": 10
+        },
+        {
+          "type": "attack",
+          "fromGb": "156530600",
+          "targetGb": "156510500",
+          "attackerLoss": 2,
+          "defenderLoss": 1,
+          "narrative": "本轮补给通畅。"
+        },
+        {
+          "type": "moraleChange",
+          "targetGb": "156530600",
+          "delta": -4
+        },
+        {
+          "type": "moraleChange",
+          "targetGb": "156510500",
+          "delta": -5
+        },
+        {
+          "type": "attack",
+          "fromGb": "156511500",
+          "targetGb": "156530600",
+          "attackerLoss": 1,
+          "defenderLoss": 1,
+          "narrative": "本轮补给通畅。"
+        },
+        {
+          "type": "moraleChange",
+          "targetGb": "156511500",
+          "delta": -4
+        },
+        {
+          "type": "moraleChange",
+          "targetGb": "156530600",
+          "delta": -1
+        }
+      ]
+    },
+    {
+      "step": 11,
+      "initiative": {
+        "kind": "defend",
+        "goal": "保住昭通市",
+        "targetGb": "156530600",
+        "reason": "本城正在遭受进攻，优先调兵增援、适量征兵、筑防或整军，而非在远离前线的城市例行建设。以下为敌方进攻视角，攻损属于敌方：需要权衡：下一次结算基础估计攻损1k/守损1k，攻方士气34/守方士气54，来源留守6k；本次行军银0/粮0。基础比例消耗并未明显有利于攻方，城防与地形可能拖长战线。这是静态基础比较，不含双方后续动作、经济减员、突发事件及崩溃结果，不是胜率或胜利保证。若无法守住，应说明取舍。",
+        "examples": [
+          {
+            "order": "moveTroops",
+            "from": "156530100",
+            "to": "156530600",
+            "amount": 3
+          },
+          {
+            "order": "recruit",
+            "gb": "156530600",
+            "amount": 3
+          },
+          {
+            "order": "rally",
+            "gb": "156530600",
+            "amount": 10
+          },
+          {
+            "order": "fortify",
+            "gb": "156530600",
+            "amount": 5
+          }
+        ]
+      },
+      "controller": [
+        {
+          "order": {
+            "order": "recruit",
+            "gb": "156511500",
+            "amount": 3
+          },
+          "ok": true
+        },
+        {
+          "order": {
+            "order": "deploy",
+            "from": "156511500",
+            "amount": 2
+          },
+          "ok": true
+        }
+      ],
+      "plannedOrders": [
+        {
+          "order": "moveTroops",
+          "from": "昆明市",
+          "to": "昭通市",
+          "amount": 3
+        },
+        {
+          "order": "recruit",
+          "gb": "昭通市",
+          "amount": 5
+        },
+        {
+          "order": "fortify",
+          "gb": "昭通市",
+          "amount": 5
+        },
+        {
+          "order": "rally",
+          "gb": "昭通市",
+          "amount": 5
+        }
+      ],
+      "planningRefusals": [],
+      "execution": [
+        {
+          "order": {
+            "order": "moveTroops",
+            "from": "昆明市",
+            "to": "昭通市",
+            "amount": 3
+          },
+          "ok": true,
+          "cost": {
+            "silver": 16.5,
+            "food": 12.4
+          }
+        },
+        {
+          "order": {
+            "order": "recruit",
+            "gb": "昭通市",
+            "amount": 5
+          },
+          "ok": true,
+          "cost": {
+            "silver": 10,
+            "food": 5
+          }
+        },
+        {
+          "order": {
+            "order": "fortify",
+            "gb": "昭通市",
+            "amount": 5
+          },
+          "ok": true,
+          "cost": {
+            "silver": 5,
+            "food": 0
+          }
+        },
+        {
+          "order": {
+            "order": "rally",
+            "gb": "昭通市",
+            "amount": 5
+          },
+          "ok": true,
+          "cost": {
+            "silver": 1.5,
+            "food": 0
+          }
+        }
+      ],
+      "receipts": [
+        {
+          "type": "commandReceipt",
+          "faction": "YUN",
+          "label": "moveTroops 昆明市 → 昭通市 数量3",
+          "ok": true,
+          "spentPoints": 1,
+          "spentSilver": 16.5,
+          "spentFood": 12.4,
+          "remainingPoints": 5,
+          "remainingSilver": 914.7,
+          "remainingFood": 1984.6
+        },
+        {
+          "type": "commandReceipt",
+          "faction": "YUN",
+          "label": "recruit 昭通市 数量5",
+          "ok": true,
+          "spentPoints": 1,
+          "spentSilver": 10,
+          "spentFood": 5,
+          "remainingPoints": 4,
+          "remainingSilver": 904.7,
+          "remainingFood": 1979.6
+        },
+        {
+          "type": "commandReceipt",
+          "faction": "YUN",
+          "label": "fortify 昭通市 数量5",
+          "ok": true,
+          "spentPoints": 1,
+          "spentSilver": 5,
+          "spentFood": 0,
+          "remainingPoints": 3,
+          "remainingSilver": 899.7,
+          "remainingFood": 1979.6
+        },
+        {
+          "type": "commandReceipt",
+          "faction": "YUN",
+          "label": "rally 昭通市 数量5",
+          "ok": true,
+          "spentPoints": 1,
+          "spentSilver": 1.5,
+          "spentFood": 0,
+          "remainingPoints": 2,
+          "remainingSilver": 898.2,
+          "remainingFood": 1979.6
+        }
+      ],
+      "state": {
+        "date": "1931-06-24",
+        "turn": 12,
+        "objective": {
+          "targetOwned": false,
+          "rearOwned": true,
+          "supplied": false,
+          "remaining": 0,
+          "integrated": true,
+          "ready": false,
+          "id": "southwest-bridgehead",
+          "faction": "SCC",
+          "startedTurn": 0,
+          "holdTurns": 3,
+          "completedTurn": 5,
+          "completed": true,
+          "goal": "西南支点已稳固",
+          "steps": [
+            {
+              "label": "夺取昭通",
+              "done": true,
+              "detail": "占领只能由战斗或合法外交移交产生。"
+            },
+            {
+              "label": "整合并连通补给",
+              "done": true,
+              "detail": "达成时已完成整合并连通补给；完成记录保留。"
+            },
+            {
+              "label": "连续守住三个完整回合",
+              "done": true,
+              "detail": "3/3 回合；战役已完成，后续失地不清除完成记录。"
+            }
+          ]
+        },
+        "cities": [
+          {
+            "gb": "156511500",
+            "name": "宜宾市",
+            "owner": "SCC",
+            "terrain": "MOUNTAIN",
+            "cityLevel": 2,
+            "industry": 10,
+            "food": 30,
+            "fort": 20,
+            "troops": 6,
+            "fieldForce": 7,
+            "morale": 34
+          },
+          {
+            "gb": "156530600",
+            "name": "昭通市",
+            "owner": "YUN",
+            "terrain": "MOUNTAIN",
+            "cityLevel": 2,
+            "industry": 10,
+            "food": 30,
+            "fort": 75,
+            "troops": 30,
+            "fieldForce": 12,
+            "morale": 55,
+            "occupationUntilTurn": 8
+          }
+        ],
+        "scc": {
+          "silver": 1200.3,
+          "food": 2957.8,
+          "points": 6
+        },
+        "yun": {
+          "silver": 898.2,
+          "food": 1979.6,
+          "points": 6
+        },
+        "battles": [
+          {
+            "id": "battle_1",
+            "from": "156530600",
+            "to": "156510500",
+            "fromName": "昭通市",
+            "toName": "泸州市",
+            "active": true,
+            "attacker": "YUN",
+            "defender": "SCC",
+            "turns": 4,
+            "totalAttackerLoss": 8,
+            "totalDefenderLoss": 4,
+            "lastAttackerLoss": 2,
+            "lastDefenderLoss": 1,
+            "route": [
+              "156530600",
+              "156510500"
+            ],
+            "marchDistanceKm": 185.5,
+            "routeHasSea": false,
+            "supplyRulesVersion": 1,
+            "lastNarrative": "本轮补给通畅。"
+          },
+          {
+            "id": "battle_2",
+            "from": "156511500",
+            "to": "156530600",
+            "fromName": "宜宾市",
+            "toName": "昭通市",
+            "active": true,
+            "attacker": "SCC",
+            "defender": "YUN",
+            "turns": 3,
+            "totalAttackerLoss": 3,
+            "totalDefenderLoss": 3,
+            "lastAttackerLoss": 1,
+            "lastDefenderLoss": 1,
+            "route": [
+              "156511500",
+              "156530600"
+            ],
+            "marchDistanceKm": 119.7,
+            "routeHasSea": false,
+            "supplyRulesVersion": 1,
+            "lastNarrative": "本轮补给通畅。"
+          }
+        ]
+      },
+      "militaryEvents": [
+        {
+          "type": "moraleChange",
+          "targetGb": "156530600",
+          "delta": 5
+        },
+        {
+          "type": "attack",
+          "fromGb": "156530600",
+          "targetGb": "156510500",
+          "attackerLoss": 2,
+          "defenderLoss": 1,
+          "narrative": "本轮补给通畅。"
+        },
+        {
+          "type": "moraleChange",
+          "targetGb": "156530600",
+          "delta": -4
+        },
+        {
+          "type": "moraleChange",
+          "targetGb": "156510500",
+          "delta": -6
+        },
+        {
+          "type": "attack",
+          "fromGb": "156511500",
+          "targetGb": "156530600",
+          "attackerLoss": 1,
+          "defenderLoss": 1,
+          "narrative": "本轮补给通畅。"
+        },
+        {
+          "type": "moraleChange",
+          "targetGb": "156511500",
+          "delta": -4
+        },
+        {
+          "type": "moraleChange",
+          "targetGb": "156530600",
+          "delta": -1
+        }
+      ]
+    },
+    {
+      "step": 12,
+      "initiative": {
+        "kind": "defend",
+        "goal": "保住昭通市",
+        "targetGb": "156530600",
+        "reason": "本城正在遭受进攻，优先调兵增援、适量征兵、筑防或整军，而非在远离前线的城市例行建设。以下为敌方进攻视角，攻损属于敌方：需要权衡：下一次结算基础估计攻损1k/守损1k，攻方士气31/守方士气54，来源留守7k；本次行军银0/粮0。基础比例消耗并未明显有利于攻方，城防与地形可能拖长战线。这是静态基础比较，不含双方后续动作、经济减员、突发事件及崩溃结果，不是胜率或胜利保证。若无法守住，应说明取舍。",
+        "examples": [
+          {
+            "order": "recruit",
+            "gb": "156530600",
+            "amount": 3
+          },
+          {
+            "order": "rally",
+            "gb": "156530600",
+            "amount": 10
+          },
+          {
+            "order": "fortify",
+            "gb": "156530600",
+            "amount": 5
+          }
+        ]
+      },
+      "controller": [
+        {
+          "order": {
+            "order": "recruit",
+            "gb": "156511500",
+            "amount": 3
+          },
+          "ok": true
+        },
+        {
+          "order": {
+            "order": "deploy",
+            "from": "156511500",
+            "amount": 2
+          },
+          "ok": true
+        }
+      ],
+      "plannedOrders": [
+        {
+          "order": "moveTroops",
+          "from": "昆明市",
+          "to": "昭通市",
+          "amount": 1
+        },
+        {
+          "order": "recruit",
+          "gb": "昭通市",
+          "amount": 5
+        },
+        {
+          "order": "fortify",
+          "gb": "昭通市",
+          "amount": 5
+        },
+        {
+          "order": "rally",
+          "gb": "昭通市",
+          "amount": 10
+        }
+      ],
+      "planningRefusals": [],
+      "execution": [
+        {
+          "order": {
+            "order": "moveTroops",
+            "from": "昆明市",
+            "to": "昭通市",
+            "amount": 1
+          },
+          "ok": true,
+          "cost": {
+            "silver": 5.5,
+            "food": 4.1
+          }
+        },
+        {
+          "order": {
+            "order": "recruit",
+            "gb": "昭通市",
+            "amount": 5
+          },
+          "ok": true,
+          "cost": {
+            "silver": 10,
+            "food": 5
+          }
+        },
+        {
+          "order": {
+            "order": "fortify",
+            "gb": "昭通市",
+            "amount": 5
+          },
+          "ok": true,
+          "cost": {
+            "silver": 5,
+            "food": 0
+          }
+        },
+        {
+          "order": {
+            "order": "rally",
+            "gb": "昭通市",
+            "amount": 10
+          },
+          "ok": true,
+          "cost": {
+            "silver": 2.5,
+            "food": 0
+          }
+        }
+      ],
+      "receipts": [
+        {
+          "type": "commandReceipt",
+          "faction": "YUN",
+          "label": "moveTroops 昆明市 → 昭通市 数量1",
+          "ok": true,
+          "spentPoints": 1,
+          "spentSilver": 5.5,
+          "spentFood": 4.1,
+          "remainingPoints": 5,
+          "remainingSilver": 981,
+          "remainingFood": 2152.6
+        },
+        {
+          "type": "commandReceipt",
+          "faction": "YUN",
+          "label": "recruit 昭通市 数量5",
+          "ok": true,
+          "spentPoints": 1,
+          "spentSilver": 10,
+          "spentFood": 5,
+          "remainingPoints": 4,
+          "remainingSilver": 971,
+          "remainingFood": 2147.6
+        },
+        {
+          "type": "commandReceipt",
+          "faction": "YUN",
+          "label": "fortify 昭通市 数量5",
+          "ok": true,
+          "spentPoints": 1,
+          "spentSilver": 5,
+          "spentFood": 0,
+          "remainingPoints": 3,
+          "remainingSilver": 966,
+          "remainingFood": 2147.6
+        },
+        {
+          "type": "commandReceipt",
+          "faction": "YUN",
+          "label": "rally 昭通市 数量10",
+          "ok": true,
+          "spentPoints": 1,
+          "spentSilver": 2.5,
+          "spentFood": 0,
+          "remainingPoints": 2,
+          "remainingSilver": 963.5,
+          "remainingFood": 2147.6
+        }
+      ],
+      "state": {
+        "date": "1931-07-01",
+        "turn": 13,
+        "objective": {
+          "targetOwned": false,
+          "rearOwned": true,
+          "supplied": false,
+          "remaining": 0,
+          "integrated": true,
+          "ready": false,
+          "id": "southwest-bridgehead",
+          "faction": "SCC",
+          "startedTurn": 0,
+          "holdTurns": 3,
+          "completedTurn": 5,
+          "completed": true,
+          "goal": "西南支点已稳固",
+          "steps": [
+            {
+              "label": "夺取昭通",
+              "done": true,
+              "detail": "占领只能由战斗或合法外交移交产生。"
+            },
+            {
+              "label": "整合并连通补给",
+              "done": true,
+              "detail": "达成时已完成整合并连通补给；完成记录保留。"
+            },
+            {
+              "label": "连续守住三个完整回合",
+              "done": true,
+              "detail": "3/3 回合；战役已完成，后续失地不清除完成记录。"
+            }
+          ]
+        },
+        "cities": [
+          {
+            "gb": "156511500",
+            "name": "宜宾市",
+            "owner": "SCC",
+            "terrain": "MOUNTAIN",
+            "cityLevel": 2,
+            "industry": 10,
+            "food": 30,
+            "fort": 20,
+            "troops": 7,
+            "fieldForce": 8,
+            "morale": 31
+          },
+          {
+            "gb": "156530600",
+            "name": "昭通市",
+            "owner": "YUN",
+            "terrain": "MOUNTAIN",
+            "cityLevel": 2,
+            "industry": 10,
+            "food": 30,
+            "fort": 80,
+            "troops": 35,
+            "fieldForce": 0,
+            "morale": 69,
+            "occupationUntilTurn": 8
+          }
+        ],
+        "scc": {
+          "silver": 1200.1,
+          "food": 3139.6,
+          "points": 6
+        },
+        "yun": {
+          "silver": 963.5,
+          "food": 2147.6,
+          "points": 6
+        },
+        "battles": [
+          {
+            "id": "battle_2",
+            "from": "156511500",
+            "to": "156530600",
+            "fromName": "宜宾市",
+            "toName": "昭通市",
+            "active": true,
+            "attacker": "SCC",
+            "defender": "YUN",
+            "turns": 4,
+            "totalAttackerLoss": 4,
+            "totalDefenderLoss": 4,
+            "lastAttackerLoss": 1,
+            "lastDefenderLoss": 1,
+            "route": [
+              "156511500",
+              "156530600"
+            ],
+            "marchDistanceKm": 119.7,
+            "routeHasSea": false,
+            "supplyRulesVersion": 1,
+            "lastNarrative": "本轮补给通畅。"
+          }
+        ]
+      },
+      "militaryEvents": [
+        {
+          "type": "moraleChange",
+          "targetGb": "156530600",
+          "delta": 10
+        },
+        {
+          "type": "attack",
+          "fromGb": "156530600",
+          "targetGb": "156510500",
+          "attackerLoss": 2,
+          "defenderLoss": 1,
+          "narrative": "本轮补给通畅。"
+        },
+        {
+          "type": "moraleChange",
+          "targetGb": "156530600",
+          "delta": -5
+        },
+        {
+          "type": "moraleChange",
+          "targetGb": "156510500",
+          "delta": -8
+        },
+        {
+          "type": "capture",
+          "targetGb": "156510500",
+          "actor": "YUN",
+          "resultTroops": 10,
+          "occupationTurns": 2
+        },
+        {
+          "type": "battleEnd",
+          "battleId": "battle_1",
+          "reason": "defenderCollapse",
+          "fromName": "昭通市",
+          "toName": "泸州市"
+        },
+        {
+          "type": "moraleChange",
+          "targetGb": "156530600",
+          "delta": 10
+        },
+        {
+          "type": "attack",
+          "fromGb": "156511500",
+          "targetGb": "156530600",
+          "attackerLoss": 1,
+          "defenderLoss": 1,
+          "narrative": "本轮补给通畅。"
+        },
+        {
+          "type": "moraleChange",
+          "targetGb": "156511500",
+          "delta": -3
+        },
+        {
+          "type": "moraleChange",
+          "targetGb": "156530600",
+          "delta": -1
+        }
+      ]
+    }
+  ],
+  "requests": [
+    {
+      "scenario": "counterattack",
+      "turn": 1,
+      "status": 200,
+      "elapsedMs": 44573,
+      "finishReason": "stop"
+    },
+    {
+      "scenario": "counterattack",
+      "turn": 2,
+      "status": 200,
+      "elapsedMs": 56527,
+      "finishReason": "stop"
+    },
+    {
+      "scenario": "counterattack",
+      "turn": 3,
+      "status": 200,
+      "elapsedMs": 46982,
+      "finishReason": "stop"
+    },
+    {
+      "scenario": "counterattack",
+      "turn": 4,
+      "status": 200,
+      "elapsedMs": 86304,
+      "finishReason": "stop"
+    },
+    {
+      "scenario": "counterattack",
+      "turn": 5,
+      "status": 502,
+      "elapsedMs": 100970,
+      "error": {
+        "message": "upstream request failed",
+        "type": "invalid_request_error"
+      }
+    },
+    {
+      "scenario": "counterattack",
+      "turn": 5,
+      "status": 200,
+      "elapsedMs": 93023,
+      "finishReason": "stop"
+    },
+    {
+      "scenario": "counterattack",
+      "turn": 6,
+      "status": 502,
+      "elapsedMs": 100625,
+      "error": {
+        "message": "upstream request failed",
+        "type": "invalid_request_error"
+      }
+    },
+    {
+      "scenario": "counterattack",
+      "turn": 6,
+      "status": 200,
+      "elapsedMs": 87778,
+      "finishReason": "stop"
+    },
+    {
+      "scenario": "counterattack",
+      "turn": 7,
+      "status": 502,
+      "elapsedMs": 63302,
+      "error": {
+        "message": "upstream request failed",
+        "type": "invalid_request_error"
+      }
+    },
+    {
+      "scenario": "counterattack",
+      "turn": 7,
+      "status": 401,
+      "elapsedMs": 110,
+      "error": {
+        "message": "invalid or expired session token",
+        "type": "authentication_error"
+      }
+    },
+    {
+      "scenario": "counterattack",
+      "turn": 7,
+      "status": 502,
+      "elapsedMs": 79540,
+      "error": {
+        "message": "upstream request failed",
+        "type": "invalid_request_error"
+      }
+    },
+    {
+      "scenario": "counterattack",
+      "turn": 7,
+      "status": 502,
+      "elapsedMs": 35577,
+      "error": {
+        "message": "upstream request failed",
+        "type": "invalid_request_error"
+      }
+    },
+    {
+      "scenario": "counterattack",
+      "turn": 7,
+      "status": 502,
+      "elapsedMs": 48193,
+      "error": {
+        "message": "upstream request failed",
+        "type": "invalid_request_error"
+      }
+    },
+    {
+      "scenario": "counterattack",
+      "turn": 7,
+      "status": 200,
+      "elapsedMs": 38500,
+      "finishReason": "stop"
+    },
+    {
+      "scenario": "counterattack",
+      "turn": 8,
+      "status": 200,
+      "elapsedMs": 81731,
+      "finishReason": "stop"
+    },
+    {
+      "scenario": "counterattack",
+      "turn": 9,
+      "status": 502,
+      "elapsedMs": 31815,
+      "error": {
+        "message": "upstream request failed",
+        "type": "invalid_request_error"
+      }
+    },
+    {
+      "scenario": "counterattack",
+      "turn": 9,
+      "status": 502,
+      "elapsedMs": 93783,
+      "error": {
+        "message": "upstream request failed",
+        "type": "invalid_request_error"
+      }
+    },
+    {
+      "scenario": "counterattack",
+      "turn": 9,
+      "status": 200,
+      "elapsedMs": 76125,
+      "finishReason": "stop"
+    },
+    {
+      "scenario": "counterattack",
+      "turn": 10,
+      "status": 502,
+      "elapsedMs": 100928,
+      "error": {
+        "message": "upstream request failed",
+        "type": "invalid_request_error"
+      }
+    },
+    {
+      "scenario": "counterattack",
+      "turn": 10,
+      "status": 200,
+      "elapsedMs": 88202,
+      "finishReason": "stop"
+    },
+    {
+      "scenario": "counterattack",
+      "turn": 11,
+      "status": 502,
+      "elapsedMs": 49904,
+      "error": {
+        "message": "upstream request failed",
+        "type": "invalid_request_error"
+      }
+    },
+    {
+      "scenario": "counterattack",
+      "turn": 11,
+      "status": 200,
+      "elapsedMs": 47219,
+      "finishReason": "stop"
+    },
+    {
+      "scenario": "counterattack",
+      "turn": 12,
+      "status": 502,
+      "elapsedMs": 48218,
+      "error": {
+        "message": "upstream request failed",
+        "type": "invalid_request_error"
+      }
+    },
+    {
+      "scenario": "counterattack",
+      "turn": 12,
+      "status": 200,
+      "elapsedMs": 85137,
+      "finishReason": "stop"
+    }
+  ]
+}

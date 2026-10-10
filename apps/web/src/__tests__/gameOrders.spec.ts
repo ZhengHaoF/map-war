@@ -47,6 +47,7 @@ function makeCity(gb: string, owner: Owner, troops = 10, fieldForce = 5, fort = 
 const mockStore = {
   cities: mockCities,
   battles: mockBattles,
+  eventLog: [],
   applyEvent: mockApplyEvent,
   selectFaction: mockSelectFaction,
   getSnapshot: () => ({}),

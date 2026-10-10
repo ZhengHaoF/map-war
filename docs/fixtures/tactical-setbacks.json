@@ -1,0 +1,1443 @@
+{
+  "sourceCommit": "8559e88c145a63982023c56746b7acac905af740",
+  "model": "step-5-preview",
+  "runs": [
+    {
+      "run": 1,
+      "method": "step-5-preview; normal paid setup/orders; fixed YUN defense; other factions idle; no diplomacy or flavor; not browser gameplay",
+      "focusedContext": false,
+      "requests": [
+        {
+          "scenario": "budget",
+          "status": 200,
+          "elapsedMs": 30230,
+          "contentPresent": true
+        },
+        {
+          "scenario": "budget",
+          "status": 200,
+          "elapsedMs": 49852,
+          "contentPresent": true
+        },
+        {
+          "scenario": "unfavorable",
+          "status": 502,
+          "elapsedMs": 62168,
+          "contentPresent": false,
+          "error": {
+            "type": "invalid_request_error",
+            "message": "upstream request failed"
+          }
+        },
+        {
+          "scenario": "unfavorable",
+          "status": 502,
+          "elapsedMs": 46994,
+          "contentPresent": false,
+          "error": {
+            "type": "invalid_request_error",
+            "message": "upstream request failed"
+          }
+        },
+        {
+          "scenario": "unfavorable",
+          "status": 200,
+          "elapsedMs": 75689,
+          "contentPresent": false
+        }
+      ],
+      "cases": [
+        {
+          "scenario": "budget",
+          "setup": [
+            [
+              {
+                "order": {
+                  "order": "recruit",
+                  "gb": "156511500",
+                  "amount": 100
+                },
+                "ok": true,
+                "cost": {
+                  "silver": 200,
+                  "food": 100
+                }
+              },
+              {
+                "order": {
+                  "order": "recruit",
+                  "gb": "156511500",
+                  "amount": 100
+                },
+                "ok": true,
+                "cost": {
+                  "silver": 200,
+                  "food": 100
+                }
+              },
+              {
+                "order": {
+                  "order": "recruit",
+                  "gb": "156511500",
+                  "amount": 100
+                },
+                "ok": true,
+                "cost": {
+                  "silver": 200,
+                  "food": 100
+                }
+              },
+              {
+                "order": {
+                  "order": "recruit",
+                  "gb": "156511500",
+                  "amount": 100
+                },
+                "ok": true,
+                "cost": {
+                  "silver": 200,
+                  "food": 100
+                }
+              },
+              {
+                "order": {
+                  "order": "recruit",
+                  "gb": "156511500",
+                  "amount": 100
+                },
+                "ok": true,
+                "cost": {
+                  "silver": 200,
+                  "food": 100
+                }
+              },
+              {
+                "order": {
+                  "order": "recruit",
+                  "gb": "156511500",
+                  "amount": 99.5
+                },
+                "ok": true,
+                "cost": {
+                  "silver": 199,
+                  "food": 99.5
+                }
+              }
+            ],
+            {
+              "refused": [
+                {
+                  "order": {
+                    "order": "recruit",
+                    "gb": "156511500",
+                    "amount": 1
+                  },
+                  "ok": false,
+                  "reason": "内政银粮不足"
+                }
+              ],
+              "state": {
+                "date": "1931-04-08",
+                "turn": 1,
+                "silver": -291,
+                "food": 126.7,
+                "points": 6,
+                "source": {
+                  "gb": "156511500",
+                  "name": "宜宾市",
+                  "owner": "SCC",
+                  "terrain": "MOUNTAIN",
+                  "cityLevel": 2,
+                  "industry": 10,
+                  "food": 30,
+                  "fort": 20,
+                  "troops": 607.5,
+                  "fieldForce": 0,
+                  "morale": 37
+                },
+                "target": {
+                  "gb": "156530600",
+                  "name": "昭通市",
+                  "owner": "YUN",
+                  "terrain": "MOUNTAIN",
+                  "cityLevel": 2,
+                  "industry": 10,
+                  "food": 30,
+                  "fort": 20,
+                  "troops": 1,
+                  "fieldForce": 0,
+                  "morale": 57
+                },
+                "battles": []
+              }
+            }
+          ],
+          "validDecisions": 2,
+          "decisions": [
+            {
+              "step": 1,
+              "before": {
+                "date": "1931-04-08",
+                "turn": 1,
+                "silver": -291,
+                "food": 126.7,
+                "points": 6,
+                "source": {
+                  "gb": "156511500",
+                  "name": "宜宾市",
+                  "owner": "SCC",
+                  "terrain": "MOUNTAIN",
+                  "cityLevel": 2,
+                  "industry": 10,
+                  "food": 30,
+                  "fort": 20,
+                  "troops": 607.5,
+                  "fieldForce": 0,
+                  "morale": 37
+                },
+                "target": {
+                  "gb": "156530600",
+                  "name": "昭通市",
+                  "owner": "YUN",
+                  "terrain": "MOUNTAIN",
+                  "cityLevel": 2,
+                  "industry": 10,
+                  "food": 30,
+                  "fort": 20,
+                  "troops": 1,
+                  "fieldForce": 0,
+                  "morale": 57
+                },
+                "battles": []
+              },
+              "initiative": {
+                "kind": "hold",
+                "goal": "稳住现有局势",
+                "reason": "目前未找到对交战势力可执行的进攻候选，或受到兵力、预算、路线、同盟及停战限制。不要为制造反击而对无关和平势力开战；可以内政或等待。",
+                "examples": []
+              },
+              "planned": [],
+              "approved": [],
+              "execution": [],
+              "receipts": [],
+              "afterDecision": {
+                "date": "1931-04-08",
+                "turn": 1,
+                "silver": -291,
+                "food": 126.7,
+                "points": 6,
+                "source": {
+                  "gb": "156511500",
+                  "name": "宜宾市",
+                  "owner": "SCC",
+                  "terrain": "MOUNTAIN",
+                  "cityLevel": 2,
+                  "industry": 10,
+                  "food": 30,
+                  "fort": 20,
+                  "troops": 607.5,
+                  "fieldForce": 0,
+                  "morale": 37
+                },
+                "target": {
+                  "gb": "156530600",
+                  "name": "昭通市",
+                  "owner": "YUN",
+                  "terrain": "MOUNTAIN",
+                  "cityLevel": 2,
+                  "industry": 10,
+                  "food": 30,
+                  "fort": 20,
+                  "troops": 1,
+                  "fieldForce": 0,
+                  "morale": 57
+                },
+                "battles": []
+              },
+              "afterSettlement": {
+                "date": "1931-04-15",
+                "turn": 2,
+                "silver": -583,
+                "food": 132.9,
+                "points": 6,
+                "source": {
+                  "gb": "156511500",
+                  "name": "宜宾市",
+                  "owner": "SCC",
+                  "terrain": "MOUNTAIN",
+                  "cityLevel": 2,
+                  "industry": 10,
+                  "food": 30,
+                  "fort": 20,
+                  "troops": 607.5,
+                  "fieldForce": 0,
+                  "morale": 32
+                },
+                "target": {
+                  "gb": "156530600",
+                  "name": "昭通市",
+                  "owner": "YUN",
+                  "terrain": "MOUNTAIN",
+                  "cityLevel": 2,
+                  "industry": 10,
+                  "food": 30,
+                  "fort": 20,
+                  "troops": 1,
+                  "fieldForce": 0,
+                  "morale": 57
+                },
+                "battles": []
+              },
+              "militaryEvents": []
+            },
+            {
+              "step": 2,
+              "before": {
+                "date": "1931-04-15",
+                "turn": 2,
+                "silver": -583,
+                "food": 132.9,
+                "points": 6,
+                "source": {
+                  "gb": "156511500",
+                  "name": "宜宾市",
+                  "owner": "SCC",
+                  "terrain": "MOUNTAIN",
+                  "cityLevel": 2,
+                  "industry": 10,
+                  "food": 30,
+                  "fort": 20,
+                  "troops": 607.5,
+                  "fieldForce": 0,
+                  "morale": 32
+                },
+                "target": {
+                  "gb": "156530600",
+                  "name": "昭通市",
+                  "owner": "YUN",
+                  "terrain": "MOUNTAIN",
+                  "cityLevel": 2,
+                  "industry": 10,
+                  "food": 30,
+                  "fort": 20,
+                  "troops": 1,
+                  "fieldForce": 0,
+                  "morale": 57
+                },
+                "battles": []
+              },
+              "initiative": {
+                "kind": "hold",
+                "goal": "稳住现有局势",
+                "reason": "目前未找到对交战势力可执行的进攻候选，或受到兵力、预算、路线、同盟及停战限制。不要为制造反击而对无关和平势力开战；可以内政或等待。",
+                "examples": []
+              },
+              "planned": [],
+              "approved": [],
+              "execution": [],
+              "receipts": [],
+              "afterDecision": {
+                "date": "1931-04-15",
+                "turn": 2,
+                "silver": -583,
+                "food": 132.9,
+                "points": 6,
+                "source": {
+                  "gb": "156511500",
+                  "name": "宜宾市",
+                  "owner": "SCC",
+                  "terrain": "MOUNTAIN",
+                  "cityLevel": 2,
+                  "industry": 10,
+                  "food": 30,
+                  "fort": 20,
+                  "troops": 607.5,
+                  "fieldForce": 0,
+                  "morale": 32
+                },
+                "target": {
+                  "gb": "156530600",
+                  "name": "昭通市",
+                  "owner": "YUN",
+                  "terrain": "MOUNTAIN",
+                  "cityLevel": 2,
+                  "industry": 10,
+                  "food": 30,
+                  "fort": 20,
+                  "troops": 1,
+                  "fieldForce": 0,
+                  "morale": 57
+                },
+                "battles": []
+              },
+              "afterSettlement": {
+                "date": "1931-04-22",
+                "turn": 3,
+                "silver": -875,
+                "food": 139.1,
+                "points": 6,
+                "source": {
+                  "gb": "156511500",
+                  "name": "宜宾市",
+                  "owner": "SCC",
+                  "terrain": "MOUNTAIN",
+                  "cityLevel": 2,
+                  "industry": 10,
+                  "food": 30,
+                  "fort": 20,
+                  "troops": 607.5,
+                  "fieldForce": 0,
+                  "morale": 27
+                },
+                "target": {
+                  "gb": "156530600",
+                  "name": "昭通市",
+                  "owner": "YUN",
+                  "terrain": "MOUNTAIN",
+                  "cityLevel": 2,
+                  "industry": 10,
+                  "food": 30,
+                  "fort": 20,
+                  "troops": 1,
+                  "fieldForce": 0,
+                  "morale": 57
+                },
+                "battles": []
+              },
+              "militaryEvents": []
+            }
+          ]
+        },
+        {
+          "scenario": "unfavorable",
+          "setup": [
+            [
+              {
+                "order": {
+                  "order": "recruit",
+                  "gb": "156530600",
+                  "amount": 5
+                },
+                "ok": true,
+                "cost": {
+                  "silver": 10,
+                  "food": 5
+                }
+              },
+              {
+                "order": {
+                  "order": "fortify",
+                  "gb": "156530600",
+                  "amount": 20
+                },
+                "ok": true,
+                "cost": {
+                  "silver": 20,
+                  "food": 0
+                }
+              },
+              {
+                "order": {
+                  "order": "rally",
+                  "gb": "156530600",
+                  "amount": 20
+                },
+                "ok": true,
+                "cost": {
+                  "silver": 4.5,
+                  "food": 0
+                }
+              }
+            ],
+            [
+              {
+                "order": {
+                  "order": "battle",
+                  "from": "156511500",
+                  "to": "156530600",
+                  "deployAmount": 3
+                },
+                "ok": true,
+                "cost": {
+                  "silver": 7.2,
+                  "food": 5.4
+                }
+              }
+            ],
+            {
+              "forecast": {
+                "risk": "high",
+                "label": "风险较高",
+                "attackerLoss": 1,
+                "defenderLoss": 1,
+                "attackerMoraleBefore": 42,
+                "defenderMoraleBefore": 77,
+                "attackerMoraleAfter": 32,
+                "defenderMoraleAfter": 72,
+                "remainingGarrison": 5,
+                "silver": 0,
+                "food": 0,
+                "reasons": [
+                  "单轮基础攻损达到参战兵力的四分之一或更多",
+                  "基础比例消耗并未明显有利于攻方，城防与地形可能拖长战线"
+                ]
+              },
+              "state": {
+                "date": "1931-04-01",
+                "turn": 0,
+                "silver": 1192.8,
+                "food": 714.6,
+                "points": 5,
+                "source": {
+                  "gb": "156511500",
+                  "name": "宜宾市",
+                  "owner": "SCC",
+                  "terrain": "MOUNTAIN",
+                  "cityLevel": 2,
+                  "industry": 10,
+                  "food": 30,
+                  "fort": 20,
+                  "troops": 5,
+                  "fieldForce": 3,
+                  "morale": 42
+                },
+                "target": {
+                  "gb": "156530600",
+                  "name": "昭通市",
+                  "owner": "YUN",
+                  "terrain": "MOUNTAIN",
+                  "cityLevel": 2,
+                  "industry": 10,
+                  "food": 30,
+                  "fort": 40,
+                  "troops": 6,
+                  "fieldForce": 0,
+                  "morale": 77
+                },
+                "battles": [
+                  {
+                    "id": "battle_1",
+                    "from": "156511500",
+                    "to": "156530600",
+                    "fromName": "宜宾市",
+                    "toName": "昭通市",
+                    "active": true,
+                    "attacker": "SCC",
+                    "defender": "YUN",
+                    "turns": 0,
+                    "totalAttackerLoss": 0,
+                    "totalDefenderLoss": 0,
+                    "lastAttackerLoss": 0,
+                    "lastDefenderLoss": 0,
+                    "route": [
+                      "156511500",
+                      "156530600"
+                    ],
+                    "marchDistanceKm": 119.7,
+                    "routeHasSea": false,
+                    "supplyRulesVersion": 1
+                  }
+                ]
+              }
+            }
+          ],
+          "validDecisions": 0,
+          "decisions": []
+        }
+      ]
+    },
+    {
+      "run": 2,
+      "method": "step-5-preview; normal paid setup/orders; fixed YUN defense; other factions idle; no diplomacy or flavor; not browser gameplay",
+      "focusedContext": false,
+      "requests": [
+        {
+          "scenario": "unfavorable",
+          "status": 502,
+          "elapsedMs": 62681,
+          "contentPresent": false,
+          "error": {
+            "type": "invalid_request_error",
+            "message": "upstream request failed"
+          }
+        },
+        {
+          "scenario": "unfavorable",
+          "status": 502,
+          "elapsedMs": 78329,
+          "contentPresent": false,
+          "error": {
+            "type": "invalid_request_error",
+            "message": "upstream request failed"
+          }
+        },
+        {
+          "scenario": "unfavorable",
+          "status": 200,
+          "elapsedMs": 59093,
+          "finishReason": "stop",
+          "contentPresent": true
+        },
+        {
+          "scenario": "unfavorable",
+          "status": 502,
+          "elapsedMs": 100703,
+          "contentPresent": false,
+          "error": {
+            "type": "invalid_request_error",
+            "message": "upstream request failed"
+          }
+        },
+        {
+          "scenario": "unfavorable",
+          "status": 502,
+          "elapsedMs": 64302,
+          "contentPresent": false,
+          "error": {
+            "type": "invalid_request_error",
+            "message": "upstream request failed"
+          }
+        },
+        {
+          "scenario": "unfavorable",
+          "status": 502,
+          "elapsedMs": 100881,
+          "contentPresent": false,
+          "error": {
+            "type": "invalid_request_error",
+            "message": "upstream request failed"
+          }
+        }
+      ],
+      "cases": [
+        {
+          "scenario": "unfavorable",
+          "setup": [
+            [
+              {
+                "order": {
+                  "order": "recruit",
+                  "gb": "156530600",
+                  "amount": 5
+                },
+                "ok": true,
+                "cost": {
+                  "silver": 10,
+                  "food": 5
+                }
+              },
+              {
+                "order": {
+                  "order": "fortify",
+                  "gb": "156530600",
+                  "amount": 20
+                },
+                "ok": true,
+                "cost": {
+                  "silver": 20,
+                  "food": 0
+                }
+              },
+              {
+                "order": {
+                  "order": "rally",
+                  "gb": "156530600",
+                  "amount": 20
+                },
+                "ok": true,
+                "cost": {
+                  "silver": 4.5,
+                  "food": 0
+                }
+              }
+            ],
+            [
+              {
+                "order": {
+                  "order": "battle",
+                  "from": "156511500",
+                  "to": "156530600",
+                  "deployAmount": 3
+                },
+                "ok": true,
+                "cost": {
+                  "silver": 7.2,
+                  "food": 5.4
+                }
+              }
+            ],
+            {
+              "forecast": {
+                "risk": "high",
+                "label": "风险较高",
+                "attackerLoss": 1,
+                "defenderLoss": 1,
+                "attackerMoraleBefore": 42,
+                "defenderMoraleBefore": 77,
+                "attackerMoraleAfter": 32,
+                "defenderMoraleAfter": 72,
+                "remainingGarrison": 5,
+                "silver": 0,
+                "food": 0,
+                "reasons": [
+                  "单轮基础攻损达到参战兵力的四分之一或更多",
+                  "基础比例消耗并未明显有利于攻方，城防与地形可能拖长战线"
+                ]
+              },
+              "state": {
+                "date": "1931-04-01",
+                "turn": 0,
+                "silver": 1192.8,
+                "food": 714.6,
+                "points": 5,
+                "source": {
+                  "gb": "156511500",
+                  "name": "宜宾市",
+                  "owner": "SCC",
+                  "terrain": "MOUNTAIN",
+                  "cityLevel": 2,
+                  "industry": 10,
+                  "food": 30,
+                  "fort": 20,
+                  "troops": 5,
+                  "fieldForce": 3,
+                  "morale": 42
+                },
+                "target": {
+                  "gb": "156530600",
+                  "name": "昭通市",
+                  "owner": "YUN",
+                  "terrain": "MOUNTAIN",
+                  "cityLevel": 2,
+                  "industry": 10,
+                  "food": 30,
+                  "fort": 40,
+                  "troops": 6,
+                  "fieldForce": 0,
+                  "morale": 77
+                },
+                "battles": [
+                  {
+                    "id": "battle_1",
+                    "from": "156511500",
+                    "to": "156530600",
+                    "fromName": "宜宾市",
+                    "toName": "昭通市",
+                    "active": true,
+                    "attacker": "SCC",
+                    "defender": "YUN",
+                    "turns": 0,
+                    "totalAttackerLoss": 0,
+                    "totalDefenderLoss": 0,
+                    "lastAttackerLoss": 0,
+                    "lastDefenderLoss": 0,
+                    "route": [
+                      "156511500",
+                      "156530600"
+                    ],
+                    "marchDistanceKm": 119.7,
+                    "routeHasSea": false,
+                    "supplyRulesVersion": 1
+                  }
+                ]
+              }
+            }
+          ],
+          "validDecisions": 1,
+          "decisions": [
+            {
+              "step": 1,
+              "before": {
+                "date": "1931-04-01",
+                "turn": 0,
+                "silver": 1192.8,
+                "food": 714.6,
+                "points": 5,
+                "source": {
+                  "gb": "156511500",
+                  "name": "宜宾市",
+                  "owner": "SCC",
+                  "terrain": "MOUNTAIN",
+                  "cityLevel": 2,
+                  "industry": 10,
+                  "food": 30,
+                  "fort": 20,
+                  "troops": 5,
+                  "fieldForce": 3,
+                  "morale": 42
+                },
+                "target": {
+                  "gb": "156530600",
+                  "name": "昭通市",
+                  "owner": "YUN",
+                  "terrain": "MOUNTAIN",
+                  "cityLevel": 2,
+                  "industry": 10,
+                  "food": 30,
+                  "fort": 40,
+                  "troops": 6,
+                  "fieldForce": 0,
+                  "morale": 77
+                },
+                "battles": [
+                  {
+                    "id": "battle_1",
+                    "from": "156511500",
+                    "to": "156530600",
+                    "fromName": "宜宾市",
+                    "toName": "昭通市",
+                    "active": true,
+                    "attacker": "SCC",
+                    "defender": "YUN",
+                    "turns": 0,
+                    "totalAttackerLoss": 0,
+                    "totalDefenderLoss": 0,
+                    "lastAttackerLoss": 0,
+                    "lastDefenderLoss": 0,
+                    "route": [
+                      "156511500",
+                      "156530600"
+                    ],
+                    "marchDistanceKm": 119.7,
+                    "routeHasSea": false,
+                    "supplyRulesVersion": 1
+                  }
+                ]
+              },
+              "initiative": {
+                "kind": "support",
+                "goal": "支援宜宾市至昭通市战线",
+                "sourceGb": "156511500",
+                "targetGb": "156530600",
+                "reason": "已有战线，不重复从同一城开战。风险较高：下一次结算基础估计攻损1k/守损1k，攻方士气42→32/守方士气77→72，来源留守5k；本次行军银0/粮0。单轮基础攻损达到参战兵力的四分之一或更多；基础比例消耗并未明显有利于攻方，城防与地形可能拖长战线。双方士气≤20进入崩溃判定区间；攻方崩溃可能撤退，守方崩溃可能失城，并非必然结果。这是静态基础比较，不含双方后续动作、经济减员、突发事件及崩溃结果，不是胜率或胜利保证。可比较支援、整军与撤退；现有战线行军费不重复收取。",
+                "examples": [
+                  {
+                    "order": "moveTroops",
+                    "from": "156510300",
+                    "to": "156511500",
+                    "amount": 6
+                  },
+                  {
+                    "order": "recruit",
+                    "gb": "156511500",
+                    "amount": 3
+                  },
+                  {
+                    "order": "rally",
+                    "gb": "156511500",
+                    "amount": 10
+                  },
+                  {
+                    "order": "fortify",
+                    "gb": "156511500",
+                    "amount": 5
+                  },
+                  {
+                    "order": "stopBattle",
+                    "id": "battle_1"
+                  }
+                ]
+              },
+              "planned": [
+                {
+                  "order": "moveTroops",
+                  "from": "成都市",
+                  "to": "宜宾市",
+                  "amount": 15
+                },
+                {
+                  "order": "deploy",
+                  "from": "宜宾市",
+                  "amount": 15
+                }
+              ],
+              "approved": [
+                {
+                  "order": "moveTroops",
+                  "from": "成都市",
+                  "to": "宜宾市",
+                  "amount": 15
+                }
+              ],
+              "execution": [
+                {
+                  "order": {
+                    "order": "moveTroops",
+                    "from": "成都市",
+                    "to": "宜宾市",
+                    "amount": 15
+                  },
+                  "ok": true,
+                  "cost": {
+                    "silver": 82.9,
+                    "food": 62.1
+                  }
+                }
+              ],
+              "receipts": [
+                {
+                  "type": "commandReceipt",
+                  "faction": "SCC",
+                  "label": "deploy 宜宾市 数量15",
+                  "ok": false,
+                  "reason": "战略预检拒绝：出兵量 15k 超过 宜宾市 现存驻军 5k",
+                  "spentPoints": 0,
+                  "spentSilver": 0,
+                  "spentFood": 0,
+                  "remainingPoints": 5,
+                  "remainingSilver": 1192.8,
+                  "remainingFood": 714.6
+                },
+                {
+                  "type": "commandReceipt",
+                  "faction": "SCC",
+                  "label": "moveTroops 成都市 → 宜宾市 数量15",
+                  "ok": true,
+                  "spentPoints": 1,
+                  "spentSilver": 82.9,
+                  "spentFood": 62.1,
+                  "remainingPoints": 4,
+                  "remainingSilver": 1109.9,
+                  "remainingFood": 652.5
+                }
+              ],
+              "afterDecision": {
+                "date": "1931-04-01",
+                "turn": 0,
+                "silver": 1109.9,
+                "food": 652.5,
+                "points": 4,
+                "source": {
+                  "gb": "156511500",
+                  "name": "宜宾市",
+                  "owner": "SCC",
+                  "terrain": "MOUNTAIN",
+                  "cityLevel": 2,
+                  "industry": 10,
+                  "food": 30,
+                  "fort": 20,
+                  "troops": 20,
+                  "fieldForce": 3,
+                  "morale": 42
+                },
+                "target": {
+                  "gb": "156530600",
+                  "name": "昭通市",
+                  "owner": "YUN",
+                  "terrain": "MOUNTAIN",
+                  "cityLevel": 2,
+                  "industry": 10,
+                  "food": 30,
+                  "fort": 40,
+                  "troops": 6,
+                  "fieldForce": 0,
+                  "morale": 77
+                },
+                "battles": [
+                  {
+                    "id": "battle_1",
+                    "from": "156511500",
+                    "to": "156530600",
+                    "fromName": "宜宾市",
+                    "toName": "昭通市",
+                    "active": true,
+                    "attacker": "SCC",
+                    "defender": "YUN",
+                    "turns": 0,
+                    "totalAttackerLoss": 0,
+                    "totalDefenderLoss": 0,
+                    "lastAttackerLoss": 0,
+                    "lastDefenderLoss": 0,
+                    "route": [
+                      "156511500",
+                      "156530600"
+                    ],
+                    "marchDistanceKm": 119.7,
+                    "routeHasSea": false,
+                    "supplyRulesVersion": 1
+                  }
+                ]
+              },
+              "afterSettlement": {
+                "date": "1931-04-08",
+                "turn": 1,
+                "silver": 1118.2,
+                "food": 838.8,
+                "points": 6,
+                "source": {
+                  "gb": "156511500",
+                  "name": "宜宾市",
+                  "owner": "SCC",
+                  "terrain": "MOUNTAIN",
+                  "cityLevel": 2,
+                  "industry": 10,
+                  "food": 30,
+                  "fort": 20,
+                  "troops": 20,
+                  "fieldForce": 2,
+                  "morale": 32
+                },
+                "target": {
+                  "gb": "156530600",
+                  "name": "昭通市",
+                  "owner": "YUN",
+                  "terrain": "MOUNTAIN",
+                  "cityLevel": 2,
+                  "industry": 10,
+                  "food": 30,
+                  "fort": 40,
+                  "troops": 5,
+                  "fieldForce": 0,
+                  "morale": 72
+                },
+                "battles": [
+                  {
+                    "id": "battle_1",
+                    "from": "156511500",
+                    "to": "156530600",
+                    "fromName": "宜宾市",
+                    "toName": "昭通市",
+                    "active": true,
+                    "attacker": "SCC",
+                    "defender": "YUN",
+                    "turns": 1,
+                    "totalAttackerLoss": 1,
+                    "totalDefenderLoss": 1,
+                    "lastAttackerLoss": 1,
+                    "lastDefenderLoss": 1,
+                    "route": [
+                      "156511500",
+                      "156530600"
+                    ],
+                    "marchDistanceKm": 119.7,
+                    "routeHasSea": false,
+                    "supplyRulesVersion": 1,
+                    "lastNarrative": "本轮补给通畅。"
+                  }
+                ]
+              },
+              "militaryEvents": [
+                {
+                  "type": "attack",
+                  "fromGb": "156511500",
+                  "targetGb": "156530600",
+                  "attackerLoss": 1,
+                  "defenderLoss": 1,
+                  "narrative": "本轮补给通畅。"
+                },
+                {
+                  "type": "moraleChange",
+                  "targetGb": "156511500",
+                  "delta": -10
+                },
+                {
+                  "type": "moraleChange",
+                  "targetGb": "156530600",
+                  "delta": -5
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "run": 3,
+      "method": "step-5-preview; normal paid setup/orders; fixed YUN defense; other factions idle; no diplomacy or flavor; not browser gameplay",
+      "focusedContext": true,
+      "requests": [
+        {
+          "scenario": "unfavorable",
+          "status": 200,
+          "elapsedMs": 56481,
+          "finishReason": "stop",
+          "contentPresent": true
+        },
+        {
+          "scenario": "unfavorable",
+          "status": 502,
+          "elapsedMs": 100496,
+          "contentPresent": false,
+          "error": {
+            "type": "invalid_request_error",
+            "message": "upstream request failed"
+          }
+        },
+        {
+          "scenario": "unfavorable",
+          "status": 502,
+          "elapsedMs": 31801,
+          "contentPresent": false,
+          "error": {
+            "type": "invalid_request_error",
+            "message": "upstream request failed"
+          }
+        },
+        {
+          "scenario": "unfavorable",
+          "status": 502,
+          "elapsedMs": 31908,
+          "contentPresent": false,
+          "error": {
+            "type": "invalid_request_error",
+            "message": "upstream request failed"
+          }
+        }
+      ],
+      "cases": [
+        {
+          "scenario": "unfavorable",
+          "setup": [
+            [
+              {
+                "order": {
+                  "order": "recruit",
+                  "gb": "156530600",
+                  "amount": 5
+                },
+                "ok": true,
+                "cost": {
+                  "silver": 10,
+                  "food": 5
+                }
+              },
+              {
+                "order": {
+                  "order": "fortify",
+                  "gb": "156530600",
+                  "amount": 20
+                },
+                "ok": true,
+                "cost": {
+                  "silver": 20,
+                  "food": 0
+                }
+              },
+              {
+                "order": {
+                  "order": "rally",
+                  "gb": "156530600",
+                  "amount": 20
+                },
+                "ok": true,
+                "cost": {
+                  "silver": 4.5,
+                  "food": 0
+                }
+              }
+            ],
+            [
+              {
+                "order": {
+                  "order": "battle",
+                  "from": "156511500",
+                  "to": "156530600",
+                  "deployAmount": 3
+                },
+                "ok": true,
+                "cost": {
+                  "silver": 7.2,
+                  "food": 5.4
+                }
+              }
+            ],
+            {
+              "forecast": {
+                "risk": "high",
+                "label": "风险较高",
+                "attackerLoss": 1,
+                "defenderLoss": 1,
+                "attackerMoraleBefore": 42,
+                "defenderMoraleBefore": 77,
+                "attackerMoraleAfter": 32,
+                "defenderMoraleAfter": 72,
+                "remainingGarrison": 5,
+                "silver": 0,
+                "food": 0,
+                "reasons": [
+                  "单轮基础攻损达到参战兵力的四分之一或更多",
+                  "基础比例消耗并未明显有利于攻方，城防与地形可能拖长战线"
+                ]
+              },
+              "state": {
+                "date": "1931-04-01",
+                "turn": 0,
+                "silver": 1192.8,
+                "food": 714.6,
+                "points": 5,
+                "source": {
+                  "gb": "156511500",
+                  "name": "宜宾市",
+                  "owner": "SCC",
+                  "terrain": "MOUNTAIN",
+                  "cityLevel": 2,
+                  "industry": 10,
+                  "food": 30,
+                  "fort": 20,
+                  "troops": 5,
+                  "fieldForce": 3,
+                  "morale": 42
+                },
+                "target": {
+                  "gb": "156530600",
+                  "name": "昭通市",
+                  "owner": "YUN",
+                  "terrain": "MOUNTAIN",
+                  "cityLevel": 2,
+                  "industry": 10,
+                  "food": 30,
+                  "fort": 40,
+                  "troops": 6,
+                  "fieldForce": 0,
+                  "morale": 77
+                },
+                "battles": [
+                  {
+                    "id": "battle_1",
+                    "from": "156511500",
+                    "to": "156530600",
+                    "fromName": "宜宾市",
+                    "toName": "昭通市",
+                    "active": true,
+                    "attacker": "SCC",
+                    "defender": "YUN",
+                    "turns": 0,
+                    "totalAttackerLoss": 0,
+                    "totalDefenderLoss": 0,
+                    "lastAttackerLoss": 0,
+                    "lastDefenderLoss": 0,
+                    "route": [
+                      "156511500",
+                      "156530600"
+                    ],
+                    "marchDistanceKm": 119.7,
+                    "routeHasSea": false,
+                    "supplyRulesVersion": 1
+                  }
+                ]
+              }
+            }
+          ],
+          "validDecisions": 1,
+          "decisions": [
+            {
+              "step": 1,
+              "before": {
+                "date": "1931-04-01",
+                "turn": 0,
+                "silver": 1192.8,
+                "food": 714.6,
+                "points": 5,
+                "source": {
+                  "gb": "156511500",
+                  "name": "宜宾市",
+                  "owner": "SCC",
+                  "terrain": "MOUNTAIN",
+                  "cityLevel": 2,
+                  "industry": 10,
+                  "food": 30,
+                  "fort": 20,
+                  "troops": 5,
+                  "fieldForce": 3,
+                  "morale": 42
+                },
+                "target": {
+                  "gb": "156530600",
+                  "name": "昭通市",
+                  "owner": "YUN",
+                  "terrain": "MOUNTAIN",
+                  "cityLevel": 2,
+                  "industry": 10,
+                  "food": 30,
+                  "fort": 40,
+                  "troops": 6,
+                  "fieldForce": 0,
+                  "morale": 77
+                },
+                "battles": [
+                  {
+                    "id": "battle_1",
+                    "from": "156511500",
+                    "to": "156530600",
+                    "fromName": "宜宾市",
+                    "toName": "昭通市",
+                    "active": true,
+                    "attacker": "SCC",
+                    "defender": "YUN",
+                    "turns": 0,
+                    "totalAttackerLoss": 0,
+                    "totalDefenderLoss": 0,
+                    "lastAttackerLoss": 0,
+                    "lastDefenderLoss": 0,
+                    "route": [
+                      "156511500",
+                      "156530600"
+                    ],
+                    "marchDistanceKm": 119.7,
+                    "routeHasSea": false,
+                    "supplyRulesVersion": 1
+                  }
+                ]
+              },
+              "initiative": {
+                "kind": "support",
+                "goal": "支援宜宾市至昭通市战线",
+                "sourceGb": "156511500",
+                "targetGb": "156530600",
+                "reason": "已有战线，不重复从同一城开战。风险较高：下一次结算基础估计攻损1k/守损1k，攻方士气42→32/守方士气77→72，来源留守5k；本次行军银0/粮0。单轮基础攻损达到参战兵力的四分之一或更多；基础比例消耗并未明显有利于攻方，城防与地形可能拖长战线。双方士气≤20进入崩溃判定区间；攻方崩溃可能撤退，守方崩溃可能失城，并非必然结果。这是静态基础比较，不含双方后续动作、经济减员、突发事件及崩溃结果，不是胜率或胜利保证。可比较支援、整军与撤退；现有战线行军费不重复收取。",
+                "examples": [
+                  {
+                    "order": "moveTroops",
+                    "from": "156510300",
+                    "to": "156511500",
+                    "amount": 6
+                  },
+                  {
+                    "order": "recruit",
+                    "gb": "156511500",
+                    "amount": 3
+                  },
+                  {
+                    "order": "rally",
+                    "gb": "156511500",
+                    "amount": 10
+                  },
+                  {
+                    "order": "fortify",
+                    "gb": "156511500",
+                    "amount": 5
+                  },
+                  {
+                    "order": "stopBattle",
+                    "id": "battle_1"
+                  }
+                ]
+              },
+              "planned": [
+                {
+                  "order": "stopBattle",
+                  "id": "battle_1",
+                  "reason": "retreat"
+                }
+              ],
+              "approved": [
+                {
+                  "order": "stopBattle",
+                  "id": "battle_1",
+                  "reason": "retreat"
+                }
+              ],
+              "execution": [
+                {
+                  "order": {
+                    "order": "stopBattle",
+                    "id": "battle_1",
+                    "reason": "retreat"
+                  },
+                  "ok": true
+                }
+              ],
+              "receipts": [
+                {
+                  "type": "commandReceipt",
+                  "faction": "SCC",
+                  "label": "stopBattle",
+                  "ok": true,
+                  "spentPoints": 0,
+                  "spentSilver": 0,
+                  "spentFood": 0,
+                  "remainingPoints": 5,
+                  "remainingSilver": 1192.8,
+                  "remainingFood": 714.6
+                }
+              ],
+              "afterDecision": {
+                "date": "1931-04-01",
+                "turn": 0,
+                "silver": 1192.8,
+                "food": 714.6,
+                "points": 5,
+                "source": {
+                  "gb": "156511500",
+                  "name": "宜宾市",
+                  "owner": "SCC",
+                  "terrain": "MOUNTAIN",
+                  "cityLevel": 2,
+                  "industry": 10,
+                  "food": 30,
+                  "fort": 20,
+                  "troops": 8,
+                  "fieldForce": 0,
+                  "morale": 42
+                },
+                "target": {
+                  "gb": "156530600",
+                  "name": "昭通市",
+                  "owner": "YUN",
+                  "terrain": "MOUNTAIN",
+                  "cityLevel": 2,
+                  "industry": 10,
+                  "food": 30,
+                  "fort": 40,
+                  "troops": 6,
+                  "fieldForce": 0,
+                  "morale": 77
+                },
+                "battles": []
+              },
+              "afterSettlement": {
+                "date": "1931-04-08",
+                "turn": 1,
+                "silver": 1200.6,
+                "food": 900.6,
+                "points": 6,
+                "source": {
+                  "gb": "156511500",
+                  "name": "宜宾市",
+                  "owner": "SCC",
+                  "terrain": "MOUNTAIN",
+                  "cityLevel": 2,
+                  "industry": 10,
+                  "food": 30,
+                  "fort": 20,
+                  "troops": 8,
+                  "fieldForce": 0,
+                  "morale": 42
+                },
+                "target": {
+                  "gb": "156530600",
+                  "name": "昭通市",
+                  "owner": "YUN",
+                  "terrain": "MOUNTAIN",
+                  "cityLevel": 2,
+                  "industry": 10,
+                  "food": 30,
+                  "fort": 40,
+                  "troops": 6,
+                  "fieldForce": 0,
+                  "morale": 77
+                },
+                "battles": []
+              },
+              "militaryEvents": [
+                {
+                  "type": "battleEnd",
+                  "battleId": "battle_1",
+                  "reason": "retreat",
+                  "fromName": "宜宾市",
+                  "toName": "昭通市"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "boundaries": [
+    "Independent controlled scenes, not a single continuous game",
+    "Normal paid setup and rules engine; other factions idle; no diplomacy or AI flavor",
+    "HTTP success without parseable content is not a valid decision",
+    "No full save, prompts, credential values or hidden reasoning exported"
+  ]
+}
