@@ -46,6 +46,8 @@ const props = withDefaults(
     closable?: boolean
     initX?: number
     initY?: number
+    /** Explicit-position panels may opt out of automatic cascade displacement. */
+    cascadeOffset?: boolean
     /** 弹窗层级，避免多个弹窗共用 3000 时互相遮挡可点区域 */
     zIndex?: number
     /** 主题变体：dark 为默认深色，parchment 为古籍/羊皮纸风格 */
@@ -57,6 +59,7 @@ const props = withDefaults(
     visible: false,
     closable: true,
     variant: 'dark',
+    cascadeOffset: true,
   },
 )
 
@@ -70,8 +73,8 @@ const { zIndex: managedZ, bringToFront, offsetX, offsetY } = useZIndex(
   props.draggable ? undefined : props.zIndex,
 )
 
-const posX = ref((props.initX ?? 160) + offsetX)
-const posY = ref((props.initY ?? 160) + offsetY)
+const posX = ref((props.initX ?? 160) + (props.cascadeOffset ? offsetX : 0))
+const posY = ref((props.initY ?? 160) + (props.cascadeOffset ? offsetY : 0))
 const viewportWidth = ref(window.innerWidth)
 function onResize(): void {
   viewportWidth.value = window.innerWidth

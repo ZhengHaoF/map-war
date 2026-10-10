@@ -1,6 +1,9 @@
 import { ref } from 'vue'
 import { aiErrorMessage } from '@/utils/aiError'
 
+/** Shared read-only busy signal for map/manual command entry across chat instances. */
+export const aiRequestsPending = ref(0)
+
 export interface AiChatRequest {
   messages: { role: string; content: string }[]
   tools?: unknown[]
@@ -20,6 +23,7 @@ export function useAiChat() {
   const response = ref<unknown>(null)
 
   async function send(body: AiChatRequest) {
+    aiRequestsPending.value++
     loading.value = true
     error.value = null
     response.value = null
@@ -41,6 +45,7 @@ export function useAiChat() {
     } catch (err) {
       error.value = (err as Error).message || '未知错误'
     } finally {
+      aiRequestsPending.value--
       loading.value = false
     }
   }

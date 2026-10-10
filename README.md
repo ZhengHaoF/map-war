@@ -25,6 +25,12 @@ pnpm dev:server     # 仅后端
 
 > ⚠️ **端口对齐**：前端 Vite 实际端口是 **5714**（`apps/web/vite.config.ts`），而后端 `CORS_ORIGIN` 默认是 `http://localhost:5173`（`apps/server/.env.example`）。本地联调请把 `apps/server/.env` 的 `CORS_ORIGIN` 改为 `http://localhost:5714`，否则浏览器会因 CORS 拦截 `/api` 请求（Vite 的 `/api` dev proxy 只解决「前端→后端」连通，不解决浏览器跨域预检）。
 
+## 地图行军
+
+点击工具栏“进攻”或“调兵”，在地图选择己方出发城，再选择敌城或己方目的城。已有己方选中城时省去出发城步骤；选城只填入行军预览，调整兵量、检查路线与银粮后仍需点击底栏“确认进攻／确认调兵”，不会自动发兵。
+
+绿色表示路线和外交上可选，蓝色为出发城，朱砂色为目标；高亮不代表预算充足或战斗安全。支持地图重选、下拉选择和取消；A 进攻、M 调兵、Esc 取消，输入框与推演期间不触发字母快捷键。详见 [地图选城实施与验收](docs/map-command-shortcuts-implementation.md)。
+
 ## 构建
 
 ```sh
