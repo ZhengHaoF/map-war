@@ -1,0 +1,323 @@
+{
+  "normalScenariosUnchanged": true,
+  "beforeRows": 4800,
+  "afterRows": 4800,
+  "summaries": {
+    "idle": {
+      "before": {
+        "rows": 1440,
+        "attempts": 0,
+        "rejected": 0,
+        "rejectionPercent": null,
+        "spent": 0,
+        "capacity": 8640,
+        "utilizationPercent": 0,
+        "arrearFactionTurns": 0,
+        "famineFactionTurns": 0,
+        "arrearFactions": [],
+        "startedBattles": 0,
+        "captureEvents": 0,
+        "noActionFactionTurns": 1440
+      },
+      "after": {
+        "rows": 1440,
+        "attempts": 0,
+        "rejected": 0,
+        "rejectionPercent": null,
+        "spent": 0,
+        "capacity": 8640,
+        "utilizationPercent": 0,
+        "arrearFactionTurns": 0,
+        "famineFactionTurns": 0,
+        "arrearFactions": [],
+        "startedBattles": 0,
+        "captureEvents": 0,
+        "noActionFactionTurns": 1440
+      }
+    },
+    "recruit-rush": {
+      "before": {
+        "rows": 1440,
+        "attempts": 3579,
+        "rejected": 1023,
+        "rejectionPercent": 28.6,
+        "spent": 2556,
+        "capacity": 8640,
+        "utilizationPercent": 29.6,
+        "arrearFactionTurns": 894,
+        "famineFactionTurns": 0,
+        "arrearFactions": [
+          "JPN",
+          "TIB",
+          "SHX",
+          "CCP",
+          "GXC",
+          "YUN",
+          "SCC",
+          "NEA",
+          "XJ",
+          "MA"
+        ],
+        "startedBattles": 0,
+        "captureEvents": 0,
+        "noActionFactionTurns": 1005
+      },
+      "after": {
+        "rows": 1440,
+        "attempts": 3579,
+        "rejected": 1023,
+        "rejectionPercent": 28.6,
+        "spent": 2556,
+        "capacity": 8640,
+        "utilizationPercent": 29.6,
+        "arrearFactionTurns": 894,
+        "famineFactionTurns": 0,
+        "arrearFactions": [
+          "JPN",
+          "TIB",
+          "SHX",
+          "CCP",
+          "GXC",
+          "YUN",
+          "SCC",
+          "NEA",
+          "XJ",
+          "MA"
+        ],
+        "startedBattles": 0,
+        "captureEvents": 0,
+        "noActionFactionTurns": 1005
+      }
+    },
+    "reserve-aware": {
+      "before": {
+        "rows": 1440,
+        "attempts": 2966,
+        "rejected": 0,
+        "rejectionPercent": 0,
+        "spent": 2966,
+        "capacity": 8640,
+        "utilizationPercent": 34.3,
+        "arrearFactionTurns": 66,
+        "famineFactionTurns": 0,
+        "arrearFactions": [
+          "TIB",
+          "JPN"
+        ],
+        "startedBattles": 1333,
+        "captureEvents": 1194,
+        "noActionFactionTurns": 429
+      },
+      "after": {
+        "rows": 1440,
+        "attempts": 2966,
+        "rejected": 0,
+        "rejectionPercent": 0,
+        "spent": 2966,
+        "capacity": 8640,
+        "utilizationPercent": 34.3,
+        "arrearFactionTurns": 66,
+        "famineFactionTurns": 0,
+        "arrearFactions": [
+          "TIB",
+          "JPN"
+        ],
+        "startedBattles": 1333,
+        "captureEvents": 1194,
+        "noActionFactionTurns": 429
+      }
+    },
+    "food-shock": {
+      "before": {
+        "rows": 480,
+        "attempts": 0,
+        "rejected": 0,
+        "rejectionPercent": null,
+        "spent": 0,
+        "capacity": 2880,
+        "utilizationPercent": 0,
+        "arrearFactionTurns": 0,
+        "famineFactionTurns": 480,
+        "arrearFactions": [],
+        "startedBattles": 0,
+        "captureEvents": 0,
+        "noActionFactionTurns": 480
+      },
+      "after": {
+        "rows": 480,
+        "attempts": 0,
+        "rejected": 0,
+        "rejectionPercent": null,
+        "spent": 0,
+        "capacity": 2880,
+        "utilizationPercent": 0,
+        "arrearFactionTurns": 0,
+        "famineFactionTurns": 480,
+        "arrearFactions": [],
+        "startedBattles": 0,
+        "captureEvents": 0,
+        "noActionFactionTurns": 480
+      }
+    }
+  },
+  "fieldComparison": [
+    {
+      "faction": "CCP",
+      "label": "中共苏区",
+      "beforeTroops": 40,
+      "afterTroops": 4.7,
+      "beforeFieldForce": 10,
+      "afterFieldForce": 4.7
+    },
+    {
+      "faction": "GUI",
+      "label": "黔系",
+      "beforeTroops": 20,
+      "afterTroops": 4.2,
+      "beforeFieldForce": 9,
+      "afterFieldForce": 4.2
+    },
+    {
+      "faction": "GXC",
+      "label": "桂系",
+      "beforeTroops": 94,
+      "afterTroops": 25.6,
+      "beforeFieldForce": 10,
+      "afterFieldForce": 4.7
+    },
+    {
+      "faction": "JPN",
+      "label": "日本关东军",
+      "beforeTroops": 20,
+      "afterTroops": 1,
+      "beforeFieldForce": 5,
+      "afterFieldForce": 1
+    },
+    {
+      "faction": "KMT",
+      "label": "国民政府",
+      "beforeTroops": 1298,
+      "afterTroops": 502.9,
+      "beforeFieldForce": 10,
+      "afterFieldForce": 4.7
+    },
+    {
+      "faction": "MA",
+      "label": "马家军",
+      "beforeTroops": 50,
+      "afterTroops": 6.7,
+      "beforeFieldForce": 10,
+      "afterFieldForce": 4.7
+    },
+    {
+      "faction": "NEA",
+      "label": "东北军",
+      "beforeTroops": 222,
+      "afterTroops": 84.1,
+      "beforeFieldForce": 10,
+      "afterFieldForce": 4.7
+    },
+    {
+      "faction": "SCC",
+      "label": "川军",
+      "beforeTroops": 225,
+      "afterTroops": 134.1,
+      "beforeFieldForce": 10,
+      "afterFieldForce": 4.7
+    },
+    {
+      "faction": "SHX",
+      "label": "晋系",
+      "beforeTroops": 110,
+      "afterTroops": 65.4,
+      "beforeFieldForce": 10,
+      "afterFieldForce": 4.7
+    },
+    {
+      "faction": "TIB",
+      "label": "西藏",
+      "beforeTroops": 10,
+      "afterTroops": 1,
+      "beforeFieldForce": 5,
+      "afterFieldForce": 1
+    },
+    {
+      "faction": "XJ",
+      "label": "新疆",
+      "beforeTroops": 15,
+      "afterTroops": 0,
+      "beforeFieldForce": 4,
+      "afterFieldForce": 0
+    },
+    {
+      "faction": "YUN",
+      "label": "滇系",
+      "beforeTroops": 40,
+      "afterTroops": 8.4,
+      "beforeFieldForce": 10,
+      "afterFieldForce": 4.7
+    }
+  ],
+  "firstArrear": [
+    {
+      "faction": "CCP",
+      "label": "中共苏区",
+      "turn": 8
+    },
+    {
+      "faction": "GUI",
+      "label": "黔系",
+      "turn": null
+    },
+    {
+      "faction": "GXC",
+      "label": "桂系",
+      "turn": 8
+    },
+    {
+      "faction": "JPN",
+      "label": "日本关东军",
+      "turn": 4
+    },
+    {
+      "faction": "KMT",
+      "label": "国民政府",
+      "turn": null
+    },
+    {
+      "faction": "MA",
+      "label": "马家军",
+      "turn": 22
+    },
+    {
+      "faction": "NEA",
+      "label": "东北军",
+      "turn": 17
+    },
+    {
+      "faction": "SCC",
+      "label": "川军",
+      "turn": 11
+    },
+    {
+      "faction": "SHX",
+      "label": "晋系",
+      "turn": 7
+    },
+    {
+      "faction": "TIB",
+      "label": "西藏",
+      "turn": 6
+    },
+    {
+      "faction": "XJ",
+      "label": "新疆",
+      "turn": 19
+    },
+    {
+      "faction": "YUN",
+      "label": "滇系",
+      "turn": 10
+    }
+  ]
+}

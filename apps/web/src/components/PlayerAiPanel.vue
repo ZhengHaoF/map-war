@@ -98,6 +98,12 @@
               回合行动点 {{ actionPoints }}/{{ ACTION_POINTS_PER_TURN }}
               <span>改变世界消耗行动点，结束回合后恢复</span>
             </div>
+            <div v-if="outlook" class="economic-outlook" aria-label="经济与阶段建议">
+              <div>{{ outlook.goal }} · 净银 {{ outlook.eco.silverNet }} / 净粮 {{ outlook.eco.foodNet }} 每回合</div>
+              <small>储备：银{{ runwayLabel(outlook.silverRunway) }}，粮{{ runwayLabel(outlook.foodRunway) }}。</small>
+              <small>本批次新增征兵建议合计 ≤ {{ outlook.recruitLimit }}k，非硬性限制。</small>
+              <small>仅按当前局势估算，不计未来战斗或领土变化。</small>
+            </div>
             <textarea
               v-model="userMessage"
               class="chat-textarea"
@@ -142,6 +148,7 @@ import { useGameScheduler } from '@/composables/useGameScheduler'
 import { useAgentKernel } from '@/composables/useAgentKernel'
 import { useGameStore } from '@/stores/game'
 import { ACTION_POINTS_PER_TURN } from '@/data/gameConfig'
+import { economyOutlook, runwayLabel } from '@/utils/economyOutlook'
 import GameButton from '@/components/ui/GameButton.vue'
 import GameModal from '@/components/ui/GameModal.vue'
 import WorldProgressBanner from '@/components/WorldProgressBanner.vue'
@@ -171,6 +178,11 @@ const { status, submit, advance, executionResults } = useGameScheduler()
 const { loading: kernelLoading, endPlayerTurn } = useAgentKernel()
 const gameStore = useGameStore()
 const actionPoints = computed(() => gameStore.currentFaction ? gameStore.getActionPoints(gameStore.currentFaction) : 0)
+const outlook = computed(() => gameStore.currentFaction ? economyOutlook(
+  gameStore.cities, gameStore.currentFaction, gameStore.turnCount,
+  gameStore.getTreasury(gameStore.currentFaction), gameStore.getGranary(gameStore.currentFaction),
+  gameStore.battles.filter(b => b.active && b.attacker === gameStore.currentFaction).length,
+) : null)
 
 const busy = computed(() => loading.value || status.value === 'running' || kernelLoading.value)
 const sendButtonText = computed(() => {
@@ -323,6 +335,16 @@ async function onSend(): Promise<void> {
 </script>
 
 <style scoped>
+.economic-outlook {
+  margin: 6px 0 8px;
+  padding: 8px;
+  border: 1px solid var(--line-soft, rgba(138, 109, 75, 0.3));
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.economic-outlook small { display: block; font-size: 11px; color: var(--ink-soft); }
 .action-budget {
   display: flex;
   flex-wrap: wrap;

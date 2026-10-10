@@ -36,6 +36,7 @@ import {
   EXPEDITION_DECAY_FLOOR,
   ARREAR_MORALE_PENALTY,
   FAMINE_TROOP_LOSS_RATE,
+  FAMINE_MIN_TROOP_LOSS_K,
   INIT_TREASURY_UPKEEP_MULTIPLIER,
   INIT_TREASURY_FLOOR,
   INIT_GRANARY_UPKEEP_MULTIPLIER,
@@ -94,6 +95,13 @@ export interface FactionEconomy {
 export interface ActionCost {
   silver: number
   food: number
+}
+
+/** Versioned new starvation rule: affects garrison and deployed force separately. */
+export function famineTroops(troops: number): number {
+  if (troops <= 0 || FAMINE_TROOP_LOSS_RATE <= 0) return Math.max(0, troops)
+  const loss = Math.max(FAMINE_MIN_TROOP_LOSS_K, troops * FAMINE_TROOP_LOSS_RATE)
+  return Math.round(Math.max(0, troops - loss) * 10) / 10
 }
 
 // ═══════════════════════════════════════

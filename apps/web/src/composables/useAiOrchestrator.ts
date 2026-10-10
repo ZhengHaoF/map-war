@@ -13,6 +13,7 @@ import { ref, computed } from 'vue'
 import { useAiChat } from './useAiChat'
 import { useGameStore } from '@/stores/game'
 import { buildCampaignContext } from '@/utils/campaignPreview'
+import { buildStrategyContext } from '@/utils/strategyContext'
 import { executeOrder, resetBattleRuntime } from '@/utils/gameOrders'
 import { freeEffectToOrder } from '@/utils/freeActionRules'
 import { executeBoundedFreeEffect } from '@/utils/freeActionExecution'
@@ -191,6 +192,7 @@ export function useAiOrchestrator(mode: AiMode = 'world') {
     }
     if ((mode === 'user' || mode === 'advisor') && store.currentFaction) {
       messages.splice(messages.length - 1, 0, { role: 'system', content: buildCampaignContext(store.currentFaction) })
+      messages.splice(messages.length - 1, 0, { role: 'system', content: buildStrategyContext(store.currentFaction) })
     }
 
     await send({ messages, response_format: { type: 'json_object' } })
