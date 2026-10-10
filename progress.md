@@ -49,3 +49,19 @@ Static preview built separately; it does not include a running model backend.
 - Regional topology, supply lines and midgame objectives are not part of this patch.
 - Full transactional rollback after regular animation failures remains future work.
 - Clean up baseline lint diagnostics and code-split the oversized main bundle separately.
+
+## Terminology clarification
+
+User request: 好的开始修改吧，另外你看看下一步做什么？
+
+Unified UI, failure messages, event descriptions, AI contexts and model smoke-test wording
+to "回合行动点". The UI explicitly says it is unrelated to API quotas and recovers at turn end.
+No costs, point counts, model/provider settings or save schema changed.
+Added two terminology regression tests; 24 files / 325 tests passed (including replay of
+the six previously collected provider responses, not six additional paid API calls).
+ESLint, typecheck and frontend/backend builds passed; Oxlint remains 41 unchanged baseline
+diagnostics. Next-step recommendation is documented in docs/gameplay-next-steps.md:
+first legal attack connectivity and previews, then lightweight supply, then economy/AI pacing.
+Desktop/mobile command-panel screenshots inspected; the API distinction is fully visible.
+Standard browser-game smoke script captured the map and onboarding correctly; no page errors
+in the separate command-panel check. Browser closed after QA.

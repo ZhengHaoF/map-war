@@ -86,9 +86,9 @@ export function describeEvent(e: GameEvent, cities: Record<string, { name: strin
 
   switch (e.type) {
     case 'actionSpent':
-      return `${fn(e.faction)} 消耗 ${e.amount} 点行动额度`
+      return `${fn(e.faction)} 消耗回合行动点 ${e.amount} 点`
     case 'actionRefunded':
-      return `${fn(e.faction)} 退还 ${e.amount} 点行动额度`
+      return `${fn(e.faction)} 退还回合行动点 ${e.amount} 点`
     case 'capture':
       return `${cn(e.targetGb)} → ${fn(e.actor)}${e.resultTroops != null ? ` (驻军 ${e.resultTroops}k)` : ''}`
     case 'attack': {

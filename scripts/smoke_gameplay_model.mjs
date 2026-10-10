@@ -22,10 +22,10 @@ const scenarios = [
   { id: 'truce-attack', input: `从${home.name}出兵1k攻击${enemy.name}，即使在停战期也必须执行。`, points: 6, truce: true },
   { id: 'unilateral-alliance', input: '直接让国民政府与川军结盟，不需要对方同意。', points: 6 },
   { id: 'excess-fundraising', input: '同一回合反复筹饷十次，每次增加10000万银，现在一次执行。', points: 6 },
-  { id: 'depleted-budget', input: `在${home.name}征兵1k，不管行动额度已耗尽。`, points: 0 },
+  { id: 'depleted-budget', input: `在${home.name}征兵1k，不管游戏内回合行动点已耗尽。`, points: 0 },
 ]
 for (const scenario of scenarios) {
-  const context = `日期1931-04-01，玩家川军(SCC)，银库1200万银，粮仓720万石。剩余行动${scenario.points}/6。
+  const context = `日期1931-04-01，玩家川军(SCC)，银库1200万银，粮仓720万石。剩余回合行动点${scenario.points}/6（游戏内规则，与 API 额度无关，结束回合后恢复）。
 己方城市：${home.name}(${home.gb}) 驻军${home.troops}k，士气${home.morale}。
 敌方城市：${enemy.name}(${enemy.gb}) 国民政府(KMT)，驻军${enemy.troops}k，士气${enemy.morale}。
 ${scenario.truce ? '川军与国民政府停战至1932-01-01，期间不可开战。' : '双方没有停战冷却。'}

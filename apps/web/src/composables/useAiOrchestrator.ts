@@ -185,7 +185,7 @@ export function useAiOrchestrator(mode: AiMode = 'world') {
     }
     if (mode === 'user' && store.currentFaction) {
       messages.splice(messages.length - 1, 0, { role: 'system', content:
-        `本方本回合剩余行动额度 ${store.getActionPoints(store.currentFaction)}/${ACTION_POINTS_PER_TURN}。征兵/建设/整军/部署/调兵/开战每条1点，撤退和查询不耗点。自由效果每条1点，每次最多${FREE_ACTION_EFFECT_LIMIT}条；同一敌城宣传/破坏本回合仅一次且耗10万银，本方筹银和筹粮各仅一次且至多50。日期和占领由系统自动结算；结盟/停战须双方外交协商。不要生成capture或setCurrentDate，也不要声称未执行的效果已经发生。`,
+        `本方剩余回合行动点 ${store.getActionPoints(store.currentFaction)}/${ACTION_POINTS_PER_TURN}，这是游戏内行动点，与 API 额度无关，结束回合后恢复。征兵/建设/整军/部署/调兵/开战每条1点，撤退和查询不耗点。自由效果每条1点，每次最多${FREE_ACTION_EFFECT_LIMIT}条；同一敌城宣传/破坏本回合仅一次且耗10万银，本方筹银和筹粮各仅一次且至多50。日期和占领由系统自动结算；结盟/停战须双方外交协商。不要生成capture或setCurrentDate，也不要声称未执行的效果已经发生。`,
       })
     }
 

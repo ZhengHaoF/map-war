@@ -8,6 +8,7 @@ import { useAiOrchestrator } from '@/composables/useAiOrchestrator'
 import { useGameScheduler } from '@/composables/useGameScheduler'
 import { clampFlavor } from '@/utils/battleFormula'
 import { ACTION_POINTS_PER_TURN } from '@/data/gameConfig'
+import { describeEvent } from '@/utils/eventDescribe'
 import raw from '@/data/chinaCities.seed.json'
 
 vi.mock('@/utils/troopAnimation', () => ({
@@ -52,6 +53,19 @@ beforeEach(() => {
 })
 
 describe('live command boundaries', () => {
+  it('names the depleted resource as turn action points and explains recovery', () => {
+    const { store } = cities()
+    store.applyEvent({ type: 'actionSpent', faction: Owner.SCC, amount: ACTION_POINTS_PER_TURN })
+    expect(store.checkAction(Owner.SCC)).toEqual({ ok: false, reason: '回合行动点不足，请结束回合恢复' })
+    expect(store.checkAction(Owner.SCC, 0).reason).toBe('回合行动点必须为正整数')
+  })
+  it('uses turn action point terminology for spending and refunds in the event log', () => {
+    for (const type of ['actionSpent', 'actionRefunded'] as const) {
+      const text = describeEvent({ type, faction: Owner.SCC, amount: 1 }, {})
+      expect(text).toContain('回合行动点')
+      expect(text).not.toContain('额度')
+    }
+  })
   it.each(['player', 'faction'] as const)('rejects direct capture for %s without changing city or resources', async authority => {
     const { store, enemy } = cities()
     const before = store.getSnapshot()
