@@ -2,13 +2,20 @@
 import { useGameStore } from '@/stores/game'
 import { Owner, OWNER_LABELS } from '@/data/owners'
 import type { GameOrder } from './gameOrders'
-import { getAttackableTargets, previewCampaign } from './campaignPreview'
+import { getAttackableTargets } from './campaignPreview'
 import { checkLiveOrder } from './gameplayRules'
 import { readRelation, isInTruce } from './diplomacy'
 import { getCityNeighbours } from './campaignRoutes'
 import { getSupplyStatus, isSupplyHub, occupationRemaining } from './supply'
 import { economyOutlook } from './economyOutlook'
 import { ownershipTimeline } from './ownershipHistory'
+import {
+  affordableCampaign,
+  assessCampaign,
+  assessActiveBattle,
+  tacticalText,
+  setbackAdvice,
+} from './tacticalAssessment'
 
 export type InitiativeKind =
   | 'defend'
@@ -57,7 +64,13 @@ export function buildFactionInitiative(faction: Owner): FactionInitiative {
     const donors = own
       .filter((c) => c.gb !== gb && c.troops > reserve(c.troops))
       .map((c) =>
-        previewCampaign(c.gb, gb, roundDown(c.troops - reserve(c.troops)), 'moveTroops', faction),
+        affordableCampaign(
+          c.gb,
+          gb,
+          roundDown(c.troops - reserve(c.troops)),
+          'moveTroops',
+          faction,
+        ),
       )
       .filter((p) => p.ok)
       .sort((a, b) => (a.route?.costDistanceKm ?? Infinity) - (b.route?.costDistanceKm ?? Infinity))
@@ -70,12 +83,23 @@ export function buildFactionInitiative(faction: Owner): FactionInitiative {
       { order: 'fortify', gb, amount: Math.min(5, 100 - target.fort) },
     ])
   }
+  const front = store.battles.find(
+    (b) => b.active && b.attacker === faction && cities[b.from]?.owner === faction,
+  )
+  const frontAssessment = front ? assessActiveBattle(front) : null
   if (!own.length || points <= 0)
     return {
       kind: 'hold',
       goal: !own.length ? '无领土可经营' : '等待行动点恢复',
-      reason: '不凭空生成军队、银粮或行动点；已有战斗仍由系统结算，合法撤退不耗点。',
-      examples: [],
+      reason: `不凭空生成军队、银粮或行动点；已有战斗仍由系统结算，合法撤退不耗点。${frontAssessment ? tacticalText(frontAssessment) : ''}`,
+      examples:
+        front &&
+        checkLiveOrder(
+          { order: 'stopBattle', id: front.id },
+          { authority: 'faction', actor: faction },
+        ).ok
+          ? [{ order: 'stopBattle', id: front.id }]
+          : [],
     }
 
   const incoming = store.battles
@@ -87,25 +111,31 @@ export function buildFactionInitiative(faction: Owner): FactionInitiative {
     )
   if (incoming[0]) {
     const gb = incoming[0].to
+    const enemyAssessment = assessActiveBattle(incoming[0])
     return {
       kind: 'defend',
       goal: `保住${name(gb)}`,
       targetGb: gb,
-      reason: `本城正在遭受进攻，优先调兵增援、适量征兵、筑防或整军，而非在远离前线的城市例行建设。若无法守住，应说明取舍。`,
+      reason: `本城正在遭受进攻，优先调兵增援、适量征兵、筑防或整军，而非在远离前线的城市例行建设。${enemyAssessment ? `以下为敌方进攻视角，攻损属于敌方：${tacticalText(enemyAssessment)}` : ''}若无法守住，应说明取舍。`,
       examples: reinforce(gb),
     }
   }
-  const front = store.battles.find(
-    (b) => b.active && b.attacker === faction && cities[b.from]?.owner === faction,
-  )
   if (front)
     return {
       kind: 'support',
       goal: `支援${front.fromName}至${front.toName}战线`,
       sourceGb: front.from,
       targetGb: front.to,
-      reason: `已有战线，不重复从同一城开战。核对外出兵力、士气、补给与损耗；可先将后方驻军调到来源城，再合法 deploy 增援，必要时撤退。`,
-      examples: reinforce(front.from),
+      reason: `已有战线，不重复从同一城开战。${frontAssessment ? tacticalText(frontAssessment) : ''}可比较支援、整军与撤退；现有战线行军费不重复收取。`,
+      examples: [
+        ...reinforce(front.from),
+        ...(checkLiveOrder(
+          { order: 'stopBattle', id: front.id },
+          { authority: 'faction', actor: faction },
+        ).ok
+          ? [{ order: 'stopBattle' as const, id: front.id }]
+          : []),
+      ],
     }
 
   const unsupplied = own.find(
@@ -172,18 +202,20 @@ export function buildFactionInitiative(faction: Owner): FactionInitiative {
     const source = cities[option.order.from!]!
     const target = cities[option.targetGb]!
     const amount = roundDown(Math.max(0, source.troops - reserve(source.troops)))
-    const attack = previewCampaign(source.gb, target.gb, amount, 'battle', faction)
+    const attack = affordableCampaign(source.gb, target.gb, amount, 'battle', faction)
+    const assessment = assessCampaign(attack)
     const ready =
       attack.ok &&
       attack.supply?.supplied &&
-      (attack.fightingTroops ?? 0) >= Math.max(2, target.troops * 1.2)
+      (attack.fightingTroops ?? 0) >= Math.max(2, target.troops * 1.2) &&
+      assessment?.risk === 'favorable'
     const reclaim = recentLoss.has(target.gb)
     return {
       kind: ready ? (reclaim ? 'recapture' : 'attack') : 'assemble',
       goal: `${ready ? (reclaim ? '收复' : '进攻') : '集结准备争夺'}${name(target.gb)}`,
       sourceGb: source.gb,
       targetGb: target.gb,
-      reason: `${reclaim ? '近期失地，已保留易主事实。' : `与${OWNER_LABELS[target.owner]}交战，目标是可达的敌方节点。`}来源${name(source.gb)}，守军${target.troops}k/工事${target.fort}/士气${target.morale}；建议至少留守${roundDown(reserve(source.troops))}k。${ready ? '可比较进攻与继续整备；兵力阈值只是粗略建议，不是胜率或胜利保证。' : '当前建议先集结与整备，不把1k路线示例当成足够的攻城兵力。'}`,
+      reason: `${reclaim ? '近期失地，已保留易主事实。' : `与${OWNER_LABELS[target.owner]}交战，目标是可达的敌方节点。`}来源${name(source.gb)}，守军${target.troops}k/工事${target.fort}/士气${target.morale}；建议至少留守${roundDown(reserve(source.troops))}k。${assessment ? tacticalText(assessment) : `当前进攻不可执行：${attack.reason ?? '需重新查询'}。`}${ready ? '可比较进攻与继续整备；兵力阈值只是粗略建议，不是胜率或胜利保证。' : '当前建议先集结与整备，不把1k路线示例当成足够的攻城兵力。'}`,
       examples: ready ? [attack.order] : reinforce(source.gb),
     }
   }
@@ -212,7 +244,7 @@ export function buildInitiativeContext(faction: Owner): string {
       : []),
     ...refusals.map((e) =>
       e.type === 'commandReceipt'
-        ? `近期未执行：${e.label}，原因${e.reason ?? '未完成'}。这是历史反馈，当前预算以上方现状为准，不原样重复失败计划。`
+        ? `近期未执行：${e.label}，原因${e.reason ?? '未完成'}。${setbackAdvice(e.reason ?? '')}这是历史反馈，当前预算以上方现状为准，不原样重复失败计划。`
         : '',
     ),
   ].join('\n')

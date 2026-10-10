@@ -330,3 +330,37 @@ faction-initiative-results.md for exact scope, evidence and limitations.
 Next: explain tactical risk/cost and avoid repeated failed plans; complete valid
 10–15-turn checkpointed samples in a stable request environment before broadening
 campaign content or changing nationwide economy.
+
+## Tactical assessment milestone
+
+PR7 merged into master at 2026-10-10T12:39:49Z, merge89da24b, as explicitly
+authorized. New feat/tactical-assessment branch starts there; this iteration
+is for a new reviewable PR, not authorized for automatic merging.
+
+- Shared read-only one-settlement assessment reuses the existing battle formula,
+  actual route cost distance, current supply and legacy battle version semantics.
+  Player and faction context show losses, morale, reserves, fees and reasons,
+  explicitly not win probability. Risk never blocks otherwise legal execution.
+- Only money-rejected campaign suggestions search smaller legal tenths of k via
+  normal previews. Own active fronts can show legal retreat even at zero AP;
+  no automatic retreat, extra resources or cost/battle-rule changes.
+- Failure advice distinguishes malformed fields, current money, points,
+  diplomacy and routes. Unit coverage is not proof of live-model adaptation.
+- 24 new tests; full39files/462tests pass, opt-in live2 skipped. Typecheck,
+  frontend/server builds and JS ESLint pass; four changed/new code/test files
+  Oxlint0. Existing full-project lint debt remains; bundle803.11kB/gzip238.00kB.
+- Native Canvas input verified 1k high-risk legal attack, 8k zero reserve,
+  9k/0k rejection and move-mode exclusion. Previews preserve state; actual confirm
+  charges2.4silver/1.8food/1AP and starts battle without date advancement.
+  Desktop1440x1000/mobile375x812 screenshots inspected, no page errors.
+  Fixed locally clipped taller panel with initial position and bounded scroll.
+- Generic helper this iteration exits0 with inspected onboarding screenshot and
+  state only; not an end-to-end gameplay or universal baseline-failure fix.
+- One fresh real step-5-preview decision, HTTP200/44573ms/no retry. Context
+  advised assembly, but model chose legal10k counterattack+fortify5+recruit3.
+  Three executed orders cost3AP/66.1silver/44.4food. One valid decision,
+  not12-turn coverage or proof of more cautious strategy/setback learning.
+
+See docs/tactical-assessment.md. Next: checkpointed10-15valid decision rounds,
+compare advice with selected plans, test sustained support/withdrawal and
+specific setback adjustment before adding systems.
