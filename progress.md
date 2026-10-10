@@ -364,3 +364,30 @@ is for a new reviewable PR, not authorized for automatic merging.
 See docs/tactical-assessment.md. Next: checkpointed10-15valid decision rounds,
 compare advice with selected plans, test sustained support/withdrawal and
 specific setback adjustment before adding systems.
+
+## Checkpointed tactical pressure follow-up
+
+User authorized the proposed long test; no authorization to merge PR8.
+Ran original80442f2 gameplay code without rule/prompt changes. Resumed identical
+previous one-decision normal save and added11valid decisions, one counterattack
+scenario12/12complete, not twelve newly called decisions or two complete cases.
+
+- 41planned/41executed, zero preflight/execution refusals, no retreat/idle turns;
+  actual receipts41AP/404.9silver/236.3food, AP use56.9%.
+- Recovered Zhaotong at decision6 via defenderCollapse; consolidation then15k
+  Luzhou campaign, defended SCC counterattack, captured Luzhou at decision12.
+  Fixed SCC recruit/fortify policy did not protect morale; not a human match.
+- Request evidence24including prior success:200x12,502x11,401x1. Fresh same
+  credential bridge recovered proxy-token expiration, not a quota finding.
+  Failed attempts do not count as game turns; finalturn13/1931-07-01.
+- Continuation checks current snapshot equality, but discovered historical ID
+  reuse after ended battles and runtime reset. nextBattleId scans only current
+  battles, while finished battles are deleted; event history and collapse seeds
+  can be affected. Report explicit limitation; not fixed in this test.
+- Added standalone sanitized reporting script with continuity assertions,
+  CSV/JSON artifacts and docs/tactical-pressure-results.md. No new UI/gameplay
+  change; prior462regression result remains a prior result, not silently rerun.
+
+Next priority: historical-unique battle IDs and post-load future consistency,
+then bilateral morale explanations and explicit legal resource-stress/retreat
+scenarios before larger gameplay systems.
