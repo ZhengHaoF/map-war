@@ -188,3 +188,48 @@ the owned helper process tree was terminated and the issue recorded internally.
 Do not count this final generic smoke check as passed. The earlier rendered smoke
 capture and independent UI/state checks are separate evidence, not proof that this
 helper failure is resolved. No code change or new regression result from this retry.
+
+## Live UI play and trusted plan feedback (after PR4 merge)
+
+Started branch feat/model-plan-feedback from merged master09704dc. Actual Chromium
+UI onboarding as SCC, route preview Yibin->Zhaotong, user commands via input and
+DOM click dispatch (known native input limitations still apply). Real step-5-preview
+returned recruit2k then battle6k; two orders executed, paid18.4silver/12.8food,
+home4k. Formula settlement captured Zhaotong with5k and occupation2turns.
+Next rally10/fortify5/recruit2 all executed, paid11.5silver/2food.
+
+Live bug: first completed world turn toasted1931-04-08 but store date remained
+1931-04-01, turn0 and points4. Cloud RAF callback only ran inside the hold interval.
+Deterministic2200/4000ms frame-jump tests failed before fix, then passed. Now midpoint
+fires after threshold even when skipped; playTimeJump has exactly-once fallback.
+Saved/loaded the failure scene through UI; continued on patched code. This replay
+has an extra economic tick caused by the failed date, NOT a normal economy sample.
+25 real minor-AI recruit/fortify actions executed and generated25 trusted receipts.
+Patched live date advanced1931-04-08/turn1/points6. New fortify3+rally5 executed,
+paid4.5silver, final1182.2silver/1081.7food/points4. Total32 successful actual actions,
+no usable actual invalid-plan sample; do not claim universal zero-rejection quality.
+
+Persisted read-only commandReceipt records caller identity, result/reason, observed
+spent points/resources and balances. History scopes receipts to faction, player chat
+keeps success/failure markers and refusal reasons, prompts prefer receipts to prose.
+Routine receipts excluded from turn summary. Replay is state-neutral. Exception
+receipts preserve any observed payment, NOT a claim of transactional rollback.
+Actual failed requests showed[object Object] and cleared input; normalized nested
+errors in both clients, preserved input on transport/parse failure. UI502 fault
+injection separately verified readable error, original input and unchanged state.
+
+Testing used an isolated local secure HTTP relay, NOT production Nest auth. Initial
+relay authentication mismatch and4096 output truncation excluded from plan stats;
+cap raised16384. Related YUN returned upstream502 three times, so no evidence of
+successful enemy retaliation. Temporary test proxy session then expired; refreshed
+relay and direct secure probe confirmed200, subsequent live fortify/rally succeeded.
+No key/token/env committed; relay stays outside repository. Sanitized four response
+payloads in tests/fixtures/live-play-step-5.json; offline replay is NOT another live game.
+
+Verification: full34files/407tests, typecheck, frontend/backend builds passed.
+ESLint JS-only configuration passes but excludesTS/Vue; Oxlint41baseline errors remain.
+Bundle780.97kB/gzip229.41kB warning remains. Desktop1440x1000/mobile375x812 success
+and mobile error screenshots inspected; no pageerrors/new horizontaloverflow.
+Browser closed after QA. Generic virtual-time helper remains unresolved.
+Next: small southwest goal chain, fast routine AI presentation, aggregate turn summary;
+long actual-model strategy/failure-adjustment assessment and full animation rollback remain.

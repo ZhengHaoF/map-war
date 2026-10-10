@@ -21,6 +21,7 @@ export interface LlmCallOpts {
 }
 
 import { LLM_RETRY_BASE_MS, LLM_MAX_RETRIES } from '@/data/gameConfig'
+import { aiErrorMessage } from '@/utils/aiError'
 
 const DEFAULT_MAX_RETRIES = LLM_MAX_RETRIES
 const DEFAULT_RESPONSE_FORMAT: LlmCallOpts['responseFormat'] = { type: 'json_object' }
@@ -63,10 +64,7 @@ export async function callLlm(opts: LlmCallOpts): Promise<unknown> {
       })
       if (!res.ok) {
         const errBody = await res.json().catch(() => ({}))
-        const detail =
-          (errBody as { detail?: string })?.detail ??
-          (errBody as { error?: string })?.error ??
-          `HTTP ${res.status}`
+        const detail = aiErrorMessage(errBody, res.status)
         // 4xx 客户端错误：NonRetryableError，绕过外层重试
         if (res.status >= 400 && res.status < 500) {
           throw new NonRetryableError(detail)

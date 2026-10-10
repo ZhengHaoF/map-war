@@ -52,6 +52,7 @@ import {
   eventBadge,
   describeEvent,
   isImportantEvent,
+  isRoutineEvent,
   eventSummaryGroup,
   SUMMARY_GROUP_ORDER,
   type SummaryGroup,
@@ -77,7 +78,7 @@ const ICONS: Record<string, Component> = {
 
 /** 非例行事件（过滤掉叙事/日期推进） */
 const meaningful = computed(() =>
-  props.events.filter((e) => e.type !== 'narrative' && e.type !== 'dateAdvance'),
+  props.events.filter((e) => !isRoutineEvent(e)),
 )
 
 /** 按 SummaryGroup 分组 */

@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { useGameStore } from '@/stores/game'
 import { Owner } from '@/data/owners'
 import { clearLocations, registerLocations } from '@/utils/locationResolver'
-import { executeOrder, init, resetBattleRuntime } from '@/utils/gameOrders'
+import { executeOrder, init, resetBattleRuntime, playTimeJump } from '@/utils/gameOrders'
 import { executeBoundedFreeEffect } from '@/utils/freeActionExecution'
 import { useAiOrchestrator } from '@/composables/useAiOrchestrator'
 import { useGameScheduler } from '@/composables/useGameScheduler'
@@ -92,6 +92,55 @@ describe('live command boundaries', () => {
     scheduler.submit([{ order: 'setCurrentDate', date: '1931-04-08' }], { authority: 'system' })
     await scheduler.advance()
     expect(store.currentDate).toBe('1931-04-08')
+  })
+  it.each([true, false])('time jump commits exactly once when visual midpoint runs=%s', async fires => {
+    const { playCloudTransition } = await import('@/utils/cloudTransition')
+    vi.mocked(playCloudTransition).mockImplementationOnce(async (_app, opts) => {
+      if (fires) await opts?.onMidpoint?.()
+    })
+    const { store } = cities()
+    await playTimeJump('1931-04-08')
+    expect(store.currentDate).toBe('1931-04-08')
+    expect(store.turnCount).toBe(1)
+    expect(store.eventLog.filter(e => e.type === 'dateAdvance')).toHaveLength(1)
+    expect(store.getActionPoints(Owner.SCC)).toBe(ACTION_POINTS_PER_TURN)
+  })
+  it('persists partial batch outcomes, actual cumulative budget and failed seventh action', async () => {
+    const { store, home } = cities()
+    const beforeSilver = store.getTreasury(Owner.SCC)
+    const scheduler = useGameScheduler()
+    scheduler.submit(Array.from({ length: 7 }, () => ({ order: 'recruit' as const, gb: home.gb, amount: 1 })))
+    await scheduler.advance()
+    const receipts = store.eventLog.filter(e => e.type === 'commandReceipt')
+    expect(receipts).toHaveLength(7)
+    expect(receipts.filter(e => e.ok)).toHaveLength(6)
+    expect(receipts[6]).toMatchObject({ ok: false, spentPoints: 0, spentSilver: 0, spentFood: 0, remainingPoints: 0 })
+    expect(receipts[6].reason).toContain('回合行动点不足')
+    expect(receipts.reduce((sum, e) => sum + e.spentSilver, 0)).toBe(12)
+    expect(store.getTreasury(Owner.SCC)).toBe(beforeSilver - 12)
+    const snapshot = store.getSnapshot()
+    expect(store.save('receipt-regression')).toBe(true)
+    expect(store.load('receipt-regression')).toBe(true)
+    expect(store.getSnapshot()).toEqual(snapshot)
+    expect(store.eventLog.filter(e => e.type === 'commandReceipt')).toEqual(receipts)
+  })
+  it('checks the aggregate silver budget after earlier orders and records faction identity', async () => {
+    const { store, home } = cities()
+    while (store.getTreasury(Owner.SCC) > 25) {
+      store.applyEvent({ type: 'treasuryChange', faction: Owner.SCC, delta: -Math.min(500, store.getTreasury(Owner.SCC) - 25) })
+    }
+    const scheduler = useGameScheduler()
+    scheduler.submit([
+      { order: 'recruit', gb: home.gb, amount: 10 },
+      { order: 'recruit', gb: home.gb, amount: 10 },
+    ], { authority: 'faction', actor: Owner.SCC })
+    await scheduler.advance()
+    const receipts = store.eventLog.filter(e => e.type === 'commandReceipt')
+    expect(receipts.map(e => e.ok)).toEqual([true, false])
+    expect(receipts[0]).toMatchObject({ faction: Owner.SCC, spentSilver: 20, remainingSilver: 5 })
+    expect(receipts[1]).toMatchObject({ spentSilver: 0, spentPoints: 0, remainingPoints: 5 })
+    expect(receipts[1].reason).toContain('银粮不足')
+    expect(store.getTreasury(Owner.SCC)).toBe(5)
   })
   it('truce is checked before deployment, payment, or action reservation', async () => {
     const { store, home, enemy } = cities()

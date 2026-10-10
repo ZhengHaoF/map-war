@@ -1,0 +1,257 @@
+{
+  "model": "step-5-preview",
+  "source": "Actual local UI calls; no credentials, prompts or reasoning retained",
+  "player": {
+    "msg": "川军先于宜宾整备新兵二千，继而遣精锐六千出川南，直趋昭通，城内仍留四军扼守。",
+    "results": [
+      {
+        "order": {
+          "order": "recruit",
+          "gb": "宜宾市",
+          "amount": 2
+        },
+        "verdict": "feasible",
+        "reason": "宜宾为川军辖城，府库银粮充足，征募二千新兵可成",
+        "suggestion": null
+      },
+      {
+        "order": {
+          "order": "battle",
+          "from": "宜宾市",
+          "to": "昭通市",
+          "deployAmount": 6
+        },
+        "verdict": "feasible",
+        "reason": "宜宾与昭通有陆路相通，补给无碍；宜宾原驻军八千，征兵后为一万，出兵六千尚余四千守城",
+        "suggestion": null
+      }
+    ],
+    "suggestions": [
+      "从凉山彝族自治州出兵侧应昭通",
+      "攻取昭通后于当地筑防整军"
+    ]
+  },
+  "consolidation": {
+    "msg": "昭通初定，川军即于新城整军励士、修筑工事以固根本；复归宜宾征募新兵二千，蓄养兵力而不轻启战端。",
+    "results": [
+      {
+        "order": {
+          "order": "rally",
+          "gb": "昭通市",
+          "amount": 10
+        },
+        "verdict": "feasible",
+        "reason": "昭通虽在整合期中，然已归属川军，于城内整军以励士气并无阻碍",
+        "suggestion": null
+      },
+      {
+        "order": {
+          "order": "fortify",
+          "gb": "昭通市",
+          "amount": 5
+        },
+        "verdict": "feasible",
+        "reason": "昭通城池新附，正可征发民夫修筑工事，巩固滇北这一楔子",
+        "suggestion": null
+      },
+      {
+        "order": {
+          "order": "recruit",
+          "gb": "宜宾市",
+          "amount": 2
+        },
+        "verdict": "feasible",
+        "reason": "宜宾为川军腹地，现今库银粮草尚有结余，添募二千新兵可办",
+        "suggestion": null
+      }
+    ],
+    "suggestions": [
+      "在昭通继续筑防，将工事推向四十",
+      "待昭通整合期满，以其为滇北支点再图后计",
+      "在泸州或广安征兵，巩固川南防线"
+    ]
+  },
+  "minorBatch": {
+    "orders": [
+      {
+        "order": "recruit",
+        "gb": "南京市",
+        "amount": 5,
+        "actor": "国民政府"
+      },
+      {
+        "order": "recruit",
+        "gb": "武汉市",
+        "amount": 5,
+        "actor": "国民政府"
+      },
+      {
+        "order": "recruit",
+        "gb": "广州市",
+        "amount": 5,
+        "actor": "国民政府"
+      },
+      {
+        "order": "recruit",
+        "gb": "南昌市",
+        "amount": 5,
+        "actor": "中共苏区"
+      },
+      {
+        "order": "recruit",
+        "gb": "赣州市",
+        "amount": 3,
+        "actor": "中共苏区"
+      },
+      {
+        "order": "fortify",
+        "gb": "三明市",
+        "amount": 5,
+        "actor": "中共苏区"
+      },
+      {
+        "order": "recruit",
+        "gb": "大连市",
+        "amount": 5,
+        "actor": "日本关东军"
+      },
+      {
+        "order": "recruit",
+        "gb": "抚顺市",
+        "amount": 5,
+        "actor": "日本关东军"
+      },
+      {
+        "order": "fortify",
+        "gb": "辽阳市",
+        "amount": 10,
+        "actor": "日本关东军"
+      },
+      {
+        "order": "recruit",
+        "gb": "沈阳市",
+        "amount": 10,
+        "actor": "东北军"
+      },
+      {
+        "order": "recruit",
+        "gb": "哈尔滨市",
+        "amount": 10,
+        "actor": "东北军"
+      },
+      {
+        "order": "recruit",
+        "gb": "长春市",
+        "amount": 5,
+        "actor": "东北军"
+      },
+      {
+        "order": "recruit",
+        "gb": "太原市",
+        "amount": 5,
+        "actor": "晋系"
+      },
+      {
+        "order": "fortify",
+        "gb": "大同市",
+        "amount": 10,
+        "actor": "晋系"
+      },
+      {
+        "order": "recruit",
+        "gb": "南宁市",
+        "amount": 5,
+        "actor": "桂系"
+      },
+      {
+        "order": "recruit",
+        "gb": "柳州市",
+        "amount": 5,
+        "actor": "桂系"
+      },
+      {
+        "order": "recruit",
+        "gb": "兰州市",
+        "amount": 5,
+        "actor": "马家军"
+      },
+      {
+        "order": "recruit",
+        "gb": "西宁市",
+        "amount": 5,
+        "actor": "马家军"
+      },
+      {
+        "order": "recruit",
+        "gb": "银川市",
+        "amount": 5,
+        "actor": "马家军"
+      },
+      {
+        "order": "recruit",
+        "gb": "乌鲁木齐市",
+        "amount": 5,
+        "actor": "新疆"
+      },
+      {
+        "order": "recruit",
+        "gb": "哈密市",
+        "amount": 5,
+        "actor": "新疆"
+      },
+      {
+        "order": "recruit",
+        "gb": "拉萨市",
+        "amount": 5,
+        "actor": "西藏"
+      },
+      {
+        "order": "recruit",
+        "gb": "日喀则市",
+        "amount": 3,
+        "actor": "西藏"
+      },
+      {
+        "order": "recruit",
+        "gb": "贵阳市",
+        "amount": 5,
+        "actor": "黔系"
+      },
+      {
+        "order": "fortify",
+        "gb": "贵阳市",
+        "amount": 10,
+        "actor": "黔系"
+      }
+    ]
+  },
+  "followup": {
+    "msg": "昭通初定，正宜固圉饬军——增其工事，励其士气，以固川边门户。",
+    "results": [
+      {
+        "order": {
+          "order": "fortify",
+          "gb": "昭通市",
+          "amount": 3
+        },
+        "verdict": "feasible",
+        "reason": "昭通为本方新附之城，虽在整合期，筑防之举无碍",
+        "suggestion": null
+      },
+      {
+        "order": {
+          "order": "rally",
+          "gb": "昭通市",
+          "amount": 5
+        },
+        "verdict": "feasible",
+        "reason": "昭通驻军五千，正可整肃部伍、鼓舞士气",
+        "suggestion": null
+      }
+    ],
+    "suggestions": [
+      "待昭通整合完毕后，再谋向昆明或贵阳用兵",
+      "在成都整军以巩固主力士气"
+    ]
+  }
+}

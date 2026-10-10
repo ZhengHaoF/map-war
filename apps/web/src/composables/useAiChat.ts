@@ -1,4 +1,5 @@
 import { ref } from 'vue'
+import { aiErrorMessage } from '@/utils/aiError'
 
 export interface AiChatRequest {
   messages: { role: string; content: string }[]
@@ -32,10 +33,7 @@ export function useAiChat() {
 
       if (!res.ok) {
         const errBody = await res.json().catch(() => ({}))
-        const detail =
-          (errBody as { detail?: string })?.detail ??
-          (errBody as { error?: string })?.error ??
-          `HTTP ${res.status}`
+        const detail = aiErrorMessage(errBody, res.status)
         throw new Error(detail)
       }
 

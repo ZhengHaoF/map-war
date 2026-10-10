@@ -149,6 +149,7 @@ import { useAgentKernel } from '@/composables/useAgentKernel'
 import { useGameStore } from '@/stores/game'
 import { ACTION_POINTS_PER_TURN } from '@/data/gameConfig'
 import { economyOutlook, runwayLabel } from '@/utils/economyOutlook'
+import { chatFeedbackText } from '@/utils/commandFeedback'
 import GameButton from '@/components/ui/GameButton.vue'
 import GameModal from '@/components/ui/GameModal.vue'
 import WorldProgressBanner from '@/components/WorldProgressBanner.vue'
@@ -240,12 +241,9 @@ async function onSend(): Promise<void> {
   const MAX_TURNS = 5
   const recentTurns = chatHistory.value.slice(-MAX_TURNS)
   chatTurns.value = recentTurns.map((entry) => {
-    const orderSummary = entry.orders.length
-      ? ' [' + entry.orders.map((o) => o.replace(/\s*[✓✗]\s*/g, '')).join(', ') + ']'
-      : ''
     return {
       userText: entry.user,
-      assistantText: `${entry.msg || ''}${orderSummary}`,
+      assistantText: chatFeedbackText(entry),
     }
   })
 
@@ -253,6 +251,9 @@ async function onSend(): Promise<void> {
 
   // 本轮用完后清空，避免跨模式残留
   chatTurns.value = []
+  // Transport/parse failure produced no executable plan. Keep the original
+  // input for correction/retry; do not create an empty "completed" chat turn.
+  if (error.value || parseError.value) return
 
   // ── 自由行动路径：叙事 + 事件已由 useAiOrchestrator 立即落地，此处只渲染 ──
   if (freeActionResult.value) {
@@ -321,7 +322,8 @@ async function onSend(): Promise<void> {
     const entry = chatHistory.value[chatHistory.value.length - 1]
     if (entry) {
       entry.orders = executionResults.value.map(r => r.ok
-        ? `${r.order.order} ✓` : `${r.order.order}：${r.reason ?? '未执行'} ✗`)
+        ? `${r.order.order}${r.cost ? `（实耗银${r.cost.silver}/粮${r.cost.food}）` : ''} ✓`
+        : `${r.order.order}：${r.reason ?? '未执行'} ✗`)
       const completed = executionResults.value.filter(r => r.ok).length
       entry.validationSummary = `已执行 ${completed} 条，未执行 ${executionResults.value.length - completed} 条`
     }
