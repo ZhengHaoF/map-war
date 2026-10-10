@@ -15,6 +15,7 @@ import { buildSettleContext } from './context'
 import { extractPayloads } from '@/utils/aiParse'
 import { buildScenarioBrief } from '@/data/scenarioBrief'
 import type { GameOrder } from '@/utils/gameOrders'
+import { nextTurnDate } from '@/utils/turnDate'
 
 const BATCH_PROMPT = `你是民国军阀推演游戏的「世界 AI」。你负责为次要势力生成本回合的行动。
 这些势力不单独配 AI 实例，由你一次性批量生成它们的带日期事件。
@@ -38,6 +39,7 @@ const BATCH_PROMPT = `你是民国军阀推演游戏的「世界 AI」。你负�
 
 ⚠ 调兵就是 moveTroops——系统里没有名为 move 的指令，写了 move 会被直接丢弃。
 ⚠ 严禁使用 capture / deploy / stopBattle / 任何系统指令（setCurrentDate / setFactionAlive 等）。
+每个势力每回合最多6点行动，开战/调兵/内政每条1点；停战冷却期内不得开战。
 
 返回 JSON 格式：
 {
@@ -107,12 +109,12 @@ export async function runWorldSettle(currentDate: string): Promise<WorldSettleRe
       { role: 'system', content: SETTLE_PROMPT + '\n\n' + buildScenarioBrief() },
       { role: 'system', content: buildSettleContext(currentDate) },
     ],
-  })
+  }).catch(() => null)
   const payloads = extractPayloads(raw)
   const obj = payloads[0] as Record<string, unknown> | undefined
   return {
     narrative: (obj?.narrative as string) ?? '局势在无声中演变…',
-    newDate: (obj?.newDate as string) ?? currentDate,
+    newDate: nextTurnDate(currentDate, obj?.newDate),
     chatter: Array.isArray(obj?.chatter)
       ? (obj.chatter as { name?: string; from: string; content: string }[]).filter(
           (c) => c && typeof c.from === 'string' && typeof c.content === 'string' && c.content.trim(),

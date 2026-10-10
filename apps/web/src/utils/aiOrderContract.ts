@@ -178,10 +178,11 @@ export interface StrategicRuleResult {
 }
 
 /** 用户模式下完全禁用的指令（系统管） */
-const FORBIDDEN_FOR_PLAYER: OrderType[] = ['setFactionAlive', 'setCurrentFaction']
+const FORBIDDEN_FOR_PLAYER: OrderType[] = ['capture', 'setCurrentDate', 'setFactionAlive', 'setCurrentFaction']
 
 /** 政权 AI 模式下额外禁用的指令：日期推进 / 势力存亡 / 玩家切换（系统管） */
 const FORBIDDEN_FOR_FACTION: OrderType[] = [
+  'capture',
   'setCurrentDate',
   'setFactionAlive',
   'setCurrentFaction',
@@ -583,7 +584,11 @@ export const PLAYER_AI_UNIFIED_PROMPT = `你是民国军阀推演游戏的世界
 - from 必须是玩家自己控制的城市；你只能为本势力决策
 - 严禁使用 setFactionAlive / setCurrentFaction（系统管理）
 - 你不会控制日期；日期推进由系统管理
-- capture（占领）需前置 battle，不得直接占领未开战城市
+- 严禁返回 capture（占领），战斗胜利由引擎自动占领，不是玩家可下达的指令
+- 每回合6点行动，开战/调兵/部署/征兵/建设/筑防/整军每条1点；撤退和查询不耗点
+- 自由效果每条1点，每次最多3项；同一敌城宣传/破坏每回合仅一次并耗10万银
+- 本方筹银与筹粮各每回合仅一次、各至多50；不能改第三方府库或关系
+- 结盟、停战必须双方外交协商，不能通过自由行动单方面达成
 - 若玩家未指明 from，从世界态中挑最近的己方城市作为出发地
 - 所有地点用城市中文名
 - 势力名一律用中文（国民政府 / 中共苏区 / 日本关东军 / 东北军 / 晋系 / 桂系 / 川军 / 马家军 / 新疆 / 西藏 / 中立）
@@ -721,8 +726,7 @@ export const PLAYER_AI_UNIFIED_PROMPT = `你是民国军阀推演游戏的世界
 
 7. fogCover — 云雾遮罩动画（纯视觉，无参数）
 
-8. capture — 占领城市（⚠ 需前置 battle）
-   gb(必填) owner(必填,己方势力中文名) resultTroops(可选,k)
+8. capture — 不可下达，战斗胜利后由引擎自动占领
 
 9. moveTroops — 调兵（己方两城间搬运驻军）
    from(必填,己方城) to(必填,己方城) amount(必填,k，不超过源城驻军)

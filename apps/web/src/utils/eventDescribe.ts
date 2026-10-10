@@ -28,6 +28,8 @@ export function cityName(gb: string, cities: Record<string, { name: string }>): 
 /** 事件类型 → 两字徽章标签 */
 export function eventBadge(e: GameEvent): string {
   const map: Record<GameEvent['type'], string> = {
+    actionSpent: '指挥额度',
+    actionRefunded: '额度退还',
     capture: '占领',
     attack: '进攻',
     deploy: '出兵',
@@ -83,6 +85,10 @@ export function describeEvent(e: GameEvent, cities: Record<string, { name: strin
   const fn = factionName
 
   switch (e.type) {
+    case 'actionSpent':
+      return `${fn(e.faction)} 消耗 ${e.amount} 点行动额度`
+    case 'actionRefunded':
+      return `${fn(e.faction)} 退还 ${e.amount} 点行动额度`
     case 'capture':
       return `${cn(e.targetGb)} → ${fn(e.actor)}${e.resultTroops != null ? ` (驻军 ${e.resultTroops}k)` : ''}`
     case 'attack': {

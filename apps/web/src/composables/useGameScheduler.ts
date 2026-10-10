@@ -16,9 +16,10 @@
  * 模块级单例：调试面板与未来的玩家 UI 共享同一队列与推进循环。
  */
 
-import { ref } from 'vue'
+import { ref, toRaw } from 'vue'
 import { executeOrder, playTimeJump, stopBattleVisual } from '@/utils/gameOrders'
 import type { GameOrder } from '@/utils/gameOrders'
+import type { ExecutionContext } from '@/utils/gameplayRules'
 import { useToast, type ToastTone } from '@/composables/useToast'
 import { useGameStore } from '@/stores/game'
 import type { BattleEndReason, CityState } from '@/stores/game'
@@ -42,15 +43,18 @@ export type AdvanceStatus = 'idle' | 'running' | 'done' | 'stopped'
 
 // ─── 模块级单例状态（调试面板 / 玩家 UI 共享同一队列）───
 const queue = ref<GameOrder[]>([])
+const executionContexts = new WeakMap<GameOrder, ExecutionContext>()
 const status = ref<AdvanceStatus>('idle')
 const stoppedAt = ref<GameOrder | null>(null)
+const executionResults = ref<{ order: GameOrder; ok: boolean; reason?: string }[]>([])
 const { push: pushToast } = useToast()
 
 /**
  * 把一批指令入队（不立即执行）。
  * @param orders 通过结构校验的 GameOrder 列表
  */
-function submit(orders: GameOrder[]): void {
+function submit(orders: GameOrder[], context: ExecutionContext = {}): void {
+  for (const order of orders) executionContexts.set(toRaw(order), { ...context })
   queue.value.push(...orders)
 }
 
@@ -321,12 +325,14 @@ async function advance(): Promise<'done' | 'stopped' | 'running'> {
   }
 
   status.value = 'running'
+  executionResults.value = []
   try {
     // 分离 setCurrentDate 指令，先消费其他指令
     const dateOrders: GameOrder[] = []
     const gameOrders: GameOrder[] = []
     for (const o of queue.value) {
-      if (o.order === 'setCurrentDate') dateOrders.push(o)
+      const context = executionContexts.get(toRaw(o)) ?? {}
+      if (o.order === 'setCurrentDate' && (context.authority === 'system' || context.authority === 'debug')) dateOrders.push(o)
       else gameOrders.push(o)
     }
     queue.value = gameOrders
@@ -335,11 +341,13 @@ async function advance(): Promise<'done' | 'stopped' | 'running'> {
     while (queue.value.length) {
       const order = queue.value.shift()!
       try {
-        await executeOrder(order)
+        const result = await executeOrder(order, executionContexts.get(toRaw(order)) ?? {})
+        executionResults.value.push({ order, ok: result.ok, reason: result.reason })
       } catch (e) {
         // 单条失败不打断整批：告警后继续下一条
         // eslint-disable-next-line no-console
         console.warn('[scheduler] 指令执行失败，跳过：', order, e)
+        executionResults.value.push({ order, ok: false, reason: '执行异常，未完成' })
         pushToast({ icon: 'alert-triangle', tone: 'error', title: '指令出错', text: '推演中一条指令失败，已跳过' })
       }
 
@@ -370,5 +378,5 @@ async function advance(): Promise<'done' | 'stopped' | 'running'> {
 }
 
 export function useGameScheduler() {
-  return { queue, status, stoppedAt, submit, advance, settleActiveBattles }
+  return { queue, status, stoppedAt, executionResults, submit, advance, settleActiveBattles }
 }

@@ -5,8 +5,10 @@
  * 只测 executeOrder 的分发、参数校验、世界态写回、锁与降级。
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { executeOrder, resetBattleRuntime, ORDER_TYPES, init } from '../utils/gameOrders'
+import { executeOrder as executeLiveOrder, resetBattleRuntime, ORDER_TYPES, init, type GameOrder } from '../utils/gameOrders'
 import { Owner } from '@/data/owners'
+// These legacy tests isolate animation dispatch, not live-command permissions.
+const executeOrder = (order: GameOrder) => executeLiveOrder(order, { authority: 'debug' })
 
 // ── 使用 vi.hoisted 避免提升顺序问题 ──
 const { mockArrowFly, mockRadarPulse, mockOrbBurst, mockStartBattleAnimation, mockCaptureAnimation, mockDevelopAnimation, mockPlayCloudTransition } =

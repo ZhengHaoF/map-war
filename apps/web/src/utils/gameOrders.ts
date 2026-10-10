@@ -36,6 +36,8 @@ import { getDisplayName } from '@/data/displayNames'
 import { useToast } from '@/composables/useToast'
 import { computeActionCost, marchCost } from '@/utils/economy'
 import { battleSummaryText } from '@/utils/battleTrend'
+import { checkLiveOrder, type ExecutionContext } from './gameplayRules'
+import { REDUCER_CAP_TREASURY, REDUCER_CAP_GRANARY } from '@/data/gameConfig'
 
 // ─── 类型定义 ───
 
@@ -673,6 +675,18 @@ function applyDomesticCost(
   return { ok: true }
 }
 
+/** Preserve full legitimate marching costs even when one event exceeds reducer caps. */
+function payMarchResource(faction: Owner, type: 'treasuryChange' | 'granaryChange', amount: number): void {
+  const store = useGameStore()
+  const cap = type === 'treasuryChange' ? REDUCER_CAP_TREASURY : REDUCER_CAP_GRANARY
+  let remaining = amount
+  while (remaining > 0) {
+    const payment = Math.min(cap, remaining)
+    store.applyEvent({ type, faction, delta: -payment, reason: '行军消耗' })
+    remaining = Math.max(0, Math.round((remaining - payment) * 10) / 10)
+  }
+}
+
 /**
  * 行军成本检查 + 扣除（远征消耗）。
  * 先算距离 → 算银/粮成本 → 检查余额 → 扣款。
@@ -696,10 +710,10 @@ function applyMarchCost(
     return { ok: false, reason: `远征粮草不足（需 ${cost.food} 万石，余 ${store.getGranary(faction)} 万石）` }
   }
   if (cost.silver > 0) {
-    store.applyEvent({ type: 'treasuryChange', faction, delta: -cost.silver })
+    payMarchResource(faction, 'treasuryChange', cost.silver)
   }
   if (cost.food > 0) {
-    store.applyEvent({ type: 'granaryChange', faction, delta: -cost.food })
+    payMarchResource(faction, 'granaryChange', cost.food)
   }
   // toast 提示（关键 cost > 0 才播，避免零成本噪音）
   if (cost.silver > 0 || cost.food > 0) {
@@ -722,7 +736,31 @@ function applyMarchCost(
 /**
  * AI JSON 指令解析器 —— 将 AI 返回的 JSON 分发到对应方法。
  */
-export async function executeOrder(
+export async function executeOrder(json: GameOrder, context: ExecutionContext = {}): Promise<OrderResult | BattleOrderResult | BattleListResult> {
+  if (!json?.order) return { ok: false, reason: '缺少 order 字段' }
+  if (!(ORDER_TYPES as readonly string[]).includes(json.order)) return { ok: false, reason: `未知指令: ${json.order}` }
+  const guard = checkLiveOrder(json, context)
+  if (!guard.ok) {
+    const result = { ok: false, reason: guard.reason }
+    popToast(json, result)
+    return result
+  }
+  const store = useGameStore()
+  if (guard.points && guard.actor) {
+    const reservation = store.applyEvent({ type: 'actionSpent', faction: guard.actor, amount: guard.points })
+    if (!reservation.ok) return reservation
+  }
+  try {
+    const result = await executeUncheckedOrder(json)
+    if (!result.ok && guard.points && guard.actor) store.applyEvent({ type: 'actionRefunded', faction: guard.actor, amount: guard.points })
+    return result
+  } catch (error) {
+    if (guard.points && guard.actor) store.applyEvent({ type: 'actionRefunded', faction: guard.actor, amount: guard.points })
+    throw error
+  }
+}
+
+async function executeUncheckedOrder(
   json: GameOrder,
 ): Promise<OrderResult | BattleOrderResult | BattleListResult> {
   if (!json || !json.order) {

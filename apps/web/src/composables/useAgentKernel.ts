@@ -266,7 +266,10 @@ async function runWorldTurn(): Promise<void> {
     if (r.status !== 'fulfilled') return
     const { orders, telegram, diplomaticProposal } = r.value
     const faction = factionPromises[i].faction
-    if (orders.length) allOrders.push(...orders)
+    if (orders.length) {
+      allOrders.push(...orders)
+      scheduler.submit(orders, { authority: 'faction', actor: faction })
+    }
     // 电报：软上限每回合 2 封
     if (telegram && telegramCount < MAX_TELEGRAMS_PER_TURN) {
       store.pushTelegram({
@@ -309,11 +312,11 @@ async function runWorldTurn(): Promise<void> {
   for (const r of batchResults) {
     if (r.status === 'fulfilled' && r.value.length) {
       allOrders.push(...r.value)
+      for (const order of r.value) {
+        const actor = normalizeCommsFrom((order as GameOrder & { actor: string }).actor) as Owner
+        scheduler.submit([order], { authority: 'faction', actor })
+      }
     }
-  }
-
-  if (allOrders.length) {
-    scheduler.submit(allOrders)
   }
 
   // ── P3 推进（串行演出）──
@@ -355,7 +358,7 @@ async function runWorldTurn(): Promise<void> {
 
   // 推进日期：入调度器走末尾蒙太奇（playTimeJump 含云雾演出 + toast）
   if (newDate !== snap.currentDate) {
-    scheduler.submit([{ order: 'setCurrentDate', date: newDate }])
+    scheduler.submit([{ order: 'setCurrentDate', date: newDate }], { authority: 'system' })
     await scheduler.advance()
   }
 

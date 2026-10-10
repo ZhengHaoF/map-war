@@ -94,6 +94,10 @@
 
           <!-- 输入区 -->
           <div class="chat-input-area">
+            <div class="action-budget" role="status" aria-live="polite">
+              本回合行动 {{ actionPoints }}/{{ ACTION_POINTS_PER_TURN }}
+              <span>改变世界消耗额度，结束回合后恢复</span>
+            </div>
             <textarea
               v-model="userMessage"
               class="chat-textarea"
@@ -136,6 +140,8 @@ import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
 import { useAiOrchestrator } from '@/composables/useAiOrchestrator'
 import { useGameScheduler } from '@/composables/useGameScheduler'
 import { useAgentKernel } from '@/composables/useAgentKernel'
+import { useGameStore } from '@/stores/game'
+import { ACTION_POINTS_PER_TURN } from '@/data/gameConfig'
 import GameButton from '@/components/ui/GameButton.vue'
 import GameModal from '@/components/ui/GameModal.vue'
 import WorldProgressBanner from '@/components/WorldProgressBanner.vue'
@@ -160,9 +166,11 @@ const {
   getFinalApprovedOrders,
 } = useAiOrchestrator('user')
 
-const { status, submit, advance } = useGameScheduler()
+const { status, submit, advance, executionResults } = useGameScheduler()
 
 const { loading: kernelLoading, endPlayerTurn } = useAgentKernel()
+const gameStore = useGameStore()
+const actionPoints = computed(() => gameStore.currentFaction ? gameStore.getActionPoints(gameStore.currentFaction) : 0)
 
 const busy = computed(() => loading.value || status.value === 'running' || kernelLoading.value)
 const sendButtonText = computed(() => {
@@ -257,11 +265,18 @@ async function onSend(): Promise<void> {
   if (parsed.value) {
     for (let i = 0; i < parsed.value.orders.length; i++) {
       const errs = parsed.value.errors[i]
-      orderItems.push(errs.length ? `${parsed.value.orders[i].order} ✗` : `${parsed.value.orders[i].order} ✓`)
+      orderItems.push(errs.length ? `${parsed.value.orders[i].order} ✗` : `${parsed.value.orders[i].order} 待执行`)
     }
   }
 
   applyStrategicRules()
+  if (parsed.value) {
+    parsed.value.orders.forEach((order, i) => {
+      if (strategicRejected.value.some(r => r.order === order) || worldImpossible.value.some(r => r.order === order)) {
+        orderItems[i] = `${order.order} ✗`
+      }
+    })
+  }
 
   const rejectedItems: { label: string; reason: string }[] = []
   for (const r of strategicRejected.value) {
@@ -291,6 +306,13 @@ async function onSend(): Promise<void> {
   if (finalOrders.length) {
     submit(finalOrders)
     await advance()
+    const entry = chatHistory.value[chatHistory.value.length - 1]
+    if (entry) {
+      entry.orders = executionResults.value.map(r => r.ok
+        ? `${r.order.order} ✓` : `${r.order.order}：${r.reason ?? '未执行'} ✗`)
+      const completed = executionResults.value.filter(r => r.ok).length
+      entry.validationSummary = `已执行 ${completed} 条，未执行 ${executionResults.value.length - completed} 条`
+    }
   }
 
   await nextTick()
@@ -301,6 +323,17 @@ async function onSend(): Promise<void> {
 </script>
 
 <style scoped>
+.action-budget {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  color: var(--brown, #6d5034);
+  font-size: 14px;
+  line-height: 1.5;
+  padding-bottom: 8px;
+  font-variant-numeric: tabular-nums;
+}
+.action-budget span { font-size: 12px; opacity: 0.8; }
 /* ===== 弹窗内容容器 ===== */
 .ai-chat-body {
   display: flex;

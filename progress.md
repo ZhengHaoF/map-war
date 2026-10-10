@@ -1,0 +1,47 @@
+# Gameplay rules progress
+
+Original prompt: 按游戏性评估推荐开始修改，并使用 step-5-preview 测试。
+
+## Scope
+
+First iteration: hard command boundaries, truce protection, replay-safe action budget,
+bounded free actions, accurate effect feedback, and runtime/model QA. Preserve existing
+visual style and save format. Regional maps and economic/battle rebalance are subsequent work.
+
+## QA inventory
+
+- Ordinary player/faction cannot directly capture or advance dates.
+- Truce rejection must precede deployment, resource payment and budget reservation.
+- Player and faction AI spend their own six-point budgets; retreat remains available.
+- Propaganda/sabotage costs silver and cannot repeat on the same target within a turn.
+- Own fundraising caps and third-party/consent restrictions apply.
+- Save/load preserves budgets and cooldowns; next turn restores them.
+- Model JSON cannot select debug/system privileges.
+- Command panel shows remaining action points at desktop and narrow viewports.
+- Remove non-functional right-click actions instead of promising absent mechanics.
+- Existing victory adjudication, diplomacy and legacy saves remain intact.
+- Explore malformed quantities, rejected-first-order index mapping, bad calendar output,
+  excessive battle flavor effects, and depleted-budget model requests.
+
+## Status
+
+Rules and UI implementation complete. Full regression plus six real-provider response
+replays: 24 files / 323 tests passed. Typecheck, ESLint and frontend/backend builds passed.
+Oxlint has the same 41 diagnostics as the unmodified base, with no new diagnostics.
+See docs/gameplay-rules-first-pass.md for scope, evidence and reproduction.
+
+The standard browser-game script ran, but its canvas-only capture was black; full-page
+Playwright screenshots confirm the map renders. Browser UI automation encountered slow
+pointer actions in the Pixi/Chromium environment; this is not treated as a passing full
+gameplay run. Desktop (1440x1000) and mobile (375x812) command-panel full-page screenshots
+were inspected. The mobile modal is x=12, width=351, and the action budget is fully visible.
+Real-response browser replay recruited successfully (6 -> 5 points, silver 1200 -> 1198,
+food 720 -> 719); at zero points a subsequent model-approved recruit was rejected with
+an explicit UI reason and no further silver/food debit. No page errors observed.
+
+## Follow-up
+
+- Long-horizon model gameplay and economic balance remain untested.
+- Regional topology, supply lines and midgame objectives are not part of this patch.
+- Full transactional rollback after regular animation failures remains future work.
+- Clean up baseline lint diagnostics and code-split the oversized main bundle separately.

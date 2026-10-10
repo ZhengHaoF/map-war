@@ -60,13 +60,13 @@ describe('validatePlayerOrder（回归）', () => {
   it('capture：owner 错配被拒', () => {
     const r = validatePlayerOrder({ order: 'capture', gb: '北京', owner: Owner.JPN }, Owner.SCC, cityOwner)
     expect(r.ok).toBe(false)
-    expect(r.reason).toContain('不匹配')
+    expect(r.reason).toContain('capture')
   })
 
   it('capture：己方城市被拒', () => {
     const r = validatePlayerOrder({ order: 'capture', gb: '成都', owner: Owner.SCC }, Owner.SCC, cityOwner)
     expect(r.ok).toBe(false)
-    expect(r.reason).toContain('已是')
+    expect(r.reason).toContain('capture')
   })
 
   it('moveTroops：amount 超过源城驻军被拒', () => {
@@ -109,18 +109,18 @@ describe('validateFactionOrder', () => {
   it('capture：actor 不匹配自身（被拒）—— LLM 写错 actor 的硬约束', () => {
     const r = validateFactionOrder({ order: 'capture', gb: '北京', owner: Owner.KMT }, Owner.SCC, cityOwner)
     expect(r.ok).toBe(false)
-    expect(r.reason).toContain('不匹配')
+    expect(r.reason).toContain('capture')
   })
 
-  it('capture：actor === 自身且非己方城（通过）', () => {
+  it('capture：即使身份匹配也由系统管理（被拒）', () => {
     const r = validateFactionOrder({ order: 'capture', gb: '北京', owner: Owner.SCC }, Owner.SCC, cityOwner)
-    expect(r.ok).toBe(true)
+    expect(r.ok).toBe(false)
   })
 
   it('capture：actor === 自身但目标已是己方（被拒）', () => {
     const r = validateFactionOrder({ order: 'capture', gb: '成都', owner: Owner.SCC }, Owner.SCC, cityOwner)
     expect(r.ok).toBe(false)
-    expect(r.reason).toContain('已是')
+    expect(r.reason).toContain('capture')
   })
 
   it('battle：from 必须己方（被拒）', () => {
@@ -182,16 +182,17 @@ describe('validateFactionOrder', () => {
 describe('validateFactionOrders', () => {
   it('混合：通过 + 被拒 分到两个列表', () => {
     const orders: GameOrder[] = [
-      { order: 'capture', gb: '北京', owner: Owner.SCC }, // ✅ 合法
+      { order: 'capture', gb: '北京', owner: Owner.SCC }, // ❌ 系统专用
       { order: 'setCurrentDate', date: '1932-01-01' }, // ❌ 禁用
       { order: 'battle', from: '北京', to: '杭州' }, // ❌ from 不是己方
       { order: 'battle', from: '成都', to: '北京' }, // ✅ 合法
     ]
     const r = validateFactionOrders(orders, Owner.SCC, cityOwner, cityTroops)
-    expect(r.approved.length).toBe(2)
-    expect(r.rejected.length).toBe(2)
-    expect(r.rejected[0].reason).toContain('setCurrentDate')
-    expect(r.rejected[1].reason).toContain('不属于本方')
+    expect(r.approved.length).toBe(1)
+    expect(r.rejected.length).toBe(3)
+    expect(r.rejected[0].reason).toContain('capture')
+    expect(r.rejected[1].reason).toContain('setCurrentDate')
+    expect(r.rejected[2].reason).toContain('不属于本方')
   })
 
   it('全拒时返回空 approved（不抛错）', () => {
@@ -213,8 +214,8 @@ describe('validatePlayerOrders（回归）', () => {
     expect(r.rejected.length).toBe(1)
   })
 
-  it('玩家模式下 SCC 给自己 capture 北京（合法）', () => {
+  it('玩家模式下 SCC 给自己 capture 北京也不可直接占领', () => {
     const r = validatePlayerOrders([{ order: 'capture', gb: '北京', owner: Owner.SCC }], Owner.SCC, cityOwner, cityTroops)
-    expect(r.approved.length).toBe(1)
+    expect(r.approved.length).toBe(0)
   })
 })

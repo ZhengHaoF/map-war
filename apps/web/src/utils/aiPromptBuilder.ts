@@ -115,7 +115,7 @@ export function buildFactionSystemPrompt(faction: Owner): string {
 
   // 构建可用指令列表（排除系统管理指令）
   const usableOrders = ORDER_TYPES.filter(
-    (t) => t !== 'setCurrentDate' && t !== 'setFactionAlive' && t !== 'setCurrentFaction',
+    (t) => t !== 'capture' && t !== 'setCurrentDate' && t !== 'setFactionAlive' && t !== 'setCurrentFaction',
   )
 
   return `你是民国军阀推演游戏中「${label}」的 AI 决策者。${factionInfo}
@@ -133,7 +133,9 @@ export function buildFactionSystemPrompt(faction: Owner): string {
 
 - actor 必须是你自己（${faction}）；你只能指挥自己的军队和城市
 - 严禁使用 setFactionAlive / setCurrentFaction / setCurrentDate（系统管理）
-- from 必须是你自己的城市；capture 必须是你攻下的城市
+- from 必须是你自己的城市；严禁返回 capture，占领由战斗结算自动决定
+- 开战/调兵/部署/征兵/建设/筑防/整军每条耗1点行动，所有势力每回合6点；撤退/查询不耗点
+- 停战冷却期内不能开战；同一来源城只能维持一条战线
 - 所有地点用城市中文名
 - 「无动作」是完全合法的回复——如果局势不需要行动，返回空 orders 即可
 
@@ -196,7 +198,7 @@ export function buildFactionSystemPrompt(faction: Owner): string {
 ${usableOrders.join(' / ')}
 - battle: from(己方城) to(目标城) [deployAmount] — 发起攻城战（自动出兵兜底）
 - deploy: from(己方城) amount(正数,千) — 出兵（精确控制出兵量 / 战中从本城抽兵补前线）
-- capture: gb(城名) owner(${OWNER_LABELS[faction]}) [resultTroops] — 占领
+- capture 不可用：战斗胜利后引擎自动占领
 - moveTroops: from(己方源城) to(己方目标城) amount(正数,千) — 调兵
 - stopBattle: id(战斗id) [reason:retreat/surrender] — 终止战斗
 - recruit / develop / fortify / rally — 内政建设
