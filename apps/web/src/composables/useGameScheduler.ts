@@ -40,6 +40,7 @@ import {
 } from '@/data/gameConfig'
 import { battleSummaryText } from '@/utils/battleTrend'
 import { Owner, OWNER_LABELS } from '@/data/owners'
+import { commandReceipt, type BudgetSnapshot } from '@/utils/commandFeedback'
 
 export type AdvanceStatus = 'idle' | 'running' | 'done' | 'stopped'
 
@@ -412,8 +413,17 @@ async function advance(): Promise<'done' | 'stopped' | 'running'> {
     // P1 + P3：消费所有非日期指令
     while (queue.value.length) {
       const order = queue.value.shift()!
+      const context = executionContexts.get(toRaw(order)) ?? {}
+      const actor = context.actor ?? store.currentFaction
+      const record = actor && context.authority !== 'debug' && context.authority !== 'system'
+      const budget = (): BudgetSnapshot => ({
+        points: actor ? store.getActionPoints(actor) : 0,
+        silver: actor ? store.getTreasury(actor) : 0,
+        food: actor ? store.getGranary(actor) : 0,
+      })
+      const before = budget()
       try {
-        const result = await executeOrder(order, executionContexts.get(toRaw(order)) ?? {})
+        const result = await executeOrder(order, context)
         executionResults.value.push({
           order,
           ok: result.ok,
@@ -431,6 +441,10 @@ async function advance(): Promise<'done' | 'stopped' | 'running'> {
           title: '指令出错',
           text: '推演中一条指令失败，已跳过',
         })
+      }
+      if (record) {
+        const result = executionResults.value[executionResults.value.length - 1]
+        store.applyEvent(commandReceipt(actor, order, result, before, budget()))
       }
 
       // 世界 AI 标注「需玩家决策」→ 在此停下交还

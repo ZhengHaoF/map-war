@@ -10,6 +10,7 @@
 import type { GameEvent, CityStatField, BattleEndReason } from '@/stores/game'
 import { Owner, OWNER_LABELS } from '@/data/owners'
 import { round1 } from '@/utils/format'
+import { receiptText } from './commandFeedback'
 
 // ─── 势力 / 城市查询 ───
 
@@ -43,6 +44,7 @@ export function eventBadge(e: GameEvent): string {
     battleEnd: '停战',
     selectFaction: '择势',
     narrative: '叙事',
+    commandReceipt: '回执',
     treasuryChange: '银库',
     granaryChange: '粮仓',
     economicTick: '经济',
@@ -85,6 +87,8 @@ export function describeEvent(e: GameEvent, cities: Record<string, { name: strin
   const fn = factionName
 
   switch (e.type) {
+    case 'commandReceipt':
+      return `${fn(e.faction)} ${receiptText(e)}`
     case 'actionSpent':
       return `${fn(e.faction)} 消耗回合行动点 ${e.amount} 点`
     case 'actionRefunded':
@@ -156,7 +160,7 @@ export function describeEvent(e: GameEvent, cities: Record<string, { name: strin
 
 /** 事件是否属于"回合例行事务"（不构成值得展示的摘要内容） */
 export function isRoutineEvent(e: GameEvent): boolean {
-  return e.type === 'narrative' || e.type === 'dateAdvance'
+  return e.type === 'narrative' || e.type === 'dateAdvance' || e.type === 'commandReceipt'
 }
 
 /** 事件是否属于"重要"事件（应在摘要中高亮） */

@@ -408,18 +408,25 @@ async function fogCover(opts?: CloudOptions): Promise<OrderResult> {
  * @param date ISO 格式日期字符串，如 '1931-10-01'
  */
 export async function playTimeJump(date: string): Promise<OrderResult> {
+  const store = useGameStore()
+  let advanced = false
+  const advanceDate = () => {
+    if (advanced) return
+    store.applyEvent({ type: 'dateAdvance', date })
+    advanced = true
+  }
   let res: OrderResult
   if (!_app) {
     // 降级：无 app 时直接推进（如测试环境）；dateAdvance 无前置校验依赖，不需检返回值
-    useGameStore().applyEvent({ type: 'dateAdvance', date })
+    advanceDate()
     res = { ok: true }
   } else {
     res = await fogCover({
-      onMidpoint: () => {
-        // 闭包：onMidpoint: () => void；忽略返回值（dateAdvance 必成功）
-        useGameStore().applyEvent({ type: 'dateAdvance', date })
-      },
+      onMidpoint: advanceDate,
     })
+    // Visuals may be skipped (e.g. another transition is already playing).
+    // A completed system turn must not announce a date it never committed.
+    advanceDate()
   }
   // 时间推进提示（顶部居中小条）
   useToast().push({ icon: 'clock', tone: 'neutral', title: '时间推进', text: date })

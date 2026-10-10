@@ -241,6 +241,11 @@ export type GameEvent =
     }
   | { type: 'selectFaction'; faction: Owner; playerName: string }
   | { type: 'narrative'; playerInput: string; aiMessage: string; kind?: 'player' | 'settlement' }
+  | {
+      type: 'commandReceipt'; faction: Owner; label: string; ok: boolean; reason?: string
+      spentPoints: number; spentSilver: number; spentFood: number
+      remainingPoints: number; remainingSilver: number; remainingFood: number
+    }
   // ── 经济系统 ──
   | { type: 'treasuryChange'; faction: Owner; delta: number; reason?: string }
   | { type: 'granaryChange'; faction: Owner; delta: number; reason?: string }
@@ -928,6 +933,7 @@ export const useGameStore = defineStore('game', () => {
       case 'battleEnd':
       case 'selectFaction':
       case 'narrative':
+      case 'commandReceipt':
       case 'treasuryChange':
       case 'granaryChange':
       case 'economicTick':
@@ -1113,7 +1119,7 @@ export const useGameStore = defineStore('game', () => {
       return { ok: true }
     }
     // 叙事事件：玩家输入 + AI 总结，仅记录不改变世界态
-    if (e.type === 'narrative') return { ok: true }
+    if (e.type === 'narrative' || e.type === 'commandReceipt') return { ok: true }
 
     // ── 经济事件 ──
     // 银库单次增减（征兵/建设扣款、AI 叙事经济事件等）

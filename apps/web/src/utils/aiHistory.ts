@@ -17,6 +17,7 @@ import type { GameEvent } from '@/stores/game'
 import type { Owner } from '@/data/owners'
 import { SETTLE_NARRATIVE_SNIPPET, PLAYER_INPUT_SNIPPET, AI_REPLY_SNIPPET, EVENT_HISTORY_MAX_EVENTS, EVENT_HISTORY_MAX_TURNS, EVENT_HISTORY_MAX_CHARS } from '@/data/gameConfig'
 import { getDisplayName } from '@/data/displayNames'
+import { receiptText } from './commandFeedback'
 
 export type HistoryMode = 'recent' | 'sinceDateAdvance' | 'byActor'
 
@@ -52,6 +53,8 @@ function cityName(store: ReturnType<typeof useGameStore>, gb?: string): string {
 /** 单条事件 → 一行中文时间线；无法概述的事件返回 null（被跳过）。 */
 function eventLine(store: ReturnType<typeof useGameStore>, e: GameEvent): string | null {
   switch (e.type) {
+    case 'commandReceipt':
+      return `【执行层回执/${e.faction}】${receiptText(e)}`
     case 'dateAdvance':
       return `【日期推进至 ${e.date}】`
     case 'capture':
@@ -107,6 +110,7 @@ function selectWindow(
     if (f === undefined) return []
     return log.filter((e) => {
       if (e.type === 'dateAdvance') return true
+      if (e.type === 'commandReceipt') return e.faction === f
       if (e.type === 'capture') return e.actor === f || store.cities[e.targetGb]?.owner === f
       if (e.type === 'attack') return store.cities[e.fromGb]?.owner === f || store.cities[e.targetGb]?.owner === f
       if (e.type === 'produce' || e.type === 'moraleChange') return store.cities[e.targetGb]?.owner === f

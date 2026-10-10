@@ -230,7 +230,9 @@ export async function playCloudTransition(
       }
 
       // 盖满瞬间触发中段回调（时间流逝蒙太奇在此藏状态切换）
-      if (!midpointFired && opts.onMidpoint && t >= cover && t < cover + hold) {
+      // A throttled frame can skip the entire hold phase. State changes must
+      // still happen once, even if the first frame arrives after the animation.
+      if (!midpointFired && opts.onMidpoint && t >= cover) {
         midpointFired = true
         void Promise.resolve(opts.onMidpoint()).catch(() => {})
       }
