@@ -17,6 +17,7 @@ import { readRelation, isInTruce } from './diplomacy'
 import { buildCampaignContext } from './campaignPreview'
 import { occupationRemaining, OCCUPATION_YIELD_LABEL } from './supply'
 import { buildStrategyContext } from './strategyContext'
+import { buildInitiativeContext } from './factionInitiative'
 
 import {
   FACTION_AI_HISTORY_MAX,
@@ -124,6 +125,7 @@ export function buildFactionContext(faction: Owner): string {
   lines.push('')
   lines.push(buildCampaignContext(faction))
   lines.push(buildStrategyContext(faction))
+  lines.push(buildInitiativeContext(faction))
   const history = buildEventHistory({
     mode: 'byActor',
     actor: faction,
@@ -158,7 +160,7 @@ export function buildFactionContext(faction: Owner): string {
   }
 
   lines.push('')
-  lines.push('请决定本回合行动。若无必要，返回空 orders。')
+  lines.push('请决定本回合行动，围绕本回合主动目标安排；若等待，在msg中说明兵力、预算、路线或外交方面的具体原因。空 orders 仍合法，目标建议不能绕过执行规则。')
   return lines.join('\n')
 }
 

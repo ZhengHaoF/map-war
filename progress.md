@@ -296,3 +296,37 @@ Explicitly NOT passed, not fixed. Software RAF and Canvas HUD are not real-devic
 performance metrics or evidence of55FPS. DEV HUD omitted from production.
 Next: real-model10-15turn enemy pressure/failure adjustment; animation rollback,
 legacy lint, chunk splitting and generic helper remain unresolved.
+
+## Faction initiative and counterattack milestone
+
+Branch feat/faction-initiative starts from merged PR5/PR6 master cb63a5a.
+No automatic merge authorization for this new iteration.
+
+- Read-only frontline goals reuse normal campaign previews and execution guards.
+  Includes incoming defense, own battle support, supply warnings, recent loss,
+  assembly/recapture, consolidation and reachable hostile attack or legal waiting.
+- Event-time ownership preserves original-owner loss history; neutral attacker/
+  defender loss wording and bounded history. No free troops/resources/points.
+- Trusted zero-cost structural/strategic refusal receipts survive save/load and
+  inform subsequent context. Clarified gb vs from after three real schema refusals.
+- Four short real-model samples: 5+2 initial valid NPC turns, 3+2 restarted valid
+  turns; 35 planned, 3 preflight refused, 32 executed. NOT a continuous 12-turn
+  model match. Full defense/counterattack pressure runs remain incomplete.
+- Initial failure-as-idle harness corrected: transport failure now pauses without
+  date advancement. Normal save checkpoints restore identically; later planning
+  retries still failed with upstream502. Client45 / relay46 attempts retained.
+- Native Canvas fallback browser replay completed onboarding, command, end-turn,
+  foreign-summary expansion/scroll and confirmation. Actual first YUN response
+  replayed offline, all other responses fixed; no extra live model count.
+  Desktop1440x1000/mobile375x812 inspected after notices vanished; no page errors.
+- Generic game helper bounded30s exited124, start screenshot/state produced and
+  inspected. Not counted as passed. Browser contexts cleaned up.
+- 14 initiative tests and full438 regression tests pass (2 opt-in live skipped).
+  Typecheck/frontend/server builds and JS ESLint pass; changed-file Oxlint0,
+  whole-project41 existing errors; bundle size warning remains.
+
+See docs/faction-initiative.md, faction-initiative-qa.md and
+faction-initiative-results.md for exact scope, evidence and limitations.
+Next: explain tactical risk/cost and avoid repeated failed plans; complete valid
+10–15-turn checkpointed samples in a stable request environment before broadening
+campaign content or changing nationwide economy.
