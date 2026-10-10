@@ -15,7 +15,7 @@ import { useGameScheduler } from '@/composables/useGameScheduler'
 import { decideFaction } from '@/utils/ai/factionAi'
 import { buildFactionContext } from '@/utils/aiContext'
 import { buildFactionInitiative } from '@/utils/factionInitiative'
-import { assessActiveBattle } from '@/utils/tacticalAssessment'
+import { assessActiveBattle, tacticalText } from '@/utils/tacticalAssessment'
 import { buildEconomicTickEvent } from '@/utils/economicTick'
 import { nextTurnDate } from '@/utils/turnDate'
 import { extractPayloads, unwrapData } from '@/utils/aiParse'
@@ -32,12 +32,14 @@ vi.mock('@/composables/useToast', () => ({ useToast: () => ({ push: vi.fn<() => 
 const url = process.env.MAPWAR_SETBACK_URL
 const output = process.env.MAPWAR_SETBACK_OUTPUT
 const filter = process.env.MAPWAR_SETBACK_CASE
+const focused = process.env.MAPWAR_SETBACK_FOCUSED === '1'
 const nativeFetch = globalThis.fetch
 const cases: object[] = [], requests: object[] = []
 const from = '156511500', to = '156530600'
 function persist() {
   if (output) writeFileSync(output, JSON.stringify({
     method: 'step-5-preview; normal paid setup/orders; fixed YUN defense; other factions idle; no diplomacy or flavor; not browser gameplay',
+    focusedContext: focused,
     requests, cases,
   }, null, 2))
 }
@@ -121,14 +123,27 @@ describe.skipIf(!url)('real-model tactical setbacks', () => {
         const response = await nativeFetch(`${url}/api/ai/chat`, options)
         const raw = await response.clone().json().catch(() => ({}))
         requests.push({ scenario, status: response.status, elapsedMs: Date.now() - started,
-          content: raw.choices?.[0]?.message?.content, error: raw.error })
+          content: raw.choices?.[0]?.message?.content,
+          finishReason: raw.choices?.[0]?.finish_reason, error: raw.error })
         persist()
         return response
       })
       for (let step = 1; step <= 2; step++) {
         const before = state(), start = store.eventLog.length
         const initiative = buildFactionInitiative(Owner.SCC)
-        const context = buildFactionContext(Owner.SCC)
+        const active = store.battles.find(b => b.active && b.attacker === Owner.SCC)
+        const forecast = active ? assessActiveBattle(active) : null
+        const context = focused
+          ? `局部战线决策测试；只提供以下两城，不是完整全国对局。
+你是川军(SCC)，当前日期${store.currentDate}，世界回合${store.turnCount}。
+银${store.getTreasury(Owner.SCC)}，粮${store.getGranary(Owner.SCC)}，行动点${store.getActionPoints(Owner.SCC)}/6。
+已知两城状态：${JSON.stringify([store.cities[from], store.cities[to]])}
+活动战线：${JSON.stringify(store.battles)}
+基础比较：${forecast ? tacticalText(forecast) : '当前无活动战线'}
+当前可执行建议：${JSON.stringify(initiative)}
+近期本方回执：${JSON.stringify(store.eventLog.filter(e => e.type === 'commandReceipt' && e.faction === Owner.SCC).slice(-8))}
+请自主决定本回合行动；只能依据已知地点，不编造不存在的战线或可执行结果。`
+          : buildFactionContext(Owner.SCC)
         const requestStart = requests.length
         const decision = await decideFaction(Owner.SCC, context)
         const last = requests.slice(requestStart).at(-1) as { status: number; content?: string }

@@ -391,3 +391,38 @@ scenario12/12complete, not twelve newly called decisions or two complete cases.
 Next priority: historical-unique battle IDs and post-load future consistency,
 then bilateral morale explanations and explicit legal resource-stress/retreat
 scenarios before larger gameplay systems.
+
+## 2026-10-10: historical IDs, bilateral morale, explicit setbacks
+
+User approved this follow-up and merging PR8 after verification. Map attack /
+redeploy quick-entry selection is assessment-only, not authorized implementation.
+
+- New battle IDs scan active battles AND historical start/end events. Six normal
+  save regressions include ended fronts and four post-load settlements compared
+  with uninterrupted execution. Legacy IDs/results remain unchanged.
+- UI/AI comparison shows current -> estimated next morale for both sides, explains
+  configured collapse threshold20 without a guaranteed result, and removes the
+  positive favorable sentence from narrow exchanges classified consider.
+- Continuation reporter takes explicit prior-decision count and source commit;
+  four Node tests distinguish fresh/resumed runs and invalid prior counts.
+- Normal over-recruitment/upkeep produced actual negative silver with six AP;
+  one actual recruitment refusal, then two valid model idle decisions. No further
+  spending, but persistent deficit not fixed: not proof of economic recovery.
+- Independent unfavorable complete-context trial: one valid decision planned
+  transfer15k then deploy15k. Transfer succeeded; deploy was rejected against the
+  initial5k garrison. Existing batch-order preflight limitation documented, not
+  fixed or disguised as model error. Next decision failed after three502s.
+- Independent focused two-city trial: one valid model retreat,3k returned normally
+  to garrison, no new fees/AP. Next decision failed after three502s. Do not combine
+  these trials into a continuous two-turn match or claim all live targets passed.
+- Formal evidence15requests:200x5 (one empty content),502x10; valid decisions4
+  across budget2/full unfavorable1/focused unfavorable1. Pilot bridge/setup tests
+  excluded. Evidence whitelist omits prompts/saves/credentials/hidden reasoning.
+- Actual final rerun:40files469offline tests passed,4live tests default skipped;
+  three normalized actual-order replay tests included. Four reporter tests separate.
+  Typecheck/server+web builds passed;7changed TS/Vue files Oxlint0. Original804kB
+  bundle warning and jsdom Canvas warning persist. No new native-map screenshot:
+  cloud browser could not reach localhost and sandbox transport unavailable.
+
+See docs/battle-persistence-and-setback-review.md and
+docs/map-command-shortcuts-assessment.md. No shortcut/map-picking code changed.
