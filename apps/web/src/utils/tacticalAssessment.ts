@@ -13,6 +13,8 @@ export interface TacticalAssessment {
   label: string
   attackerLoss: number
   defenderLoss: number
+  attackerMoraleBefore: number
+  defenderMoraleBefore: number
   attackerMoraleAfter: number
   defenderMoraleAfter: number
   remainingGarrison: number
@@ -49,6 +51,8 @@ export function compareBattle(
   const reasons: string[] = []
   const collapse = BATTLE.collapse.enabled && attackerMoraleAfter <= BATTLE.collapse.threshold
   if (collapse) reasons.push('攻方士气已进入或预计进入崩溃判定区间，不代表必然崩溃')
+  if (!empty && BATTLE.collapse.enabled && defenderMoraleAfter <= BATTLE.collapse.threshold)
+    reasons.push('守方士气已进入或预计进入崩溃判定区间，驻军未耗尽也可能失守，但不代表必然攻占')
   if (attackerRate >= 0.25) reasons.push('单轮基础攻损达到参战兵力的四分之一或更多')
   if (input.remainingGarrison < 2) reasons.push('来源留守不足2k，后方防守较薄弱')
   if (!input.supplied) reasons.push('断供削弱进攻战力，应比较恢复连接与继续进攻')
@@ -63,12 +67,19 @@ export function compareBattle(
           (!empty && defenderRate < attackerRate * 1.2)
         ? 'consider'
         : 'favorable'
-  if (!reasons.length) reasons.push('当前基础比例消耗相对有利，但敌方增援或士气变化可能逆转局面')
+  if (!reasons.length)
+    reasons.push(
+      risk === 'consider'
+        ? '双方基础比例消耗差距较小，尚不足以判为相对有利'
+        : '当前基础比例消耗相对有利，但敌方增援或士气变化可能逆转局面',
+    )
   return {
     risk,
     label: risk === 'high' ? '风险较高' : risk === 'consider' ? '需要权衡' : '相对有利',
     attackerLoss,
     defenderLoss,
+    attackerMoraleBefore: input.atkMorale,
+    defenderMoraleBefore: input.defMorale,
     attackerMoraleAfter,
     defenderMoraleAfter,
     remainingGarrison: Math.round(input.remainingGarrison * 10) / 10,
@@ -133,7 +144,12 @@ export function assessActiveBattle(battle: BattleInfo): TacticalAssessment | nul
   }) // Existing march fee is sunk, not charged again per round.
 }
 export function tacticalText(value: TacticalAssessment): string {
-  return `${value.label}：下一次结算基础估计攻损${value.attackerLoss}k/守损${value.defenderLoss}k，攻方士气${value.attackerMoraleAfter}/守方士气${value.defenderMoraleAfter}，来源留守${value.remainingGarrison}k；本次行军银${value.silver}/粮${value.food}。${value.reasons.join('；')}。这是静态基础比较，不含双方后续动作、经济减员、突发事件及崩溃结果，不是胜率或胜利保证。`
+  return `${value.label}：下一次结算基础估计攻损${value.attackerLoss}k/守损${value.defenderLoss}k，攻方士气${value.attackerMoraleBefore}→${value.attackerMoraleAfter}/守方士气${value.defenderMoraleBefore}→${value.defenderMoraleAfter}，来源留守${value.remainingGarrison}k；本次行军银${value.silver}/粮${value.food}。${value.reasons.join('；')}。${moraleRuleText()}这是静态基础比较，不含双方后续动作、经济减员、突发事件及崩溃结果，不是胜率或胜利保证。`
+}
+export function moraleRuleText(): string {
+  return BATTLE.collapse.enabled
+    ? `双方士气≤${BATTLE.collapse.threshold}进入崩溃判定区间；攻方崩溃可能撤退，守方崩溃可能失城，并非必然结果。`
+    : '当前未启用士气崩溃判定。'
 }
 export function affordableCampaign(
   from: string,

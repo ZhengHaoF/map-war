@@ -197,17 +197,24 @@ function hasActiveBattle(from: string, to: string): boolean {
 /**
  * 生成下一个战斗 id（格式 `battle_N`，自增）。
  * 防冲突：resetBattleRuntime 会把计数器归零（读档/重置/resize/手动刷新都会触发），
- * 但 store.battles 里可能残留历史战斗 id（含已 inactive 的）。若计数器从 0 重排，
- * 新战斗可能撞上残留 id，导致 stopBattle/裁决官按 id 查找时命中错误条目。
- * 故生成前先扫描 store.battles，把计数器抬到「现存最大编号」之上再自增。
+ * 已结束战线会从 store.battles 删除，但编号仍保留在事件历史中。
+ * 同时扫描活动战线和历史起止事件，避免读档后复用历史编号及改变崩溃种子。
+ * 只抬高运行计数器，不改写旧存档事件或旧战斗结果。
  */
 function nextBattleId(): string {
   let max = 0
-  for (const b of useGameStore().battles) {
-    const m = /^battle_(\d+)$/.exec(b.id)
+  const store = useGameStore()
+  const ids = [
+    ...store.battles.map((b) => b.id),
+    ...store.eventLog.flatMap((e) =>
+      e.type === 'battleStart' || e.type === 'battleEnd' ? [e.battleId] : [],
+    ),
+  ]
+  for (const id of ids) {
+    const m = /^battle_(\d+)$/.exec(id)
     if (m) {
       const n = parseInt(m[1], 10)
-      if (n > max) max = n
+      if (Number.isSafeInteger(n) && n > max) max = n
     }
   }
   if (battleIdCounter < max) battleIdCounter = max

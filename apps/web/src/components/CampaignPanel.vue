@@ -102,9 +102,11 @@
                 {{ tactics.defenderLoss }}k。
               </p>
               <p>
-                来源留守 {{ tactics.remainingGarrison }}k；估计攻方士气
-                {{ tactics.attackerMoraleAfter }} / 守方士气 {{ tactics.defenderMoraleAfter }}。
+                来源留守 {{ tactics.remainingGarrison }}k；攻方士气
+                {{ tactics.attackerMoraleBefore }} → {{ tactics.attackerMoraleAfter }} /
+                守方士气 {{ tactics.defenderMoraleBefore }} → {{ tactics.defenderMoraleAfter }}。
               </p>
+              <p>{{ moraleRuleText() }}</p>
               <ul>
                 <li v-for="reason in tactics.reasons" :key="reason">{{ reason }}</li>
               </ul>
@@ -170,7 +172,7 @@ import { SEA_ROUTE_COST_MULTIPLIER } from '@/data/gameConfig'
 import { getDisplayName } from '@/data/displayNames'
 import { previewCampaign, getAttackableTargets } from '@/utils/campaignPreview'
 import { occupationRemaining, SUPPLY_PENALTY_LABEL, OCCUPATION_YIELD_LABEL } from '@/utils/supply'
-import { assessCampaign } from '@/utils/tacticalAssessment'
+import { assessCampaign, moraleRuleText } from '@/utils/tacticalAssessment'
 
 const props = defineProps<{ visible: boolean; initialSourceGb?: string | null }>()
 defineEmits<{ close: [] }>()

@@ -2,15 +2,19 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import assert from "node:assert/strict";
 
-const [input, prefix] = process.argv.slice(2);
+const [input, prefix, includedPriorArg = "0", sourceCommitArg] = process.argv.slice(2);
 assert(
   input && prefix,
-  "Usage: node scripts/report-tactical-pressure.mjs input.json output-prefix",
+  "Usage: node scripts/report-tactical-pressure.mjs input.json output-prefix [included-prior-decisions=0] [source-commit]",
 );
+const includedPrior = Number(includedPriorArg);
+assert(Number.isSafeInteger(includedPrior) && includedPrior >= 0);
 const source = JSON.parse(readFileSync(input, "utf8"));
 assert.equal(source.cases.length, 1, "Do not silently combine independent scenarios");
 const sample = source.cases[0];
 const records = sample.records;
+assert(records.length > 0, "No valid decisions to report");
+assert(includedPrior <= records.length, "Prior count exceeds valid decision count");
 const round = (value) => Math.round(value * 10) / 10;
 const rows = records.map((record, index) => {
   assert.equal(record.step, index + 1);
@@ -79,8 +83,9 @@ const summary = {
   targetDecisions: source.plannedTurnsPerCase,
   validDecisions: rows.length,
   complete: rows.length >= source.plannedTurnsPerCase,
-  includesPreviousOneDecision: true,
-  newlyCompletedDecisions: rows.length - 1,
+  includedPriorDecisions: includedPrior,
+  includesPreviousOneDecision: includedPrior === 1,
+  newlyCompletedDecisions: rows.length - includedPrior,
   requests: source.requests.length,
   statuses,
   planned: sum("planned"),
@@ -108,7 +113,7 @@ const summary = {
     })),
 };
 const evidence = {
-  sourceCommit: "80442f28cbf07ab595c7dfe7b1a9af1277b87897",
+  sourceCommit: sourceCommitArg ?? source.sourceCommit ?? null,
   method: source.method,
   constraints: source.constraints,
   setup: sample.setup,

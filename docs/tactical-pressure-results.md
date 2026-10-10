@@ -54,10 +54,10 @@
 
 `scripts/report-tactical-pressure.mjs` 校验单场景连续编号、每次七天日期推进、每次世界回合加一、有效解析和成功响应数量，生成 CSV 与脱敏 JSON。公开证据保留建议、指令、回执、两城/余额/战线快照及军事事件，不包含完整存档、密钥、请求提示或私有推理；私有原始记录与正常续测存档单独保留。脱敏摘要不是可以单独复现整局的完整存档或所有模型输入输出集合。
 
-本次生成结果保存在 `docs/tactical-pressure-12turn.csv` 与 `docs/fixtures/tactical-pressure-12turn.json`。脚本当前针对本次“已有一回合、随后续测”的证据口径，不应不改参数就套用于任意新开局并复用新增回合数。
+本次生成结果保存在 `docs/tactical-pressure-12turn.csv` 与 `docs/fixtures/tactical-pressure-12turn.json`。脚本现在显式接受“此前已完成的有效决策数”和玩法代码提交号，新开局默认此前计数为 0，不再自动扣除一回合或冒用旧代码提交号。下面的 `1` 只适用于本次已有一回合的历史样本；缺少提交号时报告会保留 null，不伪造版本。
 
 ```sh
-node scripts/report-tactical-pressure.mjs /path/to/private-pressure.json /path/to/output-prefix
+node scripts/report-tactical-pressure.mjs /path/to/private-pressure.json /path/to/output-prefix 1 80442f28cbf07ab595c7dfe7b1a9af1277b87897
 ```
 
 ## 下一优先级

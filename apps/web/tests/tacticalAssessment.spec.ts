@@ -110,6 +110,31 @@ describe('one-settlement tactical comparison', () => {
     expect(value.risk).toBe('high')
     expect(value.reasons.join('')).toContain('不代表必然崩溃')
   })
+  it('explains defender collapse independently without calling it a guaranteed victory', () => {
+    const value = compareBattle({ ...base, defMorale: 10 })
+    expect(value.attackerMoraleBefore).toBe(70)
+    expect(value.defenderMoraleBefore).toBe(10)
+    expect(value.reasons.join('')).toContain('驻军未耗尽也可能失守')
+    expect(value.reasons.join('')).toContain('不代表必然攻占')
+    expect(tacticalText(value)).toContain('守方士气10→')
+  })
+  it('does not describe a narrow exchange classified consider as relatively favorable', () => {
+    // 15% vs 16% losses: defender ratio exceeds attacker ratio, but not by 20%.
+    const value = compareBattle({ ...base, atkForce: 110, defTroops: 100 })
+    expect(value.risk).toBe('consider')
+    expect(value.reasons.join('')).not.toContain('当前基础比例消耗相对有利')
+    expect(value.reasons.join('')).toContain('差距较小')
+  })
+  it('reports both low morale sides without allowing defender risk to hide attacker risk', () => {
+    const value = compareBattle({ ...base, atkMorale: 10, defMorale: 10 })
+    expect(value.risk).toBe('high')
+    expect(value.reasons.join('')).toContain('攻方士气')
+    expect(value.reasons.join('')).toContain('守方士气')
+  })
+  it('does not forecast defender collapse for an empty garrison', () => {
+    const value = compareBattle({ ...base, defTroops: 0, defMorale: 0 })
+    expect(value.reasons.join('')).not.toContain('守方士气已进入')
+  })
   it('tiny forces respect the settlement cap instead of forecasting negative troops', () => {
     const value = compareBattle({ ...base, atkForce: 0.1, defTroops: 0.2 })
     expect(value.attackerLoss).toBe(0.1)
