@@ -18,6 +18,7 @@ import type { Owner } from '@/data/owners'
 import { SETTLE_NARRATIVE_SNIPPET, PLAYER_INPUT_SNIPPET, AI_REPLY_SNIPPET, EVENT_HISTORY_MAX_EVENTS, EVENT_HISTORY_MAX_TURNS, EVENT_HISTORY_MAX_CHARS } from '@/data/gameConfig'
 import { getDisplayName } from '@/data/displayNames'
 import { receiptText } from './commandFeedback'
+import { ownershipTimeline } from './ownershipHistory'
 
 export type HistoryMode = 'recent' | 'sinceDateAdvance' | 'byActor'
 
@@ -60,11 +61,21 @@ function eventLine(store: ReturnType<typeof useGameStore>, e: GameEvent): string
     case 'dateAdvance':
       return `【日期推进至 ${e.date}】`
     case 'capture':
-      return `占领 ${cityName(store, e.targetGb)}（驻军 ${e.resultTroops ?? '?'}k）`
+      return `占领 ${cityName(store, e.targetGb)} → ${e.actor}（驻军 ${e.resultTroops ?? '?'}k）`
     case 'attack':
-      return `${cityName(store, e.fromGb)} 进攻 ${cityName(store, e.targetGb)}（我损 ${e.attackerLoss}k / 敌损 ${e.defenderLoss}k）`
+      return `${cityName(store, e.fromGb)} 进攻 ${cityName(store, e.targetGb)}（攻损 ${e.attackerLoss}k / 守损 ${e.defenderLoss}k）`
+    case 'battleStart':
+      return `${e.attacker} 从${e.fromName}进攻 ${e.defender} 的${e.toName}（战线${e.battleId}）`
+    case 'battleEnd':
+      return `战线${e.battleId}结束（${e.reason ?? '终战'}）`
     case 'produce':
       return `${cityName(store, e.targetGb)} 增兵 ${e.amount}k`
+    case 'moveTroops':
+      return `${cityName(store, e.fromGb)} 调兵至 ${cityName(store, e.toGb)} ${e.amount}k`
+    case 'deploy':
+      return `${cityName(store, e.fromGb)} 部署外出部队 ${e.amount}k`
+    case 'cityStatChange':
+      return `${cityName(store, e.targetGb)} ${e.field}变化 ${e.delta}`
     case 'moraleChange':
       return `${cityName(store, e.targetGb)} 士气 ${e.delta >= 0 ? '+' : ''}${e.delta}`
     case 'setFactionAlive':
@@ -110,16 +121,23 @@ function selectWindow(
   if (opts.mode === 'byActor') {
     const f = opts.actor
     if (f === undefined) return []
-    return log.filter((e) => {
+    const starts = new Map(log.filter((e): e is Extract<GameEvent, { type: 'battleStart' }> => e.type === 'battleStart').map(e => [e.battleId, e]))
+    return ownershipTimeline(log).filter(({ event: e, targetOwner, fromOwner }) => {
       if (e.type === 'dateAdvance') return true
       if (e.type === 'scenarioStarted') return e.faction === f
       if (e.type === 'commandReceipt') return e.faction === f
-      if (e.type === 'capture') return e.actor === f || store.cities[e.targetGb]?.owner === f
-      if (e.type === 'attack') return store.cities[e.fromGb]?.owner === f || store.cities[e.targetGb]?.owner === f
-      if (e.type === 'produce' || e.type === 'moraleChange') return store.cities[e.targetGb]?.owner === f
+      if (e.type === 'capture') return e.actor === f || targetOwner === f
+      if (e.type === 'attack' || e.type === 'moveTroops') return fromOwner === f || targetOwner === f
+      if (e.type === 'battleStart') return e.attacker === f || e.defender === f
+      if (e.type === 'battleEnd') {
+        const start = starts.get(e.battleId)
+        return start?.attacker === f || start?.defender === f
+      }
+      if (e.type === 'produce' || e.type === 'moraleChange' || e.type === 'cityStatChange') return targetOwner === f
+      if (e.type === 'deploy') return fromOwner === f
       if (e.type === 'narrative') return store.currentFaction === f
       return false
-    })
+    }).map(entry => entry.event)
   }
   // recent：向前含最近 maxTurns 个 dateAdvance 作上下文，再按 maxEvents 截尾
   const idx = lastDateAdvanceIndex(log, opts.maxTurns)
@@ -139,7 +157,7 @@ export function buildEventHistory(opts: BuildHistoryOpts = {}): string {
   }
 
   const window = selectWindow(store, store.eventLog, resolved)
-  const lines = window.map((e) => eventLine(store, e)).filter((l): l is string => l !== null)
+  const lines = window.map((e) => eventLine(store, e)).filter((l): l is string => l !== null).slice(-resolved.maxEvents)
   if (!lines.length) return ''
 
   let text = lines.join('\n')

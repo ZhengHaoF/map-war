@@ -16,6 +16,7 @@ import { parseConditions } from '@/utils/aiDiplomacy'
 import { invokeAgentDecision } from './invoke'
 import { buildFactionSystemPrompt } from './prompts'
 import { validateFactionOrders } from './contract'
+import { commandReceipt } from '@/utils/commandFeedback'
 
 export interface DiplomaticProposal {
   target: Owner
@@ -68,6 +69,16 @@ export async function decideFaction(faction: Owner, context: string): Promise<Fa
     }
   }
 
+  // Pre-execution refusals must reach the next decision too, not disappear
+  // before the scheduler. Trusted identity/balances; no payment or world effect.
+  const recordRefusal = (order: GameOrder, reason: string) => {
+    const balance = { points: store.getActionPoints(faction),
+      silver: store.getTreasury(faction), food: store.getGranary(faction) }
+    store.applyEvent(commandReceipt(faction, order, { ok: false, reason }, balance, balance))
+  }
+  result.orders.forEach((order, i) => {
+    if (result.errors[i]?.length) recordRefusal(order, `结构预检拒绝：${result.errors[i]!.join('；')}`)
+  })
   // 1. 结构校验通过的指令
   const structureOk = result.orders.filter((_, i) => !result.errors[i].length)
   // 2. 战略校验
@@ -77,6 +88,7 @@ export async function decideFaction(faction: Owner, context: string): Promise<Fa
     (gb) => store.ownership[gb],
     (gb) => store.cities[gb]?.troops,
   )
+  strategic.rejected.forEach(item => recordRefusal(item.order, `战略预检拒绝：${item.reason}`))
 
   return { orders: strategic.approved, telegram, diplomaticProposal }
 }
