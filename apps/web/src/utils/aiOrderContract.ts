@@ -360,8 +360,45 @@ export function validateFactionOrder(
 }
 
 /**
- * 批量战略校验。返回通过 + 被拒两项列表。
+ * 顺序批次的驻军预检视图。前序增兵只是可能成功，不预支兵力或资源。
+ * 仅对有已通过预检的增兵前序的城市延后驻军数量检查；执行层仍必须逐条
+ * checkLiveOrder，使用前序实际落地后的驻军、路线、预算和行动点。
+ * 一次批次一个实例；混合 actor 批次按势力隔离，不能跨批次复用。
  */
+export function createBatchTroopPreflight(
+  cityTroopsFn?: (gb: string) => number | undefined,
+) {
+  const pendingReinforcements = new Map<Owner, Set<string>>()
+  return {
+    troopsFor(faction: Owner | null): ((gb: string) => number | undefined) | undefined {
+      if (!cityTroopsFn) return undefined
+      return (gb) => faction && pendingReinforcements.get(faction)?.has(gb)
+        ? undefined
+        : cityTroopsFn(gb)
+    },
+    accept(order: GameOrder, faction: Owner | null): void {
+      // Defensive structural gate: rejected/malformed orders never create dependencies.
+      if (!faction || !validateGameOrder(order).ok
+        || !Number.isFinite(order.amount) || order.amount! <= 0) return
+      let target: string | null | undefined
+      if (order.order === 'recruit') target = resolveLocationId(order.gb!)
+      if (order.order === 'moveTroops') {
+        const source = resolveLocationId(order.from!)
+        const destination = resolveLocationId(order.to!)
+        if (source && destination && source !== destination) target = destination
+      }
+      if (!target) return
+      let cities = pendingReinforcements.get(faction)
+      if (!cities) {
+        cities = new Set<string>()
+        pendingReinforcements.set(faction, cities)
+      }
+      cities.add(target)
+    },
+  }
+}
+
+/** 批量战略校验，保留原顺序和对象身份；通过不等于已执行成功。 */
 export function validatePlayerOrders(
   orders: GameOrder[],
   playerFaction: Owner | null,
@@ -370,10 +407,12 @@ export function validatePlayerOrders(
 ): { approved: GameOrder[]; rejected: { order: GameOrder; reason: string }[] } {
   const approved: GameOrder[] = []
   const rejected: { order: GameOrder; reason: string }[] = []
+  const batch = createBatchTroopPreflight(cityTroopsFn)
   for (const o of orders) {
-    const r = validatePlayerOrder(o, playerFaction, cityOwnerFn, cityTroopsFn)
+    const r = validatePlayerOrder(o, playerFaction, cityOwnerFn, batch.troopsFor(playerFaction))
     if (r.ok) {
       approved.push(o)
+      batch.accept(o, playerFaction)
     } else {
       rejected.push({ order: o, reason: r.reason || '未知原因' })
     }
@@ -392,10 +431,12 @@ export function validateFactionOrders(
 ): { approved: GameOrder[]; rejected: { order: GameOrder; reason: string }[] } {
   const approved: GameOrder[] = []
   const rejected: { order: GameOrder; reason: string }[] = []
+  const batch = createBatchTroopPreflight(cityTroopsFn)
   for (const o of orders) {
-    const r = validateFactionOrder(o, faction, cityOwnerFn, cityTroopsFn)
+    const r = validateFactionOrder(o, faction, cityOwnerFn, batch.troopsFor(faction))
     if (r.ok) {
       approved.push(o)
+      batch.accept(o, faction)
     } else {
       rejected.push({ order: o, reason: r.reason || '未知原因' })
     }

@@ -8,6 +8,7 @@ import {
   validateFactionOrders,
   validatePlayerOrder,
   validatePlayerOrders,
+  createBatchTroopPreflight,
 } from '../utils/aiOrderContract'
 import { registerLocations, clearLocations } from '../utils/locationResolver'
 import { Owner } from '../data/owners'
@@ -43,6 +44,57 @@ beforeAll(() => {
     { type: 'Feature', properties: { name: '杭州', gb: HANGZHOU_GB }, geometry: { type: 'Point', coordinates: [0, 0] } },
   ] as unknown as GeoJSON.Feature[]
   registerLocations(features, 'gb')
+})
+
+describe('sequential batch troop preflight', () => {
+  const transfer: GameOrder = { order: 'moveTroops', from: '北京', to: '杭州', amount: 20 }
+  const deploy: GameOrder = { order: 'deploy', from: '杭州', amount: 25 }
+  for (const mode of ['player', 'faction'] as const) {
+    const validate = mode === 'player' ? validatePlayerOrders : validateFactionOrders
+    it(`${mode}: defers only an earlier accepted reinforcement dependency, without mutating state`, () => {
+      const before = { ...troops }
+      const result = validate([transfer, deploy], Owner.KMT, cityOwner, cityTroops)
+      expect(result.approved).toEqual([transfer, deploy])
+      expect(result.approved[0]).toBe(transfer)
+      expect(result.approved[1]).toBe(deploy)
+      expect(result.rejected).toEqual([])
+      expect(troops).toEqual(before)
+    })
+    it(`${mode}: does not reorder or use reinforcements from later orders or earlier batches`, () => {
+      expect(validate([deploy, transfer], Owner.KMT, cityOwner, cityTroops).rejected[0]?.order).toBe(deploy)
+      validate([transfer], Owner.KMT, cityOwner, cityTroops)
+      expect(validate([deploy], Owner.KMT, cityOwner, cityTroops).rejected[0]?.order).toBe(deploy)
+    })
+    it(`${mode}: rejected transfers and same-city transfers cannot enable deployment`, () => {
+      for (const first of [
+        { ...transfer, amount: 31 },
+        { ...transfer, from: '成都' },
+        { ...transfer, from: '杭州', amount: 1 },
+      ]) {
+        expect(validate([first, deploy], Owner.KMT, cityOwner, cityTroops).rejected.some(r => r.order === deploy)).toBe(true)
+      }
+    })
+    it(`${mode}: recruitment can enable later transfer but does not relax ownership`, () => {
+      const recruit: GameOrder = { order: 'recruit', gb: '杭州', amount: 20 }
+      const onward: GameOrder = { order: 'moveTroops', from: '杭州', to: '北京', amount: 25 }
+      expect(validate([recruit, onward], Owner.KMT, cityOwner, cityTroops).approved).toEqual([recruit, onward])
+      expect(validate([recruit, { ...onward, to: '成都' }], Owner.KMT, cityOwner, cityTroops).rejected).toHaveLength(1)
+    })
+  }
+  it('isolates mixed actors and ignores malformed reinforcements', () => {
+    const batch = createBatchTroopPreflight(cityTroops)
+    batch.accept({ order: 'recruit', gb: '杭州', amount: Number.NaN }, Owner.KMT)
+    expect(batch.troopsFor(Owner.KMT)!(HANGZHOU_GB)).toBe(15)
+    batch.accept(transfer, Owner.KMT)
+    expect(batch.troopsFor(Owner.KMT)!(HANGZHOU_GB)).toBeUndefined()
+    expect(batch.troopsFor(Owner.SCC)!(HANGZHOU_GB)).toBe(15)
+    expect(batch.troopsFor(Owner.KMT)!(BEIJING_GB)).toBe(30)
+  })
+  it('retains no-faction and system-order rejection even after reinforcements', () => {
+    expect(validatePlayerOrders([transfer, deploy], null, cityOwner, cityTroops).approved).toEqual([])
+    expect(validateFactionOrders([transfer, { order: 'capture', gb: '杭州', owner: Owner.KMT }], Owner.KMT, cityOwner, cityTroops).rejected).toHaveLength(1)
+    expect(validateFactionOrder(deploy, Owner.KMT, cityOwner, cityTroops).ok).toBe(false)
+  })
 })
 
 // ── 1. 玩家版（回归测试：行为不变）──
