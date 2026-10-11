@@ -10,16 +10,14 @@
  * 模块级单例（同 useGameScheduler 模式）：PlayerAiPanel 与地图层共享同一个编排器状态。
  */
 
-import { ref, watch } from 'vue'
-import { useGameStore, type Telegram, type GameEvent } from '@/stores/game'
+import { ref } from 'vue'
+import { useGameStore, type GameEvent } from '@/stores/game'
 import { normalizeCommsFrom } from '@/utils/commsEntity'
 import { useGameScheduler } from '@/composables/useGameScheduler'
 import { classifyFactions } from '@/utils/aiClassify'
 import {
   buildFactionContext,
   buildMinorContext,
-  buildSettleContext,
-  validateFactionOrders,
   validateFactionOrder,
   decideFaction,
   runWorldBatch,
@@ -30,6 +28,7 @@ import type { WorldSettleResult } from '@/utils/ai'
 import { Owner, OWNER_LABELS, OWNER_DETAILS } from '@/data/owners'
 import { useToast } from '@/composables/useToast'
 import { buildEconomicTickEvent } from '@/utils/economicTick'
+import { createBatchTroopPreflight } from '@/utils/aiOrderContract'
 
 import { useDiplomacyBus } from '@/composables/useDiplomacyBus'
 import type { DiplomaticProposal } from '@/utils/ai/factionAi'
@@ -81,6 +80,7 @@ async function invokeWorldAIBatch(_factions: Owner[], context: string): Promise<
   // 按每条指令的 actor 独立做战略校验
   const store = useGameStore()
   const strategicOk: GameOrder[] = []
+  const batch = createBatchTroopPreflight((gb) => store.cities[gb]?.troops)
   for (let i = 0; i < rawOrders.length; i++) {
     // 门卫：结构校验不过的指令（未知指令名 / 非法字段）直接丢弃，不让它漏到执行层
     if (rawErrors[i]?.length) {
@@ -105,10 +105,11 @@ async function invokeWorldAIBatch(_factions: Owner[], context: string): Promise<
       order,
       actorOwner,
       (gb) => store.ownership[gb],
-      (gb) => store.cities[gb]?.troops,
+      batch.troopsFor(actorOwner),
     )
     if (r.ok) {
       strategicOk.push(order)
+      batch.accept(order, actorOwner)
     } else if (r.reason) {
       pushToast({
         icon: 'alert-triangle',

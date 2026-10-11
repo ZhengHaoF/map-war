@@ -43,10 +43,42 @@ async function run(orders: GameOrder[], actor = Owner.SCC) {
   await scheduler.advance()
   return JSON.parse(JSON.stringify(scheduler.executionResults.value))
 }
+type RecordedDecision = (typeof evidence.runs)[number]['cases'][number]['decisions'][number]
+async function verifyFixedRecordedPlan(recorded: RecordedDecision, orders: GameOrder[], start: number) {
+  const store = useGameStore()
+  // Keep historical evidence immutable. This is a new offline execution,
+  // not another live model sample or a relabelled historical settlement.
+  expect(recorded.approved).toHaveLength(1)
+  expect(recorded.receipts[0]?.reason).toContain('战略预检拒绝')
+  expect(orders).toEqual(recorded.planned)
+  expect(store.eventLog).toHaveLength(start)
+  expect(await run(orders)).toEqual([
+    ...recorded.execution,
+    { order: recorded.planned[1], ok: true },
+  ])
+  const receipts = store.eventLog.slice(start).filter(e => e.type === 'commandReceipt')
+  expect(receipts).toHaveLength(2)
+  expect(receipts[0]).toEqual(recorded.receipts[1])
+  expect(receipts[1]).toMatchObject({
+    ok: true, spentPoints: 1, spentSilver: 0, spentFood: 0,
+    remainingPoints: 3, remainingSilver: 1109.9, remainingFood: 652.5,
+  })
+  expect(state()).toEqual({
+    ...recorded.afterDecision,
+    points: 3,
+    source: { ...recorded.afterDecision.source, troops: 5, fieldForce: 18 },
+  })
+  // New troop levels intentionally change combat; only check turn advancement here.
+  await useGameScheduler().settleActiveBattles()
+  endTurn()
+  expect(store.currentDate).toBe(recorded.afterSettlement.date)
+  expect(store.turnCount).toBe(recorded.afterSettlement.turn)
+  expect(store.getActionPoints(Owner.SCC)).toBe(6)
+}
 describe('actual setback order regression (offline)', () => {
   for (const item of evidence.runs.flatMap(r => r.cases.map(sample => ({ run: r.run, sample })))
     .filter(item => item.sample.validDecisions > 0)) {
-    it(`run ${item.run} ${item.sample.scenario}: replays only its recorded valid decisions`, async () => {
+    it(`run ${item.run} ${item.sample.scenario}: replays recorded plans (run 2 explicitly verifies the fix)`, async () => {
       vi.unstubAllGlobals()
       const store = useGameStore()
       store.isReplaying = false
@@ -79,6 +111,10 @@ describe('actual setback order regression (offline)', () => {
           }] }),
         }))
         const decision = await decideFaction(Owner.SCC, 'Offline recorded-order replay, not a live decision')
+        if (item.run === 2 && item.sample.scenario === 'unfavorable') {
+          await verifyFixedRecordedPlan(recorded, decision.orders, start)
+          continue
+        }
         expect(decision.orders).toEqual(recorded.approved)
         const execution = decision.orders.length ? await run(decision.orders) : []
         expect(execution).toEqual(recorded.execution)

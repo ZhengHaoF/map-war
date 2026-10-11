@@ -33,6 +33,8 @@ pnpm dev:server     # 仅后端
 
 ## 构建
 
+AI 指令批次支持先调兵／征兵再部署；预检不预支兵力，执行时逐条复核实际驻军、费用、路线和行动点。实现边界与历史样本的修复后离线回放见 [批次预检实施与验收](docs/sequential-batch-preflight.md)。
+
 ```sh
 pnpm build          # 依次构建前后端（pnpm -r run build）
 ```
