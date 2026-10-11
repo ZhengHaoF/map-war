@@ -12,6 +12,7 @@ import { buildBattleFlavorSummary } from './prompts'
 import { extractPayloads } from '@/utils/aiParse'
 import type { BattleInfo } from '@/stores/game'
 import type { BaseResult, FlavorResult, FlavorEvent } from '@/utils/battleFormula'
+import type { AiStatus } from '@/utils/aiStatus'
 
 const FLAVOR_PROMPT = `你是民国军阀推演游戏中的"战地记者"。
 
@@ -71,6 +72,7 @@ const FLAVOR_PROMPT = `你是民国军阀推演游戏中的"战地记者"。
 export async function flavorBattles(
   battles: BattleInfo[],
   baseResults: Map<string, BaseResult>,
+  report?: (status: Pick<AiStatus, 'status' | 'reason'>) => void,
 ): Promise<Record<string, FlavorResult>> {
   const flavorMap: Record<string, FlavorResult> = {}
 
@@ -90,19 +92,27 @@ export async function flavorBattles(
 
     const payloads = extractPayloads(raw)
     const obj = payloads[0] as Record<string, unknown> | undefined
-    const list = (obj?.results as Array<{
+    if (!Array.isArray(obj?.results)) {
+      report?.({ status: 'failed', reason: 'format' })
+      return flavorMap
+    }
+    const list = (obj.results as Array<{
       battleId?: string
       events?: FlavorEvent[]
       narrative?: string
     }>) ?? []
 
     for (const r of list) {
-      if (r.battleId) {
+      if (r && r.battleId && battles.some(b => b.id === r.battleId)
+        && Array.isArray(r.events)) {
         flavorMap[r.battleId] = { events: r.events ?? [], narrative: r.narrative }
       }
     }
+    const complete = battles.every(b => flavorMap[b.id])
+    report?.(complete ? { status: 'ok' } : { status: 'partial', reason: 'missing' })
   } catch {
     // 调味失败不阻塞战斗结算
+    report?.({ status: 'failed', reason: 'request' })
   }
 
   return flavorMap

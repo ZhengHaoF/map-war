@@ -1,6 +1,9 @@
 import { useGameStore } from '@/stores/game'
 import type { SaveMeta } from '@/stores/game'
 import { useToast } from '@/composables/useToast'
+import { useAgentKernel } from '@/composables/useAgentKernel'
+import { useGameScheduler } from '@/composables/useGameScheduler'
+import { aiEffectsPending } from '@/composables/useAiChat'
 
 /**
  * 存档读写的统一入口（供存档选择器等 UI 使用）。
@@ -16,10 +19,28 @@ export function useSaveGame() {
 
   /** 读取某槽存档：重建状态 → 通知地图重绘收尾。返回是否成功。 */
   function loadGame(slot: string): boolean {
+    const kernel = useAgentKernel()
+    const scheduler = useGameScheduler()
+    if (kernel.loading.value || scheduler.status.value === 'running'
+      || aiEffectsPending.value > 0) {
+      pushToast({ icon: 'alert-triangle', tone: 'amber', title: '暂不能读档',
+        text: '世界回合或已接受的行动正在结算，请结束后再读取。等待中的玩家／顾问回复可通过读档作废。' })
+      return false
+    }
     const ok = store.load(slot)
     if (ok) {
+      scheduler.queue.value = []
+      scheduler.stoppedAt.value = null
+      scheduler.executionResults.value = []
+      scheduler.status.value = 'idle'
+      kernel.turnSummary.value = null
+      kernel.turnSummaryOwnership.value = {}
+      kernel.lastError.value = ''
+      kernel.phase.value = 'idle'
+      kernel.progress.value = ''
       store.requestMapReload()
-      pushToast({ icon: 'file-import', tone: 'green', title: '读档成功', text: '已载入存档' })
+      pushToast({ icon: 'file-import', tone: 'green', title: '读档成功',
+        text: '已载入存档；旧对话、建议与草稿已清空，等待中的回复已作废。' })
       // 存档停在决策点上（eventLog 末尾是 pauseForPlayer）→ 补一句提示，避免玩家错过拍板时机
       if (store.pausedForPlayer) {
         pushToast({ icon: 'alert-triangle', tone: 'cinnabar', title: '请主公定夺', text: '局势有变，控制权已交还' })

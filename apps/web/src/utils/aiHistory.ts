@@ -19,6 +19,7 @@ import { SETTLE_NARRATIVE_SNIPPET, PLAYER_INPUT_SNIPPET, AI_REPLY_SNIPPET, EVENT
 import { getDisplayName } from '@/data/displayNames'
 import { receiptText } from './commandFeedback'
 import { ownershipTimeline } from './ownershipHistory'
+import { aiStatusText, isAiDegraded } from './aiStatus'
 
 export type HistoryMode = 'recent' | 'sinceDateAdvance' | 'byActor'
 
@@ -54,6 +55,8 @@ function cityName(store: ReturnType<typeof useGameStore>, gb?: string): string {
 /** 单条事件 → 一行中文时间线；无法概述的事件返回 null（被跳过）。 */
 function eventLine(store: ReturnType<typeof useGameStore>, e: GameEvent): string | null {
   switch (e.type) {
+    case 'aiStatus':
+      return isAiDegraded(e) ? `【AI降级】${aiStatusText(e)}` : null
     case 'scenarioStarted':
       return '川军开始西南支点战役，需完成昭通整合并连续守住三个完整回合'
     case 'commandReceipt':
@@ -126,6 +129,7 @@ function selectWindow(
       if (e.type === 'dateAdvance') return true
       if (e.type === 'scenarioStarted') return e.faction === f
       if (e.type === 'commandReceipt') return e.faction === f
+      if (e.type === 'aiStatus') return e.factions.includes(f)
       if (e.type === 'capture') return e.actor === f || targetOwner === f
       if (e.type === 'attack' || e.type === 'moveTroops') return fromOwner === f || targetOwner === f
       if (e.type === 'battleStart') return e.attacker === f || e.defender === f

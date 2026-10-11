@@ -3,6 +3,8 @@ import { aiErrorMessage } from '@/utils/aiError'
 
 /** Shared read-only busy signal for map/manual command entry across chat instances. */
 export const aiRequestsPending = ref(0)
+/** Loading a save is unsafe while an already accepted effect is animating. */
+export const aiEffectsPending = ref(0)
 
 export interface AiChatRequest {
   messages: { role: string; content: string }[]
@@ -21,8 +23,14 @@ export function useAiChat() {
   const loading = ref(false)
   const error = ref<string | null>(null)
   const response = ref<unknown>(null)
+  let requestId = 0
+  let controller: AbortController | null = null
 
   async function send(body: AiChatRequest) {
+    const id = ++requestId
+    controller?.abort()
+    const activeController = new AbortController()
+    controller = activeController
     aiRequestsPending.value++
     loading.value = true
     error.value = null
@@ -33,6 +41,7 @@ export function useAiChat() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
+        signal: activeController.signal,
       })
 
       if (!res.ok) {
@@ -41,16 +50,23 @@ export function useAiChat() {
         throw new Error(detail)
       }
 
-      response.value = await res.json()
+      const value = await res.json()
+      if (id === requestId) response.value = value
     } catch (err) {
-      error.value = (err as Error).message || '未知错误'
+      if (id === requestId) error.value = (err as Error).message || '未知错误'
     } finally {
       aiRequestsPending.value--
-      loading.value = false
+      if (id === requestId) {
+        loading.value = false
+        controller = null
+      }
     }
   }
 
   function reset() {
+    requestId++
+    controller?.abort()
+    controller = null
     loading.value = false
     error.value = null
     response.value = null

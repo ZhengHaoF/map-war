@@ -11,6 +11,7 @@ import type { GameEvent, CityStatField, BattleEndReason } from '@/stores/game'
 import { Owner, OWNER_LABELS } from '@/data/owners'
 import { round1 } from '@/utils/format'
 import { receiptText } from './commandFeedback'
+import { aiStatusText, isAiDegraded } from './aiStatus'
 
 // ─── 势力 / 城市查询 ───
 
@@ -44,6 +45,7 @@ export function eventBadge(e: GameEvent): string {
     battleEnd: '停战',
     selectFaction: '择势',
     narrative: '叙事',
+    aiStatus: 'AI状态',
     scenarioStarted: '战役',
     commandReceipt: '回执',
     treasuryChange: '银库',
@@ -88,6 +90,8 @@ export function describeEvent(e: GameEvent, cities: Record<string, { name: strin
   const fn = factionName
 
   switch (e.type) {
+    case 'aiStatus':
+      return aiStatusText(e)
     case 'scenarioStarted':
       return '川军开始西南支点示范战役：夺取昭通、完成整合并连续守住三个完整回合'
     case 'commandReceipt':
@@ -164,11 +168,13 @@ export function describeEvent(e: GameEvent, cities: Record<string, { name: strin
 /** 事件是否属于"回合例行事务"（不构成值得展示的摘要内容） */
 export function isRoutineEvent(e: GameEvent): boolean {
   return e.type === 'narrative' || e.type === 'dateAdvance' || e.type === 'commandReceipt'
+    || (e.type === 'aiStatus' && !isAiDegraded(e))
 }
 
 /** 事件是否属于"重要"事件（应在摘要中高亮） */
 export function isImportantEvent(e: GameEvent): boolean {
   return (
+    (e.type === 'aiStatus' && isAiDegraded(e)) ||
     e.type === 'setFactionAlive' ||
     e.type === 'capture' ||
     (e.type === 'relationChange' && e.status === 'war') ||

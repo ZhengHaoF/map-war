@@ -1,0 +1,151 @@
+{
+  "method": "Native browser input; read-only state snapshots; explicit HTTP failure/delay injection separated from two real step-5-preview replies",
+  "baseline": {
+    "date": "1931-04-01",
+    "turn": 0,
+    "ap": 6,
+    "yibin": 8,
+    "treasury": 1200,
+    "food": 720
+  },
+  "faultRound": {
+    "date": "1931-04-08",
+    "turn": 1,
+    "statuses": [
+      {
+        "type": "aiStatus",
+        "phase": "batch",
+        "factions": [
+          "KMT",
+          "CCP",
+          "JPN",
+          "NEA",
+          "SHX",
+          "GXC",
+          "MA",
+          "XJ",
+          "TIB",
+          "YUN",
+          "GUI"
+        ],
+        "status": "failed",
+        "reason": "request"
+      },
+      {
+        "type": "aiStatus",
+        "phase": "settlement",
+        "factions": [],
+        "status": "failed",
+        "reason": "request"
+      }
+    ],
+    "economicTicks": 1,
+    "dateAdvances": 1
+  },
+  "realAction": {
+    "date": "1931-04-01",
+    "turn": 0,
+    "token": 0,
+    "ap": 5,
+    "events": [
+      {
+        "type": "selectFaction",
+        "faction": "SCC",
+        "playerName": "QA"
+      },
+      {
+        "type": "narrative",
+        "playerInput": "仅在宜宾征兵1k，不做其他行动。",
+        "aiMessage": "川军于宜宾征募新兵一千，以实军伍；其余诸城按兵不动，一候将令。",
+        "kind": "player"
+      },
+      {
+        "type": "actionSpent",
+        "faction": "SCC",
+        "amount": 1
+      },
+      {
+        "type": "treasuryChange",
+        "faction": "SCC",
+        "delta": -2,
+        "reason": "内政·recruit"
+      },
+      {
+        "type": "granaryChange",
+        "faction": "SCC",
+        "delta": -1,
+        "reason": "征兵·recruit"
+      },
+      {
+        "type": "produce",
+        "targetGb": "156511500",
+        "amount": 1
+      },
+      {
+        "type": "commandReceipt",
+        "faction": "SCC",
+        "label": "recruit 宜宾 数量1",
+        "ok": true,
+        "spentPoints": 1,
+        "spentSilver": 2,
+        "spentFood": 1,
+        "remainingPoints": 5,
+        "remainingSilver": 1198,
+        "remainingFood": 719
+      }
+    ],
+    "treasury": 1198,
+    "yibin": 9,
+    "food": 719
+  },
+  "loaded": {
+    "date": "1931-04-01",
+    "turn": 0,
+    "token": 1,
+    "ap": 6,
+    "events": [
+      {
+        "type": "selectFaction",
+        "faction": "SCC",
+        "playerName": "QA"
+      }
+    ],
+    "treasury": 1200,
+    "yibin": 8,
+    "food": 720
+  },
+  "nextPromptAudit": {
+    "hasOldPlayerInput": false,
+    "hasOldReply": false,
+    "hasOldSuggestion": false,
+    "hasOldDraft": false
+  },
+  "followup": {
+    "ap": 6,
+    "yibin": 8,
+    "treasury": 1200,
+    "food": 720
+  },
+  "delayedResponse": {
+    "transport": "pending",
+    "state": {
+      "date": "1931-04-01",
+      "turn": 0,
+      "token": 2,
+      "ap": 6,
+      "events": [
+        {
+          "type": "selectFaction",
+          "faction": "SCC",
+          "playerName": "QA"
+        }
+      ],
+      "treasury": 1200,
+      "yibin": 8,
+      "food": 720
+    },
+    "hasLateReply": false,
+    "note": "Browser fetch was aborted on load; global pending count returned to zero. No late response was accepted by the UI. Ignored-abort late arrivals are covered separately by offline tests."
+  },
+  "pageErrors": []
+}

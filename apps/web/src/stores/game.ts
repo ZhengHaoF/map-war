@@ -242,6 +242,7 @@ export type GameEvent =
       toName?: string
     }
   | { type: 'selectFaction'; faction: Owner; playerName: string }
+  | import('@/utils/aiStatus').AiStatus
   | { type: 'narrative'; playerInput: string; aiMessage: string; kind?: 'player' | 'settlement' }
   | {
       type: 'commandReceipt'; faction: Owner; label: string; ok: boolean; reason?: string
@@ -950,6 +951,7 @@ export const useGameStore = defineStore('game', () => {
       case 'battleEnd':
       case 'selectFaction':
       case 'narrative':
+      case 'aiStatus':
       case 'commandReceipt':
       case 'treasuryChange':
       case 'granaryChange':
@@ -1162,7 +1164,7 @@ export const useGameStore = defineStore('game', () => {
       return { ok: true }
     }
     // 叙事事件：玩家输入 + AI 总结，仅记录不改变世界态
-    if (e.type === 'narrative' || e.type === 'commandReceipt') return { ok: true }
+    if (e.type === 'narrative' || e.type === 'commandReceipt' || e.type === 'aiStatus') return { ok: true }
 
     // ── 经济事件 ──
     // 银库单次增减（征兵/建设扣款、AI 叙事经济事件等）

@@ -25,7 +25,7 @@ import { useGameStore } from '@/stores/game'
 import type { BattleEndReason, CityState } from '@/stores/game'
 import { flavorBattles } from '@/utils/ai'
 import { computeBaseBattle, clampFlavor, checkMoraleCollapse } from '@/utils/battleFormula'
-import type { BaseResult, FlavorResult, FlavorEvent } from '@/utils/battleFormula'
+import type { BaseResult } from '@/utils/battleFormula'
 import { distanceBetween } from '@/utils/locationResolver'
 import { expeditionFactor } from '@/utils/economy'
 import { getSupplyStatus, SUPPLY_PENALTY_LABEL } from '@/utils/supply'
@@ -39,7 +39,7 @@ import {
   OCCUPATION_CONSOLIDATION_TURNS,
 } from '@/data/gameConfig'
 import { battleSummaryText } from '@/utils/battleTrend'
-import { Owner, OWNER_LABELS } from '@/data/owners'
+import { Owner } from '@/data/owners'
 import { commandReceipt, type BudgetSnapshot } from '@/utils/commandFeedback'
 
 export type AdvanceStatus = 'idle' | 'running' | 'done' | 'stopped'
@@ -136,9 +136,6 @@ async function settleActiveBattles(): Promise<void> {
     // 快照：applyEvent 之前取累计数据
     const snap = store.battles.find((x) => x.id === id)
     const summary = snap ? battleSummaryText(snap) : ''
-    const ownerName = snap
-      ? ((OWNER_LABELS as Record<string, string>)[snap.attacker] ?? snap.attacker)
-      : ''
     stopBattleVisual(id)
     store.applyEvent({
       type: 'battleEnd',
@@ -236,7 +233,10 @@ async function settleActiveBattles(): Promise<void> {
   if (!validBattles.length) return
 
   // ── 第二阶段：AI 调味（尽力而为，失败不阻塞）───
-  const flavorMap = await flavorBattles(validBattles, baseResults)
+  const flavorMap = await flavorBattles(validBattles, baseResults, outcome => {
+    store.applyEvent({ type: 'aiStatus', phase: 'battleFlavor',
+      factions: [...new Set(validBattles.flatMap(b => [b.attacker, b.defender]))], ...outcome })
+  })
 
   // ── 第三阶段：钳制 AI 调味 + 合并 + apply ──
   for (const b of validBattles) {

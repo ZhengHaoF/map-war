@@ -90,7 +90,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick } from 'vue'
+import { ref, computed, nextTick, watch } from 'vue'
+import { useGameStore } from '@/stores/game'
 import { useAiOrchestrator } from '@/composables/useAiOrchestrator'
 import GameButton from '@/components/ui/GameButton.vue'
 import GameModal from '@/components/ui/GameModal.vue'
@@ -113,6 +114,8 @@ defineProps<{ visible: boolean }>()
 defineEmits<{ close: [] }>()
 
 const chatHistory = ref<ChatEntry[]>([])
+const gameStore = useGameStore()
+watch(() => gameStore.reloadToken, () => { chatHistory.value = [] }, { flush: 'sync' })
 const logRef = ref<HTMLElement | null>(null)
 
 interface ChatEntry {
@@ -125,8 +128,11 @@ async function onSend(): Promise<void> {
   if (busy.value) return
   const userText = userMessage.value.trim()
   if (!userText) return
+  const reloadToken = gameStore.reloadToken
 
   await runSend()
+  if (gameStore.reloadToken !== reloadToken) return
+  if (error.value || parseError.value) return
 
   // 从 advisorResponse 提取顾问回复和建议
   const reply = aiMessage.value

@@ -11,6 +11,10 @@
     <div class="tsm-body">
       <!-- 滚动区：事件多时只滚这里，底栏固定不动 -->
       <div class="tsm-scroll">
+        <div v-if="degraded" class="tsm-warning" role="alert">
+          本回合 AI 降级：部分决策或叙事缺失，不能视为敌方主动不行动。
+          已完成的经济、行动与日期不自动重跑；详细状态见下方与完整事件。
+        </div>
         <!-- 空态保护 -->
         <div v-if="groups.length === 0" class="tsm-empty">
           本方暂无需要处理的新变化。
@@ -61,6 +65,7 @@ import GameModal from '@/components/ui/GameModal.vue'
 import GameButton from '@/components/ui/GameButton.vue'
 import type { Owner } from '@/data/owners'
 import { summarizeTurn } from '@/utils/turnSummary'
+import { isAiDegraded } from '@/utils/aiStatus'
 import {
   eventBadge,
   describeEvent,
@@ -88,6 +93,7 @@ const ICONS: Record<string, Component> = {
 const projection = computed(() => summarizeTurn({ events: props.events,
   player: store.currentFaction, cities: store.cities, ownershipBefore: props.ownershipBefore }))
 const groups = computed(() => projection.value.groups)
+const degraded = computed(() => props.events.some(e => e.type === 'aiStatus' && isAiDegraded(e)))
 
 // ─── 事件文本 ───
 
@@ -128,6 +134,13 @@ function onConfirm(): void {
   opacity: 0.5;
   font-style: italic;
   padding: 24px 0;
+}
+.tsm-warning {
+  border: 1px solid var(--cinnabar);
+  background: var(--paper-deep);
+  padding: 10px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
 }
 .tsm-details { border-top: 1px solid var(--line-soft); padding-top: 10px; font-size: 12px; }
 .tsm-details summary { cursor: pointer; color: var(--ink-panel); }
