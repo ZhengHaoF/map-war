@@ -1,0 +1,418 @@
+{
+  "method": "native input; API fault injection, no real model; readonly snapshots; no ticker pause",
+  "deadlineResult": {
+    "date": "1931-04-08",
+    "turn": 1,
+    "loading": false,
+    "phase": "idle",
+    "tasks": [],
+    "stopReason": null,
+    "saveCount": 2,
+    "beijing": 69,
+    "kmtAp": 6,
+    "eventCounts": {
+      "selectFaction": 1,
+      "economicTick": 1,
+      "aiStatus": 2,
+      "narrative": 1,
+      "dateAdvance": 1
+    },
+    "aiStatuses": [
+      {
+        "type": "aiStatus",
+        "phase": "batch",
+        "factions": [
+          "KMT",
+          "CCP",
+          "JPN",
+          "NEA",
+          "SHX",
+          "GXC",
+          "MA",
+          "XJ",
+          "TIB",
+          "YUN",
+          "GUI"
+        ],
+        "status": "failed",
+        "reason": "timeout"
+      },
+      {
+        "type": "aiStatus",
+        "phase": "settlement",
+        "factions": [],
+        "status": "failed",
+        "reason": "timeout"
+      }
+    ],
+    "receipts": []
+  },
+  "cancelResult": {
+    "date": "1931-04-15",
+    "turn": 2,
+    "loading": false,
+    "phase": "done",
+    "tasks": [
+      {
+        "id": "batch",
+        "label": "世界批量（11 家）",
+        "phase": "batch",
+        "factions": [
+          "KMT",
+          "CCP",
+          "JPN",
+          "NEA",
+          "SHX",
+          "GXC",
+          "MA",
+          "XJ",
+          "TIB",
+          "YUN",
+          "GUI"
+        ],
+        "state": "failed",
+        "attempt": 1,
+        "maxAttempts": 3,
+        "reason": "cancelled"
+      },
+      {
+        "id": "settlement",
+        "label": "世界叙事",
+        "phase": "settlement",
+        "factions": [],
+        "state": "failed",
+        "attempt": 0,
+        "maxAttempts": 3,
+        "reason": "cancelled"
+      }
+    ],
+    "stopReason": "cancelled",
+    "saveCount": 2,
+    "beijing": 69,
+    "kmtAp": 6,
+    "eventCounts": {
+      "selectFaction": 1,
+      "economicTick": 2,
+      "aiStatus": 4,
+      "narrative": 2,
+      "dateAdvance": 2
+    },
+    "aiStatuses": [
+      {
+        "type": "aiStatus",
+        "phase": "batch",
+        "factions": [
+          "KMT",
+          "CCP",
+          "JPN",
+          "NEA",
+          "SHX",
+          "GXC",
+          "MA",
+          "XJ",
+          "TIB",
+          "YUN",
+          "GUI"
+        ],
+        "status": "failed",
+        "reason": "timeout"
+      },
+      {
+        "type": "aiStatus",
+        "phase": "settlement",
+        "factions": [],
+        "status": "failed",
+        "reason": "timeout"
+      },
+      {
+        "type": "aiStatus",
+        "phase": "batch",
+        "factions": [
+          "KMT",
+          "CCP",
+          "JPN",
+          "NEA",
+          "SHX",
+          "GXC",
+          "MA",
+          "XJ",
+          "TIB",
+          "YUN",
+          "GUI"
+        ],
+        "status": "failed",
+        "reason": "cancelled"
+      },
+      {
+        "type": "aiStatus",
+        "phase": "settlement",
+        "factions": [],
+        "status": "failed",
+        "reason": "cancelled"
+      }
+    ],
+    "receipts": []
+  },
+  "finalReady": {
+    "date": "1931-04-01",
+    "turn": 0,
+    "loading": true,
+    "phase": "settling",
+    "tasks": [
+      {
+        "id": "batch",
+        "label": "世界批量（11 家）",
+        "phase": "batch",
+        "factions": [
+          "KMT",
+          "CCP",
+          "JPN",
+          "NEA",
+          "SHX",
+          "GXC",
+          "MA",
+          "XJ",
+          "TIB",
+          "YUN",
+          "GUI"
+        ],
+        "state": "ok",
+        "attempt": 1,
+        "maxAttempts": 3
+      },
+      {
+        "id": "settlement",
+        "label": "世界叙事",
+        "phase": "settlement",
+        "factions": [],
+        "state": "requesting",
+        "attempt": 1,
+        "maxAttempts": 3
+      }
+    ],
+    "stopReason": null,
+    "saveCount": 2,
+    "beijing": 70,
+    "kmtAp": 5,
+    "eventCounts": {
+      "selectFaction": 1,
+      "economicTick": 1,
+      "aiStatus": 1,
+      "actionSpent": 1,
+      "treasuryChange": 1,
+      "granaryChange": 1,
+      "produce": 1,
+      "commandReceipt": 1
+    },
+    "aiStatuses": [
+      {
+        "type": "aiStatus",
+        "phase": "batch",
+        "factions": [
+          "KMT",
+          "CCP",
+          "JPN",
+          "NEA",
+          "SHX",
+          "GXC",
+          "MA",
+          "XJ",
+          "TIB",
+          "YUN",
+          "GUI"
+        ],
+        "status": "ok"
+      }
+    ],
+    "receipts": [
+      {
+        "label": "recruit 北京市 数量1",
+        "ok": true,
+        "spentPoints": 1,
+        "spentSilver": 2,
+        "spentFood": 1
+      }
+    ]
+  },
+  "finalCancel": {
+    "date": "1931-04-08",
+    "turn": 1,
+    "loading": false,
+    "phase": "done",
+    "tasks": [
+      {
+        "id": "batch",
+        "label": "世界批量（11 家）",
+        "phase": "batch",
+        "factions": [
+          "KMT",
+          "CCP",
+          "JPN",
+          "NEA",
+          "SHX",
+          "GXC",
+          "MA",
+          "XJ",
+          "TIB",
+          "YUN",
+          "GUI"
+        ],
+        "state": "ok",
+        "attempt": 1,
+        "maxAttempts": 3
+      },
+      {
+        "id": "settlement",
+        "label": "世界叙事",
+        "phase": "settlement",
+        "factions": [],
+        "state": "failed",
+        "attempt": 1,
+        "maxAttempts": 3,
+        "reason": "cancelled"
+      }
+    ],
+    "stopReason": "cancelled",
+    "saveCount": 2,
+    "beijing": 70,
+    "kmtAp": 6,
+    "eventCounts": {
+      "selectFaction": 1,
+      "economicTick": 1,
+      "aiStatus": 2,
+      "actionSpent": 1,
+      "treasuryChange": 1,
+      "granaryChange": 1,
+      "produce": 1,
+      "commandReceipt": 1,
+      "narrative": 1,
+      "dateAdvance": 1
+    },
+    "aiStatuses": [
+      {
+        "type": "aiStatus",
+        "phase": "batch",
+        "factions": [
+          "KMT",
+          "CCP",
+          "JPN",
+          "NEA",
+          "SHX",
+          "GXC",
+          "MA",
+          "XJ",
+          "TIB",
+          "YUN",
+          "GUI"
+        ],
+        "status": "ok"
+      },
+      {
+        "type": "aiStatus",
+        "phase": "settlement",
+        "factions": [],
+        "status": "failed",
+        "reason": "cancelled"
+      }
+    ],
+    "receipts": [
+      {
+        "label": "recruit 北京市 数量1",
+        "ok": true,
+        "spentPoints": 1,
+        "spentSilver": 2,
+        "spentFood": 1
+      }
+    ]
+  },
+  "requests": [
+    {
+      "kind": "batch",
+      "mode": "retryHold",
+      "index": 1,
+      "at": 1791726977184,
+      "state": "502"
+    },
+    {
+      "kind": "batch",
+      "mode": "retryHold",
+      "index": 2,
+      "at": 1791726978239,
+      "state": "held"
+    },
+    {
+      "kind": "batch",
+      "mode": "retryHold",
+      "index": 3,
+      "at": 1791727070245,
+      "state": "held"
+    },
+    {
+      "kind": "batch",
+      "mode": "retryHold",
+      "index": 4,
+      "at": 1791727325507,
+      "state": "held"
+    },
+    {
+      "kind": "batch",
+      "mode": "readyPlan",
+      "index": 5,
+      "at": 1791727461708,
+      "state": "ready"
+    },
+    {
+      "kind": "settlement",
+      "mode": "readyPlan",
+      "index": 6,
+      "at": 1791727462202,
+      "state": "held"
+    },
+    {
+      "kind": "batch",
+      "mode": "readyPlan",
+      "index": 7,
+      "at": 1791727796423,
+      "state": "ready"
+    },
+    {
+      "kind": "settlement",
+      "mode": "readyPlan",
+      "index": 8,
+      "at": 1791727796842,
+      "state": "held"
+    }
+  ],
+  "pageErrors": [],
+  "reopenRequestCount": {
+    "before": 8,
+    "after": 8
+  },
+  "saveAndLoadGuard": {
+    "saveCount": 2,
+    "loadingAfterBlockedLoad": true
+  },
+  "limitations": [
+    "No real model calls",
+    "Ignored-abort late replies covered offline, not claimed delivered through cancelled browser transport",
+    "No production backend abort or billing guarantees"
+  ],
+  "mobileFit": {
+    "viewport": [
+      375,
+      812
+    ],
+    "panel": {
+      "x": 12,
+      "y": 499,
+      "width": 351,
+      "height": 249,
+      "bottom": 748
+    },
+    "button": {
+      "top": 668,
+      "bottom": 700
+    },
+    "scrollWidth": 375
+  }
+}

@@ -6,7 +6,7 @@ export interface AiStatus {
   phase: 'faction' | 'batch' | 'battleFlavor' | 'settlement'
   factions: Owner[]
   status: 'ok' | 'empty' | 'partial' | 'failed'
-  reason?: 'request' | 'format' | 'filtered' | 'missing'
+  reason?: 'request' | 'format' | 'filtered' | 'missing' | 'timeout' | 'cancelled'
 }
 
 export function aiStatusText(e: AiStatus): string {
@@ -16,7 +16,8 @@ export function aiStatusText(e: AiStatus): string {
   if (e.status === 'ok') return `${subject}：取得有效回复（执行结果另见回执）`
   if (e.status === 'empty') return `${subject}：有效回复，无行动计划`
   const reason = { request: '请求失败', format: '回复格式无效',
-    filtered: '部分指令被预检拒绝', missing: '部分战线缺少有效回复' }[e.reason ?? 'request']
+    filtered: '部分指令被预检拒绝', missing: '部分战线缺少有效回复',
+    timeout: '等待超时', cancelled: '已停止等待' }[e.reason ?? 'request']
   if (e.reason === 'filtered') return `${subject}：${reason}，仅提交通过预检的指令`
   const fallback = e.phase === 'faction' || e.phase === 'batch'
     ? '决策缺失，不代表主动按兵不动'

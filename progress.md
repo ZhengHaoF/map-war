@@ -476,3 +476,34 @@ docs/fixtures/map-command-two-step-browser.json;pageErrors0;browser closed.
 Standard bundled gameplay client ran once; startup faction dialog/map screenshot
 and idle/null-faction text inspected, no error artifact. Startup smoke only, not a
 match. Private relative-base preview built and prepared; final merge/deploy pending.
+
+## 2026-10-11: world AI wait deadline, progress and stop-wait control
+
+User continued the remaining long-world-wait issue after PR12 merge (a57ac26).
+Implement shared180s cutoff fromP3,90s per-attempt timeout, cancellation-aware
+retry delays and response-body waits. Stop-wait means retain ready plans and finish
+one local settlement, not rollback/restart economy or forcibly cancel accepted effects.
+Safe timeout/cancel reasons persist in the existing aiStatus ledger. Individual related
+factions and shared minor batch show actual attempt/status; late results are isolated.
+World-turn save is blocked to avoid partial-turn snapshots. Global map progress stays
+available if commander panel is closed. QA inventory: map-war-qa/world-wait-inventory.md.
+Implementation completed. Added35 tests;590 offline tests passed across52files,
+4live tests skipped. Frontend/backend build/typecheck,17file Oxlint and4reporter
+tests passed. Found/fixed stop enablement extending into local battle effects:
+scheduler now reports only the model-wait phase; tested post-flavor local effects.
+
+Native browser fault injection verified502 retries, real default shared deadline,
+explicit stop, one economic/date event per turn, actual KMT Beijing recruit69->70
+paying1AP/2silver/1food once, and stopping held narrative without undoing that plan.
+Final re-entry after HMR verified UI save/load guards and commander reopen request
+count8->8. Global progress desktop1440x1000/mobile375x812 inspected: mobile panel
+12,499..748, width351; stop button668..700, page width375. Initial stop-summary
+mobile visual inspected; later cancel screenshot missed summary render and is not
+used as summary evidence. Read-only snapshots use exact Vite-loaded module URLs,
+not duplicate no-query singleton imports. No ticker pause; native hide-name setting
+used on final pass. No real-model calls or production backend abort/billing claims.
+Sanitized fixture docs/fixtures/world-ai-wait-browser.json; report
+docs/world-ai-wait-control.md. Browser closed. Standard bundled smoke ran once:
+idle/null-faction state valid, no error file, but opaque black canvas image; inspected
+and not claimed a visual pass. Ordinary viewport shots show actual map/controls;
+recorded screenshot harness issue internally. Merge/private preview deploy pending.

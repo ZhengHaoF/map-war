@@ -93,7 +93,7 @@
           </div>
 
           <!-- 输入区 -->
-          <div class="chat-input-area">
+          <div v-show="!kernelLoading" class="chat-input-area">
             <div class="action-budget" role="status" aria-live="polite">
               回合行动点 {{ actionPoints }}/{{ ACTION_POINTS_PER_TURN }}
               <span>改变世界消耗行动点，结束回合后恢复</span>
