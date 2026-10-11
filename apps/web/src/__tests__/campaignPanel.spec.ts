@@ -66,19 +66,19 @@ describe('campaign panel map draft handoff', () => {
     expect((wrapper.get('[aria-label="行军目标城"]').element as HTMLSelectElement).value).toBe('')
     wrapper.unmount()
   })
-  it('emits actual edited selection for map reselection without submitting', async () => {
+  it('does not contain the obsolete in-dialog map-reselection entry buttons', async () => {
     const { a, b, scheduler } = setup()
     const wrapper = mount(CampaignPanel, {
       props: { visible: true, initialDraft: { kind: 'moveTroops', sourceGb: a, targetGb: b } },
       global: { stubs },
     })
     await wrapper.get('[aria-label="行军出发城"]').setValue(b)
-    await wrapper.findAll('button').find(b => b.text() === '地图重选目标城')!.trigger('click')
-    expect(wrapper.emitted('reselect')?.[0]).toEqual(['target', { kind: 'moveTroops', sourceGb: b, targetGb: '' }])
+    expect(wrapper.find('.campaign-reselect').exists()).toBe(false)
+    expect(wrapper.text()).not.toContain('地图重选')
     expect(scheduler.queue.value).toEqual([])
     wrapper.unmount()
   })
-  it('blocks confirmation and reselection when a queue is pending', async () => {
+  it('blocks final confirmation when a queue is pending', async () => {
     const { a, b, scheduler } = setup()
     const wrapper = mount(CampaignPanel, {
       props: { visible: true, initialDraft: { kind: 'moveTroops', sourceGb: a, targetGb: b } },
@@ -86,7 +86,6 @@ describe('campaign panel map draft handoff', () => {
     })
     scheduler.queue.value = [{ order: 'moveTroops', from: a, to: b, amount: 1 }]
     await nextTick()
-    expect(wrapper.findAll('button').filter(b => b.text().includes('地图重选')).every(b => b.attributes('disabled') !== undefined)).toBe(true)
     expect(wrapper.findAll('button').find(b => b.text() === '执行中…')!.attributes('disabled')).toBeDefined()
     scheduler.queue.value = []
     wrapper.unmount()
