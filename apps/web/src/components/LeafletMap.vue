@@ -1975,7 +1975,7 @@ function onPeaceReject(): void {
 
 /** 读取存档：代理到 useSaveGame.loadGame（含地图重绘收尾） */
 function onLoadGame(slot: string): void {
-  loadGame(slot)
+  if (!loadGame(slot)) return
   loadModalVisible.value = false
   // 读档后恢复进行中的外交协商 session（若存在）
   const bus = useDiplomacyBus()

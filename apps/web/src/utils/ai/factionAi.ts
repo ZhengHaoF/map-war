@@ -17,6 +17,7 @@ import { invokeAgentDecision } from './invoke'
 import { buildFactionSystemPrompt } from './prompts'
 import { validateFactionOrders } from './contract'
 import { commandReceipt } from '@/utils/commandFeedback'
+import type { AiStatus } from '@/utils/aiStatus'
 
 export interface DiplomaticProposal {
   target: Owner
@@ -27,6 +28,7 @@ export interface DiplomaticProposal {
 
 export interface FactionDecision {
   orders: GameOrder[]
+  decisionStatus?: Pick<AiStatus, 'status' | 'reason'>
   telegram?: string
   diplomaticProposal?: DiplomaticProposal
 }
@@ -41,7 +43,7 @@ export async function decideFaction(faction: Owner, context: string): Promise<Fa
   })
 
   if (!result.parseSucceeded) {
-    return { orders: [] }
+    return { orders: [], decisionStatus: { status: 'failed', reason: 'format' } }
   }
 
   // 提取电报与外交提案（可选字段）
@@ -90,5 +92,8 @@ export async function decideFaction(faction: Owner, context: string): Promise<Fa
   )
   strategic.rejected.forEach(item => recordRefusal(item.order, `战略预检拒绝：${item.reason}`))
 
-  return { orders: strategic.approved, telegram, diplomaticProposal }
+  const rejected = result.errors.some(errors => errors.length) || strategic.rejected.length > 0
+  return { orders: strategic.approved, telegram, diplomaticProposal,
+    decisionStatus: rejected ? { status: 'partial', reason: 'filtered' }
+      : { status: result.orders.length ? 'ok' : 'empty' } }
 }

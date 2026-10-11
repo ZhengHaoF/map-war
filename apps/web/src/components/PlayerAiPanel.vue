@@ -149,7 +149,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
+import { ref, computed, nextTick, onMounted, onUnmounted, watch } from 'vue'
 import { useAiOrchestrator } from '@/composables/useAiOrchestrator'
 import { useGameScheduler } from '@/composables/useGameScheduler'
 import { useAgentKernel } from '@/composables/useAgentKernel'
@@ -225,6 +225,7 @@ onUnmounted(() => {
 })
 
 const chatHistory = ref<ChatEntry[]>([])
+watch(() => gameStore.reloadToken, () => { chatHistory.value = [] }, { flush: 'sync' })
 const logRef = ref<HTMLElement | null>(null)
 
 interface ChatEntry {
@@ -244,6 +245,7 @@ async function onSend(): Promise<void> {
   if (busy.value) return
   const userText = userMessage.value.trim()
   if (!userText) return
+  const reloadToken = gameStore.reloadToken
 
   // 多轮对话上下文：取最近 5 轮，构建 user/assistant 对
   const MAX_TURNS = 5
@@ -256,6 +258,7 @@ async function onSend(): Promise<void> {
   })
 
   await runSend()
+  if (gameStore.reloadToken !== reloadToken) return
 
   // 本轮用完后清空，避免跨模式残留
   chatTurns.value = []

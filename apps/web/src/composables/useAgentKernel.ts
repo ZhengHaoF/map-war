@@ -29,6 +29,9 @@ import { Owner, OWNER_LABELS, OWNER_DETAILS } from '@/data/owners'
 import { useToast } from '@/composables/useToast'
 import { buildEconomicTickEvent } from '@/utils/economicTick'
 import { createBatchTroopPreflight } from '@/utils/aiOrderContract'
+import { isAiDegraded, type AiStatus } from '@/utils/aiStatus'
+import type { FactionDecision } from '@/utils/ai/factionAi'
+import { isRoutineEvent } from '@/utils/eventDescribe'
 
 import { useDiplomacyBus } from '@/composables/useDiplomacyBus'
 import type { DiplomaticProposal } from '@/utils/ai/factionAi'
@@ -51,7 +54,7 @@ const turnSummaryOwnership = ref<Record<string, Owner>>({})
 async function invokeFactionAI(
   faction: Owner,
   context: string,
-): Promise<{ orders: GameOrder[]; telegram?: string; diplomaticProposal?: DiplomaticProposal }> {
+): Promise<FactionDecision> {
   const result = await decideFaction(faction, context)
   return result
 }
@@ -68,6 +71,8 @@ async function invokeWorldAIBatch(_factions: Owner[], context: string): Promise<
       title: '世界 AI 输出格式错误',
       text: 'AI 返回无法解析为 JSON',
     })
+    useGameStore().applyEvent({ type: 'aiStatus', phase: 'batch', factions: _factions,
+      status: 'failed', reason: 'format' })
     return []
   }
 
@@ -119,6 +124,9 @@ async function invokeWorldAIBatch(_factions: Owner[], context: string): Promise<
       })
     }
   }
+  store.applyEvent({ type: 'aiStatus', phase: 'batch', factions: _factions,
+    status: rawOrders.length !== strategicOk.length ? 'partial' : rawOrders.length ? 'ok' : 'empty',
+    reason: rawOrders.length !== strategicOk.length ? 'filtered' : undefined })
   return strategicOk
 }
 
@@ -166,6 +174,7 @@ function runEconomicTick(): void {
 
 /** 玩家结束回合 → 排空残留指令 → 启动世界回合 */
 async function endPlayerTurn(): Promise<void> {
+  if (loading.value) return
   const store = useGameStore()
   const scheduler = useGameScheduler()
 
@@ -254,12 +263,22 @@ async function runWorldTurn(): Promise<void> {
 
   for (const f of related) {
     const ctx = buildFactionContext(f)
-    factionPromises.push({ faction: f, promise: invokeFactionAI(f, ctx) })
+    factionPromises.push({ faction: f, promise: invokeFactionAI(f, ctx).then(result => {
+      store.applyEvent({ type: 'aiStatus', phase: 'faction', factions: [f],
+        ...(result.decisionStatus ?? { status: result.orders.length ? 'ok' as const : 'empty' as const }) })
+      return result
+    }, error => {
+      store.applyEvent({ type: 'aiStatus', phase: 'faction', factions: [f], status: 'failed', reason: 'request' })
+      throw error
+    }) })
   }
 
   if (unrelated.length > 0) {
     const ctx = buildMinorContext(unrelated)
-    batchPromises.push(invokeWorldAIBatch(unrelated, ctx))
+    batchPromises.push(invokeWorldAIBatch(unrelated, ctx).catch(error => {
+      store.applyEvent({ type: 'aiStatus', phase: 'batch', factions: unrelated, status: 'failed', reason: 'request' })
+      throw error
+    }))
   }
 
   // 并行等待
@@ -349,7 +368,9 @@ async function runWorldTurn(): Promise<void> {
   progress.value = '世界 AI 总结中…'
 
   // P4 user 消息由 buildSettleContext 内部生成（#5.3：buildSettleContext 自取 sinceDateAdvance 历史）
-  const { narrative, newDate, chatter } = await invokeWorldAISettle(snap.currentDate)
+  const { narrative, newDate, chatter, aiStatus } = await invokeWorldAISettle(snap.currentDate)
+  store.applyEvent({ type: 'aiStatus', phase: 'settlement', factions: [],
+    ...(aiStatus ?? { status: 'ok' }) })
 
   // 系统结算叙事落 eventLog（kind='settlement' 让 aiHistory 不带"玩家："前缀）
   store.applyEvent({ type: 'narrative', playerInput: '', aiMessage: narrative, kind: 'settlement' })
@@ -380,13 +401,13 @@ async function runWorldTurn(): Promise<void> {
   // 提取本回合新增事件作为摘要（排除回合开始前的历史事件）
   const newEvents = store.eventLog.slice(turnStartIdx)
   // 只有存在"有意义的事件"（非 routine）时才弹摘要
-  const hasMeaningful = newEvents.some((e) => {
-    // 使用内联判断替代 isRoutineEvent，避免额外引入导入
-    return e.type !== 'narrative' && e.type !== 'dateAdvance' && e.type !== 'commandReceipt'
-  })
+  const hasMeaningful = newEvents.some((e) => !isRoutineEvent(e))
   turnSummary.value = hasMeaningful ? newEvents : null
 
-  pushToast({ icon: 'check', tone: 'green', title: '回合结束', text: `日期推进至 ${newDate}` })
+  const degraded = newEvents.some((e): e is AiStatus => e.type === 'aiStatus' && isAiDegraded(e))
+  pushToast({ icon: degraded ? 'alert-triangle' : 'check', tone: degraded ? 'amber' : 'green',
+    title: degraded ? '回合结束（AI 降级）' : '回合结束',
+    text: degraded ? `日期推进至 ${newDate}；决策缺失与默认结算详见大事记。不自动重跑已结算行动。` : `日期推进至 ${newDate}` })
 }
 
 export function useAgentKernel() {

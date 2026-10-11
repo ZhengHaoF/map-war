@@ -9,8 +9,8 @@
  * - 实时改图 + store；指令执行均带 PixiJS 演出动画。
  */
 
-import { ref, computed } from 'vue'
-import { useAiChat } from './useAiChat'
+import { ref, computed, watch, getCurrentScope, onScopeDispose } from 'vue'
+import { useAiChat, aiEffectsPending } from './useAiChat'
 import { useGameStore } from '@/stores/game'
 import { buildCampaignContext } from '@/utils/campaignPreview'
 import { buildStrategyContext } from '@/utils/strategyContext'
@@ -30,7 +30,6 @@ import {
 } from '@/utils/aiOrderContract'
 import { normalizeCommsFrom } from '@/utils/commsEntity'
 import {
-  extractJson,
   extractPayloads,
   extractAiMessage,
   isUnifiedResult,
@@ -71,7 +70,7 @@ export type AiMode = AiKind
 
 export function useAiOrchestrator(mode: AiMode = 'world') {
   const store = useGameStore()
-  const { loading, error, response, send } = useAiChat()
+  const { loading, error, response, send, reset } = useAiChat()
 
   // 用户模式（玩家势力代理）默认注入按需世界态（玩家城 + 对话城），
   // 以便 AI 在「进攻杭州」缺省 from 时挑最近己方城市；god-mode 仍默认关、可手动开。
@@ -99,6 +98,24 @@ export function useAiOrchestrator(mode: AiMode = 'world') {
   const worldValidation = ref<WorldValidationResult | null>(null)
   /** 自由行动管道：AI 判定为非指令类行动时，存储叙事 + 事件列表 */
   const freeActionResult = ref<FreeActionPayload | null>(null)
+
+  function resetConversation(): void {
+    reset()
+    userMessage.value = ''
+    chatTurns.value = []
+    parsed.value = null
+    parseError.value = null
+    aiMessage.value = null
+    execResults.value = []
+    strategicRejected.value = []
+    worldValidation.value = null
+    freeActionResult.value = null
+    advisorResponse.value = null
+    playerSuggestions.value = null
+  }
+  // Synchronous invalidation: stale responses cannot write events after a load.
+  const stopReloadWatch = watch(() => store.reloadToken, resetConversation, { flush: 'sync' })
+  if (getCurrentScope()) onScopeDispose(() => { stopReloadWatch(); reset() })
 
   /**
    * 硬编码战略规则拦截（同步，零 LLM 成本）。
@@ -164,6 +181,7 @@ export function useAiOrchestrator(mode: AiMode = 'world') {
 
   async function runSend() {
     if (!userMessage.value.trim()) return
+    const reloadToken = store.reloadToken
     parsed.value = null
     parseError.value = null
     aiMessage.value = null
@@ -196,6 +214,7 @@ export function useAiOrchestrator(mode: AiMode = 'world') {
     }
 
     await send({ messages, response_format: { type: 'json_object' } })
+    if (store.reloadToken !== reloadToken) return
 
     const raw = response.value
     const payloads = extractPayloads(raw)
@@ -234,7 +253,9 @@ export function useAiOrchestrator(mode: AiMode = 'world') {
       }
       // 成功则立即执行事件（失败则只叙事，不改世界态）
       if (fa.freeAction.success && fa.freeAction.effects.length) {
-        await runExecuteFreeAction(fa.freeAction)
+        aiEffectsPending.value++
+        try { await runExecuteFreeAction(fa.freeAction) }
+        finally { aiEffectsPending.value-- }
       }
       return
     }
@@ -490,5 +511,6 @@ export function useAiOrchestrator(mode: AiMode = 'world') {
     applyStrategicRules,
     getFinalApprovedOrders,
     resetWorld,
+    resetConversation,
   }
 }

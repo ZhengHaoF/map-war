@@ -16,6 +16,7 @@ import { extractPayloads } from '@/utils/aiParse'
 import { buildScenarioBrief } from '@/data/scenarioBrief'
 import type { GameOrder } from '@/utils/gameOrders'
 import { nextTurnDate } from '@/utils/turnDate'
+import type { AiStatus } from '@/utils/aiStatus'
 
 const BATCH_PROMPT = `你是民国军阀推演游戏的「世界 AI」。你负责为次要势力生成本回合的行动。
 这些势力不单独配 AI 实例，由你一次性批量生成它们的带日期事件。
@@ -95,6 +96,7 @@ export async function runWorldBatch(context: string): Promise<WorldBatchResult> 
 }
 
 export interface WorldSettleResult {
+  aiStatus?: Pick<AiStatus, 'status' | 'reason'>
   narrative: string
   newDate: string
   chatter: { name?: string; from: string; content: string }[]
@@ -105,18 +107,21 @@ export interface WorldSettleResult {
  * 返回叙事文本、新日期、世界公屏电报。
  */
 export async function runWorldSettle(currentDate: string): Promise<WorldSettleResult> {
+  let requestFailed = false
   const raw = await callLlm({
     messages: [
       { role: 'system', content: SETTLE_PROMPT + '\n\n' + buildScenarioBrief() },
       { role: 'system', content: buildSettleContext(currentDate) },
     ],
-  }).catch(() => null)
+  }).catch(() => { requestFailed = true; return null })
   const payloads = extractPayloads(raw)
   const obj = payloads[0] as Record<string, unknown> | undefined
+  const valid = typeof obj?.narrative === 'string' && !!obj.narrative.trim()
   return {
-    narrative: (obj?.narrative as string) ?? '局势在无声中演变…',
-    newDate: nextTurnDate(currentDate, obj?.newDate),
-    chatter: Array.isArray(obj?.chatter)
+    aiStatus: valid ? { status: 'ok' } : { status: 'failed', reason: requestFailed ? 'request' : 'format' },
+    narrative: valid ? obj.narrative as string : '本回合世界叙事未取得有效回复，已使用默认日期规则继续。',
+    newDate: nextTurnDate(currentDate, valid ? obj?.newDate : undefined),
+    chatter: valid && Array.isArray(obj?.chatter)
       ? (obj.chatter as { name?: string; from: string; content: string }[]).filter(
           (c) => c && typeof c.from === 'string' && typeof c.content === 'string' && c.content.trim(),
         )
