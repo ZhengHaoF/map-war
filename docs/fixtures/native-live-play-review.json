@@ -1,0 +1,2061 @@
+{
+  "sourceCommit": "bec01f3055df54d89fd404f2d9b818ef8c273200",
+  "model": "step-5-preview",
+  "method": "Browser UI with native mouse/keyboard inputs, read-only snapshots, isolated secure QA forwarding. No fabricated game-state changes or mocked replies. Reasoning, authentication headers, proxy URLs and full world prompts omitted.",
+  "boundary": "Two advanced turns; the first used fallback decisions and the second had three failed faction-model attempts. Not uninterrupted successful enemy pressure, not offline replay counted again.",
+  "summary": {
+    "gameplayRequests": 14,
+    "successfulResponses": 6,
+    "testSession401": 5,
+    "upstream502": 3,
+    "actualCommandReceipts": 9,
+    "successfulCommands": 9,
+    "rejectedCommands": 0,
+    "factionRetryResponseMs": 294198
+  },
+  "requests": [
+    {
+      "type": "player",
+      "started": "2026-10-11T11:26:35.165Z",
+      "elapsedMs": 22726,
+      "status": 200,
+      "input": "从成都调15k兵到宜宾，然后从宜宾部署15k到外出部队，暂时不要开战。必须按先调兵、后部署的顺序执行，保留余下驻军，不要改数量。",
+      "finishReason": "stop",
+      "payload": {
+        "msg": "川中道路相通，成都先调十五k兵赴宜宾，随后将宜宾驻军十五k拨为外出部队，留守兵力不动，暂不开战。此令耗两点行动力。",
+        "results": [
+          {
+            "order": {
+              "order": "moveTroops",
+              "from": "成都市",
+              "to": "宜宾市",
+              "amount": 15
+            },
+            "verdict": "feasible",
+            "reason": "成都市与宜宾市同属川军腹地，道路相连，可直接调兵。",
+            "suggestion": null
+          },
+          {
+            "order": {
+              "order": "deploy",
+              "from": "宜宾市",
+              "amount": 15
+            },
+            "verdict": "feasible",
+            "reason": "调兵后宜宾市驻军增至二十三k，部署十五k尚有八k留守，兵力上可以执行。",
+            "suggestion": null
+          }
+        ],
+        "suggestions": [
+          "在宜宾市整军鼓舞士气",
+          "在成都市加固城防",
+          "结束回合以待时变"
+        ]
+      }
+    },
+    {
+      "type": "faction",
+      "started": "2026-10-11T11:32:00.683Z",
+      "elapsedMs": 34,
+      "status": 401,
+      "faction": "滇系",
+      "error": {
+        "type": "authentication_error",
+        "message": "invalid or expired session token"
+      }
+    },
+    {
+      "type": "world-batch",
+      "started": "2026-10-11T11:32:00.982Z",
+      "elapsedMs": 74,
+      "status": 401,
+      "error": {
+        "type": "authentication_error",
+        "message": "invalid or expired session token"
+      }
+    },
+    {
+      "type": "player",
+      "started": "2026-10-11T11:32:05.981Z",
+      "elapsedMs": 70,
+      "status": 401,
+      "input": "共 1 场进行中的战斗（基础减员已由系统公式算出，你只需添戏剧色彩）：\nbattle_1 SCC(宜宾市/外出15k/士气42) vs YUN(昭通市/驻军1k/士气57) fort=20 terrain=山地 turns=0 trend=初次交锋 base: 攻损2k/守损1k/士气攻-4/守-30",
+      "error": {
+        "type": "authentication_error",
+        "message": "invalid or expired session token"
+      }
+    },
+    {
+      "type": "world-settlement",
+      "started": "2026-10-11T11:32:12.455Z",
+      "elapsedMs": 78,
+      "status": 401,
+      "error": {
+        "type": "authentication_error",
+        "message": "invalid or expired session token"
+      }
+    },
+    {
+      "type": "player",
+      "started": "2026-10-11T11:35:04.910Z",
+      "elapsedMs": 37674,
+      "status": 200,
+      "input": "在昭通整军10、筑防5，再在宜宾征兵2k。按当前银粮和行动点正常执行，其他城市不动，不要额外开战。",
+      "finishReason": "stop",
+      "payload": {
+        "msg": "川中诸事理顺，昭通新附，先抚其军、固其城；宜宾再募丁壮以实边围。令出即行，不动干戈，余下银粮足供调度。",
+        "results": [
+          {
+            "order": {
+              "order": "rally",
+              "gb": "昭通",
+              "amount": 10
+            },
+            "verdict": "feasible",
+            "reason": "昭通虽新附待整合，然蜀兵已驻，城头可整军以安士卒，事有可为",
+            "suggestion": null
+          },
+          {
+            "order": {
+              "order": "fortify",
+              "gb": "昭通",
+              "amount": 5
+            },
+            "verdict": "feasible",
+            "reason": "昭通城郭可筑，于山形要冲添砖加瓦以固边围，并无阻碍",
+            "suggestion": null
+          },
+          {
+            "order": {
+              "order": "recruit",
+              "gb": "宜宾",
+              "amount": 2
+            },
+            "verdict": "feasible",
+            "reason": "宜宾蜀中通邑，银粮尚足，募兵二千以实禁卫，库藏可支",
+            "suggestion": null
+          }
+        ],
+        "suggestions": [
+          "等待昭通整合完成，巩固金沙江补给线",
+          "在宜宾继续整军筑防，稳固云南门户",
+          "沿昭通—宜宾要道设防，观察滇系异动"
+        ]
+      }
+    },
+    {
+      "type": "world-batch",
+      "started": "2026-10-11T11:36:35.605Z",
+      "elapsedMs": 76850,
+      "status": 200,
+      "finishReason": "stop",
+      "payload": {
+        "orders": [
+          {
+            "order": "battle",
+            "from": "长沙市",
+            "to": "宜春市",
+            "actor": "国民政府"
+          },
+          {
+            "order": "fortify",
+            "gb": "锦州市",
+            "amount": 5,
+            "actor": "东北军"
+          }
+        ]
+      }
+    },
+    {
+      "type": "faction",
+      "started": "2026-10-11T11:36:35.321Z",
+      "elapsedMs": 100449,
+      "status": 502,
+      "faction": "滇系",
+      "error": {
+        "type": "invalid_request_error",
+        "message": "upstream request failed"
+      }
+    },
+    {
+      "type": "faction",
+      "started": "2026-10-11T11:38:24.834Z",
+      "elapsedMs": 100427,
+      "status": 502,
+      "faction": "滇系",
+      "error": {
+        "type": "invalid_request_error",
+        "message": "upstream request failed"
+      }
+    },
+    {
+      "type": "faction",
+      "started": "2026-10-11T11:40:10.517Z",
+      "elapsedMs": 93322,
+      "status": 502,
+      "faction": "滇系",
+      "error": {
+        "type": "invalid_request_error",
+        "message": "upstream request failed"
+      }
+    },
+    {
+      "type": "player",
+      "started": "2026-10-11T11:41:58.375Z",
+      "elapsedMs": 8647,
+      "status": 200,
+      "input": "共 1 场进行中的战斗（基础减员已由系统公式算出，你只需添戏剧色彩）：\nbattle_2 KMT(长沙市/外出37k/士气61) vs CCP(宜春市/驻军2k/士气82) fort=20 terrain=丘陵 turns=0 trend=初次交锋 base: 攻损4k/守损1k/士气攻-3/守-15",
+      "finishReason": "stop",
+      "payload": {
+        "results": [
+          {
+            "battleId": "battle_2",
+            "events": [],
+            "narrative": "KMT大军围攻宜春，初次交锋即在丘陵堡垒下碰壁，攻方虽众却死伤枕藉；守军凭险据守，亦伤亡惨重。"
+          }
+        ]
+      }
+    },
+    {
+      "type": "world-settlement",
+      "started": "2026-10-11T11:42:11.958Z",
+      "elapsedMs": 28911,
+      "status": 200,
+      "finishReason": "stop",
+      "payload": {
+        "narrative": "川军趁势南下，一战克复昭通，滇西屏障尽失；国民政府则于赣边厉兵，长沙重兵直指宜春，剿共战火愈炽。东北军亦于锦州增垒备战，北疆风声鹤唳。当是时也，外患内忧交织，群雄各谋其利，神州谁执牛耳？",
+        "newDate": "1931-04-15",
+        "chatter": [
+          {
+            "name": "刘湘",
+            "from": "川军",
+            "content": "昭通既下，滇西门户洞开，川中子弟正宜趁势饮马昆明。"
+          },
+          {
+            "name": "蒋介石",
+            "from": "国民政府",
+            "content": "宜春小挫，未碍大局。赣边赤氛虽炽，必为中央军次第肃清。"
+          },
+          {
+            "name": "本庄繁",
+            "from": "日本关东军",
+            "content": "锦州筑垒，徒耗钱粮。南满沿线，岂容支那窥伺于侧？"
+          }
+        ]
+      }
+    },
+    {
+      "type": "player",
+      "started": "2026-10-11T11:44:26.850Z",
+      "elapsedMs": 48,
+      "status": 401,
+      "input": "仅在宜宾征兵1k，不做其他行动。",
+      "error": {
+        "type": "authentication_error",
+        "message": "invalid or expired session token"
+      }
+    },
+    {
+      "type": "player",
+      "started": "2026-10-11T11:47:04.678Z",
+      "elapsedMs": 11020,
+      "status": 200,
+      "input": "仅在宜宾征兵1k，不做其他行动。",
+      "finishReason": "stop",
+      "payload": {
+        "msg": "宜宾就地募丁，得壮士千人，以实边备。",
+        "results": [
+          {
+            "order": {
+              "order": "recruit",
+              "gb": "宜宾市",
+              "amount": 1
+            },
+            "verdict": "feasible",
+            "reason": "宜宾为川军所辖城池，募兵补员实属平常，地理与行政上皆无阻碍",
+            "suggestion": null
+          }
+        ],
+        "suggestions": [
+          "在宜宾征兵后筑防以固城守",
+          "从成都调兵充实宜宾驻军"
+        ]
+      }
+    }
+  ],
+  "steps": [
+    {
+      "id": "real-player-transfer-then-deploy",
+      "input": "从成都调15k兵到宜宾，然后从宜宾部署15k到外出部队，暂时不要开战。必须按先调兵、后部署的顺序执行，保留余下驻军，不要改数量。",
+      "before": {
+        "date": "1931-04-01",
+        "turn": 0,
+        "faction": "SCC",
+        "silver": 1200,
+        "food": 720,
+        "points": 6,
+        "scenario": null,
+        "cities": {
+          "chengdu": {
+            "gb": "156510100",
+            "name": "成都市",
+            "owner": "SCC",
+            "terrain": "MOUNTAIN",
+            "cityLevel": 4,
+            "industry": 50,
+            "food": 90,
+            "fort": 100,
+            "troops": 150,
+            "fieldForce": 0,
+            "morale": 56
+          },
+          "yibin": {
+            "gb": "156511500",
+            "name": "宜宾市",
+            "owner": "SCC",
+            "terrain": "MOUNTAIN",
+            "cityLevel": 2,
+            "industry": 10,
+            "food": 30,
+            "fort": 20,
+            "troops": 8,
+            "fieldForce": 0,
+            "morale": 42
+          },
+          "luzhou": {
+            "gb": "156510500",
+            "name": "泸州市",
+            "owner": "SCC",
+            "terrain": "MOUNTAIN",
+            "cityLevel": 2,
+            "industry": 10,
+            "food": 30,
+            "fort": 20,
+            "troops": 8,
+            "fieldForce": 0,
+            "morale": 42
+          },
+          "zhaotong": {
+            "gb": "156530600",
+            "name": "昭通市",
+            "owner": "YUN",
+            "terrain": "MOUNTAIN",
+            "cityLevel": 2,
+            "industry": 10,
+            "food": 30,
+            "fort": 20,
+            "troops": 1,
+            "fieldForce": 0,
+            "morale": 57
+          }
+        },
+        "battles": []
+      },
+      "after": {
+        "date": "1931-04-01",
+        "turn": 0,
+        "faction": "SCC",
+        "silver": 1117.1,
+        "food": 657.9,
+        "points": 4,
+        "scenario": {
+          "id": "southwest-bridgehead",
+          "faction": "SCC",
+          "startedTurn": 0,
+          "holdTurns": 0
+        },
+        "cities": {
+          "chengdu": {
+            "gb": "156510100",
+            "name": "成都市",
+            "owner": "SCC",
+            "terrain": "MOUNTAIN",
+            "cityLevel": 4,
+            "industry": 50,
+            "food": 90,
+            "fort": 100,
+            "troops": 135,
+            "fieldForce": 0,
+            "morale": 56
+          },
+          "yibin": {
+            "gb": "156511500",
+            "name": "宜宾市",
+            "owner": "SCC",
+            "terrain": "MOUNTAIN",
+            "cityLevel": 2,
+            "industry": 10,
+            "food": 30,
+            "fort": 20,
+            "troops": 8,
+            "fieldForce": 15,
+            "morale": 42
+          },
+          "luzhou": {
+            "gb": "156510500",
+            "name": "泸州市",
+            "owner": "SCC",
+            "terrain": "MOUNTAIN",
+            "cityLevel": 2,
+            "industry": 10,
+            "food": 30,
+            "fort": 20,
+            "troops": 8,
+            "fieldForce": 0,
+            "morale": 42
+          },
+          "zhaotong": {
+            "gb": "156530600",
+            "name": "昭通市",
+            "owner": "YUN",
+            "terrain": "MOUNTAIN",
+            "cityLevel": 2,
+            "industry": 10,
+            "food": 30,
+            "fort": 20,
+            "troops": 1,
+            "fieldForce": 0,
+            "morale": 57
+          }
+        },
+        "battles": []
+      },
+      "eventsDelta": [
+        {
+          "type": "narrative",
+          "playerInput": "从成都调15k兵到宜宾，然后从宜宾部署15k到外出部队，暂时不要开战。必须按先调兵、后部署的顺序执行，保留余下驻军，不要改数量。",
+          "aiMessage": "川中道路相通，成都先调十五k兵赴宜宾，随后将宜宾驻军十五k拨为外出部队，留守兵力不动，暂不开战。此令耗两点行动力。",
+          "kind": "player"
+        },
+        {
+          "type": "actionSpent",
+          "faction": "SCC",
+          "amount": 1
+        },
+        {
+          "type": "treasuryChange",
+          "faction": "SCC",
+          "delta": -82.9,
+          "reason": "行军消耗"
+        },
+        {
+          "type": "granaryChange",
+          "faction": "SCC",
+          "delta": -62.1,
+          "reason": "行军消耗"
+        },
+        {
+          "type": "moveTroops",
+          "fromGb": "156510100",
+          "toGb": "156511500",
+          "amount": 15
+        },
+        {
+          "type": "commandReceipt",
+          "faction": "SCC",
+          "label": "moveTroops 成都市 → 宜宾市 数量15",
+          "ok": true,
+          "spentPoints": 1,
+          "spentSilver": 82.9,
+          "spentFood": 62.1,
+          "remainingPoints": 5,
+          "remainingSilver": 1117.1,
+          "remainingFood": 657.9
+        },
+        {
+          "type": "actionSpent",
+          "faction": "SCC",
+          "amount": 1
+        },
+        {
+          "type": "deploy",
+          "fromGb": "156511500",
+          "amount": 15
+        },
+        {
+          "type": "commandReceipt",
+          "faction": "SCC",
+          "label": "deploy 宜宾市 数量15",
+          "ok": true,
+          "spentPoints": 1,
+          "spentSilver": 0,
+          "spentFood": 0,
+          "remainingPoints": 4,
+          "remainingSilver": 1117.1,
+          "remainingFood": 657.9
+        },
+        {
+          "type": "scenarioStarted",
+          "id": "southwest-bridgehead",
+          "faction": "SCC"
+        }
+      ]
+    },
+    {
+      "id": "native-map-attack-zero-new-deploy",
+      "before": {
+        "date": "1931-04-01",
+        "turn": 0,
+        "faction": "SCC",
+        "silver": 1117.1,
+        "food": 657.9,
+        "points": 4,
+        "scenario": {
+          "id": "southwest-bridgehead",
+          "faction": "SCC",
+          "startedTurn": 0,
+          "holdTurns": 0
+        },
+        "cities": {
+          "chengdu": {
+            "gb": "156510100",
+            "name": "成都市",
+            "owner": "SCC",
+            "terrain": "MOUNTAIN",
+            "cityLevel": 4,
+            "industry": 50,
+            "food": 90,
+            "fort": 100,
+            "troops": 135,
+            "fieldForce": 0,
+            "morale": 56
+          },
+          "yibin": {
+            "gb": "156511500",
+            "name": "宜宾市",
+            "owner": "SCC",
+            "terrain": "MOUNTAIN",
+            "cityLevel": 2,
+            "industry": 10,
+            "food": 30,
+            "fort": 20,
+            "troops": 8,
+            "fieldForce": 15,
+            "morale": 42
+          },
+          "luzhou": {
+            "gb": "156510500",
+            "name": "泸州市",
+            "owner": "SCC",
+            "terrain": "MOUNTAIN",
+            "cityLevel": 2,
+            "industry": 10,
+            "food": 30,
+            "fort": 20,
+            "troops": 8,
+            "fieldForce": 0,
+            "morale": 42
+          },
+          "zhaotong": {
+            "gb": "156530600",
+            "name": "昭通市",
+            "owner": "YUN",
+            "terrain": "MOUNTAIN",
+            "cityLevel": 2,
+            "industry": 10,
+            "food": 30,
+            "fort": 20,
+            "troops": 1,
+            "fieldForce": 0,
+            "morale": 57
+          }
+        },
+        "battles": []
+      },
+      "after": {
+        "date": "1931-04-01",
+        "turn": 0,
+        "faction": "SCC",
+        "silver": 1081.2,
+        "food": 631,
+        "points": 3,
+        "scenario": {
+          "id": "southwest-bridgehead",
+          "faction": "SCC",
+          "startedTurn": 0,
+          "holdTurns": 0
+        },
+        "cities": {
+          "chengdu": {
+            "gb": "156510100",
+            "name": "成都市",
+            "owner": "SCC",
+            "terrain": "MOUNTAIN",
+            "cityLevel": 4,
+            "industry": 50,
+            "food": 90,
+            "fort": 100,
+            "troops": 135,
+            "fieldForce": 0,
+            "morale": 56
+          },
+          "yibin": {
+            "gb": "156511500",
+            "name": "宜宾市",
+            "owner": "SCC",
+            "terrain": "MOUNTAIN",
+            "cityLevel": 2,
+            "industry": 10,
+            "food": 30,
+            "fort": 20,
+            "troops": 8,
+            "fieldForce": 15,
+            "morale": 42
+          },
+          "luzhou": {
+            "gb": "156510500",
+            "name": "泸州市",
+            "owner": "SCC",
+            "terrain": "MOUNTAIN",
+            "cityLevel": 2,
+            "industry": 10,
+            "food": 30,
+            "fort": 20,
+            "troops": 8,
+            "fieldForce": 0,
+            "morale": 42
+          },
+          "zhaotong": {
+            "gb": "156530600",
+            "name": "昭通市",
+            "owner": "YUN",
+            "terrain": "MOUNTAIN",
+            "cityLevel": 2,
+            "industry": 10,
+            "food": 30,
+            "fort": 20,
+            "troops": 1,
+            "fieldForce": 0,
+            "morale": 57
+          }
+        },
+        "battles": [
+          {
+            "id": "battle_1",
+            "from": "156511500",
+            "to": "156530600",
+            "fromName": "宜宾市",
+            "toName": "昭通市",
+            "active": true,
+            "attacker": "SCC",
+            "defender": "YUN",
+            "turns": 0,
+            "totalAttackerLoss": 0,
+            "totalDefenderLoss": 0,
+            "lastAttackerLoss": 0,
+            "lastDefenderLoss": 0,
+            "route": [
+              "156511500",
+              "156530600"
+            ],
+            "marchDistanceKm": 119.7,
+            "routeHasSea": false,
+            "supplyRulesVersion": 1
+          }
+        ]
+      },
+      "eventsDelta": [
+        {
+          "type": "actionSpent",
+          "faction": "SCC",
+          "amount": 1
+        },
+        {
+          "type": "treasuryChange",
+          "faction": "SCC",
+          "delta": -35.9,
+          "reason": "行军消耗"
+        },
+        {
+          "type": "granaryChange",
+          "faction": "SCC",
+          "delta": -26.9,
+          "reason": "行军消耗"
+        },
+        {
+          "type": "battleStart",
+          "battleId": "battle_1",
+          "fromGb": "156511500",
+          "targetGb": "156530600",
+          "fromName": "宜宾市",
+          "toName": "昭通市",
+          "attacker": "SCC",
+          "defender": "YUN",
+          "route": [
+            "156511500",
+            "156530600"
+          ],
+          "marchDistanceKm": 119.7,
+          "routeHasSea": false,
+          "supplyRulesVersion": 1
+        },
+        {
+          "type": "relationChange",
+          "a": "SCC",
+          "b": "YUN",
+          "status": "war",
+          "note": "宜宾市攻昭通市，兵戈再起"
+        },
+        {
+          "type": "commandReceipt",
+          "faction": "SCC",
+          "label": "battle 156511500 → 156530600",
+          "ok": true,
+          "spentPoints": 1,
+          "spentSilver": 35.9,
+          "spentFood": 26.9,
+          "remainingPoints": 3,
+          "remainingSilver": 1081.2,
+          "remainingFood": 631
+        }
+      ]
+    },
+    {
+      "id": "degraded-world-turn-test-session-expired",
+      "before": {
+        "date": "1931-04-01",
+        "turn": 0,
+        "faction": "SCC",
+        "silver": 1081.2,
+        "food": 631,
+        "points": 3,
+        "scenario": {
+          "id": "southwest-bridgehead",
+          "faction": "SCC",
+          "startedTurn": 0,
+          "holdTurns": 0
+        },
+        "cities": {
+          "chengdu": {
+            "gb": "156510100",
+            "name": "成都市",
+            "owner": "SCC",
+            "terrain": "MOUNTAIN",
+            "cityLevel": 4,
+            "industry": 50,
+            "food": 90,
+            "fort": 100,
+            "troops": 135,
+            "fieldForce": 0,
+            "morale": 56
+          },
+          "yibin": {
+            "gb": "156511500",
+            "name": "宜宾市",
+            "owner": "SCC",
+            "terrain": "MOUNTAIN",
+            "cityLevel": 2,
+            "industry": 10,
+            "food": 30,
+            "fort": 20,
+            "troops": 8,
+            "fieldForce": 15,
+            "morale": 42
+          },
+          "luzhou": {
+            "gb": "156510500",
+            "name": "泸州市",
+            "owner": "SCC",
+            "terrain": "MOUNTAIN",
+            "cityLevel": 2,
+            "industry": 10,
+            "food": 30,
+            "fort": 20,
+            "troops": 8,
+            "fieldForce": 0,
+            "morale": 42
+          },
+          "zhaotong": {
+            "gb": "156530600",
+            "name": "昭通市",
+            "owner": "YUN",
+            "terrain": "MOUNTAIN",
+            "cityLevel": 2,
+            "industry": 10,
+            "food": 30,
+            "fort": 20,
+            "troops": 1,
+            "fieldForce": 0,
+            "morale": 57
+          }
+        },
+        "battles": [
+          {
+            "id": "battle_1",
+            "from": "156511500",
+            "to": "156530600",
+            "fromName": "宜宾市",
+            "toName": "昭通市",
+            "active": true,
+            "attacker": "SCC",
+            "defender": "YUN",
+            "turns": 0,
+            "totalAttackerLoss": 0,
+            "totalDefenderLoss": 0,
+            "lastAttackerLoss": 0,
+            "lastDefenderLoss": 0,
+            "route": [
+              "156511500",
+              "156530600"
+            ],
+            "marchDistanceKm": 119.7,
+            "routeHasSea": false,
+            "supplyRulesVersion": 1
+          }
+        ]
+      },
+      "after": {
+        "date": "1931-04-08",
+        "turn": 1,
+        "faction": "SCC",
+        "silver": 1089,
+        "food": 817,
+        "points": 6,
+        "scenario": {
+          "id": "southwest-bridgehead",
+          "faction": "SCC",
+          "startedTurn": 0,
+          "holdTurns": 0
+        },
+        "cities": {
+          "chengdu": {
+            "gb": "156510100",
+            "name": "成都市",
+            "owner": "SCC",
+            "terrain": "MOUNTAIN",
+            "cityLevel": 4,
+            "industry": 50,
+            "food": 90,
+            "fort": 100,
+            "troops": 135,
+            "fieldForce": 0,
+            "morale": 56
+          },
+          "yibin": {
+            "gb": "156511500",
+            "name": "宜宾市",
+            "owner": "SCC",
+            "terrain": "MOUNTAIN",
+            "cityLevel": 2,
+            "industry": 10,
+            "food": 30,
+            "fort": 20,
+            "troops": 8,
+            "fieldForce": 0,
+            "morale": 48
+          },
+          "luzhou": {
+            "gb": "156510500",
+            "name": "泸州市",
+            "owner": "SCC",
+            "terrain": "MOUNTAIN",
+            "cityLevel": 2,
+            "industry": 10,
+            "food": 30,
+            "fort": 20,
+            "troops": 8,
+            "fieldForce": 0,
+            "morale": 42
+          },
+          "zhaotong": {
+            "gb": "156530600",
+            "name": "昭通市",
+            "owner": "SCC",
+            "terrain": "MOUNTAIN",
+            "cityLevel": 2,
+            "industry": 10,
+            "food": 30,
+            "fort": 20,
+            "troops": 13,
+            "fieldForce": 0,
+            "morale": 39,
+            "occupationUntilTurn": 2
+          }
+        },
+        "battles": []
+      },
+      "eventsDelta": [
+        {
+          "type": "economicTick",
+          "entries": [
+            {
+              "faction": "KMT",
+              "silverDelta": 668.5,
+              "foodDelta": 1978,
+              "silverTax": 1518.5,
+              "silverUpkeep": 850,
+              "foodProduce": 2488,
+              "foodUpkeep": 510,
+              "arrear": false,
+              "famine": false
+            },
+            {
+              "faction": "CCP",
+              "silverDelta": 76.8,
+              "foodDelta": 160,
+              "silverTax": 96.8,
+              "silverUpkeep": 20,
+              "foodProduce": 172,
+              "foodUpkeep": 12,
+              "arrear": false,
+              "famine": false
+            },
+            {
+              "faction": "JPN",
+              "silverDelta": 32,
+              "foodDelta": 66,
+              "silverTax": 42,
+              "silverUpkeep": 10,
+              "foodProduce": 72,
+              "foodUpkeep": 6,
+              "arrear": false,
+              "famine": false
+            },
+            {
+              "faction": "NEA",
+              "silverDelta": 98.8,
+              "foodDelta": 306,
+              "silverTax": 248.8,
+              "silverUpkeep": 150,
+              "foodProduce": 396,
+              "foodUpkeep": 90,
+              "arrear": false,
+              "famine": false
+            },
+            {
+              "faction": "SHX",
+              "silverDelta": 9.3,
+              "foodDelta": 95,
+              "silverTax": 84.3,
+              "silverUpkeep": 75,
+              "foodProduce": 140,
+              "foodUpkeep": 45,
+              "arrear": false,
+              "famine": false
+            },
+            {
+              "faction": "GXC",
+              "silverDelta": 53.8,
+              "foodDelta": 142,
+              "silverTax": 103.8,
+              "silverUpkeep": 50,
+              "foodProduce": 172,
+              "foodUpkeep": 30,
+              "arrear": false,
+              "famine": false
+            },
+            {
+              "faction": "SCC",
+              "silverDelta": 7.8,
+              "foodDelta": 186,
+              "silverTax": 157.8,
+              "silverUpkeep": 150,
+              "foodProduce": 276,
+              "foodUpkeep": 90,
+              "arrear": false,
+              "famine": false
+            },
+            {
+              "faction": "MA",
+              "silverDelta": 203.8,
+              "foodDelta": 333,
+              "silverTax": 228.8,
+              "silverUpkeep": 25,
+              "foodProduce": 348,
+              "foodUpkeep": 15,
+              "arrear": false,
+              "famine": false
+            },
+            {
+              "faction": "XJ",
+              "silverDelta": 180.8,
+              "foodDelta": 303.5,
+              "silverTax": 188.3,
+              "silverUpkeep": 7.5,
+              "foodProduce": 308,
+              "foodUpkeep": 4.5,
+              "arrear": false,
+              "famine": false
+            },
+            {
+              "faction": "TIB",
+              "silverDelta": 48.3,
+              "foodDelta": 61,
+              "silverTax": 53.3,
+              "silverUpkeep": 5,
+              "foodProduce": 64,
+              "foodUpkeep": 3,
+              "arrear": false,
+              "famine": false
+            },
+            {
+              "faction": "YUN",
+              "silverDelta": 99.8,
+              "foodDelta": 184,
+              "silverTax": 119.8,
+              "silverUpkeep": 20,
+              "foodProduce": 196,
+              "foodUpkeep": 12,
+              "arrear": false,
+              "famine": false
+            },
+            {
+              "faction": "GUI",
+              "silverDelta": 57.3,
+              "foodDelta": 102,
+              "silverTax": 67.3,
+              "silverUpkeep": 10,
+              "foodProduce": 108,
+              "foodUpkeep": 6,
+              "arrear": false,
+              "famine": false
+            }
+          ],
+          "attritionVersion": 2
+        },
+        {
+          "type": "attack",
+          "fromGb": "156511500",
+          "targetGb": "156530600",
+          "attackerLoss": 2,
+          "defenderLoss": 1,
+          "narrative": "本轮补给通畅。"
+        },
+        {
+          "type": "moraleChange",
+          "targetGb": "156511500",
+          "delta": -4
+        },
+        {
+          "type": "moraleChange",
+          "targetGb": "156530600",
+          "delta": -30
+        },
+        {
+          "type": "capture",
+          "targetGb": "156530600",
+          "actor": "SCC",
+          "resultTroops": 13,
+          "occupationTurns": 2
+        },
+        {
+          "type": "battleEnd",
+          "battleId": "battle_1",
+          "reason": "capture",
+          "fromName": "宜宾市",
+          "toName": "昭通市"
+        },
+        {
+          "type": "moraleChange",
+          "targetGb": "156511500",
+          "delta": 10
+        },
+        {
+          "type": "narrative",
+          "playerInput": "",
+          "aiMessage": "局势在无声中演变…",
+          "kind": "settlement"
+        },
+        {
+          "type": "dateAdvance",
+          "date": "1931-04-08"
+        }
+      ]
+    },
+    {
+      "id": "real-player-post-capture-domestic",
+      "input": "在昭通整军10、筑防5，再在宜宾征兵2k。按当前银粮和行动点正常执行，其他城市不动，不要额外开战。",
+      "before": {
+        "date": "1931-04-08",
+        "turn": 1,
+        "faction": "SCC",
+        "silver": 1089,
+        "food": 817,
+        "points": 6,
+        "scenario": {
+          "id": "southwest-bridgehead",
+          "faction": "SCC",
+          "startedTurn": 0,
+          "holdTurns": 0
+        },
+        "cities": {
+          "chengdu": {
+            "gb": "156510100",
+            "name": "成都市",
+            "owner": "SCC",
+            "terrain": "MOUNTAIN",
+            "cityLevel": 4,
+            "industry": 50,
+            "food": 90,
+            "fort": 100,
+            "troops": 135,
+            "fieldForce": 0,
+            "morale": 56
+          },
+          "yibin": {
+            "gb": "156511500",
+            "name": "宜宾市",
+            "owner": "SCC",
+            "terrain": "MOUNTAIN",
+            "cityLevel": 2,
+            "industry": 10,
+            "food": 30,
+            "fort": 20,
+            "troops": 8,
+            "fieldForce": 0,
+            "morale": 48
+          },
+          "luzhou": {
+            "gb": "156510500",
+            "name": "泸州市",
+            "owner": "SCC",
+            "terrain": "MOUNTAIN",
+            "cityLevel": 2,
+            "industry": 10,
+            "food": 30,
+            "fort": 20,
+            "troops": 8,
+            "fieldForce": 0,
+            "morale": 42
+          },
+          "zhaotong": {
+            "gb": "156530600",
+            "name": "昭通市",
+            "owner": "SCC",
+            "terrain": "MOUNTAIN",
+            "cityLevel": 2,
+            "industry": 10,
+            "food": 30,
+            "fort": 20,
+            "troops": 13,
+            "fieldForce": 0,
+            "morale": 39,
+            "occupationUntilTurn": 2
+          }
+        },
+        "battles": []
+      },
+      "after": {
+        "date": "1931-04-08",
+        "turn": 1,
+        "faction": "SCC",
+        "silver": 1077.5,
+        "food": 815,
+        "points": 3,
+        "scenario": {
+          "id": "southwest-bridgehead",
+          "faction": "SCC",
+          "startedTurn": 0,
+          "holdTurns": 0
+        },
+        "cities": {
+          "chengdu": {
+            "gb": "156510100",
+            "name": "成都市",
+            "owner": "SCC",
+            "terrain": "MOUNTAIN",
+            "cityLevel": 4,
+            "industry": 50,
+            "food": 90,
+            "fort": 100,
+            "troops": 135,
+            "fieldForce": 0,
+            "morale": 56
+          },
+          "yibin": {
+            "gb": "156511500",
+            "name": "宜宾市",
+            "owner": "SCC",
+            "terrain": "MOUNTAIN",
+            "cityLevel": 2,
+            "industry": 10,
+            "food": 30,
+            "fort": 20,
+            "troops": 10,
+            "fieldForce": 0,
+            "morale": 48
+          },
+          "luzhou": {
+            "gb": "156510500",
+            "name": "泸州市",
+            "owner": "SCC",
+            "terrain": "MOUNTAIN",
+            "cityLevel": 2,
+            "industry": 10,
+            "food": 30,
+            "fort": 20,
+            "troops": 8,
+            "fieldForce": 0,
+            "morale": 42
+          },
+          "zhaotong": {
+            "gb": "156530600",
+            "name": "昭通市",
+            "owner": "SCC",
+            "terrain": "MOUNTAIN",
+            "cityLevel": 2,
+            "industry": 10,
+            "food": 30,
+            "fort": 25,
+            "troops": 13,
+            "fieldForce": 0,
+            "morale": 49,
+            "occupationUntilTurn": 2
+          }
+        },
+        "battles": []
+      },
+      "eventsDelta": [
+        {
+          "type": "narrative",
+          "playerInput": "在昭通整军10、筑防5，再在宜宾征兵2k。按当前银粮和行动点正常执行，其他城市不动，不要额外开战。",
+          "aiMessage": "川中诸事理顺，昭通新附，先抚其军、固其城；宜宾再募丁壮以实边围。令出即行，不动干戈，余下银粮足供调度。",
+          "kind": "player"
+        },
+        {
+          "type": "actionSpent",
+          "faction": "SCC",
+          "amount": 1
+        },
+        {
+          "type": "treasuryChange",
+          "faction": "SCC",
+          "delta": -2.5,
+          "reason": "内政·rally"
+        },
+        {
+          "type": "moraleChange",
+          "targetGb": "156530600",
+          "delta": 10
+        },
+        {
+          "type": "commandReceipt",
+          "faction": "SCC",
+          "label": "rally 昭通 数量10",
+          "ok": true,
+          "spentPoints": 1,
+          "spentSilver": 2.5,
+          "spentFood": 0,
+          "remainingPoints": 5,
+          "remainingSilver": 1086.5,
+          "remainingFood": 817
+        },
+        {
+          "type": "actionSpent",
+          "faction": "SCC",
+          "amount": 1
+        },
+        {
+          "type": "treasuryChange",
+          "faction": "SCC",
+          "delta": -5,
+          "reason": "内政·fortify"
+        },
+        {
+          "type": "cityStatChange",
+          "targetGb": "156530600",
+          "field": "fort",
+          "delta": 5
+        },
+        {
+          "type": "commandReceipt",
+          "faction": "SCC",
+          "label": "fortify 昭通 数量5",
+          "ok": true,
+          "spentPoints": 1,
+          "spentSilver": 5,
+          "spentFood": 0,
+          "remainingPoints": 4,
+          "remainingSilver": 1081.5,
+          "remainingFood": 817
+        },
+        {
+          "type": "actionSpent",
+          "faction": "SCC",
+          "amount": 1
+        },
+        {
+          "type": "treasuryChange",
+          "faction": "SCC",
+          "delta": -4,
+          "reason": "内政·recruit"
+        },
+        {
+          "type": "granaryChange",
+          "faction": "SCC",
+          "delta": -2,
+          "reason": "征兵·recruit"
+        },
+        {
+          "type": "produce",
+          "targetGb": "156511500",
+          "amount": 2
+        },
+        {
+          "type": "commandReceipt",
+          "faction": "SCC",
+          "label": "recruit 宜宾 数量2",
+          "ok": true,
+          "spentPoints": 1,
+          "spentSilver": 4,
+          "spentFood": 2,
+          "remainingPoints": 3,
+          "remainingSilver": 1077.5,
+          "remainingFood": 815
+        }
+      ]
+    },
+    {
+      "id": "partially-degraded-world-turn-upstream-502",
+      "before": {
+        "date": "1931-04-08",
+        "turn": 1,
+        "faction": "SCC",
+        "silver": 1077.5,
+        "food": 815,
+        "points": 3,
+        "scenario": {
+          "id": "southwest-bridgehead",
+          "faction": "SCC",
+          "startedTurn": 0,
+          "holdTurns": 0
+        },
+        "cities": {
+          "chengdu": {
+            "gb": "156510100",
+            "name": "成都市",
+            "owner": "SCC",
+            "terrain": "MOUNTAIN",
+            "cityLevel": 4,
+            "industry": 50,
+            "food": 90,
+            "fort": 100,
+            "troops": 135,
+            "fieldForce": 0,
+            "morale": 56
+          },
+          "yibin": {
+            "gb": "156511500",
+            "name": "宜宾市",
+            "owner": "SCC",
+            "terrain": "MOUNTAIN",
+            "cityLevel": 2,
+            "industry": 10,
+            "food": 30,
+            "fort": 20,
+            "troops": 10,
+            "fieldForce": 0,
+            "morale": 48
+          },
+          "luzhou": {
+            "gb": "156510500",
+            "name": "泸州市",
+            "owner": "SCC",
+            "terrain": "MOUNTAIN",
+            "cityLevel": 2,
+            "industry": 10,
+            "food": 30,
+            "fort": 20,
+            "troops": 8,
+            "fieldForce": 0,
+            "morale": 42
+          },
+          "zhaotong": {
+            "gb": "156530600",
+            "name": "昭通市",
+            "owner": "SCC",
+            "terrain": "MOUNTAIN",
+            "cityLevel": 2,
+            "industry": 10,
+            "food": 30,
+            "fort": 25,
+            "troops": 13,
+            "fieldForce": 0,
+            "morale": 49,
+            "occupationUntilTurn": 2
+          }
+        },
+        "battles": []
+      },
+      "after": {
+        "date": "1931-04-15",
+        "turn": 2,
+        "faction": "SCC",
+        "silver": 1088.8,
+        "food": 1007,
+        "points": 6,
+        "scenario": {
+          "id": "southwest-bridgehead",
+          "faction": "SCC",
+          "startedTurn": 0,
+          "holdTurns": 0
+        },
+        "cities": {
+          "chengdu": {
+            "gb": "156510100",
+            "name": "成都市",
+            "owner": "SCC",
+            "terrain": "MOUNTAIN",
+            "cityLevel": 4,
+            "industry": 50,
+            "food": 90,
+            "fort": 100,
+            "troops": 135,
+            "fieldForce": 0,
+            "morale": 56
+          },
+          "yibin": {
+            "gb": "156511500",
+            "name": "宜宾市",
+            "owner": "SCC",
+            "terrain": "MOUNTAIN",
+            "cityLevel": 2,
+            "industry": 10,
+            "food": 30,
+            "fort": 20,
+            "troops": 10,
+            "fieldForce": 0,
+            "morale": 48
+          },
+          "luzhou": {
+            "gb": "156510500",
+            "name": "泸州市",
+            "owner": "SCC",
+            "terrain": "MOUNTAIN",
+            "cityLevel": 2,
+            "industry": 10,
+            "food": 30,
+            "fort": 20,
+            "troops": 8,
+            "fieldForce": 0,
+            "morale": 42
+          },
+          "zhaotong": {
+            "gb": "156530600",
+            "name": "昭通市",
+            "owner": "SCC",
+            "terrain": "MOUNTAIN",
+            "cityLevel": 2,
+            "industry": 10,
+            "food": 30,
+            "fort": 25,
+            "troops": 13,
+            "fieldForce": 0,
+            "morale": 49,
+            "occupationUntilTurn": 2
+          }
+        },
+        "battles": [
+          {
+            "id": "battle_2",
+            "from": "156430100",
+            "to": "156360900",
+            "fromName": "长沙市",
+            "toName": "宜春市",
+            "active": true,
+            "attacker": "KMT",
+            "defender": "CCP",
+            "turns": 1,
+            "totalAttackerLoss": 4,
+            "totalDefenderLoss": 1,
+            "lastAttackerLoss": 4,
+            "lastDefenderLoss": 1,
+            "route": [
+              "156430100",
+              "156360900"
+            ],
+            "marchDistanceKm": 178.5,
+            "routeHasSea": false,
+            "supplyRulesVersion": 1,
+            "lastNarrative": "KMT大军围攻宜春，初次交锋即在丘陵堡垒下碰壁，攻方虽众却死伤枕藉；守军凭险据守，亦伤亡惨重。 本轮补给通畅。"
+          }
+        ]
+      },
+      "eventsDelta": [
+        {
+          "type": "economicTick",
+          "entries": [
+            {
+              "faction": "KMT",
+              "silverDelta": 668.5,
+              "foodDelta": 1978,
+              "silverTax": 1518.5,
+              "silverUpkeep": 850,
+              "foodProduce": 2488,
+              "foodUpkeep": 510,
+              "arrear": false,
+              "famine": false
+            },
+            {
+              "faction": "CCP",
+              "silverDelta": 76.8,
+              "foodDelta": 160,
+              "silverTax": 96.8,
+              "silverUpkeep": 20,
+              "foodProduce": 172,
+              "foodUpkeep": 12,
+              "arrear": false,
+              "famine": false
+            },
+            {
+              "faction": "JPN",
+              "silverDelta": 32,
+              "foodDelta": 66,
+              "silverTax": 42,
+              "silverUpkeep": 10,
+              "foodProduce": 72,
+              "foodUpkeep": 6,
+              "arrear": false,
+              "famine": false
+            },
+            {
+              "faction": "NEA",
+              "silverDelta": 98.8,
+              "foodDelta": 306,
+              "silverTax": 248.8,
+              "silverUpkeep": 150,
+              "foodProduce": 396,
+              "foodUpkeep": 90,
+              "arrear": false,
+              "famine": false
+            },
+            {
+              "faction": "SHX",
+              "silverDelta": 9.3,
+              "foodDelta": 95,
+              "silverTax": 84.3,
+              "silverUpkeep": 75,
+              "foodProduce": 140,
+              "foodUpkeep": 45,
+              "arrear": false,
+              "famine": false
+            },
+            {
+              "faction": "GXC",
+              "silverDelta": 53.8,
+              "foodDelta": 142,
+              "silverTax": 103.8,
+              "silverUpkeep": 50,
+              "foodProduce": 172,
+              "foodUpkeep": 30,
+              "arrear": false,
+              "famine": false
+            },
+            {
+              "faction": "SCC",
+              "silverDelta": 11.3,
+              "foodDelta": 192,
+              "silverTax": 161.3,
+              "silverUpkeep": 150,
+              "foodProduce": 282,
+              "foodUpkeep": 90,
+              "arrear": false,
+              "famine": false
+            },
+            {
+              "faction": "MA",
+              "silverDelta": 203.8,
+              "foodDelta": 333,
+              "silverTax": 228.8,
+              "silverUpkeep": 25,
+              "foodProduce": 348,
+              "foodUpkeep": 15,
+              "arrear": false,
+              "famine": false
+            },
+            {
+              "faction": "XJ",
+              "silverDelta": 180.8,
+              "foodDelta": 303.5,
+              "silverTax": 188.3,
+              "silverUpkeep": 7.5,
+              "foodProduce": 308,
+              "foodUpkeep": 4.5,
+              "arrear": false,
+              "famine": false
+            },
+            {
+              "faction": "TIB",
+              "silverDelta": 48.3,
+              "foodDelta": 61,
+              "silverTax": 53.3,
+              "silverUpkeep": 5,
+              "foodProduce": 64,
+              "foodUpkeep": 3,
+              "arrear": false,
+              "famine": false
+            },
+            {
+              "faction": "YUN",
+              "silverDelta": 93.3,
+              "foodDelta": 172.3,
+              "silverTax": 112.8,
+              "silverUpkeep": 19.5,
+              "foodProduce": 184,
+              "foodUpkeep": 11.7,
+              "arrear": false,
+              "famine": false
+            },
+            {
+              "faction": "GUI",
+              "silverDelta": 57.3,
+              "foodDelta": 102,
+              "silverTax": 67.3,
+              "silverUpkeep": 10,
+              "foodProduce": 108,
+              "foodUpkeep": 6,
+              "arrear": false,
+              "famine": false
+            }
+          ],
+          "attritionVersion": 2
+        },
+        {
+          "type": "actionSpent",
+          "faction": "KMT",
+          "amount": 1
+        },
+        {
+          "type": "deploy",
+          "fromGb": "156430100",
+          "amount": 37
+        },
+        {
+          "type": "treasuryChange",
+          "faction": "KMT",
+          "delta": -132.1,
+          "reason": "行军消耗"
+        },
+        {
+          "type": "granaryChange",
+          "faction": "KMT",
+          "delta": -99.1,
+          "reason": "行军消耗"
+        },
+        {
+          "type": "battleStart",
+          "battleId": "battle_2",
+          "fromGb": "156430100",
+          "targetGb": "156360900",
+          "fromName": "长沙市",
+          "toName": "宜春市",
+          "attacker": "KMT",
+          "defender": "CCP",
+          "route": [
+            "156430100",
+            "156360900"
+          ],
+          "marchDistanceKm": 178.5,
+          "routeHasSea": false,
+          "supplyRulesVersion": 1
+        },
+        {
+          "type": "relationChange",
+          "a": "KMT",
+          "b": "CCP",
+          "status": "war",
+          "note": "长沙市攻宜春市，兵戈再起"
+        },
+        {
+          "type": "commandReceipt",
+          "faction": "KMT",
+          "label": "battle 长沙市 → 宜春市",
+          "ok": true,
+          "spentPoints": 1,
+          "spentSilver": 132.1,
+          "spentFood": 99.1,
+          "remainingPoints": 5,
+          "remainingSilver": 8004.9,
+          "remainingFood": 7936.9
+        },
+        {
+          "type": "actionSpent",
+          "faction": "NEA",
+          "amount": 1
+        },
+        {
+          "type": "treasuryChange",
+          "faction": "NEA",
+          "delta": -5,
+          "reason": "内政·fortify"
+        },
+        {
+          "type": "cityStatChange",
+          "targetGb": "156210700",
+          "field": "fort",
+          "delta": 5
+        },
+        {
+          "type": "commandReceipt",
+          "faction": "NEA",
+          "label": "fortify 锦州市 数量5",
+          "ok": true,
+          "spentPoints": 1,
+          "spentSilver": 5,
+          "spentFood": 0,
+          "remainingPoints": 5,
+          "remainingSilver": 1392.6,
+          "remainingFood": 1332
+        },
+        {
+          "type": "attack",
+          "fromGb": "156430100",
+          "targetGb": "156360900",
+          "attackerLoss": 4,
+          "defenderLoss": 1,
+          "narrative": "KMT大军围攻宜春，初次交锋即在丘陵堡垒下碰壁，攻方虽众却死伤枕藉；守军凭险据守，亦伤亡惨重。 本轮补给通畅。"
+        },
+        {
+          "type": "moraleChange",
+          "targetGb": "156430100",
+          "delta": -3
+        },
+        {
+          "type": "moraleChange",
+          "targetGb": "156360900",
+          "delta": -15
+        },
+        {
+          "type": "narrative",
+          "playerInput": "",
+          "aiMessage": "川军趁势南下，一战克复昭通，滇西屏障尽失；国民政府则于赣边厉兵，长沙重兵直指宜春，剿共战火愈炽。东北军亦于锦州增垒备战，北疆风声鹤唳。当是时也，外患内忧交织，群雄各谋其利，神州谁执牛耳？",
+          "kind": "settlement"
+        },
+        {
+          "type": "dateAdvance",
+          "date": "1931-04-15"
+        }
+      ]
+    },
+    {
+      "id": "post-save-real-recruit-then-load",
+      "input": "仅在宜宾征兵1k，不做其他行动。",
+      "before": {
+        "date": "1931-04-15",
+        "turn": 2,
+        "faction": "SCC",
+        "silver": 1088.8,
+        "food": 1007,
+        "points": 6,
+        "scenario": {
+          "id": "southwest-bridgehead",
+          "faction": "SCC",
+          "startedTurn": 0,
+          "holdTurns": 0
+        },
+        "cities": {
+          "chengdu": {
+            "gb": "156510100",
+            "name": "成都市",
+            "owner": "SCC",
+            "terrain": "MOUNTAIN",
+            "cityLevel": 4,
+            "industry": 50,
+            "food": 90,
+            "fort": 100,
+            "troops": 135,
+            "fieldForce": 0,
+            "morale": 56
+          },
+          "yibin": {
+            "gb": "156511500",
+            "name": "宜宾市",
+            "owner": "SCC",
+            "terrain": "MOUNTAIN",
+            "cityLevel": 2,
+            "industry": 10,
+            "food": 30,
+            "fort": 20,
+            "troops": 10,
+            "fieldForce": 0,
+            "morale": 48
+          },
+          "luzhou": {
+            "gb": "156510500",
+            "name": "泸州市",
+            "owner": "SCC",
+            "terrain": "MOUNTAIN",
+            "cityLevel": 2,
+            "industry": 10,
+            "food": 30,
+            "fort": 20,
+            "troops": 8,
+            "fieldForce": 0,
+            "morale": 42
+          },
+          "zhaotong": {
+            "gb": "156530600",
+            "name": "昭通市",
+            "owner": "SCC",
+            "terrain": "MOUNTAIN",
+            "cityLevel": 2,
+            "industry": 10,
+            "food": 30,
+            "fort": 25,
+            "troops": 13,
+            "fieldForce": 0,
+            "morale": 49,
+            "occupationUntilTurn": 2
+          }
+        },
+        "battles": [
+          {
+            "id": "battle_2",
+            "from": "156430100",
+            "to": "156360900",
+            "fromName": "长沙市",
+            "toName": "宜春市",
+            "active": true,
+            "attacker": "KMT",
+            "defender": "CCP",
+            "turns": 1,
+            "totalAttackerLoss": 4,
+            "totalDefenderLoss": 1,
+            "lastAttackerLoss": 4,
+            "lastDefenderLoss": 1,
+            "route": [
+              "156430100",
+              "156360900"
+            ],
+            "marchDistanceKm": 178.5,
+            "routeHasSea": false,
+            "supplyRulesVersion": 1,
+            "lastNarrative": "KMT大军围攻宜春，初次交锋即在丘陵堡垒下碰壁，攻方虽众却死伤枕藉；守军凭险据守，亦伤亡惨重。 本轮补给通畅。"
+          }
+        ]
+      },
+      "afterAction": {
+        "date": "1931-04-15",
+        "turn": 2,
+        "faction": "SCC",
+        "silver": 1086.8,
+        "food": 1006,
+        "points": 5,
+        "scenario": {
+          "id": "southwest-bridgehead",
+          "faction": "SCC",
+          "startedTurn": 0,
+          "holdTurns": 0
+        },
+        "cities": {
+          "chengdu": {
+            "gb": "156510100",
+            "name": "成都市",
+            "owner": "SCC",
+            "terrain": "MOUNTAIN",
+            "cityLevel": 4,
+            "industry": 50,
+            "food": 90,
+            "fort": 100,
+            "troops": 135,
+            "fieldForce": 0,
+            "morale": 56
+          },
+          "yibin": {
+            "gb": "156511500",
+            "name": "宜宾市",
+            "owner": "SCC",
+            "terrain": "MOUNTAIN",
+            "cityLevel": 2,
+            "industry": 10,
+            "food": 30,
+            "fort": 20,
+            "troops": 11,
+            "fieldForce": 0,
+            "morale": 48
+          },
+          "luzhou": {
+            "gb": "156510500",
+            "name": "泸州市",
+            "owner": "SCC",
+            "terrain": "MOUNTAIN",
+            "cityLevel": 2,
+            "industry": 10,
+            "food": 30,
+            "fort": 20,
+            "troops": 8,
+            "fieldForce": 0,
+            "morale": 42
+          },
+          "zhaotong": {
+            "gb": "156530600",
+            "name": "昭通市",
+            "owner": "SCC",
+            "terrain": "MOUNTAIN",
+            "cityLevel": 2,
+            "industry": 10,
+            "food": 30,
+            "fort": 25,
+            "troops": 13,
+            "fieldForce": 0,
+            "morale": 49,
+            "occupationUntilTurn": 2
+          }
+        },
+        "battles": [
+          {
+            "id": "battle_2",
+            "from": "156430100",
+            "to": "156360900",
+            "fromName": "长沙市",
+            "toName": "宜春市",
+            "active": true,
+            "attacker": "KMT",
+            "defender": "CCP",
+            "turns": 1,
+            "totalAttackerLoss": 4,
+            "totalDefenderLoss": 1,
+            "lastAttackerLoss": 4,
+            "lastDefenderLoss": 1,
+            "route": [
+              "156430100",
+              "156360900"
+            ],
+            "marchDistanceKm": 178.5,
+            "routeHasSea": false,
+            "supplyRulesVersion": 1,
+            "lastNarrative": "KMT大军围攻宜春，初次交锋即在丘陵堡垒下碰壁，攻方虽众却死伤枕藉；守军凭险据守，亦伤亡惨重。 本轮补给通畅。"
+          }
+        ]
+      },
+      "after": {
+        "date": "1931-04-15",
+        "turn": 2,
+        "faction": "SCC",
+        "silver": 1088.8,
+        "food": 1007,
+        "points": 6,
+        "scenario": {
+          "id": "southwest-bridgehead",
+          "faction": "SCC",
+          "startedTurn": 0,
+          "holdTurns": 0
+        },
+        "cities": {
+          "chengdu": {
+            "gb": "156510100",
+            "name": "成都市",
+            "owner": "SCC",
+            "terrain": "MOUNTAIN",
+            "cityLevel": 4,
+            "industry": 50,
+            "food": 90,
+            "fort": 100,
+            "troops": 135,
+            "fieldForce": 0,
+            "morale": 56
+          },
+          "yibin": {
+            "gb": "156511500",
+            "name": "宜宾市",
+            "owner": "SCC",
+            "terrain": "MOUNTAIN",
+            "cityLevel": 2,
+            "industry": 10,
+            "food": 30,
+            "fort": 20,
+            "troops": 10,
+            "fieldForce": 0,
+            "morale": 48
+          },
+          "luzhou": {
+            "gb": "156510500",
+            "name": "泸州市",
+            "owner": "SCC",
+            "terrain": "MOUNTAIN",
+            "cityLevel": 2,
+            "industry": 10,
+            "food": 30,
+            "fort": 20,
+            "troops": 8,
+            "fieldForce": 0,
+            "morale": 42
+          },
+          "zhaotong": {
+            "gb": "156530600",
+            "name": "昭通市",
+            "owner": "SCC",
+            "terrain": "MOUNTAIN",
+            "cityLevel": 2,
+            "industry": 10,
+            "food": 30,
+            "fort": 25,
+            "troops": 13,
+            "fieldForce": 0,
+            "morale": 49,
+            "occupationUntilTurn": 2
+          }
+        },
+        "battles": [
+          {
+            "id": "battle_2",
+            "from": "156430100",
+            "to": "156360900",
+            "fromName": "长沙市",
+            "toName": "宜春市",
+            "active": true,
+            "attacker": "KMT",
+            "defender": "CCP",
+            "turns": 1,
+            "totalAttackerLoss": 4,
+            "totalDefenderLoss": 1,
+            "lastAttackerLoss": 4,
+            "lastDefenderLoss": 1,
+            "route": [
+              "156430100",
+              "156360900"
+            ],
+            "marchDistanceKm": 178.5,
+            "routeHasSea": false,
+            "supplyRulesVersion": 1,
+            "lastNarrative": "KMT大军围攻宜春，初次交锋即在丘陵堡垒下碰壁，攻方虽众却死伤枕藉；守军凭险据守，亦伤亡惨重。 本轮补给通畅。"
+          }
+        ]
+      },
+      "eventsDelta": [
+        {
+          "type": "narrative",
+          "playerInput": "仅在宜宾征兵1k，不做其他行动。",
+          "aiMessage": "宜宾就地募丁，得壮士千人，以实边备。",
+          "kind": "player"
+        },
+        {
+          "type": "actionSpent",
+          "faction": "SCC",
+          "amount": 1
+        },
+        {
+          "type": "treasuryChange",
+          "faction": "SCC",
+          "delta": -2,
+          "reason": "内政·recruit"
+        },
+        {
+          "type": "granaryChange",
+          "faction": "SCC",
+          "delta": -1,
+          "reason": "征兵·recruit"
+        },
+        {
+          "type": "produce",
+          "targetGb": "156511500",
+          "amount": 1
+        },
+        {
+          "type": "commandReceipt",
+          "faction": "SCC",
+          "label": "recruit 宜宾市 数量1",
+          "ok": true,
+          "spentPoints": 1,
+          "spentSilver": 2,
+          "spentFood": 1,
+          "remainingPoints": 5,
+          "remainingSilver": 1086.8,
+          "remainingFood": 1006
+        }
+      ],
+      "lastChatAfterLoad": "仅在宜宾征兵1k，不做其他行动。\n宜宾就地募丁，得壮士千人，以实边备。\nrecruit（实耗银2/粮1） ✓\n已执行 1 条，未执行 0 条\n💡 后续建议：\n在宜宾征兵后筑防以固城守\n填入\n从成都调兵充实宜宾驻军\n填入",
+      "worldRestoredExactly": true
+    }
+  ]
+}
