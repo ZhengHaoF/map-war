@@ -10,6 +10,7 @@ export interface MapCommandDraft {
   targetGb: string
 }
 export type MapCommandPhase = 'idle' | 'pickingSource' | 'pickingTarget' | 'reviewing'
+export const MAP_COMMAND_CANDIDATE_COLOR = 0xf6cc38
 
 /** Selection is UI-only. It never submits orders or mutates world resources. */
 export function useMapCommand() {
@@ -23,14 +24,11 @@ export function useMapCommand() {
     draft.value = { kind: 'battle', sourceGb: '', targetGb: '' }
     error.value = ''
   }
-  function begin(kind: MapCommandKind, sourceGb = '') {
+  function begin(kind: MapCommandKind) {
     if (!store.currentFaction) return false
-    draft.value = {
-      kind,
-      sourceGb: store.cities[sourceGb]?.owner === store.currentFaction ? sourceGb : '',
-      targetGb: '',
-    }
-    phase.value = draft.value.sourceGb ? 'pickingTarget' : 'pickingSource'
+    // Every new action starts at step one, even when a city was already selected.
+    draft.value = { kind, sourceGb: '', targetGb: '' }
+    phase.value = 'pickingSource'
     error.value = ''
     return true
   }

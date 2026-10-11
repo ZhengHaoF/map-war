@@ -1,0 +1,1215 @@
+{
+  "schemaVersion": 1,
+  "baselineCommit": "240d503cdb4d8e3324a803915c4e674ffbd207e2",
+  "scope": "native map two-step UI; no external model calls; no state injection; no ticker pause",
+  "offlineTests": {
+    "passed": 555,
+    "skippedLive": 4
+  },
+  "pageErrors": [],
+  "screenshots": [
+    "map-two-step-source-desktop.png",
+    "map-two-step-target-desktop.png",
+    "map-two-step-review-desktop.png",
+    "map-two-step-move-desktop.png",
+    "map-two-step-source-mobile.png",
+    "map-two-step-target-mobile.png",
+    "map-two-step-review-mobile.png"
+  ],
+  "checks": [
+    {
+      "name": "idle-own-city-no-popup",
+      "selection": {
+        "faction": "SCC",
+        "phase": "idle",
+        "draft": {
+          "kind": "battle",
+          "sourceGb": "",
+          "targetGb": ""
+        },
+        "candidates": [],
+        "error": "",
+        "reviewing": false,
+        "selectedGb": "156511500",
+        "candidateColor": "#f6cc38",
+        "camera": {
+          "x": 0,
+          "y": 81.93548387096774,
+          "scale": 1
+        },
+        "viewport": {
+          "width": 1440,
+          "height": 1000
+        },
+        "coordinates": "screen pixels: origin top-left, x right, y down"
+      },
+      "world": {
+        "date": "1931-04-01",
+        "turn": 0,
+        "ap": 6,
+        "silver": 1200,
+        "food": 720,
+        "chengdu": 150,
+        "yibin": 8,
+        "eventCount": 1,
+        "battleCount": 0,
+        "receipts": []
+      }
+    },
+    {
+      "name": "battle-button-always-source",
+      "selection": {
+        "faction": "SCC",
+        "phase": "pickingSource",
+        "draft": {
+          "kind": "battle",
+          "sourceGb": "",
+          "targetGb": ""
+        },
+        "candidates": [
+          "156510100",
+          "156510300",
+          "156510400",
+          "156510500",
+          "156510600",
+          "156510700",
+          "156510800",
+          "156510900",
+          "156511000",
+          "156511100",
+          "156511300",
+          "156511400",
+          "156511500",
+          "156511600",
+          "156511700",
+          "156511800",
+          "156511900",
+          "156512000",
+          "156513200",
+          "156513300",
+          "156513400"
+        ],
+        "error": "",
+        "reviewing": false,
+        "selectedGb": null,
+        "candidateColor": "#f6cc38",
+        "camera": {
+          "x": 0,
+          "y": 81.93548387096774,
+          "scale": 1
+        },
+        "viewport": {
+          "width": 1440,
+          "height": 1000
+        },
+        "coordinates": "screen pixels: origin top-left, x right, y down"
+      },
+      "world": {
+        "date": "1931-04-01",
+        "turn": 0,
+        "ap": 6,
+        "silver": 1200,
+        "food": 720,
+        "chengdu": 150,
+        "yibin": 8,
+        "eventCount": 1,
+        "battleCount": 0,
+        "receipts": []
+      }
+    },
+    {
+      "name": "battle-source-yibin",
+      "selection": {
+        "faction": "SCC",
+        "phase": "pickingTarget",
+        "draft": {
+          "kind": "battle",
+          "sourceGb": "156511500",
+          "targetGb": ""
+        },
+        "candidates": [
+          "156530600",
+          "156500000",
+          "156520300",
+          "156520500",
+          "156530100",
+          "156530700",
+          "156532300",
+          "156533400",
+          "156621200",
+          "156610700",
+          "156610900",
+          "156623000",
+          "156632600",
+          "156540300",
+          "156632700"
+        ],
+        "error": "",
+        "reviewing": false,
+        "selectedGb": null,
+        "candidateColor": "#f6cc38",
+        "camera": {
+          "x": 0,
+          "y": 81.93548387096774,
+          "scale": 1
+        },
+        "viewport": {
+          "width": 1440,
+          "height": 1000
+        },
+        "coordinates": "screen pixels: origin top-left, x right, y down"
+      },
+      "world": {
+        "date": "1931-04-01",
+        "turn": 0,
+        "ap": 6,
+        "silver": 1200,
+        "food": 720,
+        "chengdu": 150,
+        "yibin": 8,
+        "eventCount": 1,
+        "battleCount": 0,
+        "receipts": []
+      }
+    },
+    {
+      "name": "battle-invalid-own-target",
+      "selection": {
+        "faction": "SCC",
+        "phase": "pickingTarget",
+        "draft": {
+          "kind": "battle",
+          "sourceGb": "156511500",
+          "targetGb": ""
+        },
+        "candidates": [
+          "156530600",
+          "156500000",
+          "156520300",
+          "156520500",
+          "156530100",
+          "156530700",
+          "156532300",
+          "156533400",
+          "156621200",
+          "156610700",
+          "156610900",
+          "156623000",
+          "156632600",
+          "156540300",
+          "156632700"
+        ],
+        "error": "进攻目标必须是非己方城市",
+        "reviewing": false,
+        "selectedGb": null,
+        "candidateColor": "#f6cc38",
+        "camera": {
+          "x": 0,
+          "y": 81.93548387096774,
+          "scale": 1
+        },
+        "viewport": {
+          "width": 1440,
+          "height": 1000
+        },
+        "coordinates": "screen pixels: origin top-left, x right, y down"
+      },
+      "world": {
+        "date": "1931-04-01",
+        "turn": 0,
+        "ap": 6,
+        "silver": 1200,
+        "food": 720,
+        "chengdu": 150,
+        "yibin": 8,
+        "eventCount": 1,
+        "battleCount": 0,
+        "receipts": []
+      }
+    },
+    {
+      "name": "battle-prefilled-after-two-clicks",
+      "selection": {
+        "faction": "SCC",
+        "phase": "reviewing",
+        "draft": {
+          "kind": "battle",
+          "sourceGb": "156511500",
+          "targetGb": "156530600"
+        },
+        "candidates": [],
+        "error": "",
+        "reviewing": true,
+        "selectedGb": null,
+        "candidateColor": "#f6cc38",
+        "camera": {
+          "x": 0,
+          "y": 81.93548387096774,
+          "scale": 1
+        },
+        "viewport": {
+          "width": 1440,
+          "height": 1000
+        },
+        "coordinates": "screen pixels: origin top-left, x right, y down"
+      },
+      "world": {
+        "date": "1931-04-01",
+        "turn": 0,
+        "ap": 6,
+        "silver": 1200,
+        "food": 720,
+        "chengdu": 150,
+        "yibin": 8,
+        "eventCount": 1,
+        "battleCount": 0,
+        "receipts": []
+      }
+    },
+    {
+      "name": "move-starts-source",
+      "selection": {
+        "faction": "SCC",
+        "phase": "pickingSource",
+        "draft": {
+          "kind": "moveTroops",
+          "sourceGb": "",
+          "targetGb": ""
+        },
+        "candidates": [
+          "156510100",
+          "156510300",
+          "156510400",
+          "156510500",
+          "156510600",
+          "156510700",
+          "156510800",
+          "156510900",
+          "156511000",
+          "156511100",
+          "156511300",
+          "156511400",
+          "156511500",
+          "156511600",
+          "156511700",
+          "156511800",
+          "156511900",
+          "156512000",
+          "156513200",
+          "156513300",
+          "156513400"
+        ],
+        "error": "",
+        "reviewing": false,
+        "selectedGb": null,
+        "candidateColor": "#f6cc38",
+        "camera": {
+          "x": 0,
+          "y": 81.93548387096774,
+          "scale": 1
+        },
+        "viewport": {
+          "width": 1440,
+          "height": 1000
+        },
+        "coordinates": "screen pixels: origin top-left, x right, y down"
+      },
+      "world": {
+        "date": "1931-04-01",
+        "turn": 0,
+        "ap": 6,
+        "silver": 1200,
+        "food": 720,
+        "chengdu": 150,
+        "yibin": 8,
+        "eventCount": 1,
+        "battleCount": 0,
+        "receipts": []
+      }
+    },
+    {
+      "name": "move-source-chengdu",
+      "selection": {
+        "faction": "SCC",
+        "phase": "pickingTarget",
+        "draft": {
+          "kind": "moveTroops",
+          "sourceGb": "156510100",
+          "targetGb": ""
+        },
+        "candidates": [
+          "156510600",
+          "156511400",
+          "156511800",
+          "156512000",
+          "156513200",
+          "156510700",
+          "156510900",
+          "156510300",
+          "156511000",
+          "156511100",
+          "156513300",
+          "156513400",
+          "156510800",
+          "156511300",
+          "156511500",
+          "156510500",
+          "156511600",
+          "156511900",
+          "156511700",
+          "156510400"
+        ],
+        "error": "",
+        "reviewing": false,
+        "selectedGb": null,
+        "candidateColor": "#f6cc38",
+        "camera": {
+          "x": 0,
+          "y": 81.93548387096774,
+          "scale": 1
+        },
+        "viewport": {
+          "width": 1440,
+          "height": 1000
+        },
+        "coordinates": "screen pixels: origin top-left, x right, y down"
+      },
+      "world": {
+        "date": "1931-04-01",
+        "turn": 0,
+        "ap": 6,
+        "silver": 1200,
+        "food": 720,
+        "chengdu": 150,
+        "yibin": 8,
+        "eventCount": 1,
+        "battleCount": 0,
+        "receipts": []
+      }
+    },
+    {
+      "name": "move-invalid-enemy-target",
+      "selection": {
+        "faction": "SCC",
+        "phase": "pickingTarget",
+        "draft": {
+          "kind": "moveTroops",
+          "sourceGb": "156510100",
+          "targetGb": ""
+        },
+        "candidates": [
+          "156510600",
+          "156511400",
+          "156511800",
+          "156512000",
+          "156513200",
+          "156510700",
+          "156510900",
+          "156510300",
+          "156511000",
+          "156511100",
+          "156513300",
+          "156513400",
+          "156510800",
+          "156511300",
+          "156511500",
+          "156510500",
+          "156511600",
+          "156511900",
+          "156511700",
+          "156510400"
+        ],
+        "error": "调兵目标必须是己方城市",
+        "reviewing": false,
+        "selectedGb": null,
+        "candidateColor": "#f6cc38",
+        "camera": {
+          "x": 0,
+          "y": 81.93548387096774,
+          "scale": 1
+        },
+        "viewport": {
+          "width": 1440,
+          "height": 1000
+        },
+        "coordinates": "screen pixels: origin top-left, x right, y down"
+      },
+      "world": {
+        "date": "1931-04-01",
+        "turn": 0,
+        "ap": 6,
+        "silver": 1200,
+        "food": 720,
+        "chengdu": 150,
+        "yibin": 8,
+        "eventCount": 1,
+        "battleCount": 0,
+        "receipts": []
+      }
+    },
+    {
+      "name": "move-prefilled-after-two-clicks",
+      "selection": {
+        "faction": "SCC",
+        "phase": "reviewing",
+        "draft": {
+          "kind": "moveTroops",
+          "sourceGb": "156510100",
+          "targetGb": "156511500"
+        },
+        "candidates": [],
+        "error": "",
+        "reviewing": true,
+        "selectedGb": null,
+        "candidateColor": "#f6cc38",
+        "camera": {
+          "x": 0,
+          "y": 81.93548387096774,
+          "scale": 1
+        },
+        "viewport": {
+          "width": 1440,
+          "height": 1000
+        },
+        "coordinates": "screen pixels: origin top-left, x right, y down"
+      },
+      "world": {
+        "date": "1931-04-01",
+        "turn": 0,
+        "ap": 6,
+        "silver": 1200,
+        "food": 720,
+        "chengdu": 150,
+        "yibin": 8,
+        "eventCount": 1,
+        "battleCount": 0,
+        "receipts": []
+      }
+    },
+    {
+      "name": "move-confirm-one-order",
+      "preview": "可执行 · 回合行动点 6\n\n补给通畅 · 成都市\n\n成都市 → 眉山市 → 自贡市 → 宜宾市\n\n陆路 · 276 km\n银 5.5 万 · 粮 4.1 万石\n调动 1k · 消耗 1 行动点",
+      "selection": {
+        "faction": "SCC",
+        "phase": "reviewing",
+        "draft": {
+          "kind": "moveTroops",
+          "sourceGb": "156510100",
+          "targetGb": "156511500"
+        },
+        "candidates": [],
+        "error": "",
+        "reviewing": true,
+        "selectedGb": null,
+        "candidateColor": "#f6cc38",
+        "camera": {
+          "x": 0,
+          "y": 81.9354838709678,
+          "scale": 1
+        },
+        "viewport": {
+          "width": 1440,
+          "height": 1000
+        },
+        "coordinates": "screen pixels: origin top-left, x right, y down"
+      },
+      "world": {
+        "date": "1931-04-01",
+        "turn": 0,
+        "ap": 5,
+        "silver": 1194.5,
+        "food": 715.9,
+        "chengdu": 149,
+        "yibin": 9,
+        "eventCount": 6,
+        "battleCount": 0,
+        "receipts": [
+          {
+            "ok": true,
+            "spentPoints": 1,
+            "spentSilver": 5.5,
+            "spentFood": 4.1
+          }
+        ]
+      }
+    },
+    {
+      "name": "mode-switch-resets-both",
+      "selection": {
+        "faction": "SCC",
+        "phase": "pickingSource",
+        "draft": {
+          "kind": "moveTroops",
+          "sourceGb": "",
+          "targetGb": ""
+        },
+        "candidates": [
+          "156510100",
+          "156510300",
+          "156510400",
+          "156510500",
+          "156510600",
+          "156510700",
+          "156510800",
+          "156510900",
+          "156511000",
+          "156511100",
+          "156511300",
+          "156511400",
+          "156511500",
+          "156511600",
+          "156511700",
+          "156511800",
+          "156511900",
+          "156512000",
+          "156513200",
+          "156513300",
+          "156513400"
+        ],
+        "error": "",
+        "reviewing": false,
+        "selectedGb": null,
+        "candidateColor": "#f6cc38",
+        "camera": {
+          "x": 0,
+          "y": 81.9354838709678,
+          "scale": 1
+        },
+        "viewport": {
+          "width": 1440,
+          "height": 1000
+        },
+        "coordinates": "screen pixels: origin top-left, x right, y down"
+      },
+      "world": {
+        "date": "1931-04-01",
+        "turn": 0,
+        "ap": 5,
+        "silver": 1194.5,
+        "food": 715.9,
+        "chengdu": 149,
+        "yibin": 9,
+        "eventCount": 6,
+        "battleCount": 0,
+        "receipts": [
+          {
+            "ok": true,
+            "spentPoints": 1,
+            "spentSilver": 5.5,
+            "spentFood": 4.1
+          }
+        ]
+      }
+    },
+    {
+      "name": "source-enemy-rejected",
+      "selection": {
+        "faction": "SCC",
+        "phase": "pickingSource",
+        "draft": {
+          "kind": "moveTroops",
+          "sourceGb": "",
+          "targetGb": ""
+        },
+        "candidates": [
+          "156510100",
+          "156510300",
+          "156510400",
+          "156510500",
+          "156510600",
+          "156510700",
+          "156510800",
+          "156510900",
+          "156511000",
+          "156511100",
+          "156511300",
+          "156511400",
+          "156511500",
+          "156511600",
+          "156511700",
+          "156511800",
+          "156511900",
+          "156512000",
+          "156513200",
+          "156513300",
+          "156513400"
+        ],
+        "error": "请选择己方出发城",
+        "reviewing": false,
+        "selectedGb": null,
+        "candidateColor": "#f6cc38",
+        "camera": {
+          "x": 0,
+          "y": 81.9354838709678,
+          "scale": 1
+        },
+        "viewport": {
+          "width": 1440,
+          "height": 1000
+        },
+        "coordinates": "screen pixels: origin top-left, x right, y down"
+      },
+      "world": {
+        "date": "1931-04-01",
+        "turn": 0,
+        "ap": 5,
+        "silver": 1194.5,
+        "food": 715.9,
+        "chengdu": 149,
+        "yibin": 9,
+        "eventCount": 6,
+        "battleCount": 0,
+        "receipts": [
+          {
+            "ok": true,
+            "spentPoints": 1,
+            "spentSilver": 5.5,
+            "spentFood": 4.1
+          }
+        ]
+      }
+    },
+    {
+      "name": "restart-source-clears-pair",
+      "selection": {
+        "faction": "SCC",
+        "phase": "pickingSource",
+        "draft": {
+          "kind": "moveTroops",
+          "sourceGb": "",
+          "targetGb": ""
+        },
+        "candidates": [
+          "156510100",
+          "156510300",
+          "156510400",
+          "156510500",
+          "156510600",
+          "156510700",
+          "156510800",
+          "156510900",
+          "156511000",
+          "156511100",
+          "156511300",
+          "156511400",
+          "156511500",
+          "156511600",
+          "156511700",
+          "156511800",
+          "156511900",
+          "156512000",
+          "156513200",
+          "156513300",
+          "156513400"
+        ],
+        "error": "",
+        "reviewing": false,
+        "selectedGb": null,
+        "candidateColor": "#f6cc38",
+        "camera": {
+          "x": 0,
+          "y": 81.9354838709678,
+          "scale": 1
+        },
+        "viewport": {
+          "width": 1440,
+          "height": 1000
+        },
+        "coordinates": "screen pixels: origin top-left, x right, y down"
+      },
+      "world": {
+        "date": "1931-04-01",
+        "turn": 0,
+        "ap": 5,
+        "silver": 1194.5,
+        "food": 715.9,
+        "chengdu": 149,
+        "yibin": 9,
+        "eventCount": 6,
+        "battleCount": 0,
+        "receipts": [
+          {
+            "ok": true,
+            "spentPoints": 1,
+            "spentSilver": 5.5,
+            "spentFood": 4.1
+          }
+        ]
+      }
+    },
+    {
+      "name": "esc-both-stages-no-world-change",
+      "selection": {
+        "faction": "SCC",
+        "phase": "idle",
+        "draft": {
+          "kind": "battle",
+          "sourceGb": "",
+          "targetGb": ""
+        },
+        "candidates": [],
+        "error": "",
+        "reviewing": false,
+        "selectedGb": null,
+        "candidateColor": "#f6cc38",
+        "camera": {
+          "x": 0,
+          "y": 81.9354838709678,
+          "scale": 1
+        },
+        "viewport": {
+          "width": 1440,
+          "height": 1000
+        },
+        "coordinates": "screen pixels: origin top-left, x right, y down"
+      },
+      "world": {
+        "date": "1931-04-01",
+        "turn": 0,
+        "ap": 5,
+        "silver": 1194.5,
+        "food": 715.9,
+        "chengdu": 149,
+        "yibin": 9,
+        "eventCount": 6,
+        "battleCount": 0,
+        "receipts": [
+          {
+            "ok": true,
+            "spentPoints": 1,
+            "spentSilver": 5.5,
+            "spentFood": 4.1
+          }
+        ]
+      }
+    },
+    {
+      "name": "frontline-and-layer-cancel",
+      "selection": {
+        "faction": "SCC",
+        "phase": "idle",
+        "draft": {
+          "kind": "battle",
+          "sourceGb": "",
+          "targetGb": ""
+        },
+        "candidates": [],
+        "error": "",
+        "reviewing": false,
+        "selectedGb": null,
+        "candidateColor": "#f6cc38",
+        "camera": {
+          "x": 0,
+          "y": 81.9354838709678,
+          "scale": 1
+        },
+        "viewport": {
+          "width": 1440,
+          "height": 1000
+        },
+        "coordinates": "screen pixels: origin top-left, x right, y down"
+      },
+      "world": {
+        "date": "1931-04-01",
+        "turn": 0,
+        "ap": 5,
+        "silver": 1194.5,
+        "food": 715.9,
+        "chengdu": 149,
+        "yibin": 9,
+        "eventCount": 6,
+        "battleCount": 0,
+        "receipts": [
+          {
+            "ok": true,
+            "spentPoints": 1,
+            "spentSilver": 5.5,
+            "spentFood": 4.1
+          }
+        ]
+      }
+    },
+    {
+      "name": "drag-and-zoom-do-not-select",
+      "selection": {
+        "faction": "SCC",
+        "phase": "pickingSource",
+        "draft": {
+          "kind": "battle",
+          "sourceGb": "",
+          "targetGb": ""
+        },
+        "candidates": [
+          "156510100",
+          "156510300",
+          "156510400",
+          "156510500",
+          "156510600",
+          "156510700",
+          "156510800",
+          "156510900",
+          "156511000",
+          "156511100",
+          "156511300",
+          "156511400",
+          "156511500",
+          "156511600",
+          "156511700",
+          "156511800",
+          "156511900",
+          "156512000",
+          "156513200",
+          "156513300",
+          "156513400"
+        ],
+        "error": "",
+        "reviewing": false,
+        "selectedGb": null,
+        "candidateColor": "#f6cc38",
+        "camera": {
+          "x": -54.500000000000114,
+          "y": 58.12903225806457,
+          "scale": 1.1
+        },
+        "viewport": {
+          "width": 1440,
+          "height": 1000
+        },
+        "coordinates": "screen pixels: origin top-left, x right, y down"
+      },
+      "world": {
+        "date": "1931-04-01",
+        "turn": 0,
+        "ap": 5,
+        "silver": 1194.5,
+        "food": 715.9,
+        "chengdu": 149,
+        "yibin": 9,
+        "eventCount": 6,
+        "battleCount": 0,
+        "receipts": [
+          {
+            "ok": true,
+            "spentPoints": 1,
+            "spentSilver": 5.5,
+            "spentFood": 4.1
+          }
+        ]
+      }
+    },
+    {
+      "name": "mobile-source-yellow-and-fit",
+      "selection": {
+        "faction": "SCC",
+        "phase": "pickingSource",
+        "draft": {
+          "kind": "battle",
+          "sourceGb": "",
+          "targetGb": ""
+        },
+        "candidates": [
+          "156510100",
+          "156510300",
+          "156510400",
+          "156510500",
+          "156510600",
+          "156510700",
+          "156510800",
+          "156510900",
+          "156511000",
+          "156511100",
+          "156511300",
+          "156511400",
+          "156511500",
+          "156511600",
+          "156511700",
+          "156511800",
+          "156511900",
+          "156512000",
+          "156513200",
+          "156513300",
+          "156513400"
+        ],
+        "error": "",
+        "reviewing": false,
+        "selectedGb": null,
+        "candidateColor": "#f6cc38",
+        "camera": {
+          "x": -334.6859166210005,
+          "y": 27.992200689564072,
+          "scale": 2.853116706110003
+        },
+        "viewport": {
+          "width": 375,
+          "height": 812
+        },
+        "coordinates": "screen pixels: origin top-left, x right, y down"
+      },
+      "world": {
+        "date": "1931-04-01",
+        "turn": 0,
+        "ap": 5,
+        "silver": 1194.5,
+        "food": 715.9,
+        "chengdu": 149,
+        "yibin": 9,
+        "eventCount": 6,
+        "battleCount": 0,
+        "receipts": [
+          {
+            "ok": true,
+            "spentPoints": 1,
+            "spentSilver": 5.5,
+            "spentFood": 4.1
+          }
+        ]
+      }
+    },
+    {
+      "name": "mobile-target-yellow-blue-source",
+      "selection": {
+        "faction": "SCC",
+        "phase": "pickingTarget",
+        "draft": {
+          "kind": "battle",
+          "sourceGb": "156511500",
+          "targetGb": ""
+        },
+        "candidates": [
+          "156530600",
+          "156500000",
+          "156520300",
+          "156520500",
+          "156530100",
+          "156530700",
+          "156532300",
+          "156533400",
+          "156621200",
+          "156610700",
+          "156610900",
+          "156623000",
+          "156632600",
+          "156540300",
+          "156632700"
+        ],
+        "error": "",
+        "reviewing": false,
+        "selectedGb": null,
+        "candidateColor": "#f6cc38",
+        "camera": {
+          "x": -334.6859166210005,
+          "y": 27.992200689564072,
+          "scale": 2.853116706110003
+        },
+        "viewport": {
+          "width": 375,
+          "height": 812
+        },
+        "coordinates": "screen pixels: origin top-left, x right, y down"
+      },
+      "world": {
+        "date": "1931-04-01",
+        "turn": 0,
+        "ap": 5,
+        "silver": 1194.5,
+        "food": 715.9,
+        "chengdu": 149,
+        "yibin": 9,
+        "eventCount": 6,
+        "battleCount": 0,
+        "receipts": [
+          {
+            "ok": true,
+            "spentPoints": 1,
+            "spentSilver": 5.5,
+            "spentFood": 4.1
+          }
+        ]
+      }
+    },
+    {
+      "name": "mobile-prefilled-modal-and-footer-fit",
+      "selection": {
+        "faction": "SCC",
+        "phase": "reviewing",
+        "draft": {
+          "kind": "battle",
+          "sourceGb": "156511500",
+          "targetGb": "156530600"
+        },
+        "candidates": [],
+        "error": "",
+        "reviewing": true,
+        "selectedGb": null,
+        "candidateColor": "#f6cc38",
+        "camera": {
+          "x": -334.6859166210005,
+          "y": 27.992200689564072,
+          "scale": 2.853116706110003
+        },
+        "viewport": {
+          "width": 375,
+          "height": 812
+        },
+        "coordinates": "screen pixels: origin top-left, x right, y down"
+      },
+      "world": {
+        "date": "1931-04-01",
+        "turn": 0,
+        "ap": 5,
+        "silver": 1194.5,
+        "food": 715.9,
+        "chengdu": 149,
+        "yibin": 9,
+        "eventCount": 6,
+        "battleCount": 0,
+        "receipts": [
+          {
+            "ok": true,
+            "spentPoints": 1,
+            "spentSilver": 5.5,
+            "spentFood": 4.1
+          }
+        ]
+      }
+    },
+    {
+      "name": "mobile-move-cancel-no-cost",
+      "selection": {
+        "faction": "SCC",
+        "phase": "idle",
+        "draft": {
+          "kind": "battle",
+          "sourceGb": "",
+          "targetGb": ""
+        },
+        "candidates": [],
+        "error": "",
+        "reviewing": false,
+        "selectedGb": null,
+        "candidateColor": "#f6cc38",
+        "camera": {
+          "x": -334.6859166210005,
+          "y": 27.992200689564072,
+          "scale": 2.853116706110003
+        },
+        "viewport": {
+          "width": 375,
+          "height": 812
+        },
+        "coordinates": "screen pixels: origin top-left, x right, y down"
+      },
+      "world": {
+        "date": "1931-04-01",
+        "turn": 0,
+        "ap": 5,
+        "silver": 1194.5,
+        "food": 715.9,
+        "chengdu": 149,
+        "yibin": 9,
+        "eventCount": 6,
+        "battleCount": 0,
+        "receipts": [
+          {
+            "ok": true,
+            "spentPoints": 1,
+            "spentSilver": 5.5,
+            "spentFood": 4.1
+          }
+        ]
+      }
+    },
+    {
+      "name": "actual-ui-save-load-clears-selection",
+      "selection": {
+        "faction": "SCC",
+        "phase": "idle",
+        "draft": {
+          "kind": "battle",
+          "sourceGb": "",
+          "targetGb": ""
+        },
+        "candidates": [],
+        "error": "",
+        "reviewing": false,
+        "selectedGb": null,
+        "candidateColor": "#f6cc38",
+        "camera": {
+          "x": 99.04950091817182,
+          "y": -27.509783853450244,
+          "scale": 0.9948202825096859
+        },
+        "viewport": {
+          "width": 1440,
+          "height": 1000
+        },
+        "coordinates": "screen pixels: origin top-left, x right, y down"
+      },
+      "world": {
+        "date": "1931-04-01",
+        "turn": 0,
+        "ap": 5,
+        "silver": 1194.5,
+        "food": 715.9,
+        "chengdu": 149,
+        "yibin": 9,
+        "eventCount": 6,
+        "battleCount": 0,
+        "receipts": [
+          {
+            "ok": true,
+            "spentPoints": 1,
+            "spentSilver": 5.5,
+            "spentFood": 4.1
+          }
+        ]
+      }
+    },
+    {
+      "name": "final-cancel-after-load-no-extra-order",
+      "selection": {
+        "faction": "SCC",
+        "phase": "idle",
+        "draft": {
+          "kind": "battle",
+          "sourceGb": "",
+          "targetGb": ""
+        },
+        "candidates": [],
+        "error": "",
+        "reviewing": false,
+        "selectedGb": null,
+        "candidateColor": "#f6cc38",
+        "camera": {
+          "x": 99.04950091817182,
+          "y": -27.509783853450244,
+          "scale": 0.9948202825096859
+        },
+        "viewport": {
+          "width": 1440,
+          "height": 1000
+        },
+        "coordinates": "screen pixels: origin top-left, x right, y down"
+      },
+      "world": {
+        "date": "1931-04-01",
+        "turn": 0,
+        "ap": 5,
+        "silver": 1194.5,
+        "food": 715.9,
+        "chengdu": 149,
+        "yibin": 9,
+        "eventCount": 6,
+        "battleCount": 0,
+        "receipts": [
+          {
+            "ok": true,
+            "spentPoints": 1,
+            "spentSilver": 5.5,
+            "spentFood": 4.1
+          }
+        ]
+      }
+    }
+  ]
+}

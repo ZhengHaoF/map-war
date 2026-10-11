@@ -50,8 +50,8 @@
         </GameButton>
         <GameButton
           tooltip="查看行军路线与可进攻目标"
-          :active="campaignVisible"
-          @click="toggleCampaign"
+          :active="campaignVisible || mapCommand.picking.value"
+          @click="beginMapCommand('battle')"
         >
           <component :is="ICONS['crosshair']" :size="16" />
           前线
@@ -126,18 +126,16 @@
           刷新
         </GameButton>
       </div>
-      <div v-if="mapCommand.picking.value" class="map-command-picker map-ui" aria-label="地图选城">
-        <div role="status" aria-live="polite">
-          <strong>{{ mapCommand.draft.value.kind === 'battle' ? '进攻' : '调兵' }} · {{ mapCommand.phase.value === 'pickingSource' ? '请选择己方出发城' : `从${commandCityName(mapCommand.draft.value.sourceGb)}出发，请选择${mapCommand.draft.value.kind === 'battle' ? '敌城' : '己方目标城'}` }}</strong>
-          <p>高亮 {{ mapCommand.candidates.value.length }} 座可选城市；只填草稿，确认前不发兵。蓝色为出发城。</p>
-          <p v-if="mapCommand.error.value" class="picker-error">{{ mapCommand.error.value }}</p>
-        </div>
-        <div class="picker-actions">
-          <GameButton parchment @click="reselectMapCommand('source', mapCommand.draft.value)">重选出发城</GameButton>
-          <GameButton parchment @click="reviewWithLists">用下拉选择</GameButton>
-          <GameButton parchment @click="cancelMapCommand">取消 · Esc</GameButton>
-        </div>
-      </div>
+      <MapCommandPicker
+        v-if="mapCommand.phase.value === 'pickingSource' || mapCommand.phase.value === 'pickingTarget'"
+        :phase="mapCommand.phase.value"
+        :kind="mapCommand.draft.value.kind"
+        :source-name="commandCityName(mapCommand.draft.value.sourceGb)"
+        :candidate-count="mapCommand.candidates.value.length"
+        :error="mapCommand.error.value"
+        @restart="beginMapCommand(mapCommand.draft.value.kind)"
+        @cancel="cancelMapCommand"
+      />
       <GameDateDisplay class="map-ui" />
       <GameContextMenu
         class="map-ui"
@@ -162,13 +160,6 @@
           </button>
         </template>
         <InfoTable v-if="infoCityData" :rows="infoRows" />
-        <GameButton
-          parchment
-          v-if="infoCityData?.owner === useGameStore().currentFaction"
-          @click="openCampaign(infoCityGb)"
-        >
-          行军与进攻预览
-        </GameButton>
         <InfoTable v-else-if="infoCountryData" :rows="countryInfoRows" />
       </GameModal>
       <GameModal
@@ -567,7 +558,6 @@
       :visible="campaignVisible"
       :initial-source-gb="campaignSourceGb"
       :initial-draft="campaignDraft"
-      @reselect="reselectMapCommand"
       @close="cancelMapCommand"
     />
     <AdvisorPanel :visible="advisorVisible" @close="advisorVisible = false" />
@@ -618,6 +608,7 @@ import GameModal from '@/components/ui/GameModal.vue'
 import PlayerAiPanel from '@/components/PlayerAiPanel.vue'
 import ScenarioObjectivePanel from '@/components/ScenarioObjectivePanel.vue'
 import CampaignPanel from '@/components/CampaignPanel.vue'
+import MapCommandPicker from '@/components/MapCommandPicker.vue'
 import {
   getSupplyStatus,
   occupationRemaining,
@@ -672,7 +663,7 @@ import { useSaveGame } from '@/composables/useSaveGame'
 import { useToast } from '@/composables/useToast'
 import { useDiplomacyBus } from '@/composables/useDiplomacyBus'
 import { useAgentKernel } from '@/composables/useAgentKernel'
-import { useMapCommand, isMapCommandShortcut, type MapCommandDraft, type MapCommandKind } from '@/composables/useMapCommand'
+import { useMapCommand, isMapCommandShortcut, MAP_COMMAND_CANDIDATE_COLOR, type MapCommandDraft, type MapCommandKind } from '@/composables/useMapCommand'
 import { useGameScheduler } from '@/composables/useGameScheduler'
 import { aiRequestsPending } from '@/composables/useAiChat'
 
@@ -888,48 +879,43 @@ const commandBusy = computed(() => commandScheduler.status.value === 'running'
   || commandScheduler.queue.value.length > 0 || commandKernel.loading.value
   || aiRequestsPending.value > 0 || useGameStore().isReplaying || !!useGameStore().gameOver?.ended)
 const commandCityName = (gb: string) => getDisplayName(gb) || useGameStore().cities[gb]?.name || gb
+let mapCommandSequence = 0
 function cancelMapCommand() {
+  mapCommandSequence++
   mapCommand.cancel()
   campaignVisible.value = false
   campaignDraft.value = null
   campaignSourceGb.value = null
   if (selectionHighlightGfx) clearAllHighlights()
 }
-async function beginMapCommand(kind: MapCommandKind, source?: string) {
+async function beginMapCommand(kind: MapCommandKind) {
   if (commandBusy.value || cameraLocked) return
-  const gb = source ?? (selectedFeature?.properties?.gb as string | undefined)
-  if (!mapCommand.begin(kind, gb)) return
+  if (!mapCommand.begin(kind)) return
+  const sequence = ++mapCommandSequence
   campaignVisible.value = false
   campaignDraft.value = null
+  campaignSourceGb.value = null
   infoModalVisible.value = false
   closeContextMenu()
+  if (selectionHighlightGfx) clearAllHighlights()
   // Province polygons have no city IDs; selection always uses the city layer.
   if (currentLayerIndex.value !== 1) {
     currentLayerIndex.value = 1
     await loadLayer(1)
   }
+  if (sequence !== mapCommandSequence) return
   drawCommandHighlights()
 }
-function reselectMapCommand(step: 'source' | 'target', draft: MapCommandDraft) {
-  void beginMapCommand(draft.kind, step === 'target' ? draft.sourceGb : '')
-}
-function reviewWithLists() {
+function reviewMapSelection() {
+  if (mapCommand.phase.value !== 'reviewing'
+    || !mapCommand.draft.value.sourceGb || !mapCommand.draft.value.targetGb) return
   campaignDraft.value = { ...mapCommand.draft.value }
   campaignSourceGb.value = campaignDraft.value.sourceGb
-  mapCommand.phase.value = 'reviewing'
   campaignVisible.value = true
-}
-function toggleCampaign() {
-  if (campaignVisible.value) cancelMapCommand()
-  else {
-    mapCommand.cancel()
-    campaignDraft.value = null
-    campaignVisible.value = true
-    if (selectionHighlightGfx) clearAllHighlights()
-  }
 }
 function drawCommandHighlights() {
   if (!selectionHighlightGfx || !currentData) return
+  if (!isDragging) app.canvas.style.cursor = mapCommand.picking.value ? 'crosshair' : 'grab'
   selectionHighlightGfx.clear()
   if (mapCommand.phase.value === 'idle') return
   const candidates = new Set(mapCommand.candidates.value)
@@ -937,7 +923,8 @@ function drawCommandHighlights() {
     const gb = feature.properties?.gb as string
     if (gb === mapCommand.draft.value.sourceGb) highlightFeature(feature, 0x5f7fa6)
     else if (gb === mapCommand.draft.value.targetGb) highlightFeature(feature, 0xb04a3a)
-    else if (candidates.has(gb)) highlightFeature(feature, 0x63804e)
+    else if (candidates.has(gb))
+      highlightOn(selectionHighlightGfx, feature, MAP_COMMAND_CANDIDATE_COLOR, 0.58, 0xad7b14, 1.25)
   }
 }
 watch([mapCommand.phase, mapCommand.draft, mapCommand.candidates], drawCommandHighlights)
@@ -1297,7 +1284,8 @@ function drawFeature(
   })
 }
 
-function highlightOn(gfx: Graphics, feature: GeoJSON.Feature, color = 0xb04a3a): void {
+function highlightOn(gfx: Graphics, feature: GeoJSON.Feature, color = 0xb04a3a,
+  alpha = 0.4, borderColor = color, borderWidth = 0.5): void {
   const width = app.screen.width
   const height = app.screen.height
   const { geometry } = feature
@@ -1319,8 +1307,8 @@ function highlightOn(gfx: Graphics, feature: GeoJSON.Feature, color = 0xb04a3a):
       }
       gfx.closePath()
     }
-    gfx.fill({ color, alpha: 0.4 })
-    gfx.stroke({ width: 0.5, color, alpha: 1 })
+    gfx.fill({ color, alpha })
+    gfx.stroke({ width: borderWidth, color: borderColor, alpha: 1 })
   }
 }
 
@@ -1414,8 +1402,6 @@ function onContextMenu(e: PointerEvent | MouseEvent): void {
     const items = [{ action: 'info', label: '查看信息', icon: 'info-circle' }]
     if (!isFriendly) {
       items.push({ action: 'telegram', label: '电报', icon: 'mail' })
-    } else {
-      items.push({ action: 'campaign', label: '行军预览', icon: 'crosshair' })
     }
     contextMenuItems.value = items
   } else {
@@ -1461,21 +1447,7 @@ function copyInfoTitle(): void {
     })
 }
 
-function openCampaign(gb: string | null): void {
-  if (!gb || useGameStore().cities[gb]?.owner !== useGameStore().currentFaction) return
-  mapCommand.cancel()
-  campaignDraft.value = null
-  campaignSourceGb.value = gb
-  campaignVisible.value = true
-  infoModalVisible.value = false
-}
-
 function onMenuAction(action: string): void {
-  if (action === 'campaign') {
-    openCampaign((selectedFeature?.properties?.gb as string) ?? null)
-    closeContextMenu()
-    return
-  }
   if (action === 'telegram') {
     if (selectedFeature) {
       const gb = selectedFeature.properties?.gb as string | undefined
@@ -2590,7 +2562,7 @@ function onPointerMove(e: PointerEvent): void {
 
 function onPointerUp(): void {
   isDragging = false
-  app.canvas.style.cursor = 'grab'
+  app.canvas.style.cursor = mapCommand.picking.value ? 'crosshair' : 'grab'
 }
 
 function onClick(e: MouseEvent): void {
@@ -2609,9 +2581,11 @@ function onClick(e: MouseEvent): void {
     if (commandBusy.value) return
     const gb = result?.layer === 'china' ? result.feature.properties?.gb as string | undefined : undefined
     if (!gb) return
-    if (mapCommand.pick(gb) && mapCommand.phase.value === 'reviewing') reviewWithLists()
+    if (mapCommand.pick(gb) && mapCommand.phase.value === 'reviewing') reviewMapSelection()
     return
   }
+  // The preview keeps its selected pair until explicitly closed/restarted.
+  if (mapCommand.phase.value === 'reviewing') return
   if (!result) {
     clearAllHighlights()
     return
@@ -2623,8 +2597,6 @@ function onClick(e: MouseEvent): void {
     console.log('点击区域:', result.feature.properties)
     selectedFeature = result.feature
     highlightFeature(result.feature)
-    const gb = result.feature.properties?.gb as string | undefined
-    if (gb && useGameStore().cities[gb]?.owner === useGameStore().currentFaction) openCampaign(gb)
   } else {
     console.log('点击国家:', result.feature.properties)
     selectedWorldFeature = result.feature
@@ -2769,6 +2741,10 @@ onMounted(async () => {
         candidates: mapCommand.candidates.value,
         error: mapCommand.error.value,
         reviewing: campaignVisible.value,
+        selectedGb: selectedFeature?.properties?.gb ?? null,
+        candidateColor: `#${MAP_COMMAND_CANDIDATE_COLOR.toString(16)}`,
+        camera: { x: mapX, y: mapY, scale: mapScale },
+        viewport: { width: app.screen.width, height: app.screen.height },
         coordinates: 'screen pixels: origin top-left, x right, y down',
       }),
     })
@@ -2815,27 +2791,6 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.map-command-picker {
-  position: absolute;
-  z-index: 2500;
-  top: 100px;
-  left: 180px;
-  right: 16px;
-  max-width: 560px;
-  padding: 12px;
-  border: 1px solid var(--ink-soft);
-  border-radius: var(--radius-md);
-  background: var(--paper, #e2d4b6);
-  color: var(--ink);
-  font-size: 14px;
-  box-shadow: 0 4px 16px rgba(60, 40, 15, 0.2);
-}
-.map-command-picker p { margin: 8px 0; font-size: 12px; }
-.picker-actions { display: flex; flex-wrap: wrap; gap: 8px; }
-.picker-error { color: var(--cinnabar, #b04a3a); }
-@media (max-width: 600px) {
-  .map-command-picker { top: auto; bottom: 64px; left: 12px; right: 12px; max-width: none; }
-}
 /* 弹窗标题旁的复制按钮 */
 .title-copy-btn {
   display: inline-flex;

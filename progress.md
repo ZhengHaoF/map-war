@@ -450,3 +450,29 @@ transfers; not a performance pass. An older AI-context 5s timeout under concurre
 browser load passed at the same timeout after browser cleanup. Standard gameplay
 client's final smoke screenshot/state reviewed; only startup, not full gameplay.
 Existing bundle/jsdom warnings and batch transfer->deploy preflight limit unchanged.
+
+## 2026-10-11: mandatory two-step map command correction
+
+Latest user requirement: idle friendly-city clicks must not open the campaign panel.
+Start attack/transfer first; highlight owned source cities yellow, then legal target
+cities yellow; only after two map clicks hydrate and open the original preview.
+This overrides the earlier selected-source shortcut and in-dialog map-reselect design.
+
+Implemented explicit source-first begin, yellow constant, independent exact-step
+prompt component, source restart/cancel, removed all early-preview bypasses and old
+map-reselect buttons, and generation guard after automatic city-layer switching.
+Existing dropdown editing and final execution remain available after the handoff.
+
+555 offline tests passed across48files;4live tests skipped.34targeted tests, frontend/
+backend build/typecheck,7file Oxlint and4reporter tests passed. Native desktop attack
+and transfer chains verified; actual Chengdu->Yibin1k paid1AP/5.5silver/4.1food once,
+troops150->149 and8->9. No model calls, no ticker pause, no fabricated world/receipts.
+Mode switching, source restart, invalid picks, Esc, layer cancel, drag/zoom checked.
+Native375x812 source/target prompts and prefilled attack modal inspected; modal12,12
+351x742 and footer696..753 fit. Mobile transfer-source cancel changes no world data.
+Actual UI save/load in target stage clears all candidates/draft/panel; normalize JSON
+optional-undefined fields before world comparison.22 browser checks saved in
+docs/fixtures/map-command-two-step-browser.json;pageErrors0;browser closed.
+Standard bundled gameplay client ran once; startup faction dialog/map screenshot
+and idle/null-faction text inspected, no error artifact. Startup smoke only, not a
+match. Private relative-base preview built and prepared; final merge/deploy pending.

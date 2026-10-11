@@ -13,10 +13,6 @@
   >
     <div class="campaign-panel">
       <p class="campaign-rule">途中仅可经过己方城市，敌方只能作为进攻终点。海路仅限指定航线。</p>
-      <div class="campaign-reselect">
-        <GameButton parchment :disabled="busy" @click="$emit('reselect', 'source', { kind, sourceGb, targetGb })">地图重选出发城</GameButton>
-        <GameButton parchment :disabled="busy || !sourceGb" @click="$emit('reselect', 'target', { kind, sourceGb, targetGb })">地图重选目标城</GameButton>
-      </div>
       <div v-if="!store.currentFaction" class="campaign-empty">请先选择势力。</div>
       <template v-else>
         <div class="campaign-controls">
@@ -186,7 +182,7 @@ import type { MapCommandDraft } from '@/composables/useMapCommand'
 import { aiRequestsPending } from '@/composables/useAiChat'
 
 const props = defineProps<{ visible: boolean; initialSourceGb?: string | null; initialDraft?: MapCommandDraft | null }>()
-defineEmits<{ close: []; reselect: [step: 'source' | 'target', draft: MapCommandDraft] }>()
+defineEmits<{ close: [] }>()
 const store = useGameStore()
 const scheduler = useGameScheduler()
 const kernel = useAgentKernel()
@@ -293,12 +289,6 @@ async function executePreview() {
   overflow-y: auto;
   color: var(--ink);
   font-size: 13px;
-}
-.campaign-reselect {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 12px;
 }
 .campaign-confirm {
   display: flex;
