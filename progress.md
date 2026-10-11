@@ -506,4 +506,8 @@ Sanitized fixture docs/fixtures/world-ai-wait-browser.json; report
 docs/world-ai-wait-control.md. Browser closed. Standard bundled smoke ran once:
 idle/null-faction state valid, no error file, but opaque black canvas image; inspected
 and not claimed a visual pass. Ordinary viewport shots show actual map/controls;
-recorded screenshot harness issue internally. Merge/private preview deploy pending.
+recorded screenshot harness issue internally. PR13 merged to master:
+db356eb42e751afe6aaa873f6e9a3e40fe52ce31; fix/world-ai-wait-control deleted,
+only local/remote master remained. Same private preview asset updated and cloud
+startup inspected; cloud browser stopped. No production/backend/model continuous
+game verification claimed. Final docs/audit delivery follows this implementation.
