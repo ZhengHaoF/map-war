@@ -258,6 +258,11 @@ export const LLM_RETRY_BASE_MS = 1000
 /** LLM 调用最大重试次数 */
 export const LLM_MAX_RETRIES = 3
 
+/** Shared world-turn AI cutoff, measured from the start of P3. Local effects finish normally. */
+export const WORLD_AI_DEADLINE_MS = 180_000
+/** Per-attempt fetch + response-body timeout; retries still share the above cutoff. */
+export const WORLD_AI_ATTEMPT_TIMEOUT_MS = 90_000
+
 /** 每回合 AI 可发送给玩家的最大电报数 */
 export const AI_TELEGRAMS_PER_TURN = 2
 

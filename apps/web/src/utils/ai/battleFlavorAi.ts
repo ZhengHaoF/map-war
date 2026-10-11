@@ -13,6 +13,8 @@ import { extractPayloads } from '@/utils/aiParse'
 import type { BattleInfo } from '@/stores/game'
 import type { BaseResult, FlavorResult, FlavorEvent } from '@/utils/battleFormula'
 import type { AiStatus } from '@/utils/aiStatus'
+import type { LlmControlOpts } from '@/composables/useLlmClient'
+import { aiFailureReason, withAiAbort } from '@/utils/aiWait'
 
 const FLAVOR_PROMPT = `你是民国军阀推演游戏中的"战地记者"。
 
@@ -73,6 +75,7 @@ export async function flavorBattles(
   battles: BattleInfo[],
   baseResults: Map<string, BaseResult>,
   report?: (status: Pick<AiStatus, 'status' | 'reason'>) => void,
+  llmOpts: LlmControlOpts = {},
 ): Promise<Record<string, FlavorResult>> {
   const flavorMap: Record<string, FlavorResult> = {}
 
@@ -82,13 +85,14 @@ export async function flavorBattles(
     const summary = buildBattleFlavorSummary(battles, baseResults)
     if (!summary) return flavorMap
 
-    const raw = await callLlm({
+    const raw = await withAiAbort(() => callLlm({
       messages: [
         { role: 'system', content: FLAVOR_PROMPT },
         { role: 'user', content: summary },
       ],
       maxRetries: 2,
-    })
+      ...llmOpts,
+    }), llmOpts.signal)
 
     const payloads = extractPayloads(raw)
     const obj = payloads[0] as Record<string, unknown> | undefined
@@ -110,9 +114,9 @@ export async function flavorBattles(
     }
     const complete = battles.every(b => flavorMap[b.id])
     report?.(complete ? { status: 'ok' } : { status: 'partial', reason: 'missing' })
-  } catch {
+  } catch (error) {
     // 调味失败不阻塞战斗结算
-    report?.({ status: 'failed', reason: 'request' })
+    report?.({ status: 'failed', reason: aiFailureReason(error) })
   }
 
   return flavorMap

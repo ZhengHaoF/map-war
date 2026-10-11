@@ -8,6 +8,28 @@
       </div>
       <span class="wpb-track"><span class="wpb-edge edge-slide"></span></span>
 
+      <template v-if="!useCustomProps && kernelLoading && waitDeadlineAt">
+        <div class="wpb-wait-summary">
+          <span>AI 回复 {{ completedTasks }}/{{ worldAiTasks.length }} 项完成</span>
+          <span aria-live="off">{{ waitStopReason === 'cancelled' ? '已停止等待'
+            : waitStopReason === 'timeout' ? '截止时间已到'
+              : `本回合 AI 截止剩余 ${Math.ceil(waitRemainingMs / 1000)} 秒` }}</span>
+        </div>
+        <ul class="wpb-tasks" aria-label="世界 AI 请求进度" aria-live="polite">
+          <li v-for="task in worldAiTasks" :key="task.id" :data-state="task.state">
+            <div class="wpb-task-line"><strong>{{ task.label }}</strong><span>{{ taskStateText(task) }}</span></div>
+            <small v-if="task.phase === 'batch'">{{ task.factions.map(f => OWNER_LABELS[f] ?? f).join('、') }}（共享一份批量请求）</small>
+          </li>
+        </ul>
+        <div class="wpb-stop-area">
+          <GameButton parchment :disabled="!canStopAiWaiting" @click="stopAiWaiting">
+            {{ waitStopReason ? '正在按已有结果结算' : '停止等待并结算' }}
+          </GameButton>
+          <small>只停止 AI 等待；已取得的决策照常执行，缺失部分标注降级。经济与已执行动作不回滚。</small>
+          <small v-if="!aiWaiting && !waitStopReason">本地执行／日期演出期间不能中断；AI 截止不强制终止动作。</small>
+        </div>
+      </template>
+
       <!-- 进队栏：待执行指令明细 -->
       <div v-if="queue.length" class="wpb-queue">
         <div class="wpb-queue-head">待执行 {{ queue.length }} 条</div>
@@ -24,10 +46,12 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useAgentKernel } from '@/composables/useAgentKernel'
+import { useAgentKernel, type WorldAiTask } from '@/composables/useAgentKernel'
 import { useGameScheduler } from '@/composables/useGameScheduler'
 import type { GameOrder } from '@/utils/gameOrders'
 import { describeOrder } from '@/utils/orderText'
+import { OWNER_LABELS } from '@/data/owners'
+import GameButton from '@/components/ui/GameButton.vue'
 
 interface Props {
   /** 外部传入的 loading 状态（可选） */
@@ -47,11 +71,26 @@ const props = withDefaults(defineProps<Props>(), {
   sealChar: undefined,
 })
 
-const { loading: kernelLoading, phase: kernelPhase, progress: kernelProgress } = useAgentKernel()
+const { loading: kernelLoading, phase: kernelPhase, progress: kernelProgress,
+  worldAiTasks, aiWaiting, waitDeadlineAt, waitRemainingMs, waitStopReason,
+  canStopAiWaiting, stopAiWaiting } = useAgentKernel()
 const { queue, status: schedStatus } = useGameScheduler()
 
 /** 是否使用外部传入的自定义状态 */
 const useCustomProps = computed(() => props.loading !== undefined)
+const completedTasks = computed(() => worldAiTasks.value.filter(task =>
+  !['waiting', 'requesting', 'retrying'].includes(task.state)).length)
+function taskStateText(task: WorldAiTask): string {
+  if (task.state === 'waiting') return '准备请求'
+  if (task.state === 'requesting') return `请求 ${task.attempt}/${task.maxAttempts}`
+  if (task.state === 'retrying') return `等待重试 ${task.attempt}/${task.maxAttempts}（退避 ${Math.ceil((task.retryDelayMs ?? 0) / 1000)} 秒）`
+  if (task.state === 'ok') return '取得有效回复'
+  if (task.state === 'empty') return task.phase === 'battleFlavor' ? '本地处理，无需调味请求' : '有效回复，无行动计划'
+  if (task.state === 'partial') return '部分可用，详见回执'
+  return task.reason === 'timeout' ? '等待超时，使用降级'
+    : task.reason === 'cancelled' ? '已停止等待，使用降级'
+      : task.reason === 'format' ? '回复格式无效，使用降级' : '请求失败，使用降级'
+}
 
 /** 可见条件：使用自定义 props 时看 loading，否则使用全局状态 */
 const visible = computed(() => {
@@ -66,7 +105,7 @@ function phaseLabel(phase: string): string {
     classifying: '分析中…',
     ai: '政权 AI 决策中…',
     advancing: '执行指令中…',
-    settling: '战斗裁决中…',
+    settling: 'AI 结算中…',
     done: '推演完成',
     error: '推演异常',
   }
@@ -153,6 +192,15 @@ function detailOf(o: GameOrder): string {
   color: var(--ink-soft, #8a6d4b);
   margin-top: 2px;
 }
+.wpb-wait-summary { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.wpb-tasks { flex-basis: 100%; margin: 0; padding: 0; list-style: none; max-height: 148px; overflow-y: auto; }
+.wpb-tasks li { padding: 6px 0; border-top: 1px solid rgba(138, 109, 75, 0.25); font-size: 12px; }
+.wpb-task-line { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 8px; }
+.wpb-task-line strong { font-weight: 600; }
+.wpb-tasks small { display: block; line-height: 1.6; margin-top: 4px; color: var(--ink-soft); overflow-wrap: anywhere; }
+.wpb-tasks [data-state="failed"] { color: var(--cinnabar); }
+.wpb-stop-area { flex-basis: 100%; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+.wpb-stop-area small { font-size: 11px; color: var(--ink-soft); line-height: 1.5; }
 .wpb-track {
   position: relative;
   width: 72px;

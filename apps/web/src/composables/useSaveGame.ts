@@ -38,6 +38,7 @@ export function useSaveGame() {
       kernel.lastError.value = ''
       kernel.phase.value = 'idle'
       kernel.progress.value = ''
+      kernel.resetWaitProgress()
       store.requestMapReload()
       pushToast({ icon: 'file-import', tone: 'green', title: '读档成功',
         text: '已载入存档；旧对话、建议与草稿已清空，等待中的回复已作废。' })
@@ -57,6 +58,12 @@ export function useSaveGame() {
    * 返回是否成功。
    */
   function saveGame(slot: string, label?: string): boolean {
+    if (useAgentKernel().loading.value || useGameScheduler().status.value === 'running'
+      || aiEffectsPending.value > 0) {
+      pushToast({ icon: 'alert-triangle', tone: 'amber', title: '暂不能保存',
+        text: '世界回合或已接受的行动正在结算，请结束后再保存，避免保存半个回合。' })
+      return false
+    }
     if (slot === 'auto') {
       pushToast({ icon: 'alert-triangle', tone: 'error', title: '保存失败', text: '自动存档槽不可手动覆盖' })
       return false

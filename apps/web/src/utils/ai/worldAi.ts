@@ -17,6 +17,8 @@ import { buildScenarioBrief } from '@/data/scenarioBrief'
 import type { GameOrder } from '@/utils/gameOrders'
 import { nextTurnDate } from '@/utils/turnDate'
 import type { AiStatus } from '@/utils/aiStatus'
+import type { LlmControlOpts } from '@/composables/useLlmClient'
+import { aiFailureReason, withAiAbort } from '@/utils/aiWait'
 
 const BATCH_PROMPT = `你是民国军阀推演游戏的「世界 AI」。你负责为次要势力生成本回合的行动。
 这些势力不单独配 AI 实例，由你一次性批量生成它们的带日期事件。
@@ -84,11 +86,12 @@ export interface WorldBatchResult {
   parseSucceeded: boolean
 }
 
-export async function runWorldBatch(context: string): Promise<WorldBatchResult> {
-  const result = await invokeAgentDecision({
+export async function runWorldBatch(context: string, llmOpts: LlmControlOpts = {}): Promise<WorldBatchResult> {
+  const result = await withAiAbort(() => invokeAgentDecision({
     systemPrompt: BATCH_PROMPT + '\n\n' + buildScenarioBrief(),
     userContext: context,
-  })
+    llmOpts,
+  }), llmOpts.signal)
   if (!result.parseSucceeded) {
     return { orders: [], errors: [], parseSucceeded: false }
   }
@@ -106,19 +109,29 @@ export interface WorldSettleResult {
  * P4 回合结算叙事。
  * 返回叙事文本、新日期、世界公屏电报。
  */
-export async function runWorldSettle(currentDate: string): Promise<WorldSettleResult> {
-  let requestFailed = false
-  const raw = await callLlm({
+export function defaultWorldSettle(currentDate: string, reason: AiStatus['reason']): WorldSettleResult {
+  return {
+    aiStatus: { status: 'failed', reason },
+    narrative: '本回合世界叙事未取得有效回复，已使用默认日期规则继续。',
+    newDate: nextTurnDate(currentDate),
+    chatter: [],
+  }
+}
+
+export async function runWorldSettle(currentDate: string, llmOpts: LlmControlOpts = {}): Promise<WorldSettleResult> {
+  let failure: AiStatus['reason'] | undefined
+  const raw = await withAiAbort(() => callLlm({
     messages: [
       { role: 'system', content: SETTLE_PROMPT + '\n\n' + buildScenarioBrief() },
       { role: 'system', content: buildSettleContext(currentDate) },
     ],
-  }).catch(() => { requestFailed = true; return null })
+    ...llmOpts,
+  }), llmOpts.signal).catch(error => { failure = aiFailureReason(error); return null })
   const payloads = extractPayloads(raw)
   const obj = payloads[0] as Record<string, unknown> | undefined
   const valid = typeof obj?.narrative === 'string' && !!obj.narrative.trim()
   return {
-    aiStatus: valid ? { status: 'ok' } : { status: 'failed', reason: requestFailed ? 'request' : 'format' },
+    aiStatus: valid ? { status: 'ok' } : { status: 'failed', reason: failure ?? 'format' },
     narrative: valid ? obj.narrative as string : '本回合世界叙事未取得有效回复，已使用默认日期规则继续。',
     newDate: nextTurnDate(currentDate, valid ? obj?.newDate : undefined),
     chatter: valid && Array.isArray(obj?.chatter)

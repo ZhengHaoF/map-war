@@ -10,7 +10,21 @@
  * - 4xx：抛错（客户端错误重试无用）
  * - JSON 解析失败：抛错（重试需走 invokeAgentDecision，附加 hint）
  */
-export interface LlmCallOpts {
+export interface LlmAttemptUpdate {
+  state: 'requesting' | 'retrying'
+  attempt: number
+  maxAttempts: number
+  retryDelayMs?: number
+}
+
+export interface LlmControlOpts {
+  signal?: AbortSignal
+  /** Bounds the entire fetch + response body for each attempt. Optional outside world turns. */
+  attemptTimeoutMs?: number
+  onAttempt?: (update: LlmAttemptUpdate) => void
+}
+
+export interface LlmCallOpts extends LlmControlOpts {
   messages: { role: string; content: string }[]
   /** response_format，默认 { type: 'json_object' }。需纯文本传 { type: 'text' } */
   responseFormat?: { type: 'text' | 'json_object' | 'json_schema' }
@@ -22,6 +36,7 @@ export interface LlmCallOpts {
 
 import { LLM_RETRY_BASE_MS, LLM_MAX_RETRIES } from '@/data/gameConfig'
 import { aiErrorMessage } from '@/utils/aiError'
+import { AiWaitError, aiRetryDelay, throwIfAiAborted, withAiAbort } from '@/utils/aiWait'
 
 const DEFAULT_MAX_RETRIES = LLM_MAX_RETRIES
 const DEFAULT_RESPONSE_FORMAT: LlmCallOpts['responseFormat'] = { type: 'json_object' }
@@ -52,36 +67,53 @@ export async function callLlm(opts: LlmCallOpts): Promise<unknown> {
   let lastErr: Error | null = null
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    throwIfAiAborted(opts.signal)
+    opts.onAttempt?.({ state: 'requesting', attempt, maxAttempts: maxRetries })
+    const controller = new AbortController()
+    const onAbort = () => controller.abort(opts.signal?.reason)
+    opts.signal?.addEventListener('abort', onAbort, { once: true })
+    const timeout = opts.attemptTimeoutMs && opts.attemptTimeoutMs > 0
+      ? setTimeout(() => controller.abort(new AiWaitError('timeout')), opts.attemptTimeoutMs)
+      : undefined
     try {
-      const res = await fetch('/api/ai/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' } as Record<string, string>,
-        body: JSON.stringify({
-          ...(opts.model ? { model: opts.model } : {}),
-          messages: opts.messages,
-          response_format: responseFormat,
-        }),
-      })
-      if (!res.ok) {
-        const errBody = await res.json().catch(() => ({}))
-        const detail = aiErrorMessage(errBody, res.status)
-        // 4xx 客户端错误：NonRetryableError，绕过外层重试
-        if (res.status >= 400 && res.status < 500) {
-          throw new NonRetryableError(detail)
+      return await withAiAbort(async () => {
+        const res = await fetch('/api/ai/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' } as Record<string, string>,
+          body: JSON.stringify({
+            ...(opts.model ? { model: opts.model } : {}),
+            messages: opts.messages,
+            response_format: responseFormat,
+          }),
+          signal: controller.signal,
+        })
+        throwIfAiAborted(controller.signal)
+        if (!res.ok) {
+          const errBody = await res.json().catch(() => ({}))
+          throwIfAiAborted(controller.signal)
+          const detail = aiErrorMessage(errBody, res.status)
+          if (res.status >= 400 && res.status < 500) throw new NonRetryableError(detail)
+          throw new Error(`5xx: ${detail}`)
         }
-        throw new Error(`5xx: ${detail}`)
-      }
-      return await res.json()
+        const value = await res.json().catch(() => {
+          throw new NonRetryableError('AI 响应不是有效 JSON')
+        })
+        throwIfAiAborted(controller.signal)
+        return value
+      }, controller.signal)
     } catch (err) {
-      // 客户端错误不重试，直接 rethrow
-      if (err instanceof NonRetryableError) {
-        throw err
-      }
+      // Shared deadline / user stop must never start another retry.
+      throwIfAiAborted(opts.signal)
+      if (err instanceof NonRetryableError) throw err
       lastErr = err as Error
-      if (attempt < maxRetries) {
-        // 退避：1s / 2s / 3s ...
-        await new Promise((r) => setTimeout(r, LLM_RETRY_BASE_MS * attempt))
-      }
+    } finally {
+      clearTimeout(timeout)
+      opts.signal?.removeEventListener('abort', onAbort)
+    }
+    if (attempt < maxRetries) {
+      const retryDelayMs = LLM_RETRY_BASE_MS * attempt
+      opts.onAttempt?.({ state: 'retrying', attempt: attempt + 1, maxAttempts: maxRetries, retryDelayMs })
+      await aiRetryDelay(retryDelayMs, opts.signal)
     }
   }
   throw lastErr ?? new Error('AI 调用失败')

@@ -18,6 +18,8 @@ import { buildFactionSystemPrompt } from './prompts'
 import { validateFactionOrders } from './contract'
 import { commandReceipt } from '@/utils/commandFeedback'
 import type { AiStatus } from '@/utils/aiStatus'
+import type { LlmControlOpts } from '@/composables/useLlmClient'
+import { throwIfAiAborted, withAiAbort } from '@/utils/aiWait'
 
 export interface DiplomaticProposal {
   target: Owner
@@ -33,14 +35,17 @@ export interface FactionDecision {
   diplomaticProposal?: DiplomaticProposal
 }
 
-export async function decideFaction(faction: Owner, context: string): Promise<FactionDecision> {
+export async function decideFaction(faction: Owner, context: string, llmOpts: LlmControlOpts = {}): Promise<FactionDecision> {
   const store = useGameStore()
   context += `\n剩余回合行动点：${store.getActionPoints(faction)}/6；结束回合后恢复。每条开战/部署/调兵/内政耗1点；撤退和查询不耗点。禁止capture、日期指令与停战期进攻。`
 
-  const result = await invokeAgentDecision({
+  const result = await withAiAbort(() => invokeAgentDecision({
     systemPrompt: buildFactionSystemPrompt(faction),
     userContext: context,
-  })
+    llmOpts,
+  }), llmOpts.signal)
+  // Refusal receipts below are effects too: late decisions cannot record them.
+  throwIfAiAborted(llmOpts.signal)
 
   if (!result.parseSucceeded) {
     return { orders: [], decisionStatus: { status: 'failed', reason: 'format' } }

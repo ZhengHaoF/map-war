@@ -136,6 +136,9 @@
         @restart="beginMapCommand(mapCommand.draft.value.kind)"
         @cancel="cancelMapCommand"
       />
+      <div v-if="commandKernel.loading.value && !commandVisible" class="map-world-progress map-ui">
+        <WorldProgressBanner />
+      </div>
       <GameDateDisplay class="map-ui" />
       <GameContextMenu
         class="map-ui"
@@ -609,6 +612,7 @@ import PlayerAiPanel from '@/components/PlayerAiPanel.vue'
 import ScenarioObjectivePanel from '@/components/ScenarioObjectivePanel.vue'
 import CampaignPanel from '@/components/CampaignPanel.vue'
 import MapCommandPicker from '@/components/MapCommandPicker.vue'
+import WorldProgressBanner from '@/components/WorldProgressBanner.vue'
 import {
   getSupplyStatus,
   occupationRemaining,
@@ -2791,6 +2795,10 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+.map-world-progress { position: absolute; z-index: 2500; top: 100px; right: 16px; width: min(390px, calc(100% - 196px)); }
+@media (max-width: 600px) {
+  .map-world-progress { top: auto; bottom: 64px; left: 12px; right: 12px; width: auto; }
+}
 /* 弹窗标题旁的复制按钮 */
 .title-copy-btn {
   display: inline-flex;

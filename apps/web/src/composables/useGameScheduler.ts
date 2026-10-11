@@ -41,6 +41,8 @@ import {
 import { battleSummaryText } from '@/utils/battleTrend'
 import { Owner } from '@/data/owners'
 import { commandReceipt, type BudgetSnapshot } from '@/utils/commandFeedback'
+import type { LlmControlOpts } from '@/composables/useLlmClient'
+import type { AiStatus } from '@/utils/aiStatus'
 
 export type AdvanceStatus = 'idle' | 'running' | 'done' | 'stopped'
 
@@ -66,7 +68,9 @@ function submit(orders: GameOrder[], context: ExecutionContext = {}): void {
 /**
  * P4a 战斗结算：本地公式为主干、AI 为调味层。
  */
-async function settleActiveBattles(): Promise<void> {
+async function settleActiveBattles(llmOpts?: LlmControlOpts,
+  onAiStatus?: (outcome: Pick<AiStatus, 'status' | 'reason'>) => void,
+  onAiWaiting?: (waiting: boolean) => void): Promise<void> {
   const store = useGameStore()
   const active = store.battles.filter((b) => b.active)
   if (!active.length) return
@@ -233,10 +237,12 @@ async function settleActiveBattles(): Promise<void> {
   if (!validBattles.length) return
 
   // ── 第二阶段：AI 调味（尽力而为，失败不阻塞）───
+  onAiWaiting?.(true)
   const flavorMap = await flavorBattles(validBattles, baseResults, outcome => {
+    onAiStatus?.(outcome)
     store.applyEvent({ type: 'aiStatus', phase: 'battleFlavor',
       factions: [...new Set(validBattles.flatMap(b => [b.attacker, b.defender]))], ...outcome })
-  })
+  }, llmOpts).finally(() => { onAiWaiting?.(false) })
 
   // ── 第三阶段：钳制 AI 调味 + 合并 + apply ──
   for (const b of validBattles) {
