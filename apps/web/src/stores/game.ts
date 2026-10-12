@@ -827,6 +827,18 @@ export const useGameStore = defineStore('game', () => {
     playerBloodyVictories.value = 0
   }
 
+  /**
+   * 幂等播种：世界尚未播种时才 initWorld()，已播种（含玩家已择势）则保持原状。
+   * 地图挂载与择势页“开战”都会调用，二者先后顺序不影响结果——
+   * 地图初始化较慢时，用户先点“开战”的势力、玩家名与 selectFaction 事件不会被晚到的播种清掉。
+   * 返回是否本次真正播种。
+   */
+  function ensureWorld(): boolean {
+    if (Object.keys(cities.value).length > 0) return false
+    initWorld()
+    return true
+  }
+
   function selectFaction(f: Owner): void {
     applyEvent({ type: 'selectFaction', faction: f, playerName: playerName.value })
     // 择势提示（开局 / god-mode 两条路径都经此；读档重放不触发）
@@ -1783,6 +1795,7 @@ export const useGameStore = defineStore('game', () => {
     openTelegramTo,
     myBattles,
     initWorld,
+    ensureWorld,
     selectFaction,
     setPlayer,
     applyEvent,

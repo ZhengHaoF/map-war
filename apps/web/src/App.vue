@@ -160,6 +160,12 @@ body.cloud-active .map-ui {
   opacity: 0;
   pointer-events: none;
 }
+/* 新局开场期间：顶层 UI 立即隐藏且不可点，开场结束后按原过渡淡入 */
+body.intro-active .map-ui {
+  opacity: 0;
+  pointer-events: none;
+  transition: none;
+}
 
 /* ── 自定义滚动条：羊皮纸凹槽 + 朱砂铜制滑块 ── */
 ::-webkit-scrollbar {

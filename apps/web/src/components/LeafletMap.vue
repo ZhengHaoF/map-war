@@ -574,11 +574,21 @@
     </div>
     <PaperTexture />
     <MapCompass />
+    <EpicIntro
+      v-if="introSession"
+      ref="introRef"
+      :key="introSession.id"
+      :port="introPort"
+      :cast="introSession.cast"
+      :reduced="introSession.reduced"
+      :theme="introSession.theme"
+      @done="onIntroDone"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, shallowRef, toRaw, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { Application, Container, Graphics, Matrix, Rectangle, Text, TextStyle } from 'pixi.js'
 import type { Texture } from 'pixi.js'
 import { OWNER_COLORS, OWNER_LABELS, OWNER_DETAILS, Owner } from '@/data/owners'
@@ -602,6 +612,7 @@ import {
   setScreenSize,
   registerLocations,
   registerAlias,
+  resolveLocation,
   resolveLocationXY,
 } from '@/utils/locationResolver'
 import type { Point } from '@/utils/locationResolver'
@@ -662,6 +673,22 @@ import EventLogPanel from '@/components/EventLogPanel.vue'
 import SaveSelectorModal from '@/components/SaveSelectorModal.vue'
 import GameDateDisplay from '@/components/ui/GameDateDisplay.vue'
 import { playCloudTransition, disposeCloudTransition } from '@/utils/cloudTransition'
+import EpicIntro from '@/components/EpicIntro.vue'
+import { createCameraTweener, type CameraTweenOptions } from '@/utils/cameraTween'
+import { pendingNewGameIntro, takeNewGameIntro, discardNewGameIntro } from '@/composables/useNewGameIntro'
+import { CITY_CONNECTIONS } from '@/utils/campaignRoutes'
+import {
+  buildIntroCast,
+  computeIntroShots,
+  connectionNeighbours,
+  shotToCamera,
+  type Box,
+  type IntroCast,
+  type Shot,
+} from '@/utils/intro/introPlan'
+import type { IntroMapPort, MapReadyResult, MapReadyState, IntroOutcome } from '@/utils/intro/introDirector'
+import type { IntroFrame } from '@/utils/intro/introTimeline'
+import { clamp01, easeOutBack } from '@/utils/intro/introTimeline'
 import { judgeRetreat, negotiatePeace, type PeaceResult } from '@/utils/ai'
 import { useSaveGame } from '@/composables/useSaveGame'
 import { useToast } from '@/composables/useToast'
@@ -893,7 +920,7 @@ function cancelMapCommand() {
   if (selectionHighlightGfx) clearAllHighlights()
 }
 async function beginMapCommand(kind: MapCommandKind) {
-  if (commandBusy.value || cameraLocked) return
+  if (commandBusy.value || inputLocked()) return
   if (!mapCommand.begin(kind)) return
   const sequence = ++mapCommandSequence
   campaignVisible.value = false
@@ -977,6 +1004,14 @@ const hasDiplomatPending = computed(() => {
 const disclaimerVisible = ref(false)
 const ownerColorEnabled = ref(true)
 const labelsVisible = ref(true)
+/**
+ * 地名层可见性的唯一写入点：用户偏好 labelsVisible 且没有开场锁。
+ * 开场期间只临时隐藏（不改 labelsVisible），释放锁后按偏好恢复；loadLayer / 字体重绘也走这里，不会把地名重新显现到开场上。
+ */
+function syncLabelVisibility(): void {
+  if (!labelContainer) return
+  labelContainer.visible = labelsVisible.value && introLockCount === 0
+}
 const baseMapVisible = ref(true)
 /** 领土文字水印开关（仅市级图层有城市几何可铺） */
 const sealWatermarkEnabled = ref(true)
@@ -1036,7 +1071,7 @@ let zoomRestRaf: number | null = null
 function scheduleZoomRest(): void {
   if (zoomRestRaf !== null) return
   const step = (): void => {
-    if (cameraRaf !== null) {
+    if (cameraTween.active) {
       zoomRestRaf = null
       return
     }
@@ -2057,6 +2092,8 @@ function onGlobalMouseDown(e: MouseEvent): void {
 
 function onKeyDown(e: KeyboardEvent): void {
   if (e.isComposing) return
+  // 新局开场期间键盘由开场层接管：Esc 不走 cameraController.cancel()，A/M 不触发地图指令
+  if (introLockCount > 0 || introSession.value) return
   if (e.key === 'Escape') {
     if (mapCommand.phase.value !== 'idle' || campaignVisible.value) {
       e.preventDefault()
@@ -2296,7 +2333,7 @@ async function toggleOwnerColor(): Promise<void> {
 
 function toggleLabels(): void {
   labelsVisible.value = !labelsVisible.value
-  labelContainer.visible = labelsVisible.value
+  syncLabelVisibility()
 }
 
 async function toggleSealWatermark(): Promise<void> {
@@ -2314,7 +2351,12 @@ async function loadLayer(index: number): Promise<void> {
   const config = LAYERS[index]
   if (!geoJsonCache.has(config.file)) {
     const res = await fetch(config.file)
-    geoJsonCache.set(config.file, await res.json())
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    const data = await res.json()
+    if (data?.type !== 'FeatureCollection' || !Array.isArray(data.features)) {
+      throw new Error('地图响应不是有效的 FeatureCollection')
+    }
+    geoJsonCache.set(config.file, data)
   }
 
   currentData = geoJsonCache.get(config.file) ?? null
@@ -2399,22 +2441,40 @@ async function loadLayer(index: number): Promise<void> {
   if (currentData) {
     renderLabels(currentData, width, height, index)
   }
-  labelContainer.visible = labelsVisible.value
+  syncLabelVisibility()
   updateLabels()
 }
 
 // ─── 相机控制（镜头演出）───
 let cameraLocked = false
-let cameraRaf: number | null = null
-let cameraInterrupt = false
-let cameraResolve: (() => void) | null = null
+/** 新局开场持有的输入锁（独立于 cameraLocked：cameraController.cancel() 解锁时不会让开场失去锁） */
+let introLockCount = 0
 const FOCUS_SCALE = 2.8
-const cameraEase = (t: number): number => 1 - Math.pow(1 - t, 3) // easeOutCubic
+/** 任一锁生效即拦截滚轮 / 拖拽 / 点击 */
+function inputLocked(): boolean {
+  return cameraLocked || introLockCount > 0
+}
+/** 相机补间器：被顶替 / 取消的旧 promise 一定 resolve（见 utils/cameraTween） */
+const cameraTween = createCameraTweener({
+  get: () => ({ scale: mapScale, x: mapX, y: mapY }),
+  set: (s) => {
+    mapScale = s.scale
+    mapX = s.x
+    mapY = s.y
+    applyCamera()
+  },
+  reducedMotion: prefersReducedMotion,
+})
 
 /** 将当前相机状态应用到所有容器（抽出给镜头补间复用，替代各 handler 里的重复 transform） */
 function applyCamera(): void {
+  if (!worldContainer) return
   worldContainer.scale.set(mapScale)
   worldContainer.position.set(mapX, mapY)
+  if (introWorldLayer) {
+    introWorldLayer.scale.set(mapScale)
+    introWorldLayer.position.set(mapX, mapY)
+  }
   baseContainer.scale.set(mapScale)
   baseContainer.position.set(mapX, mapY)
   fxContainer.scale.set(mapScale)
@@ -2424,45 +2484,13 @@ function applyCamera(): void {
 }
 
 /** 将相机平滑补间到目标 {scale, x, y} */
-function animateCameraTo(target: CameraTarget, duration: number): Promise<void> {
-  return new Promise((resolve) => {
-    // 减少动态偏好：跳过补间，直接归位
-    if (prefersReducedMotion()) {
-      mapScale = target.scale
-      mapX = target.x
-      mapY = target.y
-      applyCamera()
-      resolve()
-      return
-    }
-    if (cameraRaf) cancelAnimationFrame(cameraRaf)
-    cameraInterrupt = false
-    cameraResolve = resolve
-    const start: CameraTarget = { scale: mapScale, x: mapX, y: mapY }
-    const startTime = performance.now()
-    const step = (now: number): void => {
-      if (cameraInterrupt) {
-        cameraRaf = null
-        cameraResolve = null
-        resolve()
-        return
-      }
-      const p = Math.min((now - startTime) / duration, 1)
-      const e = cameraEase(p)
-      mapScale = start.scale + (target.scale - start.scale) * e
-      mapX = start.x + (target.x - start.x) * e
-      mapY = start.y + (target.y - start.y) * e
-      applyCamera()
-      if (p < 1) {
-        cameraRaf = requestAnimationFrame(step)
-      } else {
-        cameraRaf = null
-        cameraResolve = null
-        resolve()
-      }
-    }
-    cameraRaf = requestAnimationFrame(step)
-  })
+function animateCameraTo(
+  target: CameraTarget,
+  duration: number,
+  opts?: CameraTweenOptions,
+): Promise<void> {
+  // 减少动态偏好直接归位；新调用顶替旧补间时旧 promise 立即 resolve，不再挂起
+  return cameraTween.tweenTo(target, duration, opts)
 }
 
 /** 计算「把某地点居中并缩放」的相机目标（用世界坐标，与动画库 resolveLocationXY 一致） */
@@ -2504,18 +2532,469 @@ const cameraController = {
   },
   /** 取消进行中的镜头补间并解锁（ESC 中断演出） */
   cancel(): void {
-    cameraInterrupt = true
-    if (cameraRaf) {
-      cancelAnimationFrame(cameraRaf)
-      cameraRaf = null
-    }
-    if (cameraResolve) {
-      cameraResolve()
-      cameraResolve = null
-    }
+    cameraTween.cancel()
     cameraLocked = false
   },
 }
+
+// ─── 地图就绪信号 ───
+// 条件：世界底图已尝试加载（失败也算已尝试）、首个市级 loadLayer 完成、城市 gb 已注册、
+// 字体就绪（含其触发的二次 loadLayer）或超时。核心图层 / 城市注册失败 → failed。
+const FONT_READY_TIMEOUT_MS = 4000
+const mapReadyState = ref<MapReadyState>('pending')
+let mapReadyError = ''
+let mapReadyWaiters: ((r: MapReadyResult) => void)[] = []
+function settleMapReady(r: MapReadyResult): void {
+  mapReadyState.value = r.ok ? 'ready' : 'failed'
+  mapReadyError = r.ok ? '' : r.reason
+  const waiters = mapReadyWaiters
+  mapReadyWaiters = []
+  for (const w of waiters) w(r)
+}
+function whenMapReady(): Promise<MapReadyResult> {
+  if (mapReadyState.value === 'ready') return Promise.resolve({ ok: true })
+  if (mapReadyState.value === 'failed') return Promise.resolve({ ok: false, reason: mapReadyError })
+  return new Promise((resolve) => mapReadyWaiters.push(resolve))
+}
+/** 加载市级图层并注册城市 gb；返回失败原因，成功返回空串。 */
+async function loadCoreCityLayer(): Promise<string> {
+  try {
+    await loadLayer(currentLayerIndex.value)
+  } catch (e) {
+    console.error('市级图层加载失败:', e)
+    geoJsonCache.delete(LAYERS[currentLayerIndex.value].file)
+    return '市级图层加载失败'
+  }
+  if (!geoJsonCache.has(LAYERS[1].file)) {
+    try {
+      const res = await fetch(LAYERS[1].file)
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      geoJsonCache.set(LAYERS[1].file, await res.json())
+    } catch (e) {
+      console.error('城市几何加载失败:', e)
+      return '城市几何加载失败'
+    }
+  }
+  const cityJson = geoJsonCache.get(LAYERS[1].file)
+  if (!cityJson?.features?.length) return '城市几何为空'
+  registerLocations(cityJson.features, 'gb')
+  return ''
+}
+
+// ─── 新局开场（只读世界；复用本组件唯一的 Pixi 实例）───
+interface IntroSession {
+  id: number
+  cast: IntroCast
+  reduced: boolean
+  theme: 'paper' | 'night'
+  token: string
+}
+const introSession = shallowRef<IntroSession | null>(null)
+const introRef = ref<InstanceType<typeof EpicIntro> | null>(null)
+let introSeq = 0
+let introPlayedCount = 0
+let lastIntroSummary: Record<string, unknown> | null = null
+const introAllNeighbours = connectionNeighbours(CITY_CONNECTIONS)
+const introLandNeighbours = connectionNeighbours(CITY_CONNECTIONS, 'land')
+
+/** 入场专用层：不在 worldContainer / labelContainer / fxContainer 里，loadLayer 与战斗重置都不会清掉 */
+let introWorldLayer: Container | null = null
+let introScreenLayer: Container | null = null
+let introOwnFill: Graphics | null = null
+let introDim: Container | null = null
+let introOutline: Container | null = null
+let introSeals: { node: Container; wx: number; wy: number; own: boolean }[] = []
+let introLabels: { node: Container; wx: number; wy: number }[] = []
+let introBoxCache: { w: number; h: number; boxes: Map<string, Box> } | null = null
+
+const INTRO_LAYER_THEME = {
+  paper: { dim: 0xf0e7d3, outline: 0xb3362a, label: 0x24190f, labelStroke: 0xf3ead6, sealText: 0xfbf4e4, sealEdge: 0x2b2118 },
+  night: { dim: 0x0d0b09, outline: 0xe3654f, label: 0xf1e6cd, labelStroke: 0x14110d, sealText: 0xfbf4e4, sealEdge: 0x000000 },
+} as const
+
+/**
+ * 世界身份：reloadToken / 势力 / 姓名之外，再以“末条 selectFaction 事件对象”作锚点：
+ * initWorld 重置后同 tick 以相同势力姓名重新 setPlayer，会产生新的事件对象 → 身份变化，
+ * 旧开场不会把终态镜头写进新局。读档替换 eventLog 同理。
+ */
+const introEventAnchorIds = new WeakMap<object, number>()
+let introEventAnchorSeq = 0
+function introEventAnchor(): number {
+  const log = useGameStore().eventLog
+  for (let i = log.length - 1; i >= 0; i--) {
+    const e = log[i]
+    if (e?.type !== 'selectFaction') continue
+    const raw = toRaw(e) as object
+    let id = introEventAnchorIds.get(raw)
+    if (id === undefined) {
+      id = ++introEventAnchorSeq
+      introEventAnchorIds.set(raw, id)
+    }
+    return id
+  }
+  return 0
+}
+function introWorldToken(): string {
+  const s = useGameStore()
+  return `${s.reloadToken}|${s.currentFaction ?? ''}|${s.playerName}|${introEventAnchor()}`
+}
+
+function introViewport(): { width: number; height: number } {
+  if (app?.renderer) return { width: app.screen.width, height: app.screen.height }
+  return { width: window.innerWidth, height: window.innerHeight }
+}
+
+/** 城市外接框（局部世界坐标）。geoToScreen 线性单调，只换算经纬度极值的两个角，不分配全量点。 */
+function introCityBoxes(): Map<string, Box> {
+  const { width, height } = introViewport()
+  if (introBoxCache && introBoxCache.w === width && introBoxCache.h === height) return introBoxCache.boxes
+  const boxes = new Map<string, Box>()
+  const cityJson = geoJsonCache.get(LAYERS[1].file)
+  for (const f of cityJson?.features ?? []) {
+    const gb = f.properties?.gb as string | undefined
+    if (!gb || !f.geometry) continue
+    const polys: GeoJSON.Position[][][] =
+      f.geometry.type === 'Polygon'
+        ? [f.geometry.coordinates as GeoJSON.Position[][]]
+        : f.geometry.type === 'MultiPolygon'
+          ? (f.geometry.coordinates as GeoJSON.Position[][][])
+          : []
+    let minLng = Infinity
+    let maxLng = -Infinity
+    let minLat = Infinity
+    let maxLat = -Infinity
+    for (const poly of polys) {
+      const outer = poly[0]
+      if (!outer) continue
+      for (const [lng, lat] of outer) {
+        if (lng < minLng) minLng = lng
+        if (lng > maxLng) maxLng = lng
+        if (lat < minLat) minLat = lat
+        if (lat > maxLat) maxLat = lat
+      }
+    }
+    if (!Number.isFinite(minLng)) continue
+    const a = geoToScreen(minLng, maxLat, width, height)
+    const b = geoToScreen(maxLng, minLat, width, height)
+    const prev = boxes.get(gb)
+    const box = { minX: a.x, minY: a.y, maxX: b.x, maxY: b.y }
+    if (prev) {
+      box.minX = Math.min(box.minX, prev.minX)
+      box.minY = Math.min(box.minY, prev.minY)
+      box.maxX = Math.max(box.maxX, prev.maxX)
+      box.maxY = Math.max(box.maxY, prev.maxY)
+    }
+    boxes.set(gb, box)
+  }
+  introBoxCache = { w: width, h: height, boxes }
+  return boxes
+}
+
+function introComputeShots(cast: IntroCast) {
+  const { width, height } = introViewport()
+  const boxes = introCityBoxes()
+  if (!boxes.size) return null
+  return computeIntroShots({
+    viewport: { width, height },
+    boxes,
+    clusterGbs: cast.clusterGbs,
+    ownGbs: cast.ownGbs,
+    unitsPerDegree: geoToScreen(1, 0, width, height).x - geoToScreen(0, 0, width, height).x,
+    southCutY: geoToScreen(0, 17, width, height).y,
+    zoomMin: ZOOM_MIN,
+    zoomMax: ZOOM_MAX,
+  })
+}
+
+/** 开场镜头直接设相机（先停掉任何进行中的补间并 resolve 其 promise） */
+function introSetCamera(shot: Shot): void {
+  if (!worldContainer) return
+  if (cameraTween.active) cameraTween.cancel()
+  const cam = shotToCamera(shot, introViewport())
+  mapScale = cam.scale
+  mapX = cam.x
+  mapY = cam.y
+  applyCamera()
+}
+
+function introDestroyLayer(): void {
+  if (introDim) introDim.mask = null
+  if (introOutline) introOutline.mask = null
+  for (const layer of [introWorldLayer, introScreenLayer]) {
+    if (!layer) continue
+    layer.parent?.removeChild(layer)
+    layer.destroy({ children: true })
+  }
+  introWorldLayer = null
+  introScreenLayer = null
+  introOwnFill = null
+  introDim = null
+  introOutline = null
+  introSeals = []
+  introLabels = []
+}
+
+function introBuildLayer(cast: IntroCast): void {
+  introDestroyLayer()
+  if (!app?.stage || !labelContainer) return
+  const session = introSession.value
+  const th = INTRO_LAYER_THEME[session?.theme ?? 'paper']
+  const cityJson = geoJsonCache.get(LAYERS[1].file)
+  if (!cityJson) return
+  const { width, height } = introViewport()
+  const ownership = useGameStore().ownership
+  const ownPolys: PolygonRings[] = []
+  for (const f of cityJson.features) {
+    const gb = f.properties?.gb as string | undefined
+    if (gb && ownership[gb] === cast.faction) ownPolys.push(...collectFeatureRings(f, width, height))
+  }
+  const shots = introComputeShots(cast)
+  const px = 1 / Math.max(shots?.faction.z ?? mapScale, 0.01)
+  const color = (OWNER_COLORS as Record<string, number>)[cast.faction] ?? 0xb09440
+  const fillOwn = (g: Graphics, style: () => void): void => fillPolygons(g, ownPolys, style)
+
+  const world = new Container()
+  const ownFill = new Graphics()
+  fillOwn(ownFill, () => ownFill.fill({ color, alpha: 1 }))
+  ownFill.alpha = 0
+
+  // 非本方压暗：大矩形 + 本方疆域反向遮罩镂空
+  const dim = new Container()
+  dim.addChild(new Graphics().rect(-width * 4, -height * 4, width * 9, height * 9).fill({ color: th.dim }))
+  const maskDim = new Graphics()
+  fillOwn(maskDim, () => maskDim.fill({ color: 0xffffff }))
+  dim.setMask({ mask: maskDim, inverse: true })
+  dim.alpha = 0
+  dim.visible = false
+
+  // 朱砂勾边：粗描边 + 反向遮罩，只留疆域外侧的一半
+  const outline = new Container()
+  const glow = new Graphics()
+  const line = new Graphics()
+  fillOwn(glow, () => glow.stroke({ width: 16 * px, color: th.outline, alpha: 0.16, join: 'round' }))
+  fillOwn(line, () => line.stroke({ width: 5.5 * px, color: th.outline, alpha: 1, join: 'round' }))
+  outline.addChild(glow, line)
+  const maskLine = new Graphics()
+  fillOwn(maskLine, () => maskLine.fill({ color: 0xffffff }))
+  outline.setMask({ mask: maskLine, inverse: true })
+  outline.alpha = 0
+  outline.visible = false
+
+  world.addChild(ownFill, dim, outline, maskDim, maskLine)
+  world.scale.set(mapScale)
+  world.position.set(mapX, mapY)
+  // 位于 fx 之上、地名之下
+  app.stage.addChildAt(world, app.stage.getChildIndex(labelContainer))
+
+  // 屏幕空间：群雄印 + 本方城名（少量节点，只在此处创建一次）
+  const screen = new Container()
+  const mobile = width < 640
+  const sealSize = mobile ? 22 : 30
+  const seals: typeof introSeals = []
+  for (const o of cast.roster) {
+    const p = o.focusGb ? resolveLocationXY(o.focusGb) : null
+    if (!p) continue
+    const s = new Container()
+    const sc = parseInt(o.color.slice(1), 16)
+    const shadow = new Graphics()
+      .roundRect(-sealSize / 2 + 1.5, -sealSize / 2 + 2.5, sealSize, sealSize, 3)
+      .fill({ color: th.sealEdge, alpha: 0.22 })
+    const g = new Graphics().roundRect(-sealSize / 2, -sealSize / 2, sealSize, sealSize, 3).fill({ color: sc })
+    g.roundRect(-sealSize / 2 + 2.5, -sealSize / 2 + 2.5, sealSize - 5, sealSize - 5, 2).stroke({
+      width: 1,
+      color: th.sealText,
+      alpha: 0.7,
+    })
+    const txt = new Text({
+      text: o.char,
+      style: { fontFamily: SEAL_FONT, fontSize: Math.round(sealSize * 0.62), fill: th.sealText },
+    })
+    txt.anchor.set(0.5, 0.52)
+    s.addChild(shadow, g, txt)
+    s.alpha = 0
+    s.visible = false
+    screen.addChild(s)
+    seals.push({ node: s, wx: p.x, wy: p.y, own: o.id === cast.faction })
+  }
+  const cities = useGameStore().cities
+  const labelGbs = cast.clusterGbs
+    .slice()
+    .sort((a, b) => Number(b === cast.focus?.gb) - Number(a === cast.focus?.gb) || (cities[b]?.troops ?? 0) - (cities[a]?.troops ?? 0))
+    .slice(0, mobile ? 4 : 6)
+  const labels: typeof introLabels = []
+  labelGbs.forEach((gb, i) => {
+    const p = resolveLocationXY(gb)
+    if (!p) return
+    const node = new Container()
+    const dot = new Graphics().circle(0, 0, i === 0 ? 3.6 : 2.4).fill({ color: th.outline })
+    const name = (getDisplayName(gb) || cities[gb]?.name || gb).replace(/市$/, '')
+    const txt = new Text({
+      text: name,
+      style: {
+        fontFamily: SEAL_FONT,
+        fontSize: i === 0 ? (mobile ? 14 : 17) : mobile ? 12 : 13,
+        fill: th.label,
+        stroke: { color: th.labelStroke, width: 3.5, join: 'round' },
+        letterSpacing: 2,
+      },
+    })
+    txt.anchor.set(0, 0.5)
+    txt.x = 7
+    node.addChild(dot, txt)
+    node.alpha = 0
+    node.visible = false
+    screen.addChild(node)
+    labels.push({ node, wx: p.x, wy: p.y })
+  })
+  app.stage.addChild(screen)
+
+  introWorldLayer = world
+  introScreenLayer = screen
+  introOwnFill = ownFill
+  introDim = dim
+  introOutline = outline
+  introSeals = seals
+  introLabels = labels
+}
+
+function introRender(frame: IntroFrame, shot: Shot): void {
+  introSetCamera(shot)
+  const exit = frame.exit
+  if (introOwnFill) introOwnFill.alpha = frame.ownFill * exit
+  if (introDim) {
+    introDim.alpha = Math.max(0, frame.dimAlpha) * exit
+    introDim.visible = introDim.alpha > 0.001
+  }
+  if (introOutline) {
+    introOutline.alpha = frame.outline * exit
+    introOutline.visible = introOutline.alpha > 0.001
+  }
+  for (let i = 0; i < introSeals.length; i++) {
+    const s = introSeals[i]
+    const p = frame.seals[i] ?? 0
+    let scale = frame.sealFadeOnly ? 1 : 1 + 1.2 * (1 - easeOutBack(p))
+    let alpha = frame.sealFadeOnly ? p : clamp01(p * 2.6)
+    if (!s.own) alpha *= 1 - 0.68 * frame.sealsDim
+    else scale *= 1 + 0.35 * frame.ownSealBoost
+    alpha *= exit
+    s.node.alpha = alpha
+    s.node.visible = alpha > 0.002
+    if (s.node.visible) {
+      s.node.scale.set(scale)
+      s.node.position.set(mapX + s.wx * mapScale, mapY + s.wy * mapScale)
+    }
+  }
+  for (let i = 0; i < introLabels.length; i++) {
+    const l = introLabels[i]
+    const a = clamp01(frame.labels * 1.4 - i * 0.08) * exit
+    l.node.alpha = a
+    l.node.visible = a > 0.002
+    if (l.node.visible) l.node.position.set(mapX + l.wx * mapScale, mapY + l.wy * mapScale)
+  }
+}
+
+async function introRetryLoad(): Promise<MapReadyResult> {
+  if (mapReadyState.value === 'ready') return { ok: true }
+  if (mapDisposed) return { ok: false, reason: '地图已卸载' }
+  if (!appReady) return { ok: false, reason: '地图渲染器未初始化' }
+  // 字体重绘或上一次失败可能留下无效缓存；重试必须重新获取核心图层。
+  geoJsonCache.delete(LAYERS[currentLayerIndex.value].file)
+  geoJsonCache.delete(LAYERS[1].file)
+  const reason = await loadCoreCityLayer()
+  if (mapDisposed) return { ok: false, reason: '地图已卸载' }
+  settleMapReady(reason ? { ok: false, reason } : { ok: true })
+  return reason ? { ok: false, reason } : { ok: true }
+}
+
+/** 开场导演使用的地图端口（只读世界；不写 store） */
+const introPort: IntroMapPort = {
+  readyState: () => mapReadyState.value,
+  whenReady: whenMapReady,
+  retryLoad: introRetryLoad,
+  computeShots: introComputeShots,
+  buildLayer: introBuildLayer,
+  render: introRender,
+  setFinalCamera: introSetCamera,
+  destroyLayer: introDestroyLayer,
+  acquireLock(): () => void {
+    introLockCount++
+    syncLabelVisibility()
+    if (cameraTween.active) cameraTween.cancel()
+    isDragging = false
+    let released = false
+    return () => {
+      if (released) return
+      released = true
+      introLockCount = Math.max(0, introLockCount - 1)
+      syncLabelVisibility()
+    }
+  },
+  worldToken: introWorldToken,
+}
+
+function introCastFromStore(): IntroCast | null {
+  const store = useGameStore()
+  const faction = store.currentFaction
+  if (!faction) return null
+  return buildIntroCast({
+    faction,
+    playerName: store.playerName,
+    cities: store.cities,
+    activeFactions: store.activeFactions,
+    neighboursOf: introAllNeighbours,
+    landNeighboursOf: introLandNeighbours,
+    // 地图就绪后才能校验注册；就绪前按世界态校验，绘制时未注册的点自然跳过
+    isRegistered: (gb) => mapReadyState.value !== 'ready' || !!resolveLocation(gb),
+  })
+}
+
+/** 消费一次性新局意图；只有择势页“开战”会发出。读档 / 重放不产生意图，因此不会播放。 */
+function tryStartIntro(): void {
+  if (!pendingNewGameIntro.value) return
+  const req = takeNewGameIntro()
+  if (!req || introSession.value) return
+  const store = useGameStore()
+  if (store.isReplaying || store.currentFaction !== req.faction || store.reloadToken !== req.reloadToken) return
+  const cast = introCastFromStore()
+  if (!cast) return
+  const dark = typeof window !== 'undefined' && window.matchMedia?.('(prefers-color-scheme: dark)').matches === true
+  introSession.value = {
+    id: ++introSeq,
+    cast,
+    reduced: prefersReducedMotion(),
+    theme: dark ? 'night' : 'paper',
+    token: introWorldToken(),
+  }
+}
+
+function onIntroDone(outcome: IntroOutcome): void {
+  lastIntroSummary = { ...introRef.value?.snapshot(), outcome }
+  introPlayedCount++
+  introSession.value = null
+}
+
+/** 读档 / 换局 / 世界替换：取消演出（不写终态镜头），并丢弃未消费的旧意图 */
+function cancelIntroForWorldChange(): void {
+  const s = introSession.value
+  if (!s || s.token === introWorldToken()) return
+  introRef.value?.cancel()
+  lastIntroSummary = { ...introRef.value?.snapshot(), outcome: 'cancelled' }
+  introSession.value = null
+}
+
+watch(() => pendingNewGameIntro.value?.nonce, tryStartIntro)
+watch(
+  [
+    () => useGameStore().reloadToken,
+    () => useGameStore().currentFaction,
+    () => useGameStore().playerName,
+    () => introEventAnchor(),
+  ],
+  ([token], [oldToken]) => {
+    if (token !== oldToken) discardNewGameIntro()
+    cancelIntroForWorldChange()
+  },
+)
 
 // ─── 平移/缩放 ───
 
@@ -2527,7 +3006,7 @@ function onWheel(e: WheelEvent): void {
   const mouseX = e.clientX - rect.left
   const mouseY = e.clientY - rect.top
 
-  if (cameraLocked) return
+  if (inputLocked()) return
 
   const delta = e.deltaY > 0 ? 0.9 : 1.1
   const newScale = rubberbandClamp(mapScale * delta, ZOOM_MIN, ZOOM_MAX)
@@ -2543,7 +3022,7 @@ function onWheel(e: WheelEvent): void {
 }
 
 function onPointerDown(e: PointerEvent): void {
-  if (cameraLocked) return
+  if (inputLocked()) return
   if (e.button !== 0) return
   pointerMoved = false
   isDragging = true
@@ -2570,7 +3049,7 @@ function onPointerUp(): void {
 }
 
 function onClick(e: MouseEvent): void {
-  if (cameraLocked || pointerMoved) return
+  if (inputLocked() || pointerMoved) return
   const dx = e.clientX - pointerDownPos.x
   const dy = e.clientY - pointerDownPos.y
   if (Math.sqrt(dx * dx + dy * dy) > 5) return
@@ -2624,6 +3103,7 @@ async function fullRerender(): Promise<void> {
 
 function onResize(): void {
   requestAnimationFrame(async () => {
+    if (mapDisposed || !app?.renderer) return
     const width = app.screen.width
     const height = app.screen.height
     setScreenSize(width, height)
@@ -2632,11 +3112,15 @@ function onResize(): void {
     mapX = width / 2 - center.x
     mapY = height / 2 - center.y
     applyCamera()
+    // 开场中 resize：按新视口重算终态取景并结束演出（不重建开场层）
+    introRef.value?.resize()
 
     await loadLayer(currentLayerIndex.value)
+    if (mapDisposed) return
     if (baseMapVisible.value) {
       await renderBaseMap()
     }
+    if (mapDisposed) return
     // fxContainer 不被 loadLayer 清除，但光束坐标在 startBattleAnimation 创建时
     // 烘焙（p0/p1/p2 闭包），resize 后 geoToScreen 的 scale 变了而光束不更新。
     // 销毁旧动画并按 store 的 ACTIVE 战斗重建（新动画用新 screenSize 算坐标）。
@@ -2646,15 +3130,44 @@ function onResize(): void {
 }
 
 // ─── 生命周期 ───
+/** 卸载后置位：onMounted 的每个 await 之后、字体重绘与就绪定时器都以此为闸，不再碰已销毁的 app */
+let mapDisposed = false
+/** app.init 已完成且未销毁 */
+let appReady = false
+const lateWatchStops: (() => void)[] = []
+let fontReadyTimer: ReturnType<typeof setTimeout> | null = null
 
 onMounted(async () => {
+  // 世界播种必须在任何 await 之前：用户若在地图慢初始化期间已在择势页开战，
+  // ensureWorld 已播种则不再重置，不会清掉用户名 / 势力 / 选择事件。
+  useGameStore().ensureWorld()
+  // 择势页可能先于本组件 setup 发出开场意图
+  tryStartIntro()
+
   app = new Application()
-  await app.init({
-    resizeTo: mapContainer.value!,
-    backgroundColor: MAP_PALETTE.canvas,
-    antialias: true,
-  })
-  mapContainer.value!.appendChild(app.canvas)
+  try {
+    await app.init({
+      resizeTo: mapContainer.value!,
+      backgroundColor: MAP_PALETTE.canvas,
+      antialias: true,
+    })
+  } catch (e) {
+    // 不再抛出（避免未捕获页面异常）：记为就绪失败，开场显示错误并可返回
+    console.error('地图渲染器初始化失败:', e)
+    if (mapReadyState.value === 'pending') settleMapReady({ ok: false, reason: '地图渲染器初始化失败' })
+    return
+  }
+  // 初始化期间已卸载：onUnmounted 当时 app 尚未就绪，由此处销毁
+  if (mapDisposed || !mapContainer.value) {
+    try {
+      app.destroy(true)
+    } catch (e) {
+      console.error('地图渲染器销毁失败:', e)
+    }
+    return
+  }
+  appReady = true
+  mapContainer.value.appendChild(app.canvas)
 
   baseContainer = new Container()
   worldContainer = new Container()
@@ -2694,7 +3207,6 @@ onMounted(async () => {
     commandVisible.value = true
   })
 
-  useGameStore().initWorld()
   console.log('城市态加载完成:', Object.keys(useGameStore().cities).length, '个市')
 
   // 印章纹理必须在首次 loadLayer 之前就绪，否则第一帧没有水印
@@ -2712,8 +3224,10 @@ onMounted(async () => {
   try {
     const res = await fetch('/世界.geojson')
     worldData = await res.json()
+    if (mapDisposed) return
     console.log('世界地图加载完成:', worldData!.features.length, '个国家')
     await renderBaseMap()
+    if (mapDisposed) return
     registerLocations(worldData!.features, 'iso_a3')
     for (const [geoIso, gameIso] of Object.entries(GEO_TO_GAME_ISO)) {
       registerAlias(geoIso, gameIso)
@@ -2721,21 +3235,35 @@ onMounted(async () => {
   } catch (e) {
     console.error('世界地图加载失败:', e)
   }
+  if (mapDisposed) return
 
-  await loadLayer(currentLayerIndex.value)
+  // 首个市级图层 + 城市 gb 注册（失败不再中断 onMounted，而是记为就绪失败，开场可重试 / 返回）
+  const coreFailure = await loadCoreCityLayer()
+  if (mapDisposed) return
 
   // 汇文明朝体异步加载：首帧 Pixi Text 纹理可能已用 fallback 字体生成，
   // 字体就绪后重绘一次标签与文字水印，否则字形永远停留在系统衬线上。
-  document.fonts?.ready.then(async () => {
-    if (!currentData) return
+  const fontPass = (document.fonts?.ready ?? Promise.resolve()).then(async () => {
+    if (mapDisposed || !currentData) return
     buildSealTextures()
     await loadLayer(currentLayerIndex.value)
-    labelContainer.visible = labelsVisible.value
+    if (mapDisposed) return
+    syncLabelVisibility()
     updateLabels()
   })
+  // 就绪信号：等字体重绘（至多 FONT_READY_TIMEOUT_MS），不阻塞下方 watch 注册
+  void Promise.race([
+    fontPass.catch((e: unknown) => console.error('字体重绘失败:', e)),
+    new Promise<void>((r) => {
+      fontReadyTimer = setTimeout(r, FONT_READY_TIMEOUT_MS)
+    }),
+  ]).then(() => {
+    if (fontReadyTimer !== null) clearTimeout(fontReadyTimer)
+    fontReadyTimer = null
+    if (mapDisposed || mapReadyState.value !== 'pending') return
+    settleMapReady(coreFailure ? { ok: false, reason: coreFailure } : { ok: true })
+  })
 
-  const cityJson = geoJsonCache.get(LAYERS[1].file)
-  if (cityJson) registerLocations(cityJson.features, 'gb')
   if (isDev) {
     Object.assign(window, {
       render_game_to_text: () => JSON.stringify({
@@ -2750,16 +3278,41 @@ onMounted(async () => {
         camera: { x: mapX, y: mapY, scale: mapScale },
         viewport: { width: app.screen.width, height: app.screen.height },
         coordinates: 'screen pixels: origin top-left, x right, y down',
+        // 仅 DEV：新局开场状态、地图就绪、输入锁与 store 摘要，供浏览器 QA 只读
+        intro: {
+          active: introSession.value
+            ? { id: introSession.value.id, faction: introSession.value.cast.faction, reduced: introSession.value.reduced, theme: introSession.value.theme, ...introRef.value?.snapshot() }
+            : null,
+          pendingRequest: pendingNewGameIntro.value,
+          playedCount: introPlayedCount,
+          last: lastIntroSummary,
+        },
+        mapReady: mapReadyState.value,
+        locks: { cameraLocked, introLock: introLockCount, tweenActive: cameraTween.active },
+        store: (() => {
+          const s = useGameStore()
+          const last = s.eventLog[s.eventLog.length - 1]
+          return {
+            faction: s.currentFaction,
+            playerName: s.playerName,
+            eventCount: s.eventLog.length,
+            lastEventType: last?.type ?? null,
+            reloadToken: s.reloadToken,
+            isReplaying: s.isReplaying,
+            cityCount: Object.keys(s.cities).length,
+          }
+        })(),
       }),
     })
   }
 
   // 归属变化时实时重绘当前图层，确保占领/易主后政权着色立即更新
   // 读档期间跳过（isReplaying），由 requestMapReload 触发重绘
-  watch(
+  // 注：这两个 watch 在 await 之后创建，不随组件自动停止；卸载时显式 stop
+  const stopOwnershipWatch = watch(
     () => useGameStore().ownership,
     () => {
-      if (useGameStore().isReplaying) return
+      if (mapDisposed || useGameStore().isReplaying) return
       loadLayer(currentLayerIndex.value)
     },
   )
@@ -2767,21 +3320,30 @@ onMounted(async () => {
   // 读档收尾：store.load() 只重建状态并保持 isReplaying=true，真正的地图重绘 +
   // 战斗动画重建 + 复位 isReplaying 在此完成（那三步的能力只在本组件里）。
   // 存档选择器/useSaveGame 读档后调 requestMapReload() ++token 触发。
-  watch(
+  const stopReloadWatch = watch(
     () => useGameStore().reloadToken,
     async () => {
+      if (mapDisposed) return
       await loadLayer(currentLayerIndex.value)
+      if (mapDisposed) return
       restoreActiveAnimations()
     },
   )
+  lateWatchStops.push(stopOwnershipWatch, stopReloadWatch)
 })
 
 onUnmounted(() => {
+  mapDisposed = true
+  for (const stop of lateWatchStops.splice(0)) stop()
+  if (fontReadyTimer !== null) clearTimeout(fontReadyTimer)
+  fontReadyTimer = null
   if (isDev) delete (window as Window & { render_game_to_text?: () => string }).render_game_to_text
-  app?.canvas?.removeEventListener('wheel', onWheel)
-  app?.canvas?.removeEventListener('pointerdown', onPointerDown)
-  app?.canvas?.removeEventListener('click', onClick)
-  app?.canvas?.removeEventListener('contextmenu', onContextMenu)
+  if (appReady) {
+    app.canvas.removeEventListener('wheel', onWheel)
+    app.canvas.removeEventListener('pointerdown', onPointerDown)
+    app.canvas.removeEventListener('click', onClick)
+    app.canvas.removeEventListener('contextmenu', onContextMenu)
+  }
   window.removeEventListener('resize', onResize)
   window.removeEventListener('pointermove', onPointerMove)
   window.removeEventListener('pointerup', onPointerUp)
@@ -2789,7 +3351,18 @@ onUnmounted(() => {
   window.removeEventListener('keydown', onKeyDown)
   disposeCloudTransition()
   disposeSealTextures()
-  app?.destroy(true)
+  // 开场子组件已在自身 onBeforeUnmount 取消；此处兜底清层、释放锁与等待者，并停掉补间
+  introDestroyLayer()
+  introSession.value = null
+  introLockCount = 0
+  syncLabelVisibility()
+  cameraTween.cancel()
+  if (mapReadyState.value === 'pending') settleMapReady({ ok: false, reason: '地图已卸载' })
+  // app.init 尚未完成时不在此销毁，由 onMounted 在 init 返回后按 mapDisposed 销毁（只销毁一次）
+  if (appReady) {
+    appReady = false
+    app.destroy(true)
+  }
 })
 </script>
 
@@ -3303,8 +3876,12 @@ onUnmounted(() => {
 }
 
 /* 云雾蒙太奇期间与 .map-ui 面板一起淡出；卡片显式开过 pointer-events，需单独收掉防误触 */
-body.cloud-active .battle-card {
+body.cloud-active .battle-card,
+body.intro-active .battle-card {
   pointer-events: none;
+}
+body.intro-active .battle-card {
+  opacity: 0;
 }
 
 .battle-card {

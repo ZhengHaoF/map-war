@@ -100,6 +100,7 @@
             <input
               v-model.trim="name"
               class="name-input"
+              data-testid="onboarding-name"
               placeholder="提笔书就将军之名..."
               maxlength="12"
               @keyup.enter="handleEnter"
@@ -159,6 +160,7 @@
             v-for="owner in owners"
             :key="owner"
             class="faction-card"
+            :data-testid="`onboarding-faction-${owner}`"
             :class="{ selected: selectedOwner === owner }"
             :style="cardStyle(owner)"
             @click="selectedOwner = owner"
@@ -172,7 +174,7 @@
       </div>
     </div>
 
-    <button class="enter-btn" :disabled="!canEnter" @click="handleEnter">
+    <button class="enter-btn" data-testid="onboarding-enter" :disabled="!canEnter" @click="handleEnter">
       <span class="btn-text">开 战</span>
     </button>
   </div>
@@ -182,6 +184,7 @@
 import { ref, computed } from 'vue'
 import { Owner, OWNER_LABELS, OWNER_COLORS, OWNER_DETAILS } from '@/data/owners'
 import { useGameStore } from '@/stores/game'
+import { requestNewGameIntro } from '@/composables/useNewGameIntro'
 
 defineProps<{
   /** 是否显示"返回存档"链接（仅当存在存档且从选择器点新游戏进来时） */
@@ -232,6 +235,8 @@ function cardStyle(owner: Owner) {
 }
 
 function handleEnter() {
+  // 弹窗收起过渡期间的连击 / 回车：已择势则忽略，保证一局只有一条 selectFaction 与一次开场。
+  if (gameStore.currentFaction !== null) return
   nameError.value = ''
   if (!name.value.trim()) {
     nameError.value = '请提笔书名'
@@ -241,7 +246,15 @@ function handleEnter() {
     nameError.value = '请择一势力'
     return
   }
-  gameStore.setPlayer(name.value.trim(), selectedOwner.value)
+  const faction = selectedOwner.value
+  // 地图初始化较慢时世界可能尚未播种：ensureWorld 幂等，地图晚到时不会再清掉本次选择。
+  gameStore.ensureWorld()
+  // 仍然只有这一条 selectFaction 事件；开场动画不再写任何世界态。
+  gameStore.setPlayer(name.value.trim(), faction)
+  // 显式、一次性的新局开场意图（UI 层，非世界态）。仅当择势确已生效时发出。
+  if (gameStore.currentFaction === faction && !gameStore.isReplaying) {
+    requestNewGameIntro(faction, gameStore.reloadToken)
+  }
 }
 </script>
 
