@@ -1,6 +1,6 @@
 # map-war AI 调度引擎修复与深审报告
 
-范围：`apps/web/src/composables/useAgentKernel.ts`、`apps/web/src/composables/useGameScheduler.ts` 及相关测试。本次复审由 Claude Opus 5.5 辅助完成，并与 store、指令层、存档、外交及后端修复统一集成验证。
+范围：`apps/web/src/composables/useAgentKernel.ts`、`apps/web/src/composables/useGameScheduler.ts` 及相关测试。本次复审由 Claude Opus 5.5 辅助完成，并与 store、指令层、存档、外交及后端修复统一集成验证。后续整轮战斗原子提交已完成，详见 `battle-atomic-settlement.md`；本报告同步更新原残留限制。
 
 **说明**：以下全部结论来自代码阅读与本地 Vitest 实验。模型、动画与时间跳跃均为可控桩，未调用真实模型或 API，**不是真实浏览器实玩，也没有评价模型决策质量**。
 
@@ -36,7 +36,7 @@
 - **只收税一次**：只有 `taxedThisDate()` 判断“最后一次 dateAdvance 之后没有 economicTick”时才收税。
 - **只推进日期一次**：断点锚点之后已有 `dateAdvance` 时不再推进日期。日期由 `nextTurnDate` 钳制，`advance` 若返回 `running` 或 `stopped`，或日期最终未改变，均按失败处理。
 - **世界代次**：断点有效的条件是“`eventLog[anchorIndex]` 仍是同一个事件对象，且势力和日期一致”。读档和 `initWorld` 都会替换 eventLog 里的对象，因此旧断点会失效。世界被取代时，会话作废，公共队列也会清空，旧世界的指令不会在新世界执行。
-- **故障恢复**：非取代类异常进入 `failed`，并保留断点，包括从调度器取回的未执行项；重试时从断点继续。战斗阶段使用 `onCommit` 语义：调味返回、战果开始同步落地前才标记 `battlesStarted`。调味阶段失败时没有战果落地，重试会完整打这一轮；落地中途失败则不重跑，**只保证最多一次（at-most-once），不是恰好一次**，见残留限制 3。
+- **故障恢复**：非取代类异常进入 `failed`，并保留断点，包括从调度器取回的未执行项；重试时从断点继续。战斗阶段使用 `onCommit` 语义：整轮战果原子提交成功后才标记 `battlesStarted`。推演、调味或提交失败不保留部分战果，重试整轮；提交后的演出失败不会回滚或重打。每日期一次的保证限于正常编排器入口，不是调度器直接调用的全局幂等性。
 - **没有运行时断点的兜底**：例如暂停时 `store.save` 未带快照，或旧版本失败后重试。`recoverFromLog()` 发现“本日期已收税但未推进日期”时，进入只结算模式：不再收税，也不再请求决策，只完成战斗、叙事和日期。是否已完成世界总结，只根据显式标记 `narrative.scope === 'world-turn'` 判断，外交收口叙事不会被误认。无标记的旧存档会重做总结，但不会跳过战斗。
 - **截止时间**：同一会话内的所有模型等待共用一个截止时间（`startWaitDeadline` 只启动一次）。暂停后恢复是新会话，会重新获得一个截止时间。
 - **启动前检查**：调度器正在推进时拒绝开始回合，不会把 `'running'` 当成完成。
@@ -63,13 +63,13 @@ export interface PendingTurnSnapshot { version: 1; faction; baseDate; anchorInde
 
 统一接入：`SaveData.pendingTurn`（只做类型引用，没有运行时循环依赖）；`useSaveGame` 保存时调用 `export`，读档时在 `requestMapReload` 后调用 `import`。编排器另向 store 注入只读快照提供器，直接 `store.save` 的自动存档及外交存档也携带暂停断点。
 
-`importPendingTurn` 会先调用父代理的纯形状校验 `isPendingTurnSnapshot`，再由编排器检查与当前世界是否一致：锚点类型、日期、势力、锚点后没有日期推进、`execute` 阶段必须已经收税。存档可以被玩家编辑，因此只接受 `player` / `faction` 权限，拒绝 `system` / `debug` 和 `setCurrentDate`；导入后执行时仍经过 `executeOrder` 全量重验。
+`importPendingTurn` 会先调用纯形状校验 `isPendingTurnSnapshot`，再由编排器检查与当前世界是否一致：锚点类型、日期、势力、锚点后没有日期推进、`execute` 阶段必须已经收税。存档可以被玩家编辑，因此只接受 `player` / `faction` 权限，拒绝 `system` / `debug` 和 `setCurrentDate`；导入后执行时仍经过 `executeOrder` 全量重验。
 
 ## 残留限制
 
 1. **旧存档没有暂停快照**：历史存档或明确传入 `pendingTurn:null` 的存档仍只能按日志兜底。不重复收税、不重复决策，但从未落日志的剩余指令无法恢复。当前自动存档及外交存档的遗漏已通过运行时 getter 注入修复。
 2. **结算中不保存断点**：进行中的回合不导出未完成的运行时快照；UI 在世界结算期间禁止手动保存，日期提交后的自动存档包含已完成的世界日志。
-3. **【未解决的结构项】逐战线结算不是事务**：战果落地是逐条 `applyEvent`，只保证最多一次（at-most-once），不保证恰好一次（exactly-once）。若在 `onCommit` 之后的落地过程中抛出异常，已落地的战线不会回滚，剩余战线在本日期也不再结算，重试时会直接跳到叙事和日期（`useGameScheduler.ts` 中 `onCommit?.()` 处，以及 `useAgentKernel.ts` 中 battles 阶段的注释）。根治需要把整轮战斗计算为 `EventBatch`，再经 `applyEvents` 原子提交，或者改为按战线 id 记录已提交集合。
+3. **【已解决，保留隔离边界】整轮战斗事务**：后续修复使用同步 `simulate` 预演及 `transact` 原子提交，战线、占领、士气、奖惩和势力审计同批成功或回滚，提示与演出在提交后执行。详见 `battle-atomic-settlement.md`。预演仍在 live store 上同步执行后恢复，并非独立 draft；现有观察者已核查，未来新增城市或战斗数据的同步观察者时，需要进一步隔离。
 4. **暂停与恢复的语义**：恢复的 AI 指令是暂停前根据旧局势做出的决策。执行时会重新通过规则门卫，但不会重新规划。
 5. **身份与代次检查还不统一**：世界代次靠锚点事件对象身份推断，store 没有显式的 `worldGeneration`。`ensureCurrent` 使用 reloadToken、势力和 signal，断点使用锚点身份，两套判据并存。
 6. **取消不等于供应商退款**：本次后端已实现响应连接断开时向上游传递取消信号；离线 HTTP 测试验证了传播。供应商收到取消之前已执行或计费的工作不能由客户端保证撤销，也未做真实供应商验证。
@@ -88,7 +88,7 @@ export interface PendingTurnSnapshot { version: 1; faction; baseDate; anchorInde
 
 已有测试的更新：`worldAiWait`、`aiFallback`、`worldBatchPreflight` 中的调度器桩补齐了新契约（status、queue、detach/restore、日期提交），外交桩补了 `recoverSession`。`worldBatchPreflight` 只断言 faction 权限的提交，因为引擎现在总会提交系统日期指令。`schedulerAiWait`、`schedulerRewards`、`supply` 的断言没有修改。
 
-最终集成验证结果（Node 24.21.0 / pnpm 10.34.6）：
+第一阶段 `a24aac7` 集成验证结果（Node 24.21.0 / pnpm 10.34.6）：
 
 - `vue-tsc --noEmit` 通过。
 - `oxlint` 检查本轮修改的 14 个前端 TypeScript 文件：0 警告，0 错误。
@@ -97,11 +97,13 @@ export interface PendingTurnSnapshot { version: 1; faction; baseDate; anchorInde
 - 根目录 `pnpm build`：前端 Vue 类型检查、Vite 生产构建和后端 Nest 构建均通过。Vite 主包超过 500 kB 的警告仍存在。
 - 原复现文件 `map-war-architecture-reproduction.spec.ts` 中，“暂停丢日期”“内核忽略暂停”两项断言的是旧缺陷行为，修复后应失败；对应的反向不变量已写入 `turnRuntime.spec.ts`。
 
+后续整轮战斗事务的最终集成回归为 652 项通过、4 项真实模型测试跳过（显式启用了 60 用例审计的单个测试）；后端 42 项再次通过，类型检查和前后端生产构建通过。本轮修改的 5 个前端 TypeScript 文件 oxlint 为 0 警告、0 错误。战斗事务增加 20 项测试，最终 40 回合矩阵及保证范围详见 `battle-atomic-settlement.md`，游戏性结论见 `gameplay-review.md`。
+
 ## 架构评价与建议
 
 - **方向正确**：本地确定性公式是主干，AI 调味受到钳制，并有共享截止时间和迟到结果丢弃，这些设计都值得保留。这次修复的问题集中在“谁决定回合结束”：以前由一串 `await` 隐式决定，现在由显式阶段和断点决定。
 - **建议 1**：把 `TurnProgress` 抽成不依赖 Vue 的 `TurnRuntime` 类，由 `GameSession` 持有，并注入 store、调度器和模型端口，以替代模块级单例。这样也方便做无界面批量对局。
 - **建议 2**：store 提供显式的 `worldGeneration`（读档、initWorld 时递增），供 kernel、外交和调度器的 guard 统一使用，替代“锚点身份 + reloadToken + 势力”的组合判据。
-- **建议 3**：战斗结算改为“计算 `EventBatch` → `applyEvents` 原子提交 → 演出”，把最多一次升级为恰好一次的事务。
+- **事务隔离的下一步**：整轮战斗原子提交已落地；后续把预演迁移到独立 draft，避免同步观察者看到推演中间态，并减少深拷贝与相同值重同步。
 - **存档统一化**：本次已覆盖自动存档的快照提供器，下一步应加入明确的规则版本、seed 版本和迁移策略，而不是长期依赖版本 1 的可选字段。
-- **建议 5**：模型失败的势力目前只是“未行动”，可以利用已有的主动目标生成规则 AI 兜底指令，并标记为规则决策。
+- **可选故障兜底**：模型失败时该势力没有新的战略指令，既有战线和经济仍按本地规则运行。可研究利用已有主动目标生成合法规则指令，但这与“不新增规则型敌方 AI”的既有约束不同，需要用户确认；本轮未实施，也不替代正常联网时的模型战略决策。

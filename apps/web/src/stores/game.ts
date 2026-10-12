@@ -4,7 +4,7 @@ import { chinaCities } from '@/data/chinaCities'
 import { Owner, OWNER_LABELS, buildInitialRelations } from '@/data/owners'
 import { resetBattleRuntime } from '@/utils/gameOrders'
 import { resolveLocationId } from '@/utils/locationResolver'
-import { useToast } from '@/composables/useToast'
+import { useToast, type ToastInput } from '@/composables/useToast'
 import { relationKey, readRelation, type Relation, type RelationStatus } from '@/utils/diplomacy'
 import type { DiplomacyRecord } from '@/utils/diplomacy'
 import {
@@ -340,6 +340,11 @@ export interface WorldStateSnapshot {
   /** 外交关系表（对称键 → 关系），供 AI 决策与战略校验 */
   relations: Record<string, Relation>
 }
+
+/** 同步事务结果：成功时带本批事件与延后提示；失败时世界与日志保持调用前原样。 */
+export type TransactionResult<T> =
+  | { ok: true; value: T; events: GameEvent[]; notices: ToastInput[] }
+  | { ok: false; reason: string; error?: unknown }
 
 export const useGameStore = defineStore('game', () => {
   // ── 城市态：唯一真相源 ──
@@ -738,10 +743,10 @@ export const useGameStore = defineStore('game', () => {
     if (!fresh.length) return
     for (const id of fresh) {
       milestonesUnlocked.value[id] = { date: currentDate.value, turn: turnCount.value }
-      if (!isReplaying.value) {
+      {
         const m = MILESTONES.find((x) => x.id === id)
         if (m) {
-          useToast().push({
+          notice({
             icon: 'rosette',
             tone: 'amber',
             title: `功业 · ${m.title}`,
@@ -999,8 +1004,16 @@ export const useGameStore = defineStore('game', () => {
    * 例外：initWorld() 开局播种可直接写（仅此一处）。
    */
   function applyEvent(e: GameEvent): { ok: boolean; reason?: string } {
+    const result = applyEventChecked(e)
+    // 事务内任何被拒事件（含 reducer 嵌套调用）都使整批作废，不允许被调用方忽略
+    if (batchEvents && !result.ok) batchFailure ??= result.reason ?? '事件被拒'
+    return result
+  }
+
+  function applyEventChecked(e: GameEvent): { ok: boolean; reason?: string } {
     if (!e || typeof e !== 'object' || typeof e.type !== 'string')
       return { ok: false, reason: '事件结构无效' }
+    if (batchEvents && e.type === 'dateAdvance') return { ok: false, reason: '日期推进不能混入行动事务' }
     const checkpointReady = e.type === 'dateAdvance' && scenarioProgress.value
       ? bridgeheadConditions(cities.value, turnCount.value).ready : false
     const result = applyEventInternal(e)
@@ -1015,8 +1028,8 @@ export const useGameStore = defineStore('game', () => {
       const old = scenarioProgress.value
       const ready = e.type === 'dateAdvance' ? checkpointReady : bridgeheadConditions(cities.value, turnCount.value).ready
       scenarioProgress.value = updateScenarioProgress(old, ready, e.type === 'dateAdvance' ? turnCount.value : undefined)
-      if (old.completedTurn === undefined && scenarioProgress.value.completedTurn !== undefined && !isReplaying.value) {
-        useToast().push({ icon: 'flag', tone: 'green', title: '西南战役完成', text: '昭通已整合并连续守住三个完整回合，全国沙盘仍可继续' })
+      if (old.completedTurn === undefined && scenarioProgress.value.completedTurn !== undefined ) {
+        notice({ icon: 'flag', tone: 'green', title: '西南战役完成', text: '昭通已整合并连续守住三个完整回合，全国沙盘仍可继续' })
       }
     }
     return result
@@ -1395,9 +1408,62 @@ export const useGameStore = defineStore('game', () => {
     for (const [key, value] of Object.entries(state)) worldRefs[key]!.value = value
   }
   let batchEvents: GameEvent[] | null = null
+  /** 事务内首个被拒事件（含 reducer 嵌套 applyEvent，如势力存亡审计）；非空即整批作废。 */
+  let batchFailure: string | null = null
+  /** 同步事务内的提示：仅在提交成功后交给调用方展示；回滚即丢弃。null 表示不收集。 */
+  let deferredNotices: ToastInput[] | null = null
   function recordEvent(e: GameEvent): void {
     if (batchEvents) batchEvents.push(e)
     else if (!isReplaying.value) eventLog.value.push(e)
+  }
+  /** reducer 内的提示出口：事务收集模式下延后，重放/普通批次下静默，其余立即弹出。 */
+  function notice(t: ToastInput): void {
+    if (deferredNotices) deferredNotices.push(t)
+    else if (!isReplaying.value) useToast().push(t)
+  }
+  class TransactionAbort extends Error {}
+
+  /**
+   * 同步事务核心：checkpoint → 在 batch/isReplaying 保护下同步执行 fn → 全部成功才一次性追加日志。
+   * - fn 内任何 applyEvent 被拒（包括 reducer 嵌套产生的事件）、抛错、混入 dateAdvance，或返回
+   *   thenable（企图跨 await 持有可变事务），都整体回滚世界与日志。
+   * - commit=false 为纯推演：执行后无条件回滚，只返回 fn 的计算结果（不落任何世界/日志）。
+   * - 事务期间 isReplaying=true：不自动存档、不弹提示；deferNotices 时提示随结果返回。
+   */
+  function runTransaction<T>(fn: () => T, opts: { commit: boolean; deferNotices?: boolean }):
+    TransactionResult<T> {
+    if (batchEvents || isReplaying.value) return { ok: false, reason: '世界正在恢复或提交' }
+    const before = checkpoint()
+    const log = eventLog.value
+    batchEvents = []
+    batchFailure = null
+    deferredNotices = opts.deferNotices ? [] : null
+    isReplaying.value = true
+    let committed = false
+    try {
+      const value = fn()
+      if (value && typeof (value as { then?: unknown }).then === 'function') {
+        // 提前吞掉异步结果的拒绝，避免未处理的 promise；事务本身已作废
+        Promise.resolve(value).catch(() => {})
+        return { ok: false, reason: '事务不能跨 await，未提交' }
+      }
+      if (batchFailure) return { ok: false, reason: batchFailure }
+      if (!opts.commit) return { ok: true, value, events: [...batchEvents], notices: [...(deferredNotices ?? [])] }
+      const events = batchEvents
+      const notices = deferredNotices ?? []
+      eventLog.value = [...log, ...events]
+      committed = true
+      return { ok: true, value, events: [...events], notices: [...notices] }
+    } catch (error) {
+      return { ok: false, reason: error instanceof TransactionAbort ? error.message
+        : batchFailure ?? '事务执行异常，未提交', error }
+    } finally {
+      if (!committed) restoreCheckpoint(before)
+      batchEvents = null
+      batchFailure = null
+      deferredNotices = null
+      isReplaying.value = false
+    }
   }
 
   /** Synchronous transaction; no await, animation, toast or storage side effects. */
@@ -1405,26 +1471,43 @@ export const useGameStore = defineStore('game', () => {
     if (batchEvents || isReplaying.value) return { ok: false, reason: '世界正在恢复或提交' }
     if (events.some(e => !e || e.type === 'dateAdvance'))
       return { ok: false, reason: '日期推进不能混入行动事务' }
-    const before = checkpoint()
-    const log = eventLog.value
-    batchEvents = []
-    isReplaying.value = true
-    try {
+    let rejected: string | undefined
+    const result = runTransaction(() => {
       for (const e of events) {
-        const result = applyEvent(e)
-        if (!result.ok) {
-          restoreCheckpoint(before)
-          return result
-        }
+        const r = applyEvent(e)
+        if (!r.ok) { rejected = r.reason; throw new TransactionAbort(r.reason ?? '事件被拒') }
       }
-      eventLog.value = [...log, ...batchEvents]
-      return { ok: true }
-    } catch {
-      restoreCheckpoint(before)
-      return { ok: false, reason: '行动事务无效，未提交' }
-    } finally {
-      batchEvents = null
-      isReplaying.value = false
+    }, { commit: true })
+    if (result.ok) return { ok: true }
+    if (rejected !== undefined || result.error instanceof TransactionAbort) return { ok: false, reason: rejected }
+    return { ok: false, reason: result.error ? '行动事务无效，未提交' : result.reason }
+  }
+
+  /**
+   * 同步回调事务：fn 内用 apply(e) 落事件（被拒即抛错、整批回滚），可随时读取事务内最新世界态。
+   * 提交成功返回本批事件与延后提示；失败时世界态与 eventLog 与调用前完全一致。
+   * 不允许 dateAdvance，不允许嵌套，不允许异步（返回 thenable 视为失败）。
+   */
+  function transact<T>(fn: (apply: (e: GameEvent) => void) => T, opts: { deferNotices?: boolean } = {}):
+    TransactionResult<T> {
+    return runTransaction(() => fn(transactionEmitter()), { commit: true, deferNotices: opts.deferNotices ?? true })
+  }
+  /**
+   * 预演：在 live store 上同步执行 fn（受 batch/isReplaying 保护）并取回计算结果，随后无条件回滚。
+   * 注意：这不是独立 draft——执行期间 live ref 会被临时改写再恢复，flush:'sync' 观察者可能看到
+   * 中间态；现有 sync 观察者只盯 reloadToken/currentFaction（战斗事件不改它们），默认 pre/post
+   * flush 的 UI watcher 只会在回滚后看到与之前相等的值。期间不自动存档、不弹提示、不写日志。
+   */
+  function simulate<T>(fn: (apply: (e: GameEvent) => void) => T): TransactionResult<T> {
+    return runTransaction(() => fn(transactionEmitter()), { commit: false })
+  }
+  /** 为当前事务发放专属落地器：只认发放它的那一批，旧/晚到的落地器即使遇上新事务也拒绝。 */
+  function transactionEmitter(): (e: GameEvent) => void {
+    const owner = batchEvents
+    return (e: GameEvent) => {
+      if (!owner || batchEvents !== owner) throw new Error('事务已结束，拒绝晚到的事件')
+      const r = applyEvent(e)
+      if (!r.ok) throw new TransactionAbort(r.reason ?? `事件被拒：${e?.type}`)
     }
   }
 
@@ -1616,10 +1699,10 @@ export const useGameStore = defineStore('game', () => {
       // 势力覆灭：从存活列表移除
       applyEvent({ type: 'setFactionAlive', faction: f, alive: false })
 
-      // 非 replay 时弹 toast
-      if (!isReplaying.value) {
+      // 非 replay 时弹 toast（同步事务内延后到提交成功后由调用方展示）
+      {
         const label = (OWNER_LABELS as Record<string, string>)[f] ?? f
-        useToast().push({
+        notice({
           icon: 'skull',
           tone: 'error',
           title: '势力覆灭',
@@ -1650,9 +1733,9 @@ export const useGameStore = defineStore('game', () => {
           endedAt: currentDate.value,
           reason: 'allEnemiesDefeated',
         }
-        if (!isReplaying.value) {
+        {
           const label = (OWNER_LABELS as Record<string, string>)[playerFaction] ?? playerFaction
-          useToast().push({
+          notice({
             icon: 'crown',
             tone: 'cinnabar',
             title: '天下一统',
@@ -1704,6 +1787,8 @@ export const useGameStore = defineStore('game', () => {
     setPlayer,
     applyEvent,
     applyEvents,
+    transact,
+    simulate,
     getSnapshot,
     save,
     load,

@@ -11,7 +11,7 @@
  *   drain → tick → ai → execute → battles → settlement → date → committed
  * 任一阶段遇到 needsPlayerDecision 进入 awaiting-player：剩余指令移出公共队列保存在会话中，
  * 不做战斗/叙事/日期；玩家再次 endPlayerTurn() 时从断点继续，不重复收税、不重新请求模型。
- * 非取代类异常（failed）同样保留断点，重试时从断点继续；已进入落地提交的战斗阶段不重跑（at-most-once）。
+ * 非取代类异常（failed）同样保留断点，重试时从断点继续；整轮战果原子提交成功后战斗阶段不重跑，提交前失败整轮重打（恰好一次）。
  * 世界被替换（读档/换局/换势力）时会话作废。收税与日期推进另由 eventLog 判据兜底：
  * 当前日期已有 economicTick 时绝不再收税，已有 dateAdvance 时绝不再推进。
  *
@@ -661,6 +661,9 @@ async function performWorldTurn(session: TurnSession, turn: TurnProgress,
   if (turn.stage === 'battles') {
     turnState.value = 'settling'
     const activeBattles = store.battles.filter((b) => b.active)
+    // 日志兜底：本回合起点之后已有战斗回合（attack 只由整轮原子提交产生）即视为已结算
+    if (!turn.battlesStarted && lastIndexOfType('attack', Math.max(0, turn.turnStartIdx)) >= 0)
+      turn.battlesStarted = true
     if (activeBattles.length > 0 && !turn.battlesStarted) {
       phase.value = 'settling'
       progressText('战斗裁决中…')
@@ -674,9 +677,8 @@ async function performWorldTurn(session: TurnSession, turn: TurnProgress,
           flavorReported = true
         }, waiting => { ensureCurrent(session); aiWaiting.value = waiting },
         () => ensureCurrent(session),
-        // 调味已返回、本轮战果即将同步落地：此后失败不再重跑本轮（at-most-once：
-        // 逐战线落地非事务，中途失败已落地部分不回滚、剩余战线本日期不再结算）；
-        // 调味阶段及之前失败则无战果落地，重试会完整重打这一轮。
+        // 整轮战果已原子提交（同步事务成功后、演出前回调）：此后任何失败都不再重打本轮。
+        // 推演/调味/提交任一环节失败则世界与日志不留本轮战果，重试会完整重打这一轮（恰好一次）。
         () => { turn.battlesStarted = true })
         ensureCurrent(session)
         // Prechecks may resolve every front locally without needing any model.

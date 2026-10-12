@@ -23,7 +23,7 @@ import type { GameOrder } from '@/utils/gameOrders'
 import type { ExecutionContext } from '@/utils/gameplayRules'
 import { useToast, type ToastTone } from '@/composables/useToast'
 import { useGameStore } from '@/stores/game'
-import type { BattleEndReason, CityState } from '@/stores/game'
+import type { BattleEndReason, CityState, GameEvent } from '@/stores/game'
 import { flavorBattles } from '@/utils/ai'
 import { computeBaseBattle, clampFlavor, checkMoraleCollapse } from '@/utils/battleFormula'
 import type { BaseResult } from '@/utils/battleFormula'
@@ -70,8 +70,27 @@ function submit(orders: GameOrder[], context: ExecutionContext = {}): void {
   queue.value.push(...orders)
 }
 
+/** 战斗结算的演出项：只在整轮提交成功后 best-effort 播放，失败不回滚已提交战果。 */
+type BattlePresentation =
+  | { kind: 'stopVisual'; id: string }
+  | { kind: 'toast'; icon: string; tone: ToastTone; title: string; text?: string }
+
+/** 正在结算的轮次：同一时间只允许一轮，避免两次并发结算在各自 await 之后重复提交。 */
+let settlingBattles = false
+
 /**
- * P4a 战斗结算：本地公式为主干、AI 为调味层。
+ * P4a 战斗结算：本地公式为主干、AI 为调味层；整轮战果原子提交。
+ *
+ * 流程（模型 await 前后都不改 live 世界）：
+ * 1. 推演（store.simulate，同步、无条件回滚）：按战线顺序执行前置检查（偷家/无兵/空城占领及其奖惩、
+ *    威慑），并在推演态上计算本地公式与补给快照——与旧版逐条落地时后续战线看到的世界完全一致。
+ * 2. AI 调味（await）：前后都调用 guard；期间 live 世界不含任何本轮战果。
+ * 3. 提交（store.transact，同步）：在最新 live 世界上按原顺序重放前置检查，再按快照公式 + 钳制调味
+ *    逐战线落地（重验战线存活与双方归属）。战线、占领、奖惩、士气、撤退与势力存亡审计同一批提交；
+ *    任一事件被拒或抛错则整轮回滚，世界与 eventLog 不留部分结果，可整体重试。
+ * 4. 演出（提交后 best-effort）：停战线动画、战果 toast、reducer 延后的势力覆灭/功业提示。
+ *
+ * onCommit 在提交成功后、演出前同步调用，供调用方把本日期战斗标记为已结算（恰好一次）。
  */
 async function settleActiveBattles(llmOpts?: LlmControlOpts,
   onAiStatus?: (outcome: Pick<AiStatus, 'status' | 'reason'>) => void,
@@ -80,8 +99,28 @@ async function settleActiveBattles(llmOpts?: LlmControlOpts,
   onCommit?: () => void): Promise<void> {
   const store = useGameStore()
   guard?.()
-  const active = store.battles.filter((b) => b.active)
+  const active = store.battles.filter((b) => b.active).map((b) => ({ ...b }))
   if (!active.length) return
+  if (settlingBattles) throw new Error('战斗结算正在进行，不能重复结算')
+  settlingBattles = true
+  try {
+    await settleRound(active, llmOpts, onAiStatus, onAiWaiting, guard, onCommit)
+  } finally {
+    settlingBattles = false
+  }
+}
+
+type ActiveBattle = ReturnType<typeof useGameStore>['battles'][number]
+
+async function settleRound(active: ActiveBattle[], llmOpts: LlmControlOpts | undefined,
+  onAiStatus: ((outcome: Pick<AiStatus, 'status' | 'reason'>) => void) | undefined,
+  onAiWaiting: ((waiting: boolean) => void) | undefined,
+  guard: (() => void) | undefined,
+  onCommit: (() => void) | undefined): Promise<void> {
+  const store = useGameStore()
+  let apply: (e: GameEvent) => void = () => { throw new Error('战斗事件只能在事务内落地') }
+  let presentation: BattlePresentation[] = []
+  const cityMap = () => store.cities as unknown as Record<string, CityState>
 
   /**
    * 威慑扩散：计算 150km 范围内的指定势力城池，扣减士气
@@ -89,11 +128,11 @@ async function settleActiveBattles(llmOpts?: LlmControlOpts,
   const applyDeterrentDiffusion = (centerGb: string, targetOwner: Owner, excludeGbs: string[]) => {
     if (!targetOwner || targetOwner === Owner.NEUTRAL) return
     const excludeSet = new Set(excludeGbs)
-    for (const c of Object.values(store.cities as Record<string, CityState>)) {
+    for (const c of Object.values(cityMap())) {
       if (c.owner !== targetOwner || excludeSet.has(c.gb)) continue
       const dist = distanceBetween(centerGb, c.gb)
       if (dist !== null && dist <= BATTLE_DETERRENT_RADIUS_KM) {
-        store.applyEvent({
+        apply({
           type: 'moraleChange',
           targetGb: c.gb,
           delta: BATTLE_DETERRENT_MORALE,
@@ -111,45 +150,32 @@ async function settleActiveBattles(llmOpts?: LlmControlOpts,
   ) => {
     if (reason === 'capture' || reason === 'defenderCollapse') {
       // 攻方胜：攻方来源城士气 +10
-      store.applyEvent({
-        type: 'moraleChange',
-        targetGb: snap.from,
-        delta: BATTLE_VICTORY_MORALE_ATTACKER,
-      })
+      apply({ type: 'moraleChange', targetGb: snap.from, delta: BATTLE_VICTORY_MORALE_ATTACKER })
       // 败方（原守方）周边 150km 友城士气 -5
       applyDeterrentDiffusion(snap.to, snap.defender, [snap.to])
     } else if (reason === 'attackerRouted' || reason === 'attackerCollapse') {
       // 守方胜：守方城士气 +5
-      store.applyEvent({
-        type: 'moraleChange',
-        targetGb: snap.to,
-        delta: BATTLE_VICTORY_MORALE_DEFENDER,
-      })
+      apply({ type: 'moraleChange', targetGb: snap.to, delta: BATTLE_VICTORY_MORALE_DEFENDER })
       // 攻方来源城溃败打击士气 -10
-      store.applyEvent({
-        type: 'moraleChange',
-        targetGb: snap.from,
-        delta: BATTLE_DEFEAT_MORALE_ATTACKER,
-      })
+      apply({ type: 'moraleChange', targetGb: snap.from, delta: BATTLE_DEFEAT_MORALE_ATTACKER })
       // 败方（攻方）周边 150km 友城士气 -5（排除交战城 snap.to 与来源城 snap.from）
       applyDeterrentDiffusion(snap.to, snap.attacker, [snap.to, snap.from])
     }
   }
 
   /**
-   * 本地 helper：灭光柱 → applyEvent → toast（带战果摘要）。
-   * 关键：快照必须在 applyEvent 之前取（reducer 处理 battleEnd 后会 filter 掉 BattleInfo）。
+   * 本地 helper：battleEnd → 奖惩 → 记录演出（灭光柱/toast 延后到提交成功后）。
+   * 关键：快照必须在 battleEnd 之前取（reducer 处理 battleEnd 后会 filter 掉 BattleInfo）。
    */
   const endBattle = (
     id: string,
     reason: BattleEndReason,
     toast: { icon: string; tone: ToastTone; title: string; suffix?: string },
   ) => {
-    // 快照：applyEvent 之前取累计数据
     const snap = store.battles.find((x) => x.id === id)
     const summary = snap ? battleSummaryText(snap) : ''
-    stopBattleVisual(id)
-    store.applyEvent({
+    presentation.push({ kind: 'stopVisual', id })
+    apply({
       type: 'battleEnd',
       battleId: id,
       reason,
@@ -157,21 +183,32 @@ async function settleActiveBattles(llmOpts?: LlmControlOpts,
       toName: snap?.toName,
     })
     // 触发单胜奖励与威慑扩散
-    if (snap) {
-      applySingleVictoryAndDeterrent(snap, reason)
-    }
+    if (snap) applySingleVictoryAndDeterrent(snap, reason)
     // toast 文案：标题 + 摘要 + 可选后缀（如进驻兵力）
     const parts = [summary, toast.suffix].filter(Boolean)
-    pushToast({ icon: toast.icon, tone: toast.tone, title: toast.title, text: parts.join(' · ') })
+    presentation.push({ kind: 'toast', icon: toast.icon, tone: toast.tone, title: toast.title,
+      text: parts.join(' · ') })
   }
 
-  // ── 第一阶段：前置检查 + 本地公式（不展示） ──
-  const baseResults = new Map<string, BaseResult>()
-  const supplyResults = new Map<string, boolean>()
-  const validBattles: (typeof active)[number][] = []
+  const captureAndEnd = (b: ActiveBattle, remaining: number) => {
+    apply({
+      type: 'capture',
+      targetGb: b.to,
+      actor: b.attacker,
+      resultTroops: remaining,
+      occupationTurns: b.supplyRulesVersion === 1 ? OCCUPATION_CONSOLIDATION_TURNS : undefined,
+    })
+    endBattle(b.id, 'capture', {
+      icon: 'flag',
+      tone: 'cinnabar',
+      title: '城池陷落',
+      suffix: `进驻 ${remaining}k`,
+    })
+  }
 
-  /** 本地公式：输入取第一阶段世界态（与调味请求同一快照）。 */
-  const computeBase = (b: (typeof active)[number], from: CityState, to: CityState) => {
+  /** 本地公式：输入取前置检查之后的推演态（与调味请求同一快照）。 */
+  const computeBase = (b: ActiveBattle, from: CityState, to: CityState,
+    supplyResults: Map<string, boolean>) => {
     const dist = b.marchDistanceKm ?? distanceBetween(b.from, b.to)
     const supply =
       b.supplyRulesVersion === 1
@@ -191,239 +228,239 @@ async function settleActiveBattles(llmOpts?: LlmControlOpts,
     })
   }
 
-  for (const b of active) {
-    const cities = store.cities as unknown as Record<string, CityState>
-    const from = cities[b.from]
-    const to = cities[b.to]
-    if (!from || !to) continue
+  /**
+   * 第一阶段：前置检查（逐战线顺序，前面战线的结果会影响后面战线看到的世界）。
+   * 返回需要公式结算的战线 id；snapshot 时同时在推演态上计算基础公式与补给。
+   */
+  const precheck = (snapshot?: { base: Map<string, BaseResult>; supply: Map<string, boolean> }) => {
+    const valid: string[] = []
+    for (const b of active) {
+      const from = cityMap()[b.from]
+      const to = cityMap()[b.to]
+      if (!from || !to) continue
+      // 提交时重放：战线若在 await 期间已被其他途径结束，不再结算
+      if (!store.battles.some((x) => x.id === b.id && x.active)) continue
 
-    // 偷家检测：攻方来源城已被第三方占领
-    if (from.owner !== b.attacker) {
-      endBattle(b.id, 'attackerRouted', {
-        icon: 'skull',
-        tone: 'error',
-        title: '战线崩溃',
-        suffix: `${b.fromName} 被占，前线溃散`,
-      })
-      continue
+      // 偷家检测：攻方来源城已被第三方占领
+      if (from.owner !== b.attacker) {
+        endBattle(b.id, 'attackerRouted', {
+          icon: 'skull',
+          tone: 'error',
+          title: '战线崩溃',
+          suffix: `${b.fromName} 被占，前线溃散`,
+        })
+        continue
+      }
+
+      // 攻方来源城无外出兵力：本不该开战（开战入口已拦截），属异常兜底。
+      if (from.fieldForce <= 0) {
+        endBattle(b.id, 'retreat', {
+          icon: 'player-stop',
+          tone: 'neutral',
+          title: '战线撤销',
+          suffix: `${b.fromName} 未驻前线兵力，对峙作罢`,
+        })
+        continue
+      }
+
+      // 守方已归零 → 直接占领（跳过公式，无仗可打）；目标已不归原守方（第三方/同盟接管）则不得
+      // 按旧战线占领，改为撤销战线。目标易主但仍有守军的情形保持原语义，由提交阶段重验处理。
+      if (to.troops <= 0) {
+        if (to.owner !== b.defender) {
+          endBattle(b.id, 'retreat', {
+            icon: 'player-stop', tone: 'neutral', title: '战线撤销', suffix: `${b.toName} 已易主，对峙作罢`,
+          })
+          continue
+        }
+        captureAndEnd(b, from.fieldForce)
+        continue
+      }
+
+      // 本地公式：确定性基础减员 + 士气变化（远征衰减 + 补给系数）
+      if (snapshot) snapshot.base.set(b.id, computeBase(b, from, to, snapshot.supply))
+      valid.push(b.id)
     }
-
-    // 攻方来源城无外出兵力：本不该开战（开战入口已拦截），属异常兜底。
-    if (from.fieldForce <= 0) {
-      endBattle(b.id, 'retreat', {
-        icon: 'player-stop',
-        tone: 'neutral',
-        title: '战线撤销',
-        suffix: `${b.fromName} 未驻前线兵力，对峙作罢`,
-      })
-      continue
-    }
-
-    // 守方已归零 → 直接占领（跳过公式，无仗可打）
-    if (to.troops <= 0) {
-      const remaining = from.fieldForce
-      store.applyEvent({
-        type: 'capture',
-        targetGb: b.to,
-        actor: b.attacker,
-        resultTroops: remaining,
-        occupationTurns: b.supplyRulesVersion === 1 ? OCCUPATION_CONSOLIDATION_TURNS : undefined,
-      })
-      endBattle(b.id, 'capture', {
-        icon: 'flag',
-        tone: 'cinnabar',
-        title: '城池陷落',
-        suffix: `进驻 ${remaining}k`,
-      })
-      continue
-    }
-
-    // 本地公式：确定性基础减员 + 士气变化（远征衰减 + 补给系数）
-    baseResults.set(b.id, computeBase(b, from, to))
-    validBattles.push(b)
+    return valid
   }
 
-  if (!validBattles.length) return
+  // ── 第一阶段（推演）：前置检查 + 本地公式，事务内计算后无条件回滚，live 世界不变 ──
+  const baseResults = new Map<string, BaseResult>()
+  const supplyResults = new Map<string, boolean>()
+  const dry = store.simulate((txApply) => {
+    apply = txApply
+    presentation = []
+    return precheck({ base: baseResults, supply: supplyResults })
+  })
+  apply = () => { throw new Error('战斗事件只能在事务内落地') }
+  if (!dry.ok) throw new Error(`战斗推演失败：${dry.reason}`)
+  const validIds = new Set(dry.value)
+  const validBattles = active.filter((b) => validIds.has(b.id))
 
-  // ── 第二阶段：AI 调味（尽力而为，失败不阻塞）───
-  onAiWaiting?.(true)
-  const flavorMap = await flavorBattles(validBattles, baseResults, outcome => {
-    guard?.()
-    onAiStatus?.(outcome)
-    store.applyEvent({ type: 'aiStatus', phase: 'battleFlavor',
-      factions: [...new Set(validBattles.flatMap(b => [b.attacker, b.defender]))], ...outcome })
-  }, llmOpts).finally(() => { onAiWaiting?.(false) })
+  // ── 第二阶段：AI 调味（尽力而为，失败不阻塞；期间不改 live 世界）───
+  let flavorMap: Awaited<ReturnType<typeof flavorBattles>> = {}
+  let aiStatusEvent: GameEvent | null = null
+  if (validBattles.length) {
+    onAiWaiting?.(true)
+    flavorMap = await flavorBattles(validBattles, baseResults, outcome => {
+      guard?.()
+      onAiStatus?.(outcome)
+      // 调味状态与战果同批提交：失败回滚时不留孤立状态记录
+      aiStatusEvent = { type: 'aiStatus', phase: 'battleFlavor',
+        factions: [...new Set(validBattles.flatMap(b => [b.attacker, b.defender]))], ...outcome } as GameEvent
+    }, llmOpts).finally(() => { onAiWaiting?.(false) })
+  }
   // 跨 await 世界可能已被替换（读档/换局/换势力）：调用方会话失效则整体放弃，不落任何战果。
   guard?.()
-  // 以下战果同步落地（无 await）：通知调用方本轮已进入提交，失败后不得重跑本轮。
-  // 限制：逐条 applyEvent 非事务，中途异常不回滚已落地部分（at-most-once，非 exactly-once）。
-  onCommit?.()
+
+  // ── 第三阶段（提交）：同步事务内重放前置检查 + 快照公式 + 钳制调味 + 终局复检 ──
   // 注：基础公式与补给判定沿用第一阶段（即发给调味模型的同一快照），await 期间的数值变化
   // 不改写本轮公式；但战线存活/双方归属/攻方兵力在落地前逐条重验，避免对已易主的城结算。
+  const committed = store.transact((txApply) => {
+    apply = txApply
+    presentation = []
+    const ready = new Set(precheck())
+    if (aiStatusEvent) apply(aiStatusEvent)
 
-  // ── 第三阶段：钳制 AI 调味 + 合并 + apply ──
-  for (const b of validBattles) {
-    const cities = store.cities as unknown as Record<string, CityState>
-    const from = cities[b.from]
-    const to = cities[b.to]
-    if (!from || !to) continue
-    // 重验：战线仍在、双方归属未变、攻方仍有前线兵力；否则不按旧前提结算。
-    if (!store.battles.some((x) => x.id === b.id && x.active)) continue
-    if (from.owner !== b.attacker) {
-      endBattle(b.id, 'attackerRouted', {
-        icon: 'skull', tone: 'error', title: '战线崩溃', suffix: `${b.fromName} 被占，前线溃散`,
-      })
-      continue
-    }
-    if (to.owner !== b.defender || from.fieldForce <= 0) {
-      endBattle(b.id, 'retreat', {
-        icon: 'player-stop', tone: 'neutral', title: '战线撤销',
-        suffix: to.owner !== b.defender ? `${b.toName} 已易主，对峙作罢` : `${b.fromName} 未驻前线兵力，对峙作罢`,
-      })
-      continue
-    }
-    if (to.troops <= 0) {
-      const remaining = from.fieldForce
-      store.applyEvent({
-        type: 'capture', targetGb: b.to, actor: b.attacker, resultTroops: remaining,
-        occupationTurns: b.supplyRulesVersion === 1 ? OCCUPATION_CONSOLIDATION_TURNS : undefined,
-      })
-      endBattle(b.id, 'capture', { icon: 'flag', tone: 'cinnabar', title: '城池陷落', suffix: `进驻 ${remaining}k` })
-      continue
-    }
-
-    const base = baseResults.get(b.id)!
-    const rawFlavor = flavorMap[b.id] ?? { events: [] }
-    const flavor = clampFlavor(rawFlavor, base)
-
-    // 合并：基础 + AI shock 突发减员
-    let attackerShock = 0
-    let defenderShock = 0
-    for (const e of flavor.events) {
-      if (e.type === 'shock') {
-        if (e.side === 'attacker') attackerShock += e.magnitude ?? 0
-        else defenderShock += e.magnitude ?? 0
+    for (const b of validBattles) {
+      // 推演时可结算、提交时前置检查已改判（易主/无兵/空城）的战线，已在 precheck 中处理
+      if (!ready.has(b.id)) continue
+      const from = cityMap()[b.from]
+      const to = cityMap()[b.to]
+      if (!from || !to) continue
+      // 重验：战线仍在、双方归属未变、攻方仍有前线兵力；否则不按旧前提结算。
+      if (!store.battles.some((x) => x.id === b.id && x.active)) continue
+      if (from.owner !== b.attacker) {
+        endBattle(b.id, 'attackerRouted', {
+          icon: 'skull', tone: 'error', title: '战线崩溃', suffix: `${b.fromName} 被占，前线溃散`,
+        })
+        continue
       }
-    }
-    const finalAttackerLoss = Math.min(
-      Math.max(BATTLE_MIN_ATTRITION_PER_ROUND, base.attackerLoss + attackerShock),
-      from.fieldForce,
-    )
-    const finalDefenderLoss = Math.min(
-      Math.max(BATTLE_MIN_ATTRITION_PER_ROUND, base.defenderLoss + defenderShock),
-      to.troops,
-    )
+      if (to.owner !== b.defender || from.fieldForce <= 0) {
+        endBattle(b.id, 'retreat', {
+          icon: 'player-stop', tone: 'neutral', title: '战线撤销',
+          suffix: to.owner !== b.defender ? `${b.toName} 已易主，对峙作罢` : `${b.fromName} 未驻前线兵力，对峙作罢`,
+        })
+        continue
+      }
+      if (to.troops <= 0) {
+        captureAndEnd(b, from.fieldForce)
+        continue
+      }
 
-    // applyEvent(attack) — 兵力损耗
-    store.applyEvent({
-      type: 'attack',
-      fromGb: b.from,
-      targetGb: b.to,
-      attackerLoss: finalAttackerLoss,
-      defenderLoss: finalDefenderLoss,
-      narrative:
-        b.supplyRulesVersion === 1
-          ? [
-              flavor.narrative,
-              supplyResults.get(b.id) ? '本轮补给通畅。' : `本轮${SUPPLY_PENALTY_LABEL}。`,
-            ]
-              .filter(Boolean)
-              .join(' ')
-          : flavor.narrative,
-    })
+      const base = baseResults.get(b.id)!
+      const rawFlavor = flavorMap[b.id] ?? { events: [] }
+      const flavor = clampFlavor(rawFlavor, base)
 
-    // applyEvent(moraleChange) — 公式士气损耗
-    if (base.atkMoraleDelta !== 0) {
-      store.applyEvent({
-        type: 'moraleChange',
-        targetGb: b.from,
-        delta: base.atkMoraleDelta,
-      })
-    }
-    if (base.defMoraleDelta !== 0) {
-      store.applyEvent({
-        type: 'moraleChange',
+      // 合并：基础 + AI shock 突发减员
+      let attackerShock = 0
+      let defenderShock = 0
+      for (const e of flavor.events) {
+        if (e.type === 'shock') {
+          if (e.side === 'attacker') attackerShock += e.magnitude ?? 0
+          else defenderShock += e.magnitude ?? 0
+        }
+      }
+      const finalAttackerLoss = Math.min(
+        Math.max(BATTLE_MIN_ATTRITION_PER_ROUND, base.attackerLoss + attackerShock),
+        from.fieldForce,
+      )
+      const finalDefenderLoss = Math.min(
+        Math.max(BATTLE_MIN_ATTRITION_PER_ROUND, base.defenderLoss + defenderShock),
+        to.troops,
+      )
+
+      // attack — 兵力损耗
+      apply({
+        type: 'attack',
+        fromGb: b.from,
         targetGb: b.to,
-        delta: base.defMoraleDelta,
+        attackerLoss: finalAttackerLoss,
+        defenderLoss: finalDefenderLoss,
+        narrative:
+          b.supplyRulesVersion === 1
+            ? [
+                flavor.narrative,
+                supplyResults.get(b.id) ? '本轮补给通畅。' : `本轮${SUPPLY_PENALTY_LABEL}。`,
+              ]
+                .filter(Boolean)
+                .join(' ')
+            : flavor.narrative,
       })
-    }
 
-    // applyEvent(moraleChange) — AI 士气扰动
-    for (const e of flavor.events) {
-      if (e.type === 'morale') {
-        const targetGb = e.side === 'attacker' ? b.from : b.to
-        store.applyEvent({
-          type: 'moraleChange',
-          targetGb,
-          delta: e.delta ?? 0,
+      // moraleChange — 公式士气损耗
+      if (base.atkMoraleDelta !== 0)
+        apply({ type: 'moraleChange', targetGb: b.from, delta: base.atkMoraleDelta })
+      if (base.defMoraleDelta !== 0)
+        apply({ type: 'moraleChange', targetGb: b.to, delta: base.defMoraleDelta })
+
+      // moraleChange — AI 士气扰动
+      for (const e of flavor.events) {
+        if (e.type === 'morale') {
+          const targetGb = e.side === 'attacker' ? b.from : b.to
+          apply({ type: 'moraleChange', targetGb, delta: e.delta ?? 0 })
+        }
+      }
+
+      // ── 第四阶段：终局复检（读事务内最新态）──
+      const finalFrom = cityMap()[b.from]
+      const finalTo = cityMap()[b.to]
+      if (!finalFrom || !finalTo) continue
+
+      // ② 士气崩溃（优先于归零，守方优先判定）
+      const collapse = checkMoraleCollapse({
+        battleId: b.id,
+        turns: store.battles.find((x) => x.id === b.id)?.turns ?? 0,
+        atkMorale: finalFrom.morale,
+        defMorale: finalTo.morale,
+      })
+      if (collapse === 'defender') {
+        apply({
+          type: 'capture',
+          targetGb: b.to,
+          actor: b.attacker,
+          resultTroops: finalFrom.fieldForce,
+          occupationTurns: b.supplyRulesVersion === 1 ? OCCUPATION_CONSOLIDATION_TURNS : undefined,
+        })
+        endBattle(b.id, 'defenderCollapse', {
+          icon: 'flag', tone: 'purple', title: '城池陷落', suffix: '守军士气崩溃',
+        })
+        continue
+      }
+      if (collapse === 'attacker') {
+        endBattle(b.id, 'attackerCollapse', {
+          icon: 'skull', tone: 'purple', title: '攻方溃败', suffix: '攻军士气崩溃',
+        })
+        continue
+      }
+
+      // ① 兵力归零（原逻辑保留）
+      if (finalTo.troops <= 0) {
+        captureAndEnd(b, finalFrom.fieldForce)
+      } else if (finalFrom.fieldForce <= 0) {
+        endBattle(b.id, 'attackerRouted', {
+          icon: 'skull', tone: 'error', title: '攻方溃败', suffix: '兵锋耗尽',
         })
       }
     }
+  })
+  apply = () => { throw new Error('战斗事件只能在事务内落地') }
+  if (!committed.ok) throw new Error(`战斗结算未提交：${committed.reason}`)
 
-    // ── 第四阶段：终局复检 ──
-    const currentCities = store.cities as unknown as Record<string, CityState>
-    const finalFrom = currentCities[b.from]
-    const finalTo = currentCities[b.to]
-    if (!finalFrom || !finalTo) continue
-
-    // ② 士气崩溃（优先于归零，守方优先判定）
-    const collapse = checkMoraleCollapse({
-      battleId: b.id,
-      turns: store.battles.find((x) => x.id === b.id)?.turns ?? 0,
-      atkMorale: finalFrom.morale,
-      defMorale: finalTo.morale,
-    })
-    if (collapse === 'defender') {
-      store.applyEvent({
-        type: 'capture',
-        targetGb: b.to,
-        actor: b.attacker,
-        resultTroops: finalFrom.fieldForce,
-        occupationTurns: b.supplyRulesVersion === 1 ? OCCUPATION_CONSOLIDATION_TURNS : undefined,
-      })
-      endBattle(b.id, 'defenderCollapse', {
-        icon: 'flag',
-        tone: 'purple',
-        title: '城池陷落',
-        suffix: '守军士气崩溃',
-      })
-      continue
-    }
-    if (collapse === 'attacker') {
-      endBattle(b.id, 'attackerCollapse', {
-        icon: 'skull',
-        tone: 'purple',
-        title: '攻方溃败',
-        suffix: '攻军士气崩溃',
-      })
-      continue
-    }
-
-    // ① 兵力归零（原逻辑保留）
-    if (finalTo.troops <= 0) {
-      const remaining = finalFrom.fieldForce
-      store.applyEvent({
-        type: 'capture',
-        targetGb: b.to,
-        actor: b.attacker,
-        resultTroops: remaining,
-        occupationTurns: b.supplyRulesVersion === 1 ? OCCUPATION_CONSOLIDATION_TURNS : undefined,
-      })
-      endBattle(b.id, 'capture', {
-        icon: 'flag',
-        tone: 'cinnabar',
-        title: '城池陷落',
-        suffix: `进驻 ${remaining}k`,
-      })
-    } else if (finalFrom.fieldForce <= 0) {
-      endBattle(b.id, 'attackerRouted', {
-        icon: 'skull',
-        tone: 'error',
-        title: '攻方溃败',
-        suffix: '兵锋耗尽',
-      })
+  // 已提交：先通知调用方（本日期战斗已恰好结算一次），再 best-effort 演出
+  onCommit?.()
+  const playOne = (fn: () => void) => {
+    try { fn() } catch (e) {
+      // eslint-disable-next-line no-console
+      console.warn('[scheduler] 战斗演出失败（战果已提交，不回滚）：', e)
     }
   }
+  for (const item of presentation) {
+    playOne(() => {
+      if (item.kind === 'stopVisual') stopBattleVisual(item.id)
+      else pushToast({ icon: item.icon, tone: item.tone, title: item.title, text: item.text })
+    })
+  }
+  for (const n of committed.notices) playOne(() => pushToast(n))
 }
 
 /** 队列条目：指令 + 入队时的执行上下文（权限/行动者），用于暂停后的无损交接与恢复。 */
