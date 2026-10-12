@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, shallowRef, computed } from 'vue'
+import { ref, shallowRef, computed, type Ref } from 'vue'
 import { chinaCities } from '@/data/chinaCities'
 import { Owner, OWNER_LABELS, buildInitialRelations } from '@/data/owners'
 import { resetBattleRuntime } from '@/utils/gameOrders'
@@ -8,7 +8,6 @@ import { useToast } from '@/composables/useToast'
 import { relationKey, readRelation, type Relation, type RelationStatus } from '@/utils/diplomacy'
 import type { DiplomacyRecord } from '@/utils/diplomacy'
 import {
-  computeFactionEconomy,
   computeInitialFunds,
   famineTroops,
   ARREAR_MORALE_PENALTY,
@@ -28,6 +27,8 @@ import {
 } from '@/data/gameConfig'
 import { round1 } from '@/utils/format'
 import { clampEventMagnitude } from '@/utils/eventClamp'
+import { isSavedEvent, isSaveEnvelope } from '@/utils/saveValidation'
+import type { PendingTurnSnapshot } from '@/composables/useAgentKernel'
 import { GAME_START_DATE, countOwnedByProvince } from '@/utils/chronicle'
 import { evaluateMilestones, MILESTONES, type MilestoneContext } from '@/data/milestones'
 import { SOUTHWEST_SCENARIO, bridgeheadConditions, updateScenarioProgress, scenarioStatus as getScenarioStatus, type ScenarioProgress } from '@/utils/scenarioObjective'
@@ -243,7 +244,7 @@ export type GameEvent =
     }
   | { type: 'selectFaction'; faction: Owner; playerName: string }
   | import('@/utils/aiStatus').AiStatus
-  | { type: 'narrative'; playerInput: string; aiMessage: string; kind?: 'player' | 'settlement' }
+  | { type: 'narrative'; playerInput: string; aiMessage: string; kind?: 'player' | 'settlement'; scope?: 'world-turn' }
   | {
       type: 'commandReceipt'; faction: Owner; label: string; ok: boolean; reason?: string
       spentPoints: number; spentSilver: number; spentFood: number
@@ -290,6 +291,8 @@ interface SaveData {
   diplomacyRecords?: DiplomacyRecord[]
   /** View-only preference; old saves default to fast AI domestic presentation. */
   fastWorldDomestic?: boolean
+  /** Resumable world-turn checkpoint; absent in legacy saves. */
+  pendingTurn?: PendingTurnSnapshot | null
 }
 
 /** 存档摘要（供选择界面用，不入存档文件） */
@@ -346,8 +349,14 @@ export const useGameStore = defineStore('game', () => {
   // ── 事件日志（存档 / replay 的核心数据）──
   const eventLog = ref<GameEvent[]>([])
   const isReplaying = ref(false) // replay 期间抑制日志重复追加 + 自动存档 + watcher 重绘
-  // 读档后请求地图重绘的信号：load() 只重建 store 状态，地图重绘/动画重建/复位 isReplaying
-  // 这段"收尾"能力在 LeafletMap（loadLayer/restoreActiveAnimations）里。store 不反向依赖组件，
+  const loadedPendingTurn = ref<PendingTurnSnapshot | null>(null)
+  // Runtime injection keeps store independent of the kernel at runtime.
+  let pendingTurnProvider: (() => PendingTurnSnapshot | null) | undefined
+  function setPendingTurnProvider(provider: () => PendingTurnSnapshot | null): void {
+    pendingTurnProvider = provider
+  }
+  // 读档后请求地图重绘的信号：load() 自行完成重放；地图重绘/动画重建
+  // 在 LeafletMap（loadLayer/restoreActiveAnimations）里。store 不反向依赖组件，
   // 改用计数器信号：requestMapReload() ++token → LeafletMap watch(token) 收尾。
   const reloadToken = ref(0)
 
@@ -746,6 +755,7 @@ export const useGameStore = defineStore('game', () => {
   // ── 初始化 / 设置 ──
   // seed 单向灌溉：仅在此处读取 chinaCities，之后世界态完全活在 cities 里。
   function initWorld(): void {
+    loadedPendingTurn.value = null
     activeFactions.value = [
       Owner.KMT,
       Owner.CCP,
@@ -864,8 +874,8 @@ export const useGameStore = defineStore('game', () => {
       factionMorale: factionMoraleMap,
       factionTreasury: factionTreasuryMap,
       factionGranary: factionGranaryMap,
-      battles: battles.value.map((b) => ({ ...b })),
-      relations: { ...relations.value },
+      battles: battles.value.map((b) => ({ ...b, ...(b.route ? { route: [...b.route] } : {}) })),
+      relations: Object.fromEntries(Object.entries(relations.value).map(([key, relation]) => [key, { ...relation }])),
     }
   }
 
@@ -909,14 +919,16 @@ export const useGameStore = defineStore('game', () => {
         const to = cities.value[toGb]
         if (!from) return { ok: false, reason: `调兵源城不存在: ${e.fromGb}` }
         if (!to) return { ok: false, reason: `调兵目标城不存在: ${e.toGb}` }
-        if (e.amount <= 0) return { ok: false, reason: `调兵量必须为正: ${e.amount}` }
+        if (!Number.isFinite(e.amount) || e.amount <= 0) return { ok: false, reason: `调兵量必须为正且有限: ${e.amount}` }
+        if (fromGb === toGb) return { ok: false, reason: '调兵源城与目标不能相同' }
+        if (e.amount > from.troops) return { ok: false, reason: '调兵量超过驻军' }
         return { ok: true }
       }
       case 'deploy': {
         const fromGb = resolveLocationId(e.fromGb) ?? e.fromGb
         const from = cities.value[fromGb]
         if (!from) return { ok: false, reason: `出兵源城不存在: ${e.fromGb}` }
-        if (e.amount <= 0) return { ok: false, reason: `出兵量必须为正: ${e.amount}` }
+        if (!Number.isFinite(e.amount) || e.amount <= 0) return { ok: false, reason: `出兵量必须为正且有限: ${e.amount}` }
         if (e.amount > from.troops)
           return { ok: false, reason: `出兵量 ${e.amount}k 超过驻军 ${from.troops}k` }
         return { ok: true }
@@ -925,6 +937,9 @@ export const useGameStore = defineStore('game', () => {
       case 'moraleChange':
       case 'cityStatChange':
       case 'produce': {
+        if (e.type === 'capture' && e.resultTroops !== undefined &&
+          (!Number.isFinite(e.resultTroops) || e.resultTroops < 0))
+          return { ok: false, reason: '占领兵力必须为有限非负数' }
         const targetGb = resolveLocationId(e.targetGb) ?? e.targetGb
         if (!cities.value[targetGb]) {
           return { ok: false, reason: `城市不存在: ${e.targetGb}` }
@@ -932,6 +947,9 @@ export const useGameStore = defineStore('game', () => {
         return { ok: true }
       }
       case 'attack': {
+        if (!Number.isFinite(e.attackerLoss) || !Number.isFinite(e.defenderLoss) ||
+          e.attackerLoss < 0 || e.defenderLoss < 0)
+          return { ok: false, reason: '战斗减员必须为有限非负数' }
         const targetGb = resolveLocationId(e.targetGb) ?? e.targetGb
         if (!cities.value[targetGb]) {
           return { ok: false, reason: `目标城不存在: ${e.targetGb}` }
@@ -946,6 +964,7 @@ export const useGameStore = defineStore('game', () => {
       }
       // 以下事件不依赖城市态，无需前置校验
       case 'dateAdvance':
+        return isSavedEvent(e) ? { ok: true } : { ok: false, reason: '日期无效' }
       case 'setFactionAlive':
       case 'battleStart':
       case 'battleEnd':
@@ -965,6 +984,8 @@ export const useGameStore = defineStore('game', () => {
           return { ok: false, reason: '中立势力无外交关系' }
         return { ok: true }
       }
+      default:
+        return { ok: false, reason: '未知事件类型' }
     }
   }
 
@@ -978,6 +999,8 @@ export const useGameStore = defineStore('game', () => {
    * 例外：initWorld() 开局播种可直接写（仅此一处）。
    */
   function applyEvent(e: GameEvent): { ok: boolean; reason?: string } {
+    if (!e || typeof e !== 'object' || typeof e.type !== 'string')
+      return { ok: false, reason: '事件结构无效' }
     const checkpointReady = e.type === 'dateAdvance' && scenarioProgress.value
       ? bridgeheadConditions(cities.value, turnCount.value).ready : false
     const result = applyEventInternal(e)
@@ -1000,6 +1023,10 @@ export const useGameStore = defineStore('game', () => {
   }
 
   function applyEventInternal(e: GameEvent): { ok: boolean; reason?: string } {
+    if (!e || typeof e !== 'object' || typeof e.type !== 'string')
+      return { ok: false, reason: '事件结构无效' }
+    // Own the event: normalizing names must never mutate caller data or an old log.
+    e = JSON.parse(JSON.stringify(e)) as GameEvent
     // 入口统一反查：支持中文城市名（自由行动等路径传中文名时自动转 GB 编码）
     if ('targetGb' in e && typeof e.targetGb === 'string' && e.targetGb) {
       const r = resolveLocationId(e.targetGb)
@@ -1024,12 +1051,12 @@ export const useGameStore = defineStore('game', () => {
     const check = preCheck(e)
     if (!check.ok) {
       // 仍 push 到日志（replay 严格等价）；世界态未变
-      if (!isReplaying.value) eventLog.value.push(e)
+      recordEvent(e)
       return { ok: false, reason: check.reason }
     }
 
     // 2. push 日志（replay 期间由 load 直接覆盖，不重复追加）
-    if (!isReplaying.value) eventLog.value.push(e)
+    recordEvent(e)
 
     // 3. 非城市态事件：无 targetGb，提前处理并 return
     if (e.type === 'scenarioStarted') {
@@ -1350,6 +1377,57 @@ export const useGameStore = defineStore('game', () => {
 
   // ── 存档 / 读档（事件日志持久化到 localStorage）──
 
+  const worldRefs: Record<string, Ref<unknown>> = {
+    cities, currentDate, currentFaction, playerName, activeFactions, battles, relations,
+    treasury, granary, lastEconomy, telegrams, turnCount, scenarioProgress,
+    fastWorldDomestic, actionSpent, actionKeys, diplomacyRecords, turnSnapshots,
+    milestonesUnlocked, playerCaptures, playerVictories, playerMajorVictories,
+    playerBloodyVictories, gameOver, eventLog, loadedPendingTurn,
+  }
+  const copy = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T
+  function checkpoint(): Record<string, unknown> {
+    const state = Object.fromEntries(Object.entries(worldRefs)
+      .filter(([key]) => key !== 'eventLog').map(([key, ref]) => [key, ref.value]))
+    // The old log is never mutated by replay or by an uncommitted batch.
+    return { ...copy(state), eventLog: eventLog.value }
+  }
+  function restoreCheckpoint(state: Record<string, unknown>): void {
+    for (const [key, value] of Object.entries(state)) worldRefs[key]!.value = value
+  }
+  let batchEvents: GameEvent[] | null = null
+  function recordEvent(e: GameEvent): void {
+    if (batchEvents) batchEvents.push(e)
+    else if (!isReplaying.value) eventLog.value.push(e)
+  }
+
+  /** Synchronous transaction; no await, animation, toast or storage side effects. */
+  function applyEvents(events: GameEvent[]): { ok: boolean; reason?: string } {
+    if (batchEvents || isReplaying.value) return { ok: false, reason: '世界正在恢复或提交' }
+    if (events.some(e => !e || e.type === 'dateAdvance'))
+      return { ok: false, reason: '日期推进不能混入行动事务' }
+    const before = checkpoint()
+    const log = eventLog.value
+    batchEvents = []
+    isReplaying.value = true
+    try {
+      for (const e of events) {
+        const result = applyEvent(e)
+        if (!result.ok) {
+          restoreCheckpoint(before)
+          return result
+        }
+      }
+      eventLog.value = [...log, ...batchEvents]
+      return { ok: true }
+    } catch {
+      restoreCheckpoint(before)
+      return { ok: false, reason: '行动事务无效，未提交' }
+    } finally {
+      batchEvents = null
+      isReplaying.value = false
+    }
+  }
+
   /** 读取所有存档槽位的摘要（供选择 UI 用） */
   function _readAllMeta(): Record<string, SaveMeta> {
     try {
@@ -1366,7 +1444,7 @@ export const useGameStore = defineStore('game', () => {
   }
 
   /** 存档：当前事件日志 + 玩家身份序列化到指定槽位。返回是否成功。 */
-  function save(slot: string, opts?: { label?: string }): boolean {
+  function save(slot: string, opts?: { label?: string; pendingTurn?: PendingTurnSnapshot | null }): boolean {
     const label = opts?.label || `存档 ${currentDate.value}`
     const data: SaveData = {
       version: 1,
@@ -1379,6 +1457,8 @@ export const useGameStore = defineStore('game', () => {
       turnCount: turnCount.value,
       diplomacyRecords: diplomacyRecords.value,
       fastWorldDomestic: fastWorldDomestic.value,
+      pendingTurn: opts && 'pendingTurn' in opts
+        ? opts.pendingTurn ?? null : pendingTurnProvider?.() ?? null,
     }
     try {
       localStorage.setItem(`${SAVE_PREFIX}${slot}`, JSON.stringify(data))
@@ -1400,13 +1480,14 @@ export const useGameStore = defineStore('game', () => {
   function load(slot: string): boolean {
     const raw = localStorage.getItem(`${SAVE_PREFIX}${slot}`)
     if (!raw) return false
+    const before = checkpoint()
+    const wasReplaying = isReplaying.value
     try {
       const data: SaveData = JSON.parse(raw)
-      if (data.version !== 1) return false
+      if (!isSaveEnvelope(data)) return false
 
       isReplaying.value = true
       initWorld()
-      resetBattleRuntime()
       for (const e of data.eventLog) {
         const r = applyEvent(e)
         // 老存档可能含坏事件（结构合法但 world 资源缺失，如城市被删除）；
@@ -1416,23 +1497,26 @@ export const useGameStore = defineStore('game', () => {
           console.warn(`[load] 事件 ${e.type} apply 失败: ${r.reason ?? '未知原因'}`)
         }
       }
-      eventLog.value = data.eventLog
+      eventLog.value = copy(data.eventLog)
       telegrams.value = data.telegrams ?? []
       turnCount.value = data.turnCount ?? 0
       diplomacyRecords.value = data.diplomacyRecords ?? []
       fastWorldDomestic.value = data.fastWorldDomestic ?? true
+      loadedPendingTurn.value = data.pendingTurn ?? null
 
+      resetBattleRuntime()
       return true
     } catch {
-      isReplaying.value = false
+      restoreCheckpoint(before)
       return false
+    } finally {
+      isReplaying.value = wasReplaying
     }
   }
 
   /**
    * 请求地图重绘收尾（读档后调用）。
-   * load() 只重建 store 状态并保持 isReplaying=true；真正的地图重绘 + 战斗动画重建 + 复位
-   * isReplaying 由 LeafletMap 的 watch(reloadToken) 完成（那里才有 loadLayer/restoreActiveAnimations）。
+   * load() 已独立完成重放并复位 isReplaying；地图 watcher 只负责重绘和动画重建。
    */
   function requestMapReload(): void {
     reloadToken.value++
@@ -1522,7 +1606,7 @@ export const useGameStore = defineStore('game', () => {
 
     const playerFaction = currentFaction.value
 
-    for (const f of [...activeFactions.value]) {
+    for (const f of activeFactions.value) {
       if (f === Owner.NEUTRAL) continue
       if (gameOver.value?.ended) break // 终局后跳出
 
@@ -1598,6 +1682,8 @@ export const useGameStore = defineStore('game', () => {
     myMilitary,
     myDiplomacy,
     isReplaying,
+    loadedPendingTurn,
+    setPendingTurnProvider,
     reloadToken,
     myCities,
     cityOwner,
@@ -1617,6 +1703,7 @@ export const useGameStore = defineStore('game', () => {
     selectFaction,
     setPlayer,
     applyEvent,
+    applyEvents,
     getSnapshot,
     save,
     load,

@@ -35,7 +35,7 @@ import type { BattleHandle } from './troopAnimation'
 import { playCloudTransition, type CloudOptions } from './cloudTransition'
 import { resolveLocation, resolveLocationId, distanceBetween } from './locationResolver'
 import { useGameStore } from '@/stores/game'
-import type { BattleInfo, CityStatField } from '@/stores/game'
+import type { BattleInfo, CityStatField, GameEvent } from '@/stores/game'
 import { DEVELOP_FIELDS } from '@/stores/game'
 import { Owner, OWNER_COLORS, OWNER_LABELS } from '@/data/owners'
 import { getDisplayName } from '@/data/displayNames'
@@ -414,12 +414,14 @@ async function fogCover(opts?: CloudOptions): Promise<OrderResult> {
  * 揭开后玩家看到的是新日期的世界。无 PixiJS app 时降级为直接推进日期。
  * @param date ISO 格式日期字符串，如 '1931-10-01'
  */
-export async function playTimeJump(date: string): Promise<OrderResult> {
+export async function playTimeJump(date: string, guard?: () => void): Promise<OrderResult> {
   const store = useGameStore()
   let advanced = false
   const advanceDate = () => {
+    guard?.()
     if (advanced) return
-    store.applyEvent({ type: 'dateAdvance', date })
+    const result = store.applyEvent({ type: 'dateAdvance', date })
+    if (!result.ok) throw new Error(result.reason ?? '日期提交失败')
     advanced = true
   }
   let res: OrderResult
@@ -435,6 +437,7 @@ export async function playTimeJump(date: string): Promise<OrderResult> {
     // A completed system turn must not announce a date it never committed.
     advanceDate()
   }
+  guard?.()
   // 时间推进提示（顶部居中小条）
   useToast().push({ icon: 'clock', tone: 'neutral', title: '时间推进', text: date })
   return res
@@ -450,7 +453,7 @@ export async function playTimeJump(date: string): Promise<OrderResult> {
  * @returns 带战斗 id 的结果；坐标解析失败或重复时 ok=false
  */
 // ─── 战斗动画（纯视觉，世界态由 executeOrder 落）───
-async function battle(from: string, to: string, text?: string): Promise<BattleOrderResult> {
+async function battle(from: string, to: string, text?: string, committedId?: string): Promise<BattleOrderResult> {
   if (!_container) return { ok: false, reason: 'gameOrders 未初始化' }
   if (locks.battle) return { ok: false, reason: '战斗动画进行中' }
 
@@ -474,7 +477,7 @@ async function battle(from: string, to: string, text?: string): Promise<BattleOr
       return { ok: false, reason: '战斗动画创建失败（无法解析坐标）' }
     }
 
-    const id = nextBattleId()
+    const id = committedId ?? nextBattleId()
 
     battleRegistry.set(id, {
       from,
@@ -638,7 +641,7 @@ async function capture(gb: string, owner: Owner): Promise<OrderResult> {
 /**
  * 内政建设演出：镜头聚焦目标城 → 播轻量建设动画（轮廓脉冲+扩散环+飘字）→ 归位。
  * 四类内政指令（recruit/develop/fortify/rally）共用本函数，仅 color/text 不同。
- * 世界态写回（produce / cityStatChange / moraleChange）由 executeOrder 在动画后统一 applyEvent。
+ * 正常指令先原子提交世界态，本函数仅负责提交后的可失败演出。
  * @param gb     目标城市 id（已解析的 gb 编码）
  * @param color  飘字与脉冲主色（征兵红 / 建设金 / 筑防灰 / 整军绿）
  * @param text   飘字文本（如 "+5k 兵" / "+2 工业"）
@@ -682,7 +685,7 @@ const FIELD_LABELS: Record<CityStatField, string> = {
 
 // ─── 指令编排层：executeOrder（世界态唯一落地点）───
 // 内部动画函数只负责画面，所有世界态（capture / battleStart / battleEnd / setFactionAlive /
-// dateAdvance / selectFaction）统一由 executeOrder 在动画播完后 applyEvent 落地。
+// dateAdvance / selectFaction）统一由指令入口落地；付费领域指令先提交，再尝试演出。
 
 /**
  * 内政指令的经济前置检查（征兵/建设/筑防/整军）。
@@ -819,6 +822,12 @@ export async function executeOrder(
     return result
   }
   const store = useGameStore()
+  // Real domain actions commit synchronously before any presentation can fail.
+  // The fallback is retained only for legacy isolated tests with mock stores.
+  if (typeof store.applyEvents === 'function' &&
+    ['battle', 'stopBattle', 'moveTroops', 'deploy', 'recruit', 'develop', 'fortify', 'rally'].includes(json.order)) {
+    return executeCommittedOrder({ ...json }, context, guard)
+  }
   if (guard.points && guard.actor) {
     const reservation = store.applyEvent({
       type: 'actionSpent',
@@ -839,6 +848,101 @@ export async function executeOrder(
       store.applyEvent({ type: 'actionRefunded', faction: guard.actor, amount: guard.points })
     throw error
   }
+}
+
+async function executeCommittedOrder(
+  order: GameOrder,
+  context: ExecutionContext,
+  guard: ReturnType<typeof checkLiveOrder>,
+): Promise<OrderResult | BattleOrderResult> {
+  const store = useGameStore()
+  const events: GameEvent[] = []
+  if (guard.points && guard.actor)
+    events.push({ type: 'actionSpent', faction: guard.actor, amount: guard.points })
+  const from = order.from ? resolveLocationId(order.from) : null
+  const to = order.to ? resolveLocationId(order.to) : null
+  const gb = order.gb ? resolveLocationId(order.gb) : null
+  let cost = { silver: 0, food: 0 }
+  let id: string | undefined
+  const pay = (faction: Owner, reason: string): boolean => {
+    if (store.getTreasury(faction) < cost.silver || store.getGranary(faction) < cost.food) return false
+    for (const [type, amount, cap] of [
+      ['treasuryChange', cost.silver, REDUCER_CAP_TREASURY],
+      ['granaryChange', cost.food, REDUCER_CAP_GRANARY],
+    ] as const) {
+      let remaining = amount
+      while (remaining > 0) {
+        const delta = Math.min(cap, remaining)
+        events.push({ type, faction, delta: -delta, reason })
+        remaining = Math.max(0, Math.round((remaining - delta) * 10) / 10)
+      }
+    }
+    return true
+  }
+  if (order.order === 'battle') {
+    if (!from || !to || !store.cities[from] || !store.cities[to]) return { ok: false, reason: '交战城市不存在' }
+    const city = store.cities[from]!
+    const amount = order.deployAmount ?? (city.fieldForce > 0 ? 0 : city.troops)
+    const troops = city.fieldForce + amount
+    if (!Number.isFinite(amount) || amount < 0 || amount > city.troops || troops <= 0)
+      return { ok: false, reason: '无有效可战之兵' }
+    if (store.battles.some(b => b.active && b.from === from)) return { ok: false, reason: '来源城已有战线' }
+    if (amount > 0) events.push({ type: 'deploy', fromGb: from, amount })
+    const distance = guard.route?.costDistanceKm ?? distanceBetween(from, to)
+    cost = distance === null ? cost : marchCost(distance, troops)
+    if (!pay(city.owner, '行军消耗')) return { ok: false, reason: '远征银粮不足' }
+    id = nextBattleId()
+    const defender = store.cities[to]!.owner
+    events.push({ type: 'battleStart', battleId: id, fromGb: from, targetGb: to,
+      fromName: getLocationName(from), toName: getLocationName(to), attacker: city.owner, defender,
+      ...(guard.route ? { route: guard.route.path, marchDistanceKm: guard.route.costDistanceKm,
+        routeHasSea: guard.route.seaLegs > 0, supplyRulesVersion: 1 as const } : {}) })
+    if (city.owner !== Owner.NEUTRAL && defender !== Owner.NEUTRAL && defender !== city.owner)
+      events.push({ type: 'relationChange', a: city.owner, b: defender, status: 'war' })
+  } else if (order.order === 'stopBattle') {
+    const front = store.battles.find(b => b.id === order.id && b.active)
+    if (!front) return { ok: false, reason: '战线不存在' }
+    events.push({ type: 'battleEnd', battleId: front.id, reason: order.reason as 'retreat' | 'peace' | undefined,
+      retreatLoss: order.retreatLoss, fromName: front.fromName, toName: front.toName })
+  } else if (order.order === 'moveTroops' || order.order === 'deploy') {
+    if (!from || !Number.isFinite(order.amount) || order.amount! <= 0)
+      return { ok: false, reason: '出发城市或兵量无效' }
+    if (order.order === 'moveTroops') {
+      if (!to) return { ok: false, reason: '目标城市不存在' }
+      const distance = guard.route?.costDistanceKm ?? distanceBetween(from, to)
+      cost = distance === null ? cost : marchCost(distance, order.amount!)
+      if (!pay(store.cities[from]!.owner, '行军消耗')) return { ok: false, reason: '行军银粮不足' }
+      events.push({ type: 'moveTroops', fromGb: from, toGb: to, amount: order.amount! })
+    } else events.push({ type: 'deploy', fromGb: from, amount: order.amount! })
+  } else {
+    if (!gb || !store.cities[gb] || !Number.isFinite(order.amount) ||
+      (order.order === 'rally' ? order.amount === 0 : order.amount! <= 0))
+      return { ok: false, reason: '内政城市或数量无效' }
+    if (order.order === 'develop' && (!order.field || !DEVELOP_FIELDS.includes(order.field)))
+      return { ok: false, reason: '建设字段无效' }
+    cost = computeActionCost(order.order as 'recruit' | 'develop' | 'fortify' | 'rally', Math.abs(order.amount!))
+    if (!pay(store.cities[gb]!.owner, `内政·${order.order}`)) return { ok: false, reason: '内政银粮不足' }
+    if (order.order === 'recruit') events.push({ type: 'produce', targetGb: gb, amount: order.amount! })
+    else if (order.order === 'rally') events.push({ type: 'moraleChange', targetGb: gb, delta: order.amount! })
+    else events.push({ type: 'cityStatChange', targetGb: gb,
+      field: order.order === 'fortify' ? 'fort' : order.field!, delta: order.amount! })
+  }
+  const committed = store.applyEvents(events)
+  if (!committed.ok) return committed
+  // Presentation is best-effort; committed gameplay cannot become a failed command.
+  try {
+    if (order.order === 'battle') await battle(from!, to!, order.text, id)
+    else if (order.order === 'stopBattle') stopBattleVisual(order.id!)
+    else if (order.order === 'moveTroops') await arrowFly(from!, to!, order.text || '调兵！')
+    else if (gb && !(context.authority === 'faction' && context.presentation === 'fast'))
+      await developCity(gb, DEVELOP_COLORS[order.order as keyof typeof DEVELOP_COLORS], `${order.amount}`)
+  } catch (error) {
+    console.warn('[presentation] 已提交行动，跳过失败演出', error)
+  }
+  const result = { ok: true, ...(!['deploy', 'stopBattle'].includes(order.order) ? { cost } : {}),
+    ...(id ? { id } : {}) }
+  if (context.presentation !== 'fast') popToast(order, result)
+  return result
 }
 
 async function executeUncheckedOrder(

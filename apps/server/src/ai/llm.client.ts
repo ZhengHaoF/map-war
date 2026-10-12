@@ -1,47 +1,39 @@
 import OpenAI from 'openai';
 import { Logger } from '@nestjs/common';
+import { AiProxyConfig } from './ai-proxy.config';
+import type { SanitizedChatParams } from './chat-request.schema';
 
-const REQUIRED_ENV = ['LLM_API_KEY', 'LLM_BASE_URL', 'LLM_MODEL'] as const;
+export const AI_PROXY_CONFIG = 'AI_PROXY_CONFIG';
+export const LLM_CLIENT = 'LLM_CLIENT';
 
-export type ReasoningEffort = 'low' | 'medium' | 'high';
-const VALID_EFFORTS: readonly ReasoningEffort[] = ['low', 'medium', 'high'];
-
-export function isLLMConfigured(): boolean {
-  return REQUIRED_ENV.every(k => !!process.env[k]);
+export interface LlmRequestOptions {
+  signal?: AbortSignal;
+  timeout?: number;
+  maxRetries?: number;
 }
 
-export function getMissingEnv(): string[] {
-  return REQUIRED_ENV.filter(k => !process.env[k]);
+/** 代理实际使用到的上游接口子集（测试中用假实现替换，不调用真实模型） */
+export interface LlmClientLike {
+  chat: {
+    completions: {
+      create(params: SanitizedChatParams, options?: LlmRequestOptions): Promise<unknown>;
+    };
+  };
 }
 
-/**
- * 推理强度（仅 Chat Completions API 生效，step-3.7-flash 支持 low/medium/high）。
- * 通过 .env 的 LLM_REASONING_EFFORT 配置，默认 low。
- * 请求体若携带 reasoning_effort 可临时覆盖该默认值。
- */
-export function getReasoningEffort(): ReasoningEffort {
-  const raw = (process.env.LLM_REASONING_EFFORT ?? 'low').toLowerCase();
-  return (VALID_EFFORTS as readonly string[]).includes(raw)
-    ? (raw as ReasoningEffort)
-    : 'low';
-}
-
-export function createLLMClient(): OpenAI | null {
-  if (!isLLMConfigured()) {
-    const logger = new Logger('LLMClient');
-    const missing = getMissingEnv();
-    logger.warn(
-      `AI 未配置，缺少环境变量: ${missing.join(', ')}。请复制 apps/server/.env.example 为 .env 并填写 API Key。POST /api/ai/chat 将不可用。`,
+export function createLLMClient(cfg: AiProxyConfig, env: Record<string, string | undefined> = process.env): LlmClientLike | null {
+  if (!cfg.llmConfigured) {
+    new Logger('LLMClient').warn(
+      `AI 未配置，缺少环境变量: ${cfg.missingEnv.join(', ')}。请复制 apps/server/.env.example 为 .env 并填写 API Key。POST /api/ai/chat 将不可用。`,
     );
     return null;
   }
-  return new OpenAI({
-    apiKey: process.env.LLM_API_KEY,
-    baseURL: process.env.LLM_BASE_URL,
-    timeout: 5 * 60 * 1000, // 5 分钟超时
+  const client = new OpenAI({
+    apiKey: env.LLM_API_KEY,
+    baseURL: env.LLM_BASE_URL,
+    // 显式设置：默认 SDK 为 10 分钟 + 2 次重试，会与前端 3 次重试叠加放大成本
+    timeout: cfg.upstreamTimeoutMs,
+    maxRetries: cfg.upstreamMaxRetries,
   });
-}
-
-export function getModel(): string {
-  return process.env.LLM_MODEL ?? 'deepseek-chat';
+  return client as unknown as LlmClientLike;
 }

@@ -7,13 +7,21 @@
  * - P3: 并行 LLM 决策 → parse → submit → advance() 串行演出
  * - P4: 世界 AI 读 eventLog → 叙事 → 推进日期
  *
+ * 回合运行时会话（TurnProgress）：一次世界回合按阶段推进
+ *   drain → tick → ai → execute → battles → settlement → date → committed
+ * 任一阶段遇到 needsPlayerDecision 进入 awaiting-player：剩余指令移出公共队列保存在会话中，
+ * 不做战斗/叙事/日期；玩家再次 endPlayerTurn() 时从断点继续，不重复收税、不重新请求模型。
+ * 非取代类异常（failed）同样保留断点，重试时从断点继续；已进入落地提交的战斗阶段不重跑（at-most-once）。
+ * 世界被替换（读档/换局/换势力）时会话作废。收税与日期推进另由 eventLog 判据兜底：
+ * 当前日期已有 economicTick 时绝不再收税，已有 dateAdvance 时绝不再推进。
+ *
  * 模块级单例（同 useGameScheduler 模式）：PlayerAiPanel 与地图层共享同一个编排器状态。
  */
 
-import { computed, ref, watch } from 'vue'
+import { computed, ref, toRaw, watch } from 'vue'
 import { useGameStore, type GameEvent } from '@/stores/game'
 import { normalizeCommsFrom } from '@/utils/commsEntity'
-import { useGameScheduler } from '@/composables/useGameScheduler'
+import { useGameScheduler, type QueuedOrder } from '@/composables/useGameScheduler'
 import { classifyFactions } from '@/utils/aiClassify'
 import {
   buildFactionContext,
@@ -39,12 +47,13 @@ import { AI_TELEGRAMS_PER_TURN, LLM_MAX_RETRIES,
 import type { LlmControlOpts } from '@/composables/useLlmClient'
 import { AiWaitError, aiFailureReason, throwIfAiAborted, withAiAbort } from '@/utils/aiWait'
 import { defaultWorldSettle } from '@/utils/ai/worldAi'
+import { nextTurnDate } from '@/utils/turnDate'
+import { isPendingTurnSnapshot } from '@/utils/saveValidation'
 
 // ─── 模块级单例 ───
 const loading = ref(false)
-const phase = ref<'idle' | 'classifying' | 'ai' | 'advancing' | 'settling' | 'done' | 'error'>(
-  'idle',
-)
+const phase = ref<'idle' | 'classifying' | 'ai' | 'advancing' | 'settling' | 'awaiting-player'
+  | 'done' | 'error'>('idle')
 const progress = ref('')
 const lastError = ref('')
 const { push: pushToast } = useToast()
@@ -78,6 +87,159 @@ interface TurnSession {
   stopWatch?: () => void
 }
 let activeTurn: TurnSession | null = null
+
+export type TurnRuntimeState = 'idle' | 'planning' | 'executing' | 'awaiting-player'
+  | 'settling' | 'committed' | 'failed'
+type TurnStage = 'drain' | 'tick' | 'ai' | 'execute' | 'battles' | 'settlement' | 'date'
+/** 跨多次 endPlayerTurn 调用存活的回合断点（运行时态）。 */
+interface TurnProgress {
+  reloadToken: number
+  faction: Owner
+  baseDate: string
+  /** 世界代次锚点：eventLog[anchorIndex] 必须仍是同一个事件对象，否则视为世界已被替换。 */
+  anchor: GameEvent | null
+  anchorIndex: number
+  turnStartIdx: number
+  ownership: Record<string, Owner>
+  stage: TurnStage
+  /** 尚未执行的指令（含原执行上下文），只在 awaiting-player / failed 时非空 */
+  remaining: QueuedOrder[]
+  orderCount: number
+  battlesStarted: boolean
+  newDate?: string
+  recovered?: boolean
+}
+let turnProgress: TurnProgress | null = null
+const turnState = ref<TurnRuntimeState>('idle')
+/** 有可恢复的暂停回合（玩家定夺后点「结束回合」继续） */
+const awaitingPlayer = ref(false)
+
+/** 存档可携带的暂停回合最小快照（纯 JSON）。由父层 save/load 选择性接入。 */
+export interface PendingTurnSnapshot {
+  version: 1
+  faction: Owner
+  baseDate: string
+  anchorIndex: number
+  anchorType: GameEvent['type']
+  turnStartIdx: number
+  ownership: Record<string, Owner>
+  stage: TurnStage
+  remaining: QueuedOrder[]
+  orderCount: number
+  battlesStarted: boolean
+  newDate?: string
+}
+
+function rawEventAt(index: number): GameEvent | null {
+  const e = useGameStore().eventLog[index]
+  return e ? toRaw(e) as GameEvent : null
+}
+function lastIndexOfType(type: GameEvent['type'], from = 0): number {
+  const log = useGameStore().eventLog
+  for (let i = log.length - 1; i >= from; i--) if (log[i]?.type === type) return i
+  return -1
+}
+/** 当前日期是否已经收过税：最后一次 dateAdvance 之后存在 economicTick。 */
+function taxedThisDate(): number {
+  const tick = lastIndexOfType('economicTick')
+  return tick > lastIndexOfType('dateAdvance') ? tick : -1
+}
+function anchorProgress(progress: TurnProgress): void {
+  const store = useGameStore()
+  progress.anchorIndex = store.eventLog.length - 1
+  progress.anchor = rawEventAt(progress.anchorIndex)
+}
+function progressValid(progress: TurnProgress | null): progress is TurnProgress {
+  const store = useGameStore()
+  if (!progress) return false
+  if (progress.faction !== store.currentFaction || progress.baseDate !== store.currentDate) return false
+  // 世界代次：锚点事件对象身份（读档/initWorld 都会替换 eventLog 中的对象）；无锚点时退回 reloadToken
+  if (progress.anchorIndex >= 0) {
+    if (rawEventAt(progress.anchorIndex) !== progress.anchor) return false
+  } else if (progress.reloadToken !== store.reloadToken || store.eventLog.length !== 0) return false
+  // 断点之后已出现日期推进 → 该回合已提交，断点无意义
+  return lastIndexOfType('dateAdvance', progress.anchorIndex + 1) < 0
+}
+function setProgress(progress: TurnProgress | null): void {
+  turnProgress = progress
+  awaitingPlayer.value = !!progress && turnState.value === 'awaiting-player'
+}
+/** 丢弃暂停/失败断点（读档、开新局时由上层调用；endPlayerTurn 也会自动校验并丢弃过期断点）。 */
+function discardPendingTurn(): void {
+  if (loading.value) return
+  turnProgress = null
+  awaitingPlayer.value = false
+  if (turnState.value === 'awaiting-player' || turnState.value === 'failed') turnState.value = 'idle'
+}
+/** 导出暂停回合快照（无暂停时返回 null）；供存档附带。 */
+function exportPendingTurn(): PendingTurnSnapshot | null {
+  if (loading.value || !progressValid(turnProgress)) return null
+  const p = turnProgress
+  const anchor = rawEventAt(p.anchorIndex)
+  if (!anchor) return null
+  return JSON.parse(JSON.stringify({ version: 1, faction: p.faction, baseDate: p.baseDate,
+    anchorIndex: p.anchorIndex, anchorType: anchor.type, turnStartIdx: p.turnStartIdx,
+    ownership: p.ownership, stage: p.stage, remaining: p.remaining, orderCount: p.orderCount,
+    battlesStarted: p.battlesStarted, newDate: p.newDate })) as PendingTurnSnapshot
+}
+const TURN_STAGES: readonly TurnStage[] = ['drain', 'tick', 'ai', 'execute', 'battles', 'settlement', 'date']
+const OWNERS = new Set<string>(Object.values(Owner))
+/**
+ * 存档是玩家可编辑的输入：只接受 player/faction 权限的普通指令，丢弃 system/debug 权限与
+ * setCurrentDate（防止借读档绕过门卫或额外推进日期）；执行时仍经 executeOrder 全量重验。
+ */
+function sanitizeEntries(value: unknown): QueuedOrder[] | null {
+  if (!Array.isArray(value)) return null
+  const out: QueuedOrder[] = []
+  for (const e of value as unknown[]) {
+    const entry = e as { order?: unknown; context?: unknown } | null
+    const order = entry?.order as GameOrder | undefined
+    const ctx = (entry?.context ?? {}) as QueuedOrder['context']
+    if (!order || typeof order !== 'object' || typeof order.order !== 'string') return null
+    if (order.order === 'setCurrentDate') return null
+    if (ctx.authority !== 'player' && ctx.authority !== 'faction') return null
+    if (ctx.actor !== undefined && !OWNERS.has(ctx.actor)) return null
+    if (ctx.authority === 'faction' && !ctx.actor) return null
+    if (ctx.presentation !== undefined && ctx.presentation !== 'fast' && ctx.presentation !== 'full') return null
+    out.push({ order: JSON.parse(JSON.stringify(order)) as GameOrder,
+      context: { authority: ctx.authority, actor: ctx.actor, presentation: ctx.presentation } })
+  }
+  return out
+}
+/**
+ * 读档成功后导入快照；形状非法或与当前世界不一致（版本/势力/日期/锚点事件类型/锚点后已推进日期/
+ * 本日期未收税）则整体拒绝并返回 false（此时仍有 eventLog 兜底：不重复收税）。
+ */
+function importPendingTurn(snapshot: PendingTurnSnapshot | null | undefined): boolean {
+  discardPendingTurn()
+  const store = useGameStore()
+  if (loading.value || !isPendingTurnSnapshot(snapshot)) return false // 纯形状校验（存档层共享）
+  const len = store.eventLog.length
+  const isIdx = (n: unknown): n is number => Number.isInteger(n) && (n as number) >= 0 && (n as number) < len
+  if (!isIdx(snapshot.anchorIndex) || !isIdx(snapshot.turnStartIdx)
+    || snapshot.turnStartIdx > snapshot.anchorIndex) return false
+  if (!TURN_STAGES.includes(snapshot.stage) || snapshot.stage === 'tick' || snapshot.stage === 'ai')
+    return false // 暂停只可能发生在 drain/execute；更早阶段没有可恢复的内容
+  if (typeof snapshot.orderCount !== 'number' || !Number.isFinite(snapshot.orderCount)) return false
+  if (!snapshot.ownership || typeof snapshot.ownership !== 'object') return false
+  if (snapshot.newDate !== undefined
+    && (typeof snapshot.newDate !== 'string' || nextTurnDate(store.currentDate, snapshot.newDate) !== snapshot.newDate))
+    return false
+  const remaining = sanitizeEntries(snapshot.remaining)
+  if (!remaining) return false
+  const anchor = rawEventAt(snapshot.anchorIndex)
+  if (!anchor || anchor.type !== snapshot.anchorType || snapshot.faction !== store.currentFaction
+    || snapshot.baseDate !== store.currentDate
+    || lastIndexOfType('dateAdvance', snapshot.anchorIndex + 1) >= 0) return false
+  if (snapshot.stage !== 'drain' && taxedThisDate() < 0) return false
+  turnState.value = 'awaiting-player'
+  setProgress({ reloadToken: store.reloadToken, faction: snapshot.faction, baseDate: snapshot.baseDate,
+    anchor, anchorIndex: snapshot.anchorIndex, turnStartIdx: snapshot.turnStartIdx,
+    ownership: { ...snapshot.ownership }, stage: snapshot.stage, remaining,
+    orderCount: snapshot.orderCount, battlesStarted: !!snapshot.battlesStarted, newDate: snapshot.newDate })
+  phase.value = 'awaiting-player'
+  return true
+}
 const canStopAiWaiting = computed(() => loading.value && aiWaiting.value && !waitStopReason.value)
 
 function ensureCurrent(session: TurnSession): void {
@@ -114,6 +276,7 @@ function stopAiWaiting(): boolean {
   return true
 }
 function startWaitDeadline(session: TurnSession): void {
+  if (session.deadlineTimer) return // 同一会话内所有模型等待共享一个截止时间
   waitDeadlineAt.value = Date.now() + WORLD_AI_DEADLINE_MS
   waitRemainingMs.value = WORLD_AI_DEADLINE_MS
   session.deadlineTimer = setTimeout(() => interruptWait(session, 'timeout'), WORLD_AI_DEADLINE_MS)
@@ -289,17 +452,20 @@ function runEconomicTick(): void {
   }
 }
 
-/** 玩家结束回合 → 排空残留指令 → 启动世界回合 */
-async function endPlayerTurn(): Promise<void> {
+/**
+ * 玩家结束回合 → 排空残留指令 → 启动（或从 awaiting-player / failed 断点恢复）世界回合。
+ * 返回本次调用后的回合运行时状态。
+ */
+async function endPlayerTurn(): Promise<TurnRuntimeState> {
   return executeWorldTurn(true)
 }
 
-async function runWorldTurn(): Promise<void> {
+async function runWorldTurn(): Promise<TurnRuntimeState> {
   return executeWorldTurn(false)
 }
 
-async function executeWorldTurn(drainPlayer: boolean): Promise<void> {
-  if (loading.value) return
+async function executeWorldTurn(drainPlayer: boolean): Promise<TurnRuntimeState> {
+  if (loading.value) return turnState.value
   const store = useGameStore()
   const scheduler = useGameScheduler()
 
@@ -310,7 +476,12 @@ async function executeWorldTurn(drainPlayer: boolean): Promise<void> {
       title: '未选势力',
       text: '请先选择势力再结束回合',
     })
-    return
+    return turnState.value
+  }
+  if (scheduler.status.value === 'running') {
+    pushToast({ icon: 'alert-triangle', tone: 'amber', title: '指令仍在执行',
+      text: '请等待当前指令播放完毕后再结束回合' })
+    return turnState.value
   }
 
   resetWaitProgress()
@@ -325,29 +496,36 @@ async function executeWorldTurn(drainPlayer: boolean): Promise<void> {
   lastError.value = ''
   phase.value = 'classifying'
 
+  let progress: TurnProgress | null = progressValid(turnProgress) ? turnProgress : null
+  if (!progress && turnProgress) turnProgress = null // 过期断点（读档/换局）静默丢弃
+  awaitingPlayer.value = false
   try {
-    // 排空玩家残留指令
-    if (drainPlayer) {
-      phase.value = 'advancing'
-      progress.value = '排空玩家残留指令…'
-      await scheduler.advance()
-      ensureCurrent(session)
-    }
-
-    // 启动世界回合
-    await performWorldTurn(session)
+    progress ??= recoverFromLog(drainPlayer)
+    setProgress(progress)
+    turnState.value = progress.stage === 'drain' || progress.stage === 'tick' || progress.stage === 'ai'
+      ? 'planning' : 'executing'
+    const result = await performWorldTurn(session, progress, drainPlayer)
+    turnState.value = result
+    setProgress(result === 'awaiting-player' ? progress : null)
   } catch (err) {
     if (err instanceof AiWaitError && err.reason === 'superseded') {
       phase.value = 'idle'
-      progress.value = ''
+      setProgress(null)
+      turnState.value = 'idle'
+      // 旧世界的未执行指令不得留在公共队列里被新世界执行
+      if (!schedulerBusy() && scheduler.queue.value.length) scheduler.detachQueue()
       worldAiTasks.value = []
       turnSummary.value = null
       turnSummaryOwnership.value = {}
     } else {
+      // 保留断点：剩余指令移出公共队列，重试时从断点继续，不重复收税。
+      if (turnProgress && !schedulerBusy() && scheduler.queue.value.length)
+        turnProgress.remaining = [...scheduler.detachQueue(), ...turnProgress.remaining]
+      turnState.value = 'failed'
       lastError.value = (err as Error).message || '未知错误'
       phase.value = 'error'
       pushToast({ icon: 'alert-triangle', tone: 'cinnabar',
-        title: '回合推演失败', text: lastError.value })
+        title: '回合推演失败', text: `${lastError.value}；再次结束回合将从断点继续` })
     }
   } finally {
     clearTimeout(session.deadlineTimer)
@@ -357,27 +535,232 @@ async function executeWorldTurn(drainPlayer: boolean): Promise<void> {
     activeTurn = null
     aiWaiting.value = false
     loading.value = false
-    if (phase.value !== 'error' && phase.value !== 'idle') phase.value = 'done'
+    const finalPhase: string = phase.value
+    if (finalPhase !== 'error' && finalPhase !== 'idle' && finalPhase !== 'awaiting-player')
+      phase.value = 'done'
+    awaitingPlayer.value = turnState.value === 'awaiting-player' && !!turnProgress
   }
+  return turnState.value
 }
 
-/** P2→P3→P4 世界回合主循环 */
-async function performWorldTurn(session: TurnSession): Promise<void> {
+function schedulerBusy(): boolean { return useGameScheduler().status.value === 'running' }
+
+/**
+ * 没有可用的运行时断点时，按 eventLog 判断是否存在「已收税未推进日期」的半回合
+ * （典型：暂停时存档再读档、旧版本失败后重试）。此时只做结算与日期推进，绝不重复收税或重新决策；
+ * 丢失的未执行世界指令无法从日志恢复（见报告的残留限制）。
+ */
+function recoverFromLog(drainPlayer: boolean): TurnProgress {
+  const store = useGameStore()
+  const base: TurnProgress = { reloadToken: store.reloadToken, faction: store.currentFaction!,
+    baseDate: store.currentDate, anchor: null, anchorIndex: -1, turnStartIdx: store.eventLog.length,
+    ownership: { ...store.ownership }, stage: drainPlayer ? 'drain' : 'tick', remaining: [],
+    orderCount: 0, battlesStarted: false }
+  anchorProgress(base)
+  const tick = taxedThisDate()
+  if (tick < 0) return base
+  // 只认世界回合总结的显式标记；外交收口等其他 settlement 叙事不算（旧存档无标记→重做总结，不跳战斗）
+  let settledByWorld = false
+  for (let i = store.eventLog.length - 1; i > tick && !settledByWorld; i--) {
+    const e = store.eventLog[i]
+    settledByWorld = e?.type === 'narrative' && e.scope === 'world-turn'
+  }
+  base.recovered = true
+  base.turnStartIdx = tick
+  base.battlesStarted = lastIndexOfType('attack', tick) >= 0
+  base.stage = settledByWorld ? 'date' : 'battles'
+  pushToast({ icon: 'alert-triangle', tone: 'amber', title: '恢复未完成的回合',
+    text: '本日期已结算经济：不重复收税、不重新决策，直接完成战斗裁决与日期推进' })
+  return base
+}
+
+/**
+ * 把条目放回公共队列并串行推进；遇停点把剩余项取回（left）。
+ * 'running' 表示调度器被他人占用，不能当作完成。异常时未执行项仍留在公共队列，由外层取回。
+ */
+async function runQueued(session: TurnSession, entries: QueuedOrder[]):
+  Promise<{ result: 'done' | 'stopped'; left: QueuedOrder[] }> {
+  const scheduler = useGameScheduler()
+  if (entries.length) {
+    // 断点剩余项优先于暂停期间玩家新排入的指令
+    const pending = scheduler.detachQueue()
+    scheduler.restoreQueue(entries)
+    scheduler.restoreQueue(pending)
+  }
+  const result = await scheduler.advance({ guard: () => ensureCurrent(session) })
+  ensureCurrent(session)
+  if (result === 'running') throw new Error('调度器正被其他操作占用，回合未推进')
+  if (result === 'stopped') return { result, left: scheduler.detachQueue() }
+  return { result: 'done', left: [] }
+}
+
+function pauseForPlayer(turn: TurnProgress): 'awaiting-player' {
+  phase.value = 'awaiting-player'
+  progressText(`等待主公定夺（剩余 ${turn.remaining.length} 条指令）；结束回合后继续`)
+  return 'awaiting-player'
+}
+function progressText(text: string): void { progress.value = text }
+
+/** P2→P3→P4 世界回合主循环（按阶段，可从断点继续） */
+async function performWorldTurn(session: TurnSession, turn: TurnProgress,
+  drainPlayer: boolean): Promise<TurnRuntimeState> {
   const store = useGameStore()
   const scheduler = useGameScheduler()
+  turnSummaryOwnership.value = { ...turn.ownership }
 
-  // 记录本回合开始前的事件日志长度，结束后取增量作为回合摘要
-  const turnStartIdx = store.eventLog.length
+  // ── 排空玩家残留（含上次暂停时被移出的剩余项）──
+  if (turn.stage === 'drain' || (drainPlayer && scheduler.queue.value.length)) {
+    phase.value = 'advancing'
+    progressText('排空玩家残留指令…')
+    const leftovers = turn.stage === 'drain' ? turn.remaining : []
+    if (turn.stage === 'drain') turn.remaining = []
+    const drained = await runQueued(session, leftovers)
+    if (drained.result === 'stopped') {
+      // 执行阶段断点中尚未执行的世界指令保留在玩家残留之后
+      turn.remaining = [...drained.left, ...turn.remaining]
+      anchorProgress(turn) // 锚定到 pauseForPlayer 事件
+      return pauseForPlayer(turn)
+    }
+    if (turn.stage === 'drain') turn.stage = 'tick'
+  }
 
-  // ── P0: 经济结算（每回合开局先收税扣养兵，AI 据新国库决策）──
-  runEconomicTick()
+  // ── P0: 经济结算（每个日期恰好一次；eventLog 判据兜底）──
+  if (turn.stage === 'tick') {
+    turn.turnStartIdx = store.eventLog.length
+    turn.ownership = { ...store.ownership }
+    turnSummaryOwnership.value = { ...turn.ownership }
+    if (taxedThisDate() < 0) runEconomicTick()
+    anchorProgress(turn)
+    turn.stage = 'ai'
+  }
 
-  // ── P2: 分类 ──
+  if (turn.stage === 'ai') {
+    turn.remaining = await collectWorldDecisions(session)
+    turn.orderCount = turn.remaining.length
+    anchorProgress(turn)
+    turn.stage = 'execute'
+  }
+
+  // ── P3 推进（串行演出；遇停点进入 awaiting-player）──
+  if (turn.stage === 'execute') {
+    turnState.value = 'executing'
+    phase.value = 'advancing'
+    progressText(`执行 ${turn.remaining.length} 条指令…`)
+    const entries = turn.remaining
+    turn.remaining = []
+    const executed = await runQueued(session, entries)
+    if (executed.result === 'stopped') {
+      turn.remaining = executed.left
+      anchorProgress(turn)
+      return pauseForPlayer(turn)
+    }
+    turn.stage = 'battles'
+  }
+
+  // ── P4a: 战斗裁决（已开始过则不重跑，避免同一日期多打一轮）──
+  if (turn.stage === 'battles') {
+    turnState.value = 'settling'
+    const activeBattles = store.battles.filter((b) => b.active)
+    if (activeBattles.length > 0 && !turn.battlesStarted) {
+      phase.value = 'settling'
+      progressText('战斗裁决中…')
+      startWaitDeadline(session)
+      addTask('battleFlavor', '战斗调味', 'battleFlavor',
+        [...new Set(activeBattles.flatMap(b => [b.attacker, b.defender]))], 2)
+      let flavorReported = false
+      try {
+        await scheduler.settleActiveBattles(requestControl(session, 'battleFlavor'), outcome => {
+          finishTask(session, 'battleFlavor', outcome)
+          flavorReported = true
+        }, waiting => { ensureCurrent(session); aiWaiting.value = waiting },
+        () => ensureCurrent(session),
+        // 调味已返回、本轮战果即将同步落地：此后失败不再重跑本轮（at-most-once：
+        // 逐战线落地非事务，中途失败已落地部分不回滚、剩余战线本日期不再结算）；
+        // 调味阶段及之前失败则无战果落地，重试会完整重打这一轮。
+        () => { turn.battlesStarted = true })
+        ensureCurrent(session)
+        // Prechecks may resolve every front locally without needing any model.
+        if (!flavorReported) finishTask(session, 'battleFlavor', { status: 'empty' })
+      } finally { aiWaiting.value = false }
+    }
+    turn.stage = 'settlement'
+  }
+
+  // ── P4 结算 ──
+  if (turn.stage === 'settlement') {
+    turnState.value = 'settling'
+    phase.value = 'settling'
+    progressText('世界 AI 总结中…')
+    startWaitDeadline(session)
+    const baseDate = turn.baseDate
+    addTask('settlement', '世界叙事', 'settlement', [])
+    aiWaiting.value = true
+    const { narrative, newDate, chatter } = await trackedTask(session, 'settlement',
+      control => invokeWorldAISettle(baseDate, control),
+      result => result.aiStatus ?? { status: 'ok' }).catch(error => {
+        ensureCurrent(session)
+        return defaultWorldSettle(baseDate, aiFailureReason(error))
+      }).finally(() => { aiWaiting.value = false })
+    ensureCurrent(session)
+    // 日期由引擎钳制：模型给出的日期不合法时按默认步长推进，绝不原地不动或倒退。
+    turn.newDate = nextTurnDate(baseDate, newDate)
+
+    // 系统结算叙事落 eventLog（kind='settlement' 让 aiHistory 不带"玩家："前缀）
+    store.applyEvent({ type: 'narrative', playerInput: '', aiMessage: narrative, kind: 'settlement',
+      scope: 'world-turn' })
+    // 世界公屏电报：from 是 AI 返回的中文势力名，归一化回内部代码
+    for (const c of chatter) {
+      store.pushTelegram({
+        gameDate: turn.newDate,
+        from: normalizeCommsFrom(c.from),
+        content: c.content,
+        channel: 'world',
+        turn: store.turnCount,
+        leaderName: c.name,
+      })
+    }
+    turn.stage = 'date'
+  }
+
+  // ── 推进日期：恰好一次（入调度器走末尾蒙太奇）──
+  const newDate = turn.newDate ?? nextTurnDate(turn.baseDate)
+  if (lastIndexOfType('dateAdvance', Math.max(0, turn.anchorIndex)) < 0
+    && store.currentDate === turn.baseDate) {
+    phase.value = 'advancing'
+    progressText('推进日期…')
+    if (scheduler.queue.value.length) // 不应出现：防止残留指令借日期推进被执行
+      turn.remaining = [...turn.remaining, ...scheduler.detachQueue()]
+    scheduler.submit([{ order: 'setCurrentDate', date: newDate }], { authority: 'system' })
+    const result = await scheduler.advance({ guard: () => ensureCurrent(session) })
+    ensureCurrent(session)
+    if (result === 'running' || result === 'stopped' || store.currentDate !== newDate)
+      throw new Error('日期推进未完成')
+  }
+
+  phase.value = 'done'
+  progressText('新回合开始')
+
+  // 提取本回合新增事件作为摘要（排除回合开始前的历史事件）
+  const newEvents = store.eventLog.slice(turn.turnStartIdx)
+  // 只有存在"有意义的事件"（非 routine）时才弹摘要
+  const hasMeaningful = newEvents.some((e) => !isRoutineEvent(e))
+  turnSummary.value = hasMeaningful ? newEvents : null
+
+  const degraded = turn.recovered
+    || newEvents.some((e): e is AiStatus => e.type === 'aiStatus' && isAiDegraded(e))
+  pushToast({ icon: degraded ? 'alert-triangle' : 'check', tone: degraded ? 'amber' : 'green',
+    title: degraded ? '回合结束（AI 降级）' : '回合结束',
+    text: degraded ? `日期推进至 ${newDate}；决策缺失与默认结算详见大事记。不自动重跑已结算行动。` : `日期推进至 ${newDate}` })
+  return 'committed'
+}
+
+/** P2 分类 + P3 并行模型决策：只收集，不执行。返回带上下文的待执行条目。 */
+async function collectWorldDecisions(session: TurnSession): Promise<QueuedOrder[]> {
+  const store = useGameStore()
   phase.value = 'classifying'
-  progress.value = '分析势力关系…'
+  progressText('分析势力关系…')
 
   const snap = store.getSnapshot()
-  turnSummaryOwnership.value = { ...snap.ownership }
   const presentation = store.fastWorldDomestic ? 'fast' as const : 'full' as const
   const { related, unrelated } = classifyFactions({
     playerFaction: snap.currentFaction,
@@ -387,17 +770,14 @@ async function performWorldTurn(session: TurnSession): Promise<void> {
     relations: snap.relations,
   })
 
-  progress.value = `related: ${related.length}, unrelated: ${unrelated.length}`
+  progressText(`related: ${related.length}, unrelated: ${unrelated.length}`)
 
   // ── P3: 并行 AI ──
   phase.value = 'ai'
-  progress.value = '政权 AI 决策中…'
+  progressText('政权 AI 决策中…')
   startWaitDeadline(session)
 
-  const allOrders: GameOrder[] = []
-
-  // 并行：related 各自独立 + unrelated 批量一次
-  // invokeFactionAI 返回 { orders, telegram }；invokeWorldAIBatch 返回 GameOrder[]
+  const entries: QueuedOrder[] = []
   const factionPromises: {
     faction: Owner
     promise: Promise<FactionDecision>
@@ -420,14 +800,13 @@ async function performWorldTurn(session: TurnSession): Promise<void> {
       result => result.decisionStatus!))
   }
 
-  // 并行等待
+  // 并行等待：截止/取消后迟到的结果由 withAiAbort 丢弃；世界被替换则整体作废
   aiWaiting.value = true
   const [factionResults, batchResults] = await Promise.all([
     Promise.allSettled(factionPromises.map((p) => p.promise)), Promise.allSettled(batchPromises),
   ]).finally(() => { aiWaiting.value = false })
   ensureCurrent(session)
 
-  // 收集 related 势力的指令 + 电报 + 外交提案
   let telegramCount = 0
   const MAX_TELEGRAMS_PER_TURN = AI_TELEGRAMS_PER_TURN
   let playerDiplomacyProposed = false
@@ -437,10 +816,8 @@ async function performWorldTurn(session: TurnSession): Promise<void> {
     if (r.status !== 'fulfilled') return
     const { orders, telegram, diplomaticProposal } = r.value
     const faction = factionPromises[i].faction
-    if (orders.length) {
-      allOrders.push(...orders)
-      scheduler.submit(orders, { authority: 'faction', actor: faction, presentation })
-    }
+    for (const order of orders)
+      entries.push({ order, context: { authority: 'faction', actor: faction, presentation } })
     // 电报：软上限每回合 2 封
     if (telegram && telegramCount < MAX_TELEGRAMS_PER_TURN) {
       store.pushTelegram({
@@ -454,20 +831,10 @@ async function performWorldTurn(session: TurnSession): Promise<void> {
       })
       telegramCount++
     }
-    // 外交提案
+    // 外交提案（对玩家每回合至多一份）
     if (diplomaticProposal && diplomaticProposal.target) {
-      if (diplomaticProposal.target === snap.currentFaction) {
-        if (!playerDiplomacyProposed) {
-          diplomacyBus.startAiDiplomacy(
-            faction,
-            diplomaticProposal.target,
-            diplomaticProposal.intent,
-            diplomaticProposal.message,
-            diplomaticProposal.conditions,
-          )
-          playerDiplomacyProposed = true
-        }
-      } else {
+      const toPlayer = diplomaticProposal.target === snap.currentFaction
+      if (!toPlayer || !playerDiplomacyProposed) {
         diplomacyBus.startAiDiplomacy(
           faction,
           diplomaticProposal.target,
@@ -475,103 +842,23 @@ async function performWorldTurn(session: TurnSession): Promise<void> {
           diplomaticProposal.message,
           diplomaticProposal.conditions,
         )
+        if (toPlayer) playerDiplomacyProposed = true
       }
     }
   })
 
-  // 收集 unrelated 批量指令
   for (const r of batchResults) {
-    if (r.status === 'fulfilled' && r.value.orders.length) {
-      allOrders.push(...r.value.orders)
-      for (const order of r.value.orders) {
-        const actor = normalizeCommsFrom((order as GameOrder & { actor: string }).actor) as Owner
-        scheduler.submit([order], { authority: 'faction', actor, presentation })
-      }
+    if (r.status !== 'fulfilled') continue
+    for (const order of r.value.orders) {
+      const actor = normalizeCommsFrom((order as GameOrder & { actor: string }).actor) as Owner
+      entries.push({ order, context: { authority: 'faction', actor, presentation } })
     }
   }
-
-  // ── P3 推进（串行演出）──
-  phase.value = 'advancing'
-  progress.value = `执行 ${allOrders.length} 条指令…`
-  await scheduler.advance()
-  ensureCurrent(session)
-
-  // ── P4a: 战斗裁决 ──
-  const activeBattles = store.battles.filter((b) => b.active)
-  if (activeBattles.length > 0) {
-    phase.value = 'settling'
-    progress.value = '战斗裁决中…'
-    addTask('battleFlavor', '战斗调味', 'battleFlavor',
-      [...new Set(activeBattles.flatMap(b => [b.attacker, b.defender]))], 2)
-    let flavorReported = false
-    try {
-      await scheduler.settleActiveBattles(requestControl(session, 'battleFlavor'), outcome => {
-        finishTask(session, 'battleFlavor', outcome)
-        flavorReported = true
-      }, waiting => { ensureCurrent(session); aiWaiting.value = waiting })
-      ensureCurrent(session)
-      // Prechecks may resolve every front locally without needing any model.
-      if (!flavorReported) finishTask(session, 'battleFlavor', { status: 'empty' })
-    } finally { aiWaiting.value = false }
-  }
-
-  // ── P4 结算 ──
-  phase.value = 'settling'
-  progress.value = '世界 AI 总结中…'
-
-  // P4 user 消息由 buildSettleContext 内部生成（#5.3：buildSettleContext 自取 sinceDateAdvance 历史）
-  addTask('settlement', '世界叙事', 'settlement', [])
-  aiWaiting.value = true
-  const { narrative, newDate, chatter } = await trackedTask(session, 'settlement',
-    control => invokeWorldAISettle(snap.currentDate, control),
-    result => result.aiStatus ?? { status: 'ok' }).catch(error => {
-      ensureCurrent(session)
-      return defaultWorldSettle(snap.currentDate, aiFailureReason(error))
-    }).finally(() => { aiWaiting.value = false })
-  ensureCurrent(session)
-
-  // 系统结算叙事落 eventLog（kind='settlement' 让 aiHistory 不带"玩家："前缀）
-  store.applyEvent({ type: 'narrative', playerInput: '', aiMessage: narrative, kind: 'settlement' })
-
-  // 世界公屏电报：from 是 AI 返回的中文势力名，归一化回内部代码
-  if (chatter.length) {
-    for (const c of chatter) {
-      store.pushTelegram({
-        gameDate: newDate,
-        from: normalizeCommsFrom(c.from),
-        content: c.content,
-        channel: 'world',
-        turn: store.turnCount,
-        leaderName: c.name,
-      })
-    }
-  }
-
-  // 推进日期：入调度器走末尾蒙太奇（playTimeJump 含云雾演出 + toast）
-  if (newDate !== snap.currentDate) {
-    phase.value = 'advancing'
-    progress.value = '推进日期…'
-    scheduler.submit([{ order: 'setCurrentDate', date: newDate }], { authority: 'system' })
-    await scheduler.advance()
-    ensureCurrent(session)
-  }
-
-  phase.value = 'done'
-  progress.value = '新回合开始'
-
-  // 提取本回合新增事件作为摘要（排除回合开始前的历史事件）
-  const newEvents = store.eventLog.slice(turnStartIdx)
-  // 只有存在"有意义的事件"（非 routine）时才弹摘要
-  const hasMeaningful = newEvents.some((e) => !isRoutineEvent(e))
-  turnSummary.value = hasMeaningful ? newEvents : null
-
-  const degraded = newEvents.some((e): e is AiStatus => e.type === 'aiStatus' && isAiDegraded(e))
-  pushToast({ icon: degraded ? 'alert-triangle' : 'check', tone: degraded ? 'amber' : 'green',
-    title: degraded ? '回合结束（AI 降级）' : '回合结束',
-    text: degraded ? `日期推进至 ${newDate}；决策缺失与默认结算详见大事记。不自动重跑已结算行动。` : `日期推进至 ${newDate}` })
+  return entries
 }
 
 export function useAgentKernel() {
+  useGameStore().setPendingTurnProvider(exportPendingTurn)
   return {
     loading,
     phase,
@@ -589,5 +876,10 @@ export function useAgentKernel() {
     resetWaitProgress,
     endPlayerTurn,
     runWorldTurn,
+    turnState,
+    awaitingPlayer,
+    discardPendingTurn,
+    exportPendingTurn,
+    importPendingTurn,
   }
 }

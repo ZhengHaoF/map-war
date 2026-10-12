@@ -14,16 +14,33 @@ vi.mock('@/utils/ai', async () => ({
   ...await vi.importActual('@/utils/aiOrderContract'),
   buildMinorContext: () => '',
   runWorldBatch: mocks.batch,
-  runWorldSettle: async () => ({ narrative: '', newDate: '1931-04-01', chatter: [] }),
+  runWorldSettle: async () => ({ narrative: '', newDate: '1931-04-08', chatter: [] }),
 }))
 vi.mock('@/utils/aiClassify', () => ({
   classifyFactions: () => ({ related: [], unrelated: [Owner.SCC, Owner.KMT] }),
 }))
-vi.mock('@/composables/useGameScheduler', () => ({
-  useGameScheduler: () => ({
-    submit: mocks.submit, advance: async () => {}, settleActiveBattles: async () => {},
-  }),
-}))
+vi.mock('@/composables/useGameScheduler', async () => {
+  const { ref } = await import('vue')
+  const { useGameStore } = await import('@/stores/game')
+  // 契约桩：只记录提交、不执行世界指令；系统日期指令按真实调度器语义提交 dateAdvance。
+  let queued: GameOrder[] = []
+  const submit = (orders: GameOrder[], context: object) => { mocks.submit(orders, context); queued.push(...orders) }
+  return { useGameScheduler: () => ({
+    submit, settleActiveBattles: async () => {},
+    status: ref('idle'), queue: ref([]), stoppedAt: ref(null), executionResults: ref([]),
+    advance: async () => {
+      for (const o of queued.splice(0)) if (o.order === 'setCurrentDate')
+        useGameStore().applyEvent({ type: 'dateAdvance', date: o.date! })
+      return 'done'
+    },
+    detachQueue: () => { const out = queued.map(order => ({ order, context: {} })); queued = []; return out },
+    restoreQueue: (entries: { order: GameOrder; context: object }[]) => {
+      for (const e of entries) submit([e.order], e.context)
+    },
+  }) }
+})
+/** 只看世界 AI 指令的提交（排除引擎自身的系统日期指令） */
+const factionSubmits = () => mocks.submit.mock.calls.filter(([, ctx]) => (ctx as { authority?: string }).authority === 'faction')
 vi.mock('@/composables/useDiplomacyBus', () => ({ useDiplomacyBus: () => ({}) }))
 vi.mock('@/composables/useToast', () => ({ useToast: () => ({ push: vi.fn<() => void>() }) }))
 const source = '156510100', target = '156511500'
@@ -56,7 +73,7 @@ describe('world batch entry point', () => {
       orders: [transfer, other, deploy], errors: [[], [], []], parseSucceeded: true,
     })
     await useAgentKernel().runWorldTurn()
-    expect(mocks.submit.mock.calls).toEqual([
+    expect(factionSubmits()).toEqual([
       [[transfer], expect.objectContaining({ authority: 'faction', actor: Owner.SCC })],
       [[other], expect.objectContaining({ authority: 'faction', actor: Owner.KMT })],
       [[deploy], expect.objectContaining({ authority: 'faction', actor: Owner.SCC })],
@@ -72,6 +89,6 @@ describe('world batch entry point', () => {
       errors: [[], ['malformed'], [], []], parseSucceeded: true,
     })
     await useAgentKernel().runWorldTurn()
-    expect(mocks.submit).not.toHaveBeenCalled()
+    expect(factionSubmits()).toEqual([])
   })
 })

@@ -11,6 +11,7 @@
  */
 
 import { callLlm } from './ai/client'
+import type { LlmControlOpts } from '@/composables/useLlmClient'
 import { extractPayloads } from '@/utils/aiParse'
 import { buildFactionContext } from '@/utils/aiContext'
 import { buildPlayerProfile } from './ai/prompts'
@@ -107,6 +108,7 @@ async function invokeDiplomacyRoute(
   targetFaction: Owner | null,
   playerMessage: string,
   targetCountry?: string,
+  control: LlmControlOpts = {},
 ): Promise<DiplomacyRouteResult> {
   const context = buildFactionContext(playerFaction)
   const targetDesc = targetCountry
@@ -119,7 +121,7 @@ async function invokeDiplomacyRoute(
   ]
 
   try {
-    const raw = await callLlm({ messages })
+    const raw = await callLlm({ messages, ...control })
     const payloads = extractPayloads(raw)
     const obj = (payloads[0] ?? {}) as Record<string, unknown>
     return {
@@ -290,6 +292,7 @@ async function invokeDiplomacyReply(
   rounds: DiplomacyRound[],
   playerMessage: string,
   targetCountry?: string,
+  control: LlmControlOpts = {},
 ): Promise<DiplomacyReplyResult> {
   const history = rounds.length > 0 ? `此前协商：\n${formatRounds(rounds)}` : ''
 
@@ -317,7 +320,7 @@ async function invokeDiplomacyReply(
   })
 
   try {
-    const raw = await callLlm({ messages })
+    const raw = await callLlm({ messages, ...control })
     const payloads = extractPayloads(raw)
     const obj = (payloads[0] ?? {}) as Record<string, unknown>
     const stance: DiplomacyStance =
@@ -425,6 +428,7 @@ async function invokeDiplomacySettle(
   rounds: DiplomacyRound[],
   finalStance: DiplomacyStance,
   targetCountry?: string,
+  control: LlmControlOpts = {},
 ): Promise<DiplomacySettleResult> {
   const history = formatRounds(rounds)
   const targetDesc = targetCountry
@@ -437,7 +441,7 @@ async function invokeDiplomacySettle(
   ]
 
   try {
-    const raw = await callLlm({ messages })
+    const raw = await callLlm({ messages, ...control })
     const payloads = extractPayloads(raw)
     const obj = (payloads[0] ?? {}) as Record<string, unknown>
     return {

@@ -30,10 +30,17 @@ vi.mock('@/utils/ai/invoke', () => ({ invokeAgentDecision: mocks.invoke }))
 vi.mock('@/utils/aiClassify', () => ({
   classifyFactions: () => ({ related: [Owner.YUN], unrelated: [Owner.KMT, Owner.NEA] }),
 }))
-vi.mock('@/composables/useGameScheduler', () => ({
-  useGameScheduler: () => ({ submit: mocks.submit, advance: mocks.advance,
-    settleActiveBattles: async () => {} }),
-}))
+vi.mock('@/composables/useGameScheduler', async () => {
+  const { ref } = await import('vue')
+  return { useGameScheduler: () => ({ submit: mocks.submit, advance: mocks.advance,
+    settleActiveBattles: async () => {},
+    status: ref('idle'), queue: ref([]), stoppedAt: ref(null), executionResults: ref([]),
+    // 契约桩：提交记录即队列（advance 会消费 submit 记录），暂停/恢复不在本文件覆盖
+    detachQueue: () => [],
+    restoreQueue: (entries: { order: GameOrder; context: object }[]) => {
+      for (const e of entries) mocks.submit([e.order], e.context)
+    } }) }
+})
 vi.mock('@/composables/useDiplomacyBus', () => ({ useDiplomacyBus: () => ({}) }))
 vi.mock('@/composables/useToast', () => ({ useToast: () => ({ push: mocks.toast }) }))
 const raw = (value: unknown) => ({ choices: [{ message: { content: JSON.stringify(value) } }] })

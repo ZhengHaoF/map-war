@@ -2772,7 +2772,6 @@ onMounted(async () => {
     async () => {
       await loadLayer(currentLayerIndex.value)
       restoreActiveAnimations()
-      useGameStore().isReplaying = false // 动画恢复完成后才解锁 ownership watcher
     },
   )
 })

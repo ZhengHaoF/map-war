@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { useGameStore } from '@/stores/game'
 import { useDiplomacyBus } from '@/composables/useDiplomacyBus'
@@ -6,6 +6,11 @@ import { Owner } from '@/data/owners'
 import type { DiplomacyRecord } from '@/utils/diplomacy'
 import { registerLocations } from '@/utils/locationResolver'
 import seedCities from '@/data/chinaCities.seed.json'
+vi.mock('@/utils/aiDiplomacy', () => ({
+  invokeDiplomacyRoute: vi.fn<() => Promise<object>>(),
+  invokeDiplomacyReply: vi.fn<() => Promise<object>>(),
+  invokeDiplomacySettle: vi.fn<() => Promise<object>>().mockResolvedValue({ narrative: '外交交涉告一段落。' }),
+}))
 
 describe('useDiplomacyBus / AI 主动发起外交 (AI-Initiated Diplomacy)', () => {
   beforeEach(() => {
@@ -39,9 +44,11 @@ describe('useDiplomacyBus / AI 主动发起外交 (AI-Initiated Diplomacy)', () 
     expect(store.diplomacyRecords).toContainEqual(expect.objectContaining({ id: record?.id }))
   })
 
-  it('AI 对 AI 主动发起外交：静默改写关系，不占用 currentSession，记录设为 settled', () => {
+  it('AI 对 AI 结盟需目标势力按共同威胁策略接受，不占用玩家协商', () => {
     const store = useGameStore()
     const bus = useDiplomacyBus()
+    store.applyEvent({ type: 'relationChange', a: Owner.SHX, b: Owner.JPN, status: 'war' })
+    store.applyEvent({ type: 'relationChange', a: Owner.GXC, b: Owner.JPN, status: 'war' })
 
     const record = bus.startAiDiplomacy(
       Owner.SHX,
@@ -219,6 +226,17 @@ describe('列强国家援助 (Country Aid via Envoy)', () => {
 
     expect(silverOf(store)).toBe(beforeSilver + 30 - 10)
   })
+  it('玩家拒绝 AI 已接受的条款时仍拒绝，不扣款或发放援助', async () => {
+    const store = useGameStore()
+    const beforeSilver = silverOf(store)
+    seedSunSession(store, {
+      conditions: [{ type: 'transferSilver', amount: 10 }],
+      aidOffer: [{ type: 'silver', amount: 30 }],
+    })
+    await useDiplomacyBus().forceSettle(false)
+    expect(silverOf(store)).toBe(beforeSilver)
+    expect(store.diplomacyRecords.find(r => r.id === 'diplo_test_sun')?.finalStance).toBe('reject')
+  })
 
   it('军援目标城非玩家势力 → 条约作废：无援助到账、无条约 narrative', async () => {
     const store = useGameStore()
@@ -236,6 +254,6 @@ describe('列强国家援助 (Country Aid via Envoy)', () => {
     expect(narr).toBeUndefined()
     const rec = store.diplomacyRecords.find((r) => r.id === 'diplo_test_sun')
     expect(rec?.status).toBe('settled')
-    expect(rec?.finalStance).toBe('accept')
+    expect(rec?.finalStance).toBe('reject')
   })
 })

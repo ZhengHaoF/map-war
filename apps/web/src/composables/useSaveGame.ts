@@ -4,14 +4,13 @@ import { useToast } from '@/composables/useToast'
 import { useAgentKernel } from '@/composables/useAgentKernel'
 import { useGameScheduler } from '@/composables/useGameScheduler'
 import { aiEffectsPending } from '@/composables/useAiChat'
+import { useDiplomacyBus } from '@/composables/useDiplomacyBus'
 
 /**
  * 存档读写的统一入口（供存档选择器等 UI 使用）。
  *
- * 关键点：store.load(slot) 只重建 store 状态并把 isReplaying 置为 true，
- * 它不会重绘地图、不会重建战斗动画、也不会复位 isReplaying——这些"收尾"
- * 由 LeafletMap 的 watch(reloadToken) 完成。因此读档必须调 loadGame()，
- * 它在 load 成功后触发 requestMapReload()，让地图组件接手收尾。
+ * store.load(slot) 独立重建并完成重放；地图 watcher 仅负责重绘和战斗动画。
+ * loadGame() 还恢复暂停回合，并使旧 AI / 外交回复失效。
  */
 export function useSaveGame() {
   const store = useGameStore()
@@ -40,6 +39,8 @@ export function useSaveGame() {
       kernel.progress.value = ''
       kernel.resetWaitProgress()
       store.requestMapReload()
+      kernel.importPendingTurn(store.loadedPendingTurn)
+      useDiplomacyBus().recoverSession()
       pushToast({ icon: 'file-import', tone: 'green', title: '读档成功',
         text: '已载入存档；旧对话、建议与草稿已清空，等待中的回复已作废。' })
       // 存档停在决策点上（eventLog 末尾是 pauseForPlayer）→ 补一句提示，避免玩家错过拍板时机
@@ -68,7 +69,7 @@ export function useSaveGame() {
       pushToast({ icon: 'alert-triangle', tone: 'error', title: '保存失败', text: '自动存档槽不可手动覆盖' })
       return false
     }
-    const ok = store.save(slot, { label })
+    const ok = store.save(slot, { label, pendingTurn: useAgentKernel().exportPendingTurn() })
     if (ok) {
       pushToast({ icon: 'device-floppy', tone: 'green', title: '保存成功', text: label || slot })
     } else {

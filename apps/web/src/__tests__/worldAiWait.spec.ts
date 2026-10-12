@@ -39,9 +39,14 @@ vi.mock('@/composables/useGameScheduler', async () => {
   const { ref } = await import('vue')
   return { useGameScheduler: () => ({ submit: mocks.submit, advance: mocks.advance,
     settleActiveBattles: mocks.battle, status: ref('idle'), queue: ref([]),
-    stoppedAt: ref(null), executionResults: ref([]) }) }
+    stoppedAt: ref(null), executionResults: ref([]),
+    detachQueue: () => mocks.queued.splice(0).map(order => ({ order, context: {} })),
+    restoreQueue: (entries: { order: GameOrder; context: object }[]) => {
+      for (const e of entries) mocks.submit([e.order], e.context)
+    } }) }
 })
-vi.mock('@/composables/useDiplomacyBus', () => ({ useDiplomacyBus: () => ({ startAiDiplomacy: vi.fn<(...args: unknown[]) => void>() }) }))
+vi.mock('@/composables/useDiplomacyBus', () => ({ useDiplomacyBus: () => ({ startAiDiplomacy: vi.fn<(...args: unknown[]) => void>(),
+  recoverSession: vi.fn<() => void>() }) }))
 vi.mock('@/composables/useToast', () => ({ useToast: () => ({ push: mocks.toast }) }))
 const flush = async () => { for (let i = 0; i < 30; i++) await Promise.resolve() }
 const deferred = <T>() => {

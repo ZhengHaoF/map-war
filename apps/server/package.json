@@ -12,8 +12,7 @@
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
-    "test": "jest",
-    "test:watch": "jest --watch"
+    "test": "tsc -p tsconfig.test.json && node --test --test-timeout=20000 \"dist-test/test/**/*.test.js\""
   },
   "dependencies": {
     "@nestjs/common": "^10.4.0",
